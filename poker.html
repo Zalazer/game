@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Покер на 9 человек</title>
+    <style>
+        /* Стили для расположения игроков и карт */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .player {
+            display: inline-block;
+            margin: 20px;
+            vertical-align: top;
+        }
+        .player h2 {
+            margin-bottom: 10px;
+        }
+        .card {
+            width: 50px;
+            height: 70px;
+            border: 1px solid #000;
+            display: inline-block;
+            margin: 2px;
+            background-color: #fff;
+            line-height: 70px;
+            font-size: 20px;
+        }
+        #dealButton {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Покер на 9 человек</h1>
+    <div id="players"></div>
+    <button id="dealButton">Раздать карты</button>
+
+    <script>
+        const suits = ['♠', '♥', '♦', '♣'];
+        const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+        let deck = [];
+
+        // Инициализация игроков
+        const numPlayers = 9;
+        const players = [];
+        const playersDiv = document.getElementById('players');
+
+        function createDeck() {
+            deck = [];
+            for (let suit of suits) {
+                for (let rank of ranks) {
+                    deck.push({rank, suit});
+                }
+            }
+        }
+
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        function createPlayers() {
+            playersDiv.innerHTML = '';
+            for (let i = 1; i <= numPlayers; i++) {
+                let player = {
+                    id: i,
+                    hand: []
+                };
+                players.push(player);
+
+                let playerDiv = document.createElement('div');
+                playerDiv.className = 'player';
+                playerDiv.id = 'player_' + i;
+
+                let playerTitle = document.createElement('h2');
+                playerTitle.textContent = 'Игрок ' + i;
+                playerDiv.appendChild(playerTitle);
+
+                let handDiv = document.createElement('div');
+                handDiv.className = 'hand';
+                playerDiv.appendChild(handDiv);
+
+                playersDiv.appendChild(playerDiv);
+            }
+        }
+
+        function dealCards() {
+            createDeck();
+            shuffleDeck();
+            for (let i = 0; i < 2; i++) {
+                for (let player of players) {
+                    let card = deck.pop();
+                    player.hand.push(card);
+
+                    let cardDiv = document.createElement('div');
+                    cardDiv.className = 'card';
+                    cardDiv.textContent = card.rank + card.suit;
+                    document.querySelector('#player_' + player.id + ' .hand').appendChild(cardDiv);
+                }
+            }
+        }
+
+        document.getElementById('dealButton').addEventListener('click', function() {
+            // Очистка предыдущих карт
+            players.forEach(player => {
+                player.hand = [];
+                let handDiv = document.querySelector('#player_' + player.id + ' .hand');
+                handDiv.innerHTML = '';
+            });
+            dealCards();
+        });
+
+        createPlayers();
+    </script>
+</body>
+</html>
