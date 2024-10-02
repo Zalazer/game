@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Покер на 9 игроков</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+  }
+  .player {
+    margin: 10px 0;
+  }
+  .best {
+    background-color: #c8e6c9;
+  }
+  .worst {
+    background-color: #ffcdd2;
+  }
+  .hand, .community {
+    display: inline-block;
+    margin-right: 10px;
+  }
+  .card {
+    width: 50px;
+    height: 70px;
+    border: 1px solid #333;
+    display: inline-block;
+    text-align: center;
+    line-height: 70px;
+    font-size: 20px;
+    margin-right: 5px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Покер на 9 игроков</h1>
+<div id="game"></div>
+
+<script>
+// Создаем колоду карт
+function createDeck() {
+  const suits = ['♠', '♥', '♦', '♣'];
+  const ranks = [
+    '2', '3', '4', '5', '6', '7', '8', '9', '10',
+    'J', 'Q', 'K', 'A'
+  ];
+  const deck = [];
+  for (let suit of suits) {
+    for (let rank of ranks) {
+      deck.push({rank, suit, value: ranks.indexOf(rank)});
+    }
+  }
+  return deck;
+}
+
+// Перемешиваем колоду
+function shuffle(deck) {
+  for (let i = deck.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+// Оцениваем силу руки
+function evaluateHand(cards) {
+  const counts = {};
+  const suits = {};
+  const values = cards.map(card => card.value).sort((a, b) => a - b);
+  const ranks = cards.map(card => card.rank);
+  const uniqueValues = [...new Set(values)];
+  const isFlush = cards.every(card => card.suit === cards[0].suit);
+  const isStraight = uniqueValues.length === 5 && uniqueValues[4] - uniqueValues[0] === 4;
+  const countsArr = [];
+
+  for (let card of cards) {
+    counts[card.rank] = (counts[card.rank] || 0) + 1;
+    suits[card.suit] = (suits[card.suit] || 0) + 1;
+  }
+
+  for (let count in counts) {
+    countsArr.push(counts[count]);
+  }
+
+  countsArr.sort((a, b) => b - a);
+
+  if (isFlush && isStraight && values[0] === 8) {
+    return {rank: 9, name: 'Роял-флеш'};
+  }
+  if (isFlush && isStraight) {
+    return {rank: 8, name: 'Стрит-флеш'};
+  }
+  if (countsArr[0] === 4) {
+    return {rank: 7, name: 'Каре'};
+  }
+  if (countsArr[0] === 3 && countsArr[1] === 2) {
+    return {rank: 6, name: 'Фулл-хаус'};
+  }
+  if (isFlush) {
+    return {rank: 5, name: 'Флеш'};
+  }
+  if (isStraight) {
+    return {rank: 4, name: 'Стрит'};
+  }
+  if (countsArr[0] === 3) {
+    return {rank: 3, name: 'Сет'};
+  }
+  if (countsArr[0] === 2 && countsArr[1] === 2) {
+    return {rank: 2, name: 'Две пары'};
+  }
+  if (countsArr[0] === 2) {
+    return {rank: 1, name: 'Пара'};
+  }
+  return {rank: 0, name: 'Старшая карта'};
+}
+
+// Вывод карты
+function renderCard(card) {
+  return `<div class="card">${card.rank}${card.suit}</div>`;
+}
+
+// Вычисление процентов победы на флопе
+function calculateWinningChances(players, communityCards, deck) {
+  const simulations = 1000;
+  const wins = Array(players.length).fill(0);
+
+  for (let i = 0; i < simulations; i++) {
+    const simDeck = [...deck];
+    shuffle(simDeck);
+
+    const simCommunity = [...communityCards];
+    while (simCommunity.length < 5) {
+      simCommunity.push(simDeck.pop());
+    }
+
+    const hands = players.map(player => player.cards.concat(simCommunity));
+    const evaluations = hands.map(hand => evaluateBestHand(hand));
+    const maxRank = Math.max(...evaluations.map(e => e.rank));
+    const winners = evaluations
+      .map((e, idx) => (e.rank === maxRank ? idx : -1))
+      .filter(idx => idx !== -1);
+
+    for (let winner of winners) {
+      wins[winner] += 1 / winners.length;
+    }
+  }
+
+  return wins.map(win => ((win / simulations) * 100).toFixed(2));
+}
+
+// Выбор лучшей комбинации из 7 карт
+function evaluateBestHand(cards) {
+  let maxEvaluation = {rank: -1};
+  const combinations = getCombinations(cards, 5);
+
+  for (let combo of combinations) {
+    const evaluation = evaluateHand(combo);
+    if (evaluation.rank > maxEvaluation.rank) {
+      maxEvaluation = evaluation;
+    }
+  }
+  return maxEvaluation;
+}
+
+// Получение всех комбинаций из n элементов по k
+function getCombinations(arr, k) {
+  const results = [];
+  function combinate(path, index) {
+    if (path.length === k) {
+      results.push(path);
+      return;
+    }
+    for (let i = index; i < arr.length; i++) {
+      combinate(path.concat([arr[i]]), i + 1);
+    }
+  }
+  combinate([], 0);
+  return results;
+}
+
+// Запуск игры
+function startGame() {
+  let deck = createDeck();
+  shuffle(deck);
+
+  const players = [];
+  for (let i = 0; i < 9; i++) {
+    players.push({name: `Игрок ${i + 1}`, cards: [deck.pop(), deck.pop()]});
+  }
+
+  const communityCards = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+
+  const winningChances = calculateWinningChances(players, communityCards.slice(0, 3), deck);
+
+  const results = players.map((player, idx) => {
+    const allCards = player.cards.concat(communityCards);
+    const evaluation = evaluateBestHand(allCards);
+    return {
+      name: player.name,
+      cards: player.cards,
+      evaluation,
+      chance: winningChances[idx]
+    };
+  });
+
+  results.sort((a, b) => b.evaluation.rank - a.evaluation.rank);
+
+  const maxRank = results[0].evaluation.rank;
+  const minRank = results[results.length - 1].evaluation.rank;
+
+  const gameDiv = document.getElementById('game');
+
+  // Вывод общих карт
+  let html = '<h2>Общие карты</h2><div class="community">';
+  for (let card of communityCards) {
+    html += renderCard(card);
+  }
+  html += '</div>';
+
+  // Вывод игроков
+  html += '<h2>Результаты</h2>';
+  for (let result of results) {
+    let className = 'player';
+    if (result.evaluation.rank === maxRank) className += ' best';
+    if (result.evaluation.rank === minRank) className += ' worst';
+
+    html += `<div class="${className}">
+      <strong>${result.name}</strong> (${result.evaluation.name}, шанс победы на флопе: ${result.chance}%)
+      <div class="hand">`;
+    for (let card of result.cards) {
+      html += renderCard(card);
+    }
+    html += '</div></div>';
+  }
+
+  gameDiv.innerHTML = html;
+}
+
+startGame();
+</script>
+
+</body>
+</html>
