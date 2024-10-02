@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Техасский Холдем Покер</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .player { margin-bottom: 20px; }
+        .cards { display: flex; }
+        .card {
+            width: 50px; height: 70px; border: 1px solid #000; border-radius: 5px;
+            display: flex; align-items: center; justify-content: center; margin-right: 5px;
+            font-size: 20px; font-weight: bold;
+        }
+        .hearts, .diamonds { color: red; }
+        .spades { color: black; }
+        .clubs { color: green; }
+        .best { background-color: #d4edda; }
+        .worst { background-color: #f8d7da; }
+        .community { margin-bottom: 20px; }
+        button { margin-right: 10px; padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<h1>Техасский Холдем Покер</h1>
+
+<div id="game"></div>
+
+<button onclick="dealNewBoard()">Дополнительный борд</button>
+<button onclick="startGame()">Полная перераздача</button>
+
+<script>
+    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    let deck = [];
+    let players = [];
+    let communityCards = [];
+    let usedCards = [];
+
+    function createDeck() {
+        deck = [];
+        for (let suit of suits) {
+            for (let rank of ranks) {
+                deck.push({ suit, rank });
+            }
+        }
+    }
+
+    function shuffleDeck() {
+        for (let i = deck.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+    }
+
+    function dealCards() {
+        players = [];
+        usedCards = [];
+        for (let i = 1; i <= 9; i++) {
+            let card1 = deck.pop();
+            let card2 = deck.pop();
+            usedCards.push(card1, card2);
+            players.push({ name: `Игрок ${i}`, cards: [card1, card2], handStrength: 0, winPercent: 0 });
+        }
+    }
+
+    function dealCommunityCards() {
+        communityCards = [];
+        for (let i = 0; i < 5; i++) {
+            let card = deck.pop();
+            communityCards.push(card);
+            usedCards.push(card);
+        }
+    }
+
+    function evaluateHands() {
+        for (let player of players) {
+            let allCards = player.cards.concat(communityCards);
+            // Здесь должна быть функция оценки комбинации покерных рук
+            player.handStrength = Math.random(); // Замените на реальную оценку
+        }
+    }
+
+    function calculateWinPercentages() {
+        // Для упрощения используем случайные значения
+        for (let player of players) {
+            player.winPercent = Math.floor(Math.random() * 100);
+        }
+    }
+
+    function displayGame() {
+        let gameDiv = document.getElementById('game');
+        gameDiv.innerHTML = '';
+
+        // Отображение общих карт
+        let communityDiv = document.createElement('div');
+        communityDiv.className = 'community';
+        let communityTitle = document.createElement('h2');
+        communityTitle.innerText = 'Общие карты:';
+        communityDiv.appendChild(communityTitle);
+
+        let communityCardsDiv = document.createElement('div');
+        communityCardsDiv.className = 'cards';
+        for (let card of communityCards) {
+            communityCardsDiv.appendChild(createCardElement(card));
+        }
+        communityDiv.appendChild(communityCardsDiv);
+        gameDiv.appendChild(communityDiv);
+
+        // Сортировка игроков по силе руки
+        players.sort((a, b) => b.handStrength - a.handStrength);
+
+        // Выделение лучшей и худшей руки
+        players[0].isBest = true;
+        players[players.length - 1].isWorst = true;
+
+        // Отображение игроков
+        for (let player of players) {
+            let playerDiv = document.createElement('div');
+            playerDiv.className = 'player';
+            if (player.isBest) playerDiv.classList.add('best');
+            if (player.isWorst) playerDiv.classList.add('worst');
+
+            let playerTitle = document.createElement('h3');
+            playerTitle.innerText = `${player.name} - Процент победы: ${player.winPercent}%`;
+            playerDiv.appendChild(playerTitle);
+
+            let playerCardsDiv = document.createElement('div');
+            playerCardsDiv.className = 'cards';
+            for (let card of player.cards) {
+                playerCardsDiv.appendChild(createCardElement(card));
+            }
+            playerDiv.appendChild(playerCardsDiv);
+
+            gameDiv.appendChild(playerDiv);
+        }
+    }
+
+    function createCardElement(card) {
+        let cardDiv = document.createElement('div');
+        cardDiv.className = `card ${card.suit}`;
+        cardDiv.innerText = card.rank;
+        return cardDiv;
+    }
+
+    function startGame() {
+        createDeck();
+        shuffleDeck();
+        dealCards();
+        dealCommunityCards();
+        evaluateHands();
+        calculateWinPercentages();
+        displayGame();
+    }
+
+    function dealNewBoard() {
+        // Возвращаем использованные общие карты в колоду и перемешиваем
+        deck = deck.concat(communityCards);
+        shuffleDeck();
+        dealCommunityCards();
+        evaluateHands();
+        calculateWinPercentages();
+        displayGame();
+    }
+
+    startGame();
+</script>
+
+</body>
+</html>
