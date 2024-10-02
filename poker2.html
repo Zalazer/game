@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Техасский Холдем Покер</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #players {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .player {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            width: calc(33% - 22px);
+            box-sizing: border-box;
+        }
+        .cards {
+            display: flex;
+        }
+        .card {
+            width: 30px;
+            height: 45px;
+            border: 1px solid #000;
+            text-align: center;
+            line-height: 45px;
+            margin-right: 5px;
+        }
+        #community-cards {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #community-cards .card {
+            margin-right: 5px;
+        }
+        #deal-button {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Техасский Холдем Покер</h1>
+    <button id="deal-button">Раздать карты</button>
+    <div id="community-cards"></div>
+    <div id="players"></div>
+    <script>
+        const suits = ['♠', '♥', '♦', '♣'];
+        const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+        function createDeck() {
+            const deck = [];
+            for (let suit of suits) {
+                for (let rank of ranks) {
+                    deck.push({suit: suit, rank: rank});
+                }
+            }
+            return deck;
+        }
+
+        function shuffle(deck) {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        function dealCards() {
+            const deck = createDeck();
+            shuffle(deck);
+
+            const players = [];
+            for (let i = 0; i < 9; i++) {
+                players.push({
+                    id: i + 1,
+                    hand: [deck.pop(), deck.pop()],
+                    bestHand: null,
+                    handName: ''
+                });
+            }
+
+            const communityCards = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+
+            // Оценка рук на каждой улице
+            const streets = [
+                communityCards.slice(0, 3), // Флоп
+                communityCards.slice(0, 4), // Тёрн
+                communityCards.slice(0, 5)  // Ривер
+            ];
+
+            let streetNames = ['Флоп', 'Тёрн', 'Ривер'];
+            let output = '';
+
+            for (let s = 0; s < streets.length; s++) {
+                const currentCommunityCards = streets[s];
+                evaluateHands(players, currentCommunityCards);
+                players.sort((a, b) => b.bestHand.rank - a.bestHand.rank);
+                output += `<h2>${streetNames[s]}</h2>`;
+                output += renderCommunityCards(currentCommunityCards);
+                output += renderPlayers(players);
+            }
+
+            document.getElementById('players').innerHTML = output;
+        }
+
+        function evaluateHands(players, communityCards) {
+            for (let player of players) {
+                const allCards = player.hand.concat(communityCards);
+                player.bestHand = getBestHand(allCards);
+            }
+        }
+
+        function getBestHand(cards) {
+            // Упрощённая оценка руки
+            const counts = {};
+            const values = [];
+            for (let card of cards) {
+                let value = card.rank;
+                counts[value] = (counts[value] || 0) + 1;
+                values.push(value);
+            }
+
+            const countsArray = Object.values(counts).sort((a, b) => b - a);
+            let rank = 0;
+            let handName = 'Старшая карта';
+
+            if (countsArray[0] === 4) {
+                rank = 7;
+                handName = 'Каре';
+            } else if (countsArray[0] === 3 && countsArray[1] === 2) {
+                rank = 6;
+                handName = 'Фулл-хаус';
+            } else if (countsArray[0] === 3) {
+                rank = 3;
+                handName = 'Сет';
+            } else if (countsArray[0] === 2 && countsArray[1] === 2) {
+                rank = 2;
+                handName = 'Две пары';
+            } else if (countsArray[0] === 2) {
+                rank = 1;
+                handName = 'Пара';
+            } else {
+                rank = 0;
+                handName = 'Старшая карта';
+            }
+
+            return {rank: rank, name: handName};
+        }
+
+        function renderCommunityCards(cards) {
+            let html = '<div id="community-cards">';
+            for (let card of cards) {
+                html += `<div class="card">${card.rank}${card.suit}</div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function renderPlayers(players) {
+            let html = '<div id="players">';
+            for (let player of players) {
+                html += `<div class="player">
+                            <h3>Игрок ${player.id}</h3>
+                            <div class="cards">
+                                <div class="card">${player.hand[0].rank}${player.hand[0].suit}</div>
+                                <div class="card">${player.hand[1].rank}${player.hand[1].suit}</div>
+                            </div>
+                            <p>${player.bestHand.name}</p>
+                        </div>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        document.getElementById('deal-button').addEventListener('click', dealCards);
+    </script>
+</body>
+</html>
