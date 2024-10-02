@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Покер на 9 человек</title>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .player { border: 1px solid #ccc; padding: 10px; margin: 5px; }
+  .best { background-color: #d4edda; }
+  .worst { background-color: #f8d7da; }
+  .cards { font-size: 24px; }
+  .community-cards { margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<h1>Покер на 9 человек</h1>
+<button onclick="startGame()">Начать игру</button>
+<div id="game"></div>
+
+<script>
+const suits = ['♠', '♥', '♦', '♣'];
+const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+let deck = [];
+let players = [];
+let communityCards = [];
+
+function createDeck() {
+  deck = [];
+  for (let suit of suits) {
+    for (let rank of ranks) {
+      deck.push({rank, suit});
+    }
+  }
+}
+
+function shuffleDeck() {
+  for (let i = deck.length -1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i +1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+}
+
+function dealCards() {
+  players = [];
+  for (let i = 1; i <= 9; i++) {
+    let hand = [deck.pop(), deck.pop()];
+    players.push({id: i, hand, strength: null, bestHand: null});
+  }
+}
+
+function dealCommunityCards() {
+  communityCards = [deck.pop(), deck.pop(), deck.pop(), deck.pop(), deck.pop()];
+}
+
+function evaluateHands(stage) {
+  let numberOfCommunityCards = stage === 'flop' ? 3 : stage === 'turn' ? 4 : 5;
+  let community = communityCards.slice(0, numberOfCommunityCards);
+
+  for (let player of players) {
+    let fullHand = player.hand.concat(community);
+    let result = evaluateHand(fullHand);
+    player.strength = result.value;
+    player.bestHand = result.name;
+  }
+
+  players.sort((a, b) => b.strength - a.strength);
+}
+
+function evaluateHand(cards) {
+  let ranksCount = {};
+  let suitsCount = {};
+  let ranksOrder = ranks.concat().reverse();
+
+  for (let card of cards) {
+    ranksCount[card.rank] = (ranksCount[card.rank] || 0) + 1;
+    suitsCount[card.suit] = (suitsCount[card.suit] || 0) + 1;
+  }
+
+  let isFlush = Object.values(suitsCount).some(count => count >= 5);
+  let ranksInHand = Object.keys(ranksCount).map(rank => ranksOrder.indexOf(rank));
+  ranksInHand.sort((a, b) => a - b);
+
+  let isStraight = false;
+  for (let i = 0; i <= ranksInHand.length - 5; i++) {
+    if (ranksInHand[i + 4] - ranksInHand[i] === 4) {
+      isStraight = true;
+      break;
+    }
+  }
+
+  if (!isStraight && ranksInHand.includes(12) && ranksInHand.slice(0, 4).toString() === '0,1,2,3') {
+    isStraight = true; // A-2-3-4-5
+  }
+
+  if (isFlush && isStraight) return {value: 9, name: 'Стрит-флеш'};
+  if (Object.values(ranksCount).includes(4)) return {value: 8, name: 'Каре'};
+  if (Object.values(ranksCount).includes(3) && Object.values(ranksCount).includes(2)) return {value: 7, name: 'Фулл-хаус'};
+  if (isFlush) return {value: 6, name: 'Флеш'};
+  if (isStraight) return {value: 5, name: 'Стрит'};
+  if (Object.values(ranksCount).includes(3)) return {value: 4, name: 'Сет'};
+  let pairs = Object.values(ranksCount).filter(count => count === 2).length;
+  if (pairs === 2) return {value: 3, name: 'Две пары'};
+  if (pairs === 1) return {value: 2, name: 'Пара'};
+  return {value: 1, name: 'Старшая карта'};
+}
+
+function displayGame(stage) {
+  let gameDiv = document.getElementById('game');
+  gameDiv.innerHTML = '';
+
+  let stageName = stage === 'preflop' ? 'Префлоп' : stage === 'flop' ? 'Флоп' : stage === 'turn' ? 'Терн' : 'Ривер';
+  let heading = document.createElement('h2');
+  heading.textContent = stageName;
+  gameDiv.appendChild(heading);
+
+  if (stage !== 'preflop') {
+    let communityDiv = document.createElement('div');
+    communityDiv.className = 'community-cards';
+    communityDiv.innerHTML = '<strong>Общие карты:</strong> ' + communityCards.slice(0, stage === 'flop' ? 3 : stage === 'turn' ? 4 : 5).map(card => card.rank + card.suit).join(' ');
+    gameDiv.appendChild(communityDiv);
+  }
+
+  let bestStrength = Math.max(...players.map(p => p.strength));
+  let worstStrength = Math.min(...players.map(p => p.strength));
+
+  for (let player of players) {
+    let playerDiv = document.createElement('div');
+    playerDiv.className = 'player';
+    if (player.strength === bestStrength) playerDiv.classList.add('best');
+    if (player.strength === worstStrength) playerDiv.classList.add('worst');
+
+    playerDiv.innerHTML = `
+      <strong>Игрок ${player.id}</strong><br>
+      Карты: ${player.hand.map(card => card.rank + card.suit).join(' ')}<br>
+      ${stage !== 'preflop' ? `Комбинация: ${player.bestHand}` : ''}
+    `;
+    gameDiv.appendChild(playerDiv);
+  }
+}
+
+function startGame() {
+  createDeck();
+  shuffleDeck();
+  dealCards();
+  dealCommunityCards();
+
+  evaluateHands('preflop');
+  displayGame('preflop');
+
+  setTimeout(() => {
+    evaluateHands('flop');
+    displayGame('flop');
+  }, 1000);
+
+  setTimeout(() => {
+    evaluateHands('turn');
+    displayGame('turn');
+  }, 2000);
+
+  setTimeout(() => {
+    evaluateHands('river');
+    displayGame('river');
+  }, 3000);
+}
+
+</script>
+
+</body>
+</html>
