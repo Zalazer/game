@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Turn Strategy – Full Restore with WebAudio</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
+#info{position:fixed;top:6px;left:6px;font-family:monospace;font-size:24px;color:white;background:rgba(0,0,0,0.65);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.3;}
+#log{position:fixed;bottom:6px;left:6px;right:6px;max-height:28%;overflow:auto;font-family:monospace;font-size:14px;color:#0f0;background:rgba(0,0,0,0.7);padding:6px;}
+#overlay{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:white;font-family:monospace;display:none;}
+#overlay button{margin-top:20px;padding:10px 20px;font-size:20px;background:#222;color:white;border:none;border-radius:6px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="info"></div>
+<div id="log"></div>
+<div id="overlay"><div id="msg"></div><button id="restartBtn">Press to start new game</button></div>
+<canvas id="game"></canvas>
+
+<script>
+/* ==================== КОНСТАНТЫ ==================== */
+const MAP = 20, TILE = 40;
+const BOTS = 5, MONSTERS = 20, CHESTS = 20;
+
+/* ==================== CANVAS ==================== */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+/* ==================== КАМЕРА И ЖЕСТЫ ==================== */
+let camX = 0, camY = 0, scale = 1;
+let pointers = new Map(), lastPinch = null;
+
+/* ==================== DOM ==================== */
+const logBox = document.getElementById("log");
+const overlay = document.getElementById("overlay");
+const msgDiv = document.getElementById("msg");
+const restartBtn = document.getElementById("restartBtn");
+
+/* ==================== ИГРОК, БОТЫ, ОБЪЕКТЫ ==================== */
+let moveNumber = 0, roundNumber = 0;
+let gameOver = false;
+let logCounter = 0;
+let player = {x:0,y:0,power:1,speed:5,movesLeft:5,color:"cyan",id:"player"};
+let bots=[], monsters=[], chests=[], flashes=[], deadZones=[];
+
+/* ==================== ЛОГ С НУМЕРАЦИЕЙ ==================== */
+function log(t){
+    logCounter++;
+    logBox.innerHTML += `${logCounter}. ${t}<br>`;
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+/* ==================== ПОМОЩЬ ==================== */
+function posKey(x,y){ return `${x},${y}`; }
+
+/* ==================== WebAudio ЗВУКИ ==================== */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, duration=0.15, type='sine', volume=1){
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime+duration);
+}
+
+// существующие
+function playChestSound(){ playTone(440,0.15,'triangle'); setTimeout(()=>playTone(660,0.15,'triangle'),50); }
+function playMonsterSound(){ playTone(220,0.2,'square'); setTimeout(()=>playTone(180,0.15,'square'),50); }
+function playBotSound(){ playTone(330,0.1,'sawtooth'); setTimeout(()=>playTone(392,0.1,'sawtooth'),30); }
+
+// новые
+function playNewRoundSound(){
+    playTone(300,0.12,'sine',0.6);
+    setTimeout(()=>playTone(360,0.12,'sine',0.6),80);
+    setTimeout(()=>playTone(420,0.12,'sine',0.6),160);
+}
+function playWinSound(){
+    playTone(523.25,0.18,'triangle',0.9);   // C5
+    setTimeout(()=>playTone(659.25,0.18,'triangle',0.9),120); // E5
+    setTimeout(()=>playTone(783.99,0.25,'triangle',0.9),260); // G5
+}
+function playLoseSound(){
+    playTone(196.00,0.25,'square',0.9);     // G3
+    setTimeout(()=>playTone(174.61,0.25,'square',0.9),200);  // F3
+    setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
+}
+
+/* ==================== КОНЕЦ ИГРЫ ==================== */
+function endGame(text){
+    if(gameOver) return;
+    gameOver = true;
+
+    if(text.startsWith("Game Over")){
+        msgDiv.style.color = "yellow";
+        playLoseSound();
+    } else if(text.startsWith("You Win")){
+        msgDiv.style.color = "red";
+        playWinSound();
+    } else {
+        msgDiv.style.color = "white";
+    }
+
+    msgDiv.innerText = text;
+    overlay.style.display = "block";
+}
+
+/* ==================== SPAWN ==================== */
+function spawn(){
+    const used = new Set();
+    function placeUnique(){
+        let x,y,key;
+        do { x=Math.floor(Math.random()*MAP); y=Math.floor(Math.random()*MAP); key=posKey(x,y);} 
+        while(used.has(key));
+        used.add(key);
+        return {x,y};
+    }
+
+    moveNumber = 0; roundNumber = 0; logCounter=0;
+    let p = placeUnique();
+    player.x = p.x; player.y = p.y; player.power = 1; player.speed = 5; player.movesLeft = player.speed;
+    bots=[], monsters=[], chests=[], flashes=[], deadZones=[], gameOver=false; overlay.style.display="none";
+
+    for(let i=0;i<BOTS;i++){
+        let pos = placeUnique();
+        bots.push({
+            id:`bot-${String(i+1).padStart(3,"0")}`,
+            x:pos.x,y:pos.y,
+            power:1,speed:5,movesLeft:5,
+            alive:true,px:null,py:null,color:"blue"
+        });
+    }
+
+    for(let i=0;i<MONSTERS;i++){
+        let pos = placeUnique();
+        monsters.push({x:pos.x,y:pos.y,power:1});
+    }
+
+    for(let i=0;i<CHESTS;i++){
+        let pos = placeUnique();
+        chests.push({x:pos.x,y:pos.y,power:1});
+    }
+
+    playNewRoundSound();
+}
+
+/* ==================== ПРОХОДИМОСТЬ КЛЕТКИ ==================== */
+function isBlockedFor(entity, x, y){
+    if(x<0 || y<0 || x>=MAP || y>=MAP) return true;
+
+    if(deadZones.some(dz => dz.x === x && dz.y === y)) return true;
+
+    if(entity !== player && player.x === x && player.y === y){
+        if(player.power >= entity.power) return true;
+    }
+
+    for(let m of monsters){
+        if(m.x === x && m.y === y){
+            if(entity.power < m.power) return true;
+        }
+    }
+
+    for(let b of bots){
+        if(!b.alive) continue;
+        if(b.x === x && b.y === y){
+            if(entity === b) continue;
+            if(b.power >= entity.power) return true;
+        }
+    }
+
+    return false;
+}
+
+/* ==================== BFS ДОСТУПНЫХ КЛЕТОК ==================== */
+function bfsReachable(e){
+    let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
+    let q = [{x:e.x,y:e.y,dist:0}]; visited[e.x][e.y] = true;
+    let reachable = [];
+    while(q.length){
+        let cur = q.shift();
+        if(cur.dist>0 && cur.dist<=e.movesLeft) reachable.push({x:cur.x,y:cur.y,dist:cur.dist});
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
+            let nx = cur.x+d[0], ny = cur.y+d[1];
+            if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
+            if(visited[nx][ny]) return;
+            if(isBlockedFor(e, nx, ny)) return;
+            visited[nx][ny]=true;
+            if(cur.dist+1<=e.movesLeft) q.push({x:nx,y:ny,dist:cur.dist+1});
+        });
+    }
+    return reachable;
+}
+
+/* ==================== BFS ПУТИ ==================== */
+function bfsPath(entity, sx,sy,tx,ty){
+    let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
+    let prev = Array.from({length:MAP},()=>Array(MAP).fill(null));
+    let q=[{x:sx,y:sy}]; visited[sx][sy]=true;
+    while(q.length){
+        let cur = q.shift();
+        if(cur.x===tx && cur.y===ty) break;
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
+            let nx = cur.x+d[0], ny = cur.y+d[1];
+            if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
+            if(visited[nx][ny]) return;
+            if(isBlockedFor(entity, nx, ny)) return;
+            visited[nx][ny]=true; prev[nx][ny]=cur; q.push({x:nx,y:ny});
+        });
+    }
+    let path=[], cx=tx, cy=ty;
+    if(!prev[cx][cy] && !(cx===sx && cy===sy)) return null;
+    while(cx!==sx||cy!==sy){ path.push({x:cx,y:cy}); let p=prev[cx][cy]; if(!p) break; cx=p.x; cy=p.y;}
+    path.reverse(); return path;
+}
+
+/* ==================== FLASH ЭФФЕКТ ==================== */
+function flash(x,y,color){flashes.push({x,y,color,alpha:1});}
+
+/* ==================== COLLECT ==================== */
+function collect(e){
+    if(gameOver) return;
+
+    chests = chests.filter(c=>{
+        if(c.x===e.x && c.y===e.y){
+            e.power += c.power;
+            log(`${e.id || 'entity'} collected chest +${c.power} (power:${e.power} speed:${e.speed})`);
+            flash(c.x,c.y,"yellow");
+            deadZones.push({x:c.x,y:c.y,number:c.power});
+            playChestSound();
+            return false;
+        }
+        return true;
+    });
+
+    monsters = monsters.filter(m=>{
+        if(m.x===e.x && m.y===e.y && e.power >= m.power){
+            e.speed += 1;
+            log(`${e.id || 'entity'} killed monster (power:${e.power} speed:${e.speed})`);
+            flash(m.x,m.y,"red");
+            deadZones.push({x:m.x,y:m.y,number:m.power});
+            playMonsterSound();
+            return false;
+        }
+        return true;
+    });
+
+    bots.forEach(b=>{
+        if(b!==e && b.alive && b.x===e.x && b.y===e.y){
+            if(e.power >= b.power){
+                b.alive = false;
+                e.speed += 2;
+                log(`${e.id || 'entity'} killed ${b.id} (power:${e.power} speed:${e.speed})`);
+                flash(b.x,b.y,"blue");
+                deadZones.push({x:b.x,y:b.y,number:b.power});
+                playBotSound();
+            }
+        }
+    });
+
+    if(!gameOver){
+        bots.forEach(b=>{
+            if(b.alive && b.x===player.x && b.y===player.y && b.power >= player.power){
+                endGame(`Game Over with ${player.power} power and ${player.speed} speed`);
+            }
+        });
+    }
+
+    if(bots.every(b=>!b.alive) && !gameOver){
+        endGame(`You Win with ${player.power} power and ${player.speed} speed!`);
+    }
+}
+
+/* ==================== BOT MOVE ==================== */
+function botStep(b){
+    if(!b.alive || gameOver) return;
+
+    b.movesLeft = b.speed;
+    const startX = b.x;
+    const startY = b.y;
+    let movedAtLeastOnce = false;
+
+    while(b.movesLeft > 0 && !gameOver){
+        let safeTargets = [];
+
+        safeTargets.push(...chests);
+        safeTargets.push(...monsters.filter(m => m.power <= b.power));
+        safeTargets.push(...bots.filter(o => o !== b && o.alive && o.power < b.power));
+        if(player.power < b.power){
+            safeTargets.push(player);
+        }
+
+        if(safeTargets.length === 0) break;
+
+        safeTargets.sort((a,c)=>
+            (Math.abs(b.x-a.x)+Math.abs(b.y-a.y)) -
+            (Math.abs(b.x-c.x)+Math.abs(b.y-c.y))
+        );
+        let t = safeTargets[0];
+        if(!t) break;
+
+        let path = bfsPath(b, b.x, b.y, t.x, t.y);
+        if(!path || path.length === 0) break;
+
+        let step = path[0];
+        if(isBlockedFor(b, step.x, step.y)) break;
+
+        b.px = b.x;
+        b.py = b.y;
+        b.x = step.x;
+        b.y = step.y;
+        b.movesLeft--;
+        movedAtLeastOnce = true;
+
+        collect(b);
+        if(!b.alive || gameOver) break;
+    }
+
+    // если бот не смог сдвинуться ни на одну клетку — он остаётся на месте, но раунд всё равно считается для него
+    if(!movedAtLeastOnce){
+        b.x = startX;
+        b.y = startY;
+    }
+}
+
+/* ==================== INPUT ==================== */
+canvas.addEventListener("pointerdown",e=>pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}));
+canvas.addEventListener("pointermove",e=>{
+    if(!pointers.has(e.pointerId)) return;
+    let p=pointers.get(e.pointerId); p.x=e.clientX; p.y=e.clientY;
+    if(pointers.size===1){ camX+=e.movementX; camY+=e.movementY; }
+    if(pointers.size===2){
+        let [a,b]=[...pointers.values()];
+        let d = Math.hypot(a.x-b.x,a.y-b.y);
+        if(lastPinch){ let delta = (d-lastPinch)*0.0025; scale *= 1+delta; scale=Math.max(0.4,Math.min(4,scale)); }
+        lastPinch = d;
+    }
+});
+canvas.addEventListener("pointerup",e=>{ pointers.delete(e.pointerId); if(pointers.size<2) lastPinch=null; });
+
+canvas.addEventListener("click",e=>{
+    if(gameOver) return;
+    let rx=(e.clientX-camX)/scale, ry=(e.clientY-camY)/scale;
+    let tx=Math.floor(rx/TILE), ty=Math.floor(ry/TILE);
+    let reachable=bfsReachable(player);
+    if(reachable.some(c=>c.x===tx && c.y===ty)){
+        let path=bfsPath(player, player.x,player.y,tx,ty);
+        if(!path) return;
+
+        const startX = player.x;
+        const startY = player.y;
+        let movedAtLeastOnce = false;
+
+        for(let i=0;i<path.length;i++){
+            player.x=path[i].x; player.y=path[i].y; player.movesLeft--;
+            movedAtLeastOnce = true;
+            collect(player);
+            if(gameOver) return; // победа/поражение могут случиться в середине хода
+            if(player.movesLeft<=0) break;
+        }
+
+        // если вообще не сдвинулся — не заканчиваем раунд
+        if(!movedAtLeastOnce){
+            player.x = startX;
+            player.y = startY;
+            player.movesLeft = Math.max(player.movesLeft,1);
+            return;
+        }
+
+        // Ходы ботов и рост объектов только после того, как игрок исчерпал свои movesLeft или сам остановился
+        if(player.movesLeft<=0 && !gameOver){
+            bots.forEach(b=>botStep(b));
+            if(gameOver) return;
+
+            monsters.forEach(m=>m.power++);
+            chests.forEach(c=>c.power++);
+
+            while(chests.length<CHESTS){
+                let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
+                if(
+                    !deadZones.some(d=>d.x===x&&d.y===y) &&
+                    !chests.some(c=>c.x===x&&c.y===y) &&
+                    !monsters.some(m=>m.x===x&&m.y===y) &&
+                    !bots.some(b=>b.alive && b.x===x && b.y===y) &&
+                    !(player.x===x && player.y===y)
+                ){
+                    chests.push({x,y,power:1});
+                }
+            }
+            while(monsters.length<MONSTERS){
+                let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
+                if(
+                    !deadZones.some(d=>d.x===x&&d.y===y) &&
+                    !monsters.some(m=>m.x===x&&m.y===y) &&
+                    !chests.some(c=>c.x===x&&c.y===y) &&
+                    !bots.some(b=>b.alive && b.x===x && b.y===y) &&
+                    !(player.x===x && player.y===y)
+                ){
+                    monsters.push({x,y,power:1});
+                }
+            }
+
+            roundNumber++;
+            player.movesLeft = player.speed;
+            playNewRoundSound();
+        }
+    }
+});
+
+/* ==================== DRAW ==================== */
+function draw(){
+    ctx.setTransform(scale,0,0,scale,camX,camY);
+    ctx.clearRect(-camX,-camY,canvas.width/scale,canvas.height/scale);
+
+    for(let x=0;x<MAP;x++) for(let y=0;y<MAP;y++){ ctx.strokeStyle="#333"; ctx.strokeRect(x*TILE,y*TILE,TILE,TILE); }
+
+    bfsReachable(player).forEach(c=>{ ctx.fillStyle=`rgba(160,160,160,0.25)`; ctx.fillRect(c.x*TILE,c.y*TILE,TILE,TILE); });
+    bots.filter(b=>b.alive).forEach(b=>bfsReachable(b).forEach(c=>{ ctx.fillStyle=`rgba(80,80,200,0.15)`; ctx.fillRect(c.x*TILE,c.y*TILE,TILE,TILE); }));
+
+    deadZones.forEach(d=>{
+        ctx.fillStyle="white"; ctx.fillRect(d.x*TILE,d.y*TILE,TILE,TILE);
+        ctx.fillStyle="black"; ctx.font="18px monospace"; ctx.fillText(d.number,d.x*TILE+12,d.y*TILE+28);
+    });
+
+    chests.forEach(c=>{
+        ctx.fillStyle="gold"; ctx.fillRect(c.x*TILE+10,c.y*TILE+10,20,20);
+        ctx.fillStyle="black"; ctx.font="18px monospace"; ctx.fillText(c.power,c.x*TILE+14,c.y*TILE+28);
+    });
+
+    monsters.forEach(m=>{
+        ctx.fillStyle="red"; ctx.fillRect(m.x*TILE+8,m.y*TILE+8,24,24);
+        ctx.fillStyle="white"; ctx.font="18px monospace"; ctx.fillText(m.power,m.x*TILE+12,m.y*TILE+28);
+    });
+
+    bots.forEach(b=>{
+        if(!b.alive) return;
+        ctx.fillStyle=b.color; ctx.fillRect(b.x*TILE+6,b.y*TILE+6,28,28);
+        ctx.fillStyle="white"; ctx.font="18px monospace"; ctx.fillText(b.power,b.x*TILE+10,b.y*TILE+28);
+    });
+
+    ctx.fillStyle=player.color; ctx.fillRect(player.x*TILE+6,player.y*TILE+6,28,28);
+    ctx.fillStyle="white"; ctx.font="18px monospace"; ctx.fillText(player.power,player.x*TILE+10,player.y*TILE+28);
+
+    flashes.forEach(f=>{ ctx.fillStyle=`rgba(255,255,255,${f.alpha})`; ctx.fillRect(f.x*TILE,f.y*TILE,TILE,TILE); f.alpha-=0.05; });
+    flashes = flashes.filter(f=>f.alpha>0);
+
+    let remainingChests=chests.length, remainingMonsters=monsters.length, remainingBots=bots.filter(b=>b.alive).length;
+    document.getElementById("info").innerText=
+        `POWER ${player.power}   SPEED ${player.speed}   MOVES ${player.movesLeft}
+`+
+        `Chests ${remainingChests}   Monsters ${remainingMonsters}   Bots ${remainingBots}
+`+
+        `Round ${roundNumber}`;
+}
+
+/* ==================== GAME LOOP ==================== */
+(function loop(){ draw(); requestAnimationFrame(loop); })();
+spawn();
+restartBtn.onclick = ()=>spawn();
+</script>
+</body>
+</html>
