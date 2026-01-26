@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Техасский Холдем Покер</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .player {
+            display: inline-block;
+            margin: 10px;
+            vertical-align: top;
+        }
+        .card {
+            width: 50px;
+            height: 75px;
+            border: 1px solid #000;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 2px;
+            font-size: 20px;
+            line-height: 75px;
+            text-align: center;
+        }
+        .hearts {
+            color: red;
+        }
+        .diamonds {
+            color: blue;
+        }
+        .clubs {
+            color: green;
+        }
+        .spades {
+            color: black;
+        }
+        #board, #players {
+            margin-top: 20px;
+        }
+        button {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Техасский Холдем Покер</h1>
+
+<div id="board">
+    <h2>Общие карты</h2>
+    <div id="community-cards"></div>
+</div>
+
+<div id="players">
+    <h2>Игроки</h2>
+    <div id="player-cards"></div>
+</div>
+
+<button onclick="dealFlop()">Показать флоп</button>
+<button onclick="dealTurn()">Показать терн</button>
+<button onclick="dealRiver()">Показать ривер</button>
+<button onclick="redeal()">Полная перераздача</button>
+
+<script>
+    // Создание колоды карт
+    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+    const values = [
+        '2', '3', '4', '5', '6', '7', '8', '9', '10',
+        'J', 'Q', 'K', 'A'
+    ];
+    let deck = [];
+    let players = [];
+    let communityCards = [];
+    let stage = 0; // 0 - префлоп, 1 - флоп, 2 - терн, 3 - ривер
+
+    function createDeck() {
+        deck = [];
+        for (let suit of suits) {
+            for (let value of values) {
+                deck.push({ suit, value });
+            }
+        }
+    }
+
+    function shuffleDeck() {
+        for (let i = deck.length - 1; i > 0; i--) {
+            let j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+    }
+
+    function deal() {
+        createDeck();
+        shuffleDeck();
+        players = [];
+        communityCards = [];
+        stage = 0;
+        for (let i = 0; i < 9; i++) {
+            players.push({
+                hand: [deck.pop(), deck.pop()],
+                bestHand: null,
+                handName: '',
+                winPercentage: 0
+            });
+        }
+        updateDisplay();
+    }
+
+    function dealFlop() {
+        if (stage === 0) {
+            communityCards.push(deck.pop(), deck.pop(), deck.pop());
+            stage = 1;
+            calculateWinPercentages();
+            updateDisplay();
+        }
+    }
+
+    function dealTurn() {
+        if (stage === 1) {
+            communityCards.push(deck.pop());
+            stage = 2;
+            calculateWinPercentages();
+            updateDisplay();
+        }
+    }
+
+    function dealRiver() {
+        if (stage === 2) {
+            communityCards.push(deck.pop());
+            stage = 3;
+            calculateWinPercentages();
+            evaluateHands();
+            updateDisplay();
+        }
+    }
+
+    function redeal() {
+        deal();
+    }
+
+    function updateDisplay() {
+        // Обновление общих карт
+        let communityDiv = document.getElementById('community-cards');
+        communityDiv.innerHTML = '';
+        for (let card of communityCards) {
+            let cardDiv = document.createElement('div');
+            cardDiv.className = 'card ' + card.suit;
+            cardDiv.innerHTML = card.value;
+            communityDiv.appendChild(cardDiv);
+        }
+
+        // Обновление карт игроков
+        let playersDiv = document.getElementById('player-cards');
+        playersDiv.innerHTML = '';
+        players.forEach((player, index) => {
+            let playerDiv = document.createElement('div');
+            playerDiv.className = 'player';
+            let handDiv = document.createElement('div');
+            for (let card of player.hand) {
+                let cardDiv = document.createElement('div');
+                cardDiv.className = 'card ' + card.suit;
+                cardDiv.innerHTML = card.value;
+                handDiv.appendChild(cardDiv);
+            }
+            playerDiv.innerHTML = `<h3>Игрок ${index + 1}</h3>`;
+            playerDiv.appendChild(handDiv);
+            if (player.handName) {
+                playerDiv.innerHTML += `<p>${player.handName}</p>`;
+            }
+            if (player.winPercentage > 0) {
+                playerDiv.innerHTML += `<p>Шанс победы: ${player.winPercentage}%</p>`;
+            }
+            playersDiv.appendChild(playerDiv);
+        });
+    }
+
+    function calculateWinPercentages() {
+        // Примерная оценка шансов на победу
+        if (stage === 0) return;
+        let simulations = 1000;
+        let wins = new Array(players.length).fill(0);
+
+        for (let i = 0; i < simulations; i++) {
+            let tempDeck = deck.slice();
+            let tempCommunity = communityCards.slice();
+            while (tempCommunity.length < 5) {
+                tempCommunity.push(tempDeck.pop());
+            }
+            let tempPlayers = players.map(player => ({
+                hand: player.hand.slice(),
+                bestHand: null
+            }));
+            tempPlayers.forEach(player => {
+                player.bestHand = evaluateHand(player.hand.concat(tempCommunity));
+            });
+            tempPlayers.sort((a, b) => compareHands(b.bestHand, a.bestHand));
+            wins[tempPlayers.indexOf(tempPlayers[0])]++;
+        }
+
+        players.forEach((player, index) => {
+            player.winPercentage = ((wins[index] / simulations) * 100).toFixed(2);
+        });
+    }
+
+    function evaluateHands() {
+        players.forEach(player => {
+            player.bestHand = evaluateHand(player.hand.concat(communityCards));
+            player.handName = getHandName(player.bestHand.rank);
+        });
+        players.sort((a, b) => compareHands(b.bestHand, a.bestHand));
+    }
+
+    function evaluateHand(cards) {
+        // Простая функция оценки руки
+        // Для полной реализации потребуется более сложный алгоритм
+        let ranks = values.slice();
+        let counts = {};
+        let suitsCount = {};
+        cards.forEach(card => {
+            counts[card.value] = (counts[card.value] || 0) + 1;
+            suitsCount[card.suit] = (suitsCount[card.suit] || 0) + 1;
+        });
+
+        // Проверка на флеш
+        let flushSuit = null;
+        for (let suit in suitsCount) {
+            if (suitsCount[suit] >= 5) {
+                flushSuit = suit;
+            }
+        }
+
+        // Проверка на стрит
+        let cardIndices = cards.map(card => ranks.indexOf(card.value)).sort((a, b) => a - b);
+        let isStraight = false;
+        for (let i = 0; i <= cardIndices.length - 5; i++) {
+            if (cardIndices[i + 4] - cardIndices[i] === 4) {
+                isStraight = true;
+                break;
+            }
+        }
+
+        // Определение комбинации
+        let rank = 1; // Старшая карта
+        if (Object.values(counts).includes(4)) {
+            rank = 8; // Каре
+        } else if (Object.values(counts).includes(3) && Object.values(counts).includes(2)) {
+            rank = 7; // Фулл-хаус
+        } else if (flushSuit) {
+            rank = 6; // Флеш
+        } else if (isStraight) {
+            rank = 5; // Стрит
+        } else if (Object.values(counts).includes(3)) {
+            rank = 4; // Сет
+        } else if (Object.values(counts).filter(x => x === 2).length >= 2) {
+            rank = 3; // Две пары
+        } else if (Object.values(counts).includes(2)) {
+            rank = 2; // Пара
+        }
+        return { rank, counts };
+    }
+
+    function compareHands(a, b) {
+        return a.rank - b.rank;
+    }
+
+    function getHandName(rank) {
+        switch (rank) {
+            case 1: return 'Старшая карта';
+            case 2: return 'Пара';
+            case 3: return 'Две пары';
+            case 4: return 'Сет';
+            case 5: return 'Стрит';
+            case 6: return 'Флеш';
+            case 7: return 'Фулл-хаус';
+            case 8: return 'Каре';
+            default: return '';
+        }
+    }
+
+    // Инициализация игры
+    deal();
+</script>
+
+</body>
+</html>
