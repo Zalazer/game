@@ -85,6 +85,188 @@
         background: rgba(0,0,0,0.9);
         display: none;
         flex-direction: column;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Console</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #0b0b0b;
+        color: #eaeaea;
+        overflow: hidden;
+    }
+
+    #menu, #gameContainer {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    h1 {
+        font-size: 26px;
+        margin-bottom: 24px;
+    }
+
+    .btn {
+        width: 260px;
+        padding: 14px;
+        margin: 8px;
+        font-size: 18px;
+        border: none;
+        border-radius: 10px;
+        background: #1c1c1c;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        background: #2c2c2c;
+    }
+
+    #gameContainer {
+        display: none;
+    }
+
+    /* TOP BAR */
+    #topBar {
+        width: 100%;
+        background: #111;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .topBtn {
+        font-size: 15px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        background: #222;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    iframe {
+        flex-grow: 1;
+        width: 100%;
+        border: none;
+        background: #000;
+    }
+
+    /* RULES OVERLAY */
+    #rulesOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0,0,0,0.9);
+        display: none;
+        flex-direction: column;
+        z-index: 10;
+    }
+
+    #rulesHeader {
+        background: #111;
+        padding: 10px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    #rulesFrame {
+        flex-grow: 1;
+        width: 100%;
+        border: none;
+        background: #000;
+    }
+</style>
+</head>
+
+<body>
+
+<!-- MENU -->
+<div id="menu">
+    <h1>🎮 Game Console</h1>
+
+    <button class="btn" onclick="loadGame('PokerLazer')">
+        ♠️ PokerLazer
+    </button>
+
+    <button class="btn" onclick="loadGame('StarDropper')">
+        ⭐ StarDropper
+    </button>
+
+    <button class="btn" onclick="loadGame('ChronoMonsters')">
+        🧠 ChronoMonsters
+    </button>
+</div>
+
+<!-- GAME -->
+<div id="gameContainer">
+    <div id="topBar">
+        <button class="topBtn" onclick="backToMenu()">← Back to Menu</button>
+        <button class="topBtn" onclick="openRules()">Game Rules</button>
+    </div>
+
+    <!-- ИГРА -->
+    <iframe id="gameFrame"></iframe>
+</div>
+
+<!-- RULES OVERLAY -->
+<div id="rulesOverlay">
+    <div id="rulesHeader">
+        <button class="topBtn" onclick="closeRules()">← Back to Game</button>
+    </div>
+    <iframe id="rulesFrame"></iframe>
+</div>
+
+<script>
+let currentGame = '';
+
+function loadGame(gameFolder) {
+    currentGame = gameFolder;
+
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('gameContainer').style.display = 'flex';
+
+    // Загружаем игру
+    document.getElementById('gameFrame').src =
+        gameFolder + '/index.html';
+}
+
+function backToMenu() {
+    document.getElementById('gameFrame').src = '';
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('gameContainer').style.display = 'none';
+}
+
+function openRules() {
+    if (!currentGame) return;
+
+    // Правила ищем в папке игры по точному регистру: GameFolder/GameFolder-rules.html
+    // Если файла пока нет — iframe просто будет пустым до добавления
+    document.getElementById('rulesOverlay').style.display = 'flex';
+    document.getElementById('rulesFrame').src =
+        currentGame + '/' + currentGame + '-rules.html';
+}
+
+function closeRules() {
+    document.getElementById('rulesFrame').src = '';
+    document.getElementById('rulesOverlay').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
         z-index: 10;
     }
 
@@ -145,31 +327,7 @@
 <script>
 let currentGame = '';
 
-function loadGame(gameFolder) {
-    currentGame = gameFolder;
-
-    document.getElementById('menu').style.display = 'none';
-    document.getElementById('gameContainer').style.display = 'flex';
-
-    document.getElementById('gameFrame').src =
-        gameFolder + '/index.html';
-}
-
-function backToMenu() {
-    document.getElementById('gameFrame').src = '';
-    document.getElementById('menu').style.display = 'flex';
-    document.getElementById('gameContainer').style.display = 'none';
-}
-
-function openRules() {
-    if (!currentGame) return;
-
-    document.getElementById('rulesOverlay').style.display = 'flex';
-    document.getElementById('rulesFrame').src =
-        currentGame + '/' + currentGame + '-rules.html';
-}
-
-function closeRules() {
+ closeRules() {
     document.getElementById('rulesFrame').src = '';
     document.getElementById('rulesOverlay').style.display = 'none';
 }
