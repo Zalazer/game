@@ -97,6 +97,21 @@ function endGame(text){
     if(gameOver) return;
     gameOver = true;
 
+    // вытащим последние подробности из лога, если они есть
+    let lastEntry = "(no last event)";
+    const lines = logBox.innerHTML.split("<br>");
+    for(let i = lines.length - 1; i >= 0; i--){
+        const line = lines[i].trim();
+        if(line){ 
+          // Правильный regex для удаления номера строки
+        lastEntry = line.replace(/^\d+\.\s*/,"");
+        break;
+        }
+    }
+
+    // пишем финальное резюме с указанием последнего события
+   // log(`=== ${text} | last event: ${lastEntry} ===`);
+
     if(text.startsWith("Game Over")){
         msgDiv.style.color = "yellow";
         playLoseSound();
@@ -214,13 +229,123 @@ function bfsPath(entity, sx,sy,tx,ty){
         });
     }
     let path=[], cx=tx, cy=ty;
-    if(!prev[cx][cy] && !(cx===sx && cy===sy)) return null;
+    if(!prev[cx][cy] && !(cx===sx&&cy===sy)) return null;
     while(cx!==sx||cy!==sy){ path.push({x:cx,y:cy}); let p=prev[cx][cy]; if(!p) break; cx=p.x; cy=p.y;}
     path.reverse(); return path;
 }
 
 /* ==================== FLASH ЭФФЕКТ ==================== */
 function flash(x,y,color){flashes.push({x,y,color,alpha:1});}
+
+/* ==================== ПРОВЕРКА ЛОВУШЕК И ТУПИКОВ ==================== */
+function isTrappedOrStuck(x, y, entity) {
+    let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
+    let q = [{x, y}];
+    visited[x][y] = true;
+    
+    while(q.length) {
+        let cur = q.shift();
+        
+        // Проверка на границу карты
+        if(cur.x === 0 || cur.x === MAP-1 || cur.y === 0 || cur.y === MAP-1) {
+            // Если достигнута граница - это не ловушка, но может быть тупик
+            return {isTrapped: false, isStuck: false};
+        }
+        
+        let hasEmpty = false;
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
+            let nx = cur.x+d[0], ny = cur.y+d[1];
+            if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
+            if(visited[nx][ny]) return;
+            
+            // Проверка на белые клетки (стены)
+            let isDeadZone = deadZones.some(dz => dz.x === nx && dz.y === ny);
+            if(!isDeadZone && !isBlockedFor(entity, nx, ny)) {
+                hasEmpty = true;
+            }
+            
+            // Если клетка не стена и доступна
+            if(!isDeadZone && !visited[nx][ny] && !isBlockedFor(entity, nx, ny)) {
+                visited[nx][ny] = true;
+                q.push({x:nx, y:ny});
+            }
+        });
+        
+        // Если нашли пустую клетку, значит не тупик
+        if (hasEmpty) {
+            return {isTrapped: false, isStuck: false};
+        }
+    }
+    
+    // Если не нашли выход - это либо ловушка, либо тупик
+    return {isTrapped: true, isStuck: true};
+}
+
+/* ==================== ПРИМЕНЕНИЕ ШТРАФА ==================== */
+function applyPenalty(entity, penaltyType) {
+    // Находим все белые клетки вокруг области
+    let surroundingWhite = [];
+    let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
+    let q = [{x:entity.x,y:entity.y}];
+    visited[entity.x][entity.y] = true;
+    
+    while(q.length) {
+        let cur = q.shift();
+        
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
+            let nx = cur.x+d[0], ny = cur.y+d[1];
+            if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
+            if(visited[nx][ny]) return;
+            
+            // Ищем белые клетки
+            let deadZoneMatch = deadZones.find(dz => dz.x === nx && dz.y === ny);
+            if (deadZoneMatch) {
+                surroundingWhite.push(deadZoneMatch.number);
+                return;
+            }
+            
+            // Пропускаем стены и недоступные клетки
+            if (isBlockedFor(entity, nx, ny)) return;
+            
+            // Продолжаем поиск
+            if (!visited[nx][ny]) {
+                visited[nx][ny] = true;
+                q.push({x:nx, y:ny});
+            }
+        });
+    }
+    
+    // Находим максимальный номер белой клетки
+    if (surroundingWhite.length === 0) return;
+    let maxNumber = Math.max(...surroundingWhite);
+    
+    // Применяем штраф
+    if (penaltyType === "trap") {
+        // Для ловушки: если сила меньше максимального числа - персонаж умирает
+        if (entity.power < maxNumber) {
+            if (entity === player) {
+                endGame(`Game Over: ${entity.id} trapped with power ${entity.power} < ${maxNumber}`);
+            } else {
+                entity.alive = false;
+                log(`${entity.id} died in trap (power ${entity.power} < ${maxNumber})`);
+                flash(entity.x, entity.y, "red");
+            }
+            return;
+        }
+    }
+    
+    // Для всех: уменьшаем силу
+    entity.power -= maxNumber;
+    entity.power = Math.max(0, entity.power);
+    log(`${entity.id} penalty: -${maxNumber} power (now ${entity.power})`);
+    flash(entity.x, entity.y, "white");
+    
+    // Удаляем одну белую клетку с максимальным номером
+    let index = deadZones.findIndex(dz => dz.number === maxNumber);
+    if (index !== -1) {
+        deadZones.splice(index, 1);
+    }
+}
 
 /* ==================== COLLECT ==================== */
 function collect(e){
@@ -266,7 +391,10 @@ function collect(e){
     if(!gameOver){
         bots.forEach(b=>{
             if(b.alive && b.x===player.x && b.y===player.y && b.power >= player.power){
-                endGame(`Game Over with ${player.power} power and ${player.speed} speed`);
+  
+           log(`player killed by ${b.id} (power:${b.power} >= ${player.power})`);
+
+              endGame(`Game Over with ${player.power} power and ${player.speed} speed, killed by ${b.id}`);
             }
         });
     }
@@ -318,29 +446,97 @@ function botStep(b){
         movedAtLeastOnce = true;
 
         collect(b);
-        if(!b.alive || gameOver) break;
+        if(!b.alive) break;
     }
 
-    // если бот не смог сдвинуться ни на одну клетку — он остаётся на месте, но раунд всё равно считается для него
-    if(!movedAtLeastOnce){
-        b.x = startX;
-        b.y = startY;
+    // Проверка на тупиковую ситуацию для бота
+    if(!movedAtLeastOnce && b.movesLeft > 0) {
+        // Проверяем, не заблокирован ли бот
+        let trapCheck = isTrappedOrStuck(b.x, b.y, b);
+        if(trapCheck.isTrapped || trapCheck.isStuck) {
+            applyPenalty(b, "stuck");
+        }
     }
+}
+
+/* ==================== ПРОВЕРКА ЛОВУШЕК И ТУПИКОВ ПЕРЕД ХОДОМ БОТОВ ==================== */
+function checkTrapsAndStucks() {
+    // Проверяем игрока
+    let playerTrap = isTrappedOrStuck(player.x, player.y, player);
+    if(playerTrap.isTrapped) {
+        applyPenalty(player, "trap");
+    } else if(playerTrap.isStuck) {
+        applyPenalty(player, "stuck");
+    }
+
+    // Проверяем ботов
+    bots.forEach(bot => {
+        if(!bot.alive) return;
+        let botTrap = isTrappedOrStuck(bot.x, bot.y, bot);
+        if(botTrap.isTrapped) {
+            applyPenalty(bot, "trap");
+        } else if(botTrap.isStuck) {
+            applyPenalty(bot, "stuck");
+        }
+    });
 }
 
 /* ==================== INPUT ==================== */
 canvas.addEventListener("pointerdown",e=>pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}));
-canvas.addEventListener("pointermove",e=>{
-    if(!pointers.has(e.pointerId)) return;
-    let p=pointers.get(e.pointerId); p.x=e.clientX; p.y=e.clientY;
-    if(pointers.size===1){ camX+=e.movementX; camY+=e.movementY; }
-    if(pointers.size===2){
-        let [a,b]=[...pointers.values()];
-        let d = Math.hypot(a.x-b.x,a.y-b.y);
-        if(lastPinch){ let delta = (d-lastPinch)*0.0025; scale *= 1+delta; scale=Math.max(0.4,Math.min(4,scale)); }
+
+
+
+
+
+canvas.addEventListener("pointermove", e => {
+    if (!pointers.has(e.pointerId)) return;
+    let p = pointers.get(e.pointerId);
+
+    // Смещение указателя
+    let dx = e.clientX - p.x;
+    let dy = e.clientY - p.y;
+
+    // Обновляем координаты указателя
+    p.x = e.clientX;
+    p.y = e.clientY;
+
+    if (pointers.size === 1) {
+        // Движение камеры без ограничений
+        camX += dx;
+        camY += dy;
+    }
+
+    if (pointers.size === 2) {
+        let [a, b] = [...pointers.values()];
+
+        // центр между пальцами на экране
+        let centerX = (a.x + b.x) / 2;
+        let centerY = (a.y + b.y) / 2;
+
+        let d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (lastPinch) {
+            let delta = (d - lastPinch) * 0.0025;
+            let newScale = Math.max(0.4, Math.min(4, scale * (1 + delta)));
+
+            // координаты центра pinch в мировых координатах
+            let worldX = (centerX - camX) / scale;
+            let worldY = (centerY - camY) / scale;
+
+            scale = newScale;
+
+            // корректируем камеру, чтобы центр pinch остался на месте
+            camX = centerX - worldX * scale;
+            camY = centerY - worldY * scale;
+        }
         lastPinch = d;
     }
 });
+
+
+
+
+
+
 canvas.addEventListener("pointerup",e=>{ pointers.delete(e.pointerId); if(pointers.size<2) lastPinch=null; });
 
 canvas.addEventListener("click",e=>{
@@ -360,11 +556,10 @@ canvas.addEventListener("click",e=>{
             player.x=path[i].x; player.y=path[i].y; player.movesLeft--;
             movedAtLeastOnce = true;
             collect(player);
-            if(gameOver) return; // победа/поражение могут случиться в середине хода
+            if(gameOver) return;
             if(player.movesLeft<=0) break;
         }
 
-        // если вообще не сдвинулся — не заканчиваем раунд
         if(!movedAtLeastOnce){
             player.x = startX;
             player.y = startY;
@@ -372,91 +567,143 @@ canvas.addEventListener("click",e=>{
             return;
         }
 
-        // Ходы ботов и рост объектов только после того, как игрок исчерпал свои movesLeft или сам остановился
         if(player.movesLeft<=0 && !gameOver){
-            bots.forEach(b=>botStep(b));
-            if(gameOver) return;
+            // Проверка на ловушку/тупик
+            let trap = isTrappedOrStuck(player.x, player.y, player);
+            if(trap.isTrapped) {
+                applyPenalty(player, "trap");
+            } else if(trap.isStuck) {
+                applyPenalty(player, "stuck");
+            }
+            
+            if(!gameOver) {
+                bots.forEach(b=>botStep(b));
+                if(!gameOver){
+                    monsters.forEach(m=>m.power++);
+                    chests.forEach(c=>c.power++);
 
-            monsters.forEach(m=>m.power++);
-            chests.forEach(c=>c.power++);
+                    while(chests.length<CHESTS){
+                        let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
+                        if(
+                            !deadZones.some(d=>d.x===x&&d.y===y) &&
+                            !chests.some(c=>c.x===x&&c.y===y) &&
+                            !monsters.some(m=>m.x===x&&m.y===y) &&
+                            !bots.some(b=>b.alive && b.x===x && b.y===y) &&
+                            !(player.x===x && player.y===y)
+                        ){
+                            chests.push({x,y,power:1});
+                        }
+                    }
+                    while(monsters.length<MONSTERS){
+                        let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
+                        if(
+                            !deadZones.some(d=>d.x===x&&d.y===y) &&
+                            !monsters.some(m=>m.x===x&&m.y===y) &&
+                            !chests.some(c=>c.x===x&&c.y===y) &&
+                            !bots.some(b=>b.alive && b.x===x && b.y===y) &&
+                            !(player.x===x && player.y===y)
+                        ){
+                            monsters.push({x,y,power:1});
+                        }
+                    }
 
-            while(chests.length<CHESTS){
-                let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
-                if(
-                    !deadZones.some(d=>d.x===x&&d.y===y) &&
-                    !chests.some(c=>c.x===x&&c.y===y) &&
-                    !monsters.some(m=>m.x===x&&m.y===y) &&
-                    !bots.some(b=>b.alive && b.x===x && b.y===y) &&
-                    !(player.x===x && player.y===y)
-                ){
-                    chests.push({x,y,power:1});
+                    roundNumber++;
+                    player.movesLeft = player.speed;
+                    playNewRoundSound();
                 }
             }
-            while(monsters.length<MONSTERS){
-                let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
-                if(
-                    !deadZones.some(d=>d.x===x&&d.y===y) &&
-                    !monsters.some(m=>m.x===x&&m.y===y) &&
-                    !chests.some(c=>c.x===x&&c.y===y) &&
-                    !bots.some(b=>b.alive && b.x===x && b.y===y) &&
-                    !(player.x===x && player.y===y)
-                ){
-                    monsters.push({x,y,power:1});
-                }
-            }
-
-            roundNumber++;
-            player.movesLeft = player.speed;
-            playNewRoundSound();
         }
     }
 });
 
 /* ==================== DRAW ==================== */
-function draw(){
-    ctx.setTransform(scale,0,0,scale,camX,camY);
-    ctx.clearRect(-camX,-camY,canvas.width/scale,canvas.height/scale);
+function draw() {
+    // Сбрасываем трансформацию перед очисткой
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    for(let x=0;x<MAP;x++) for(let y=0;y<MAP;y++){ ctx.strokeStyle="#333"; ctx.strokeRect(x*TILE,y*TILE,TILE,TILE); }
+    // Устанавливаем масштаб и камеру
+    ctx.setTransform(scale, 0, 0, scale, camX, camY);
 
-    bfsReachable(player).forEach(c=>{ ctx.fillStyle=`rgba(160,160,160,0.25)`; ctx.fillRect(c.x*TILE,c.y*TILE,TILE,TILE); });
-    bots.filter(b=>b.alive).forEach(b=>bfsReachable(b).forEach(c=>{ ctx.fillStyle=`rgba(80,80,200,0.15)`; ctx.fillRect(c.x*TILE,c.y*TILE,TILE,TILE); }));
+    // Рисуем сетку
+    for (let x = 0; x < MAP; x++)
+        for (let y = 0; y < MAP; y++) {
+            ctx.strokeStyle = "#333";
+            ctx.strokeRect(x * TILE, y * TILE, TILE, TILE);
+        }
 
-    deadZones.forEach(d=>{
-        ctx.fillStyle="white"; ctx.fillRect(d.x*TILE,d.y*TILE,TILE,TILE);
-        ctx.fillStyle="black"; ctx.font="18px monospace"; ctx.fillText(d.number,d.x*TILE+12,d.y*TILE+28);
+    // Доступные клетки игрока
+    bfsReachable(player).forEach(c => {
+        ctx.fillStyle = `rgba(160,160,160,0.25)`;
+        ctx.fillRect(c.x * TILE, c.y * TILE, TILE, TILE);
     });
 
-    chests.forEach(c=>{
-        ctx.fillStyle="gold"; ctx.fillRect(c.x*TILE+10,c.y*TILE+10,20,20);
-        ctx.fillStyle="black"; ctx.font="18px monospace"; ctx.fillText(c.power,c.x*TILE+14,c.y*TILE+28);
+    // Доступные клетки ботов
+    bots.filter(b => b.alive).forEach(b => {
+        bfsReachable(b).forEach(c => {
+            ctx.fillStyle = `rgba(80,80,200,0.15)`;
+            ctx.fillRect(c.x * TILE, c.y * TILE, TILE, TILE);
+        });
     });
 
-    monsters.forEach(m=>{
-        ctx.fillStyle="red"; ctx.fillRect(m.x*TILE+8,m.y*TILE+8,24,24);
-        ctx.fillStyle="white"; ctx.font="18px monospace"; ctx.fillText(m.power,m.x*TILE+12,m.y*TILE+28);
+    // Остальная прорисовка (deadZones, chests, monsters, bots, player, flashes)
+    deadZones.forEach(d => {
+        ctx.fillStyle = "white";
+        ctx.fillRect(d.x * TILE, d.y * TILE, TILE, TILE);
+        ctx.fillStyle = "black";
+        ctx.font = "18px monospace";
+        ctx.fillText(d.number, d.x * TILE + 12, d.y * TILE + 28);
     });
 
-    bots.forEach(b=>{
-        if(!b.alive) return;
-        ctx.fillStyle=b.color; ctx.fillRect(b.x*TILE+6,b.y*TILE+6,28,28);
-        ctx.fillStyle="white"; ctx.font="18px monospace"; ctx.fillText(b.power,b.x*TILE+10,b.y*TILE+28);
+    chests.forEach(c => {
+        ctx.fillStyle = "gold";
+        ctx.fillRect(c.x * TILE + 10, c.y * TILE + 10, 20, 20);
+        ctx.fillStyle = "black";
+        ctx.font = "18px monospace";
+        ctx.fillText(c.power, c.x * TILE + 14, c.y * TILE + 28);
     });
 
-    ctx.fillStyle=player.color; ctx.fillRect(player.x*TILE+6,player.y*TILE+6,28,28);
-    ctx.fillStyle="white"; ctx.font="18px monospace"; ctx.fillText(player.power,player.x*TILE+10,player.y*TILE+28);
+    monsters.forEach(m => {
+        ctx.fillStyle = "red";
+        ctx.fillRect(m.x * TILE + 8, m.y * TILE + 8, 24, 24);
+        ctx.fillStyle = "white";
+        ctx.font = "18px monospace";
+        ctx.fillText(m.power, m.x * TILE + 12, m.y * TILE + 28);
+    });
 
-    flashes.forEach(f=>{ ctx.fillStyle=`rgba(255,255,255,${f.alpha})`; ctx.fillRect(f.x*TILE,f.y*TILE,TILE,TILE); f.alpha-=0.05; });
-    flashes = flashes.filter(f=>f.alpha>0);
+    bots.forEach(b => {
+        if (!b.alive) return;
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x * TILE + 6, b.y * TILE + 6, 28, 28);
+        ctx.fillStyle = "white";
+        ctx.font = "18px monospace";
+        ctx.fillText(b.power, b.x * TILE + 10, b.y * TILE + 28);
+    });
 
-    let remainingChests=chests.length, remainingMonsters=monsters.length, remainingBots=bots.filter(b=>b.alive).length;
-    document.getElementById("info").innerText=
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x * TILE + 6, player.y * TILE + 6, 28, 28);
+    ctx.fillStyle = "white";
+    ctx.font = "18px monospace";
+    ctx.fillText(player.power, player.x * TILE + 10, player.y * TILE + 28);
+
+    flashes.forEach(f => {
+        ctx.fillStyle = `rgba(255,255,255,${f.alpha})`;
+        ctx.fillRect(f.x * TILE, f.y * TILE, TILE, TILE);
+        f.alpha -= 0.05;
+    });
+    flashes = flashes.filter(f => f.alpha > 0);
+
+    // Информация о состоянии
+    let remainingChests = chests.length,
+        remainingMonsters = monsters.length,
+        remainingBots = bots.filter(b => b.alive).length;
+
+    document.getElementById("info").innerText =
         `POWER ${player.power}   SPEED ${player.speed}   MOVES ${player.movesLeft}
-`+
-        `Chests ${remainingChests}   Monsters ${remainingMonsters}   Bots ${remainingBots}
-`+
-        `Round ${roundNumber}`;
+Chests ${remainingChests}   Monsters ${remainingMonsters}   Bots ${remainingBots}
+Round ${roundNumber}`;
 }
+
 
 /* ==================== GAME LOOP ==================== */
 (function loop(){ draw(); requestAnimationFrame(loop); })();
