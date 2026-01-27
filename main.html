@@ -2,16 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Game Console</title>
 
 <style>
-    body {
+    * {
+        box-sizing: border-box;
+    }
+    
+    html, body {
         margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    body {
         font-family: Arial, sans-serif;
         background: #0b0b0b;
         color: #eaeaea;
-        overflow: hidden;
     }
 
     #menu, #gameContainer {
@@ -53,12 +63,14 @@
 
     #topBar {
         width: 100%;
-        background: #111;
+        background: rgba(17,17,17,0.95);
         padding: 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        z-index: 5;
+        z-index: 9999;
+        backdrop-filter: blur(10px);
+        flex-shrink: 0;
     }
 
     .topBtn {
@@ -71,55 +83,39 @@
         cursor: pointer;
     }
 
-    /* ИСПРАВЛЕННЫЕ СТИЛИ ДЛЯ ПРАВИЛЬНОГО МАСШТАБА */
+    /* ПРОЗРАЧНЫЙ iframe - НЕ МЕШАЕТ МАСШТАБУ */
+    #gameFrameWrapper {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background: #000;
+    }
+
     iframe#gameFrame {
-        flex-grow: 1;
+        position: absolute;
+        inset: 0; /* top:0; right:0; bottom:0; left:0 */
         width: 100%;
         height: 100%;
         border: none;
-        background: #000;
-        margin: 0;
-        padding: 0;
+        background: transparent;
         
-        /* ПОЛНАЯ ИЗОЛЯЦИЯ МАСШТАБА */
-        transform: none !important;
-        transform-origin: 0 0 !important;
-        zoom: 1 !important;
-        -webkit-transform: none !important;
-        -webkit-transform-origin: 0 0 !important;
-        -moz-transform: none !important;
+        /* МИНИМУМ вмешательства - ПОЗВОЛЯЕМ ВСЕ трансформы */
+        pointer-events: auto;
+        touch-action: auto;
+        user-select: none;
         
-        /* Viewport и скролл */
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: none;
-        touch-action: manipulation;
-        
-        /* Позиционирование */
-        display: block;
-        position: relative;
-        left: 0;
-        top: 0;
-    }
-
-    /* Скрываем скроллбары */
-    iframe#gameFrame::-webkit-scrollbar {
-        display: none;
-    }
-    iframe#gameFrame {
-        scrollbar-width: none;
-        -ms-overflow-style: none;
+        /* НЕ трогаем transform/zoom/scale */
     }
 
     #rulesOverlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0,0,0,0.9);
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.95);
         display: none;
         flex-direction: column;
-        z-index: 10;
+        z-index: 10000;
     }
 
     #rulesHeader {
@@ -127,56 +123,42 @@
         padding: 10px;
         display: flex;
         justify-content: flex-end;
+        flex-shrink: 0;
     }
 
     #rulesFrame {
-        flex-grow: 1;
+        flex: 1;
         width: 100%;
         border: none;
         background: #000;
-        margin: 0;
-        padding: 0;
-        transform: none !important;
-        -webkit-transform: none !important;
     }
 </style>
 </head>
 
 <body>
 
-<!-- MENU -->
 <div id="menu">
     <h1>🎮 Game Console</h1>
-
-    <button class="btn" onclick="loadGame('PokerLazer')">
-        ♠️ PokerLazer
-    </button>
-
-    <button class="btn" onclick="loadGame('StarDropper')">
-        ⭐ StarDropper
-    </button>
-
-    <button class="btn" onclick="loadGame('ChronoMonsters')">
-        🧠 ChronoMonsters
-    </button>
+    <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
+    <button class="btn" onclick="loadGame('StarDropper')">⭐ StarDropper</button>
+    <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
 </div>
 
-<!-- GAME -->
 <div id="gameContainer">
     <div id="topBar">
         <button class="topBtn" onclick="backToMenu()">← Back to Menu</button>
         <button class="topBtn" onclick="openRules()">Game Rules</button>
     </div>
-
-    <iframe id="gameFrame"></iframe>
+    <div id="gameFrameWrapper">
+        <iframe id="gameFrame" allowfullscreen></iframe>
+    </div>
 </div>
 
-<!-- RULES OVERLAY -->
 <div id="rulesOverlay">
     <div id="rulesHeader">
         <button class="topBtn" onclick="closeRules()">← Back to Game</button>
     </div>
-    <iframe id="rulesFrame"></iframe>
+    <iframe id="rulesFrame" allowfullscreen></iframe>
 </div>
 
 <script>
@@ -184,52 +166,36 @@ let currentGame = '';
 
 function loadGame(gameFolder) {
     currentGame = gameFolder;
-
+    
     document.getElementById('menu').style.display = 'none';
     document.getElementById('gameContainer').style.display = 'flex';
-
-    const gameFrame = document.getElementById('gameFrame');
     
-    // Полный сброс iframe
-    gameFrame.src = '';
-    gameFrame.style.transform = 'none';
-    gameFrame.style.zoom = '1';
-    gameFrame.style.webkitTransform = 'none';
+    const iframe = document.getElementById('gameFrame');
     
-    // Задержка для корректного сброса
-    setTimeout(() => {
-        gameFrame.src = gameFolder + '/index.html';
-        
-        gameFrame.onload = function() {
-            // Максимальная изоляция масштаба
-            gameFrame.style.transform = 'none !important';
-            gameFrame.style.webkitTransform = 'none !important';
-            gameFrame.style.zoom = '1 !important';
-            
-            // Попытка сбросить viewport в игре (если нет CORS)
-            try {
-                gameFrame.contentWindow.postMessage({
-                    type: 'resetScale',
-                    scale: 1,
-                    viewport: true
-                }, '*');
-            } catch(e) {}
-        };
-    }, 150);
+    // ЧИСТАЯ загрузка БЕЗ вмешательства
+    iframe.src = gameFolder + '/index.html';
+    
+    // Только передаем информацию о контейнере (опционально)
+    iframe.onload = () => {
+        try {
+            iframe.contentWindow.postMessage({
+                type: 'consoleContainer',
+                width: window.innerWidth,
+                height: window.innerHeight,
+                available: true
+            }, '*');
+        } catch(e) {}
+    };
 }
 
 function backToMenu() {
-    const gameFrame = document.getElementById('gameFrame');
-    gameFrame.src = '';
-    gameFrame.style.transform = '';
-    
+    document.getElementById('gameFrame').src = '';
     document.getElementById('menu').style.display = 'flex';
     document.getElementById('gameContainer').style.display = 'none';
 }
 
 function openRules() {
     if (!currentGame) return;
-
     document.getElementById('rulesOverlay').style.display = 'flex';
     document.getElementById('rulesFrame').src = currentGame + '/' + currentGame + '-rules.html';
 }
@@ -238,6 +204,14 @@ function closeRules() {
     document.getElementById('rulesFrame').src = '';
     document.getElementById('rulesOverlay').style.display = 'none';
 }
+
+// Перехватываем жесты для игр
+document.addEventListener('touchstart', (e) => {
+    const iframe = document.getElementById('gameFrame');
+    if (iframe.src && !document.getElementById('rulesOverlay').style.display) {
+        // Все жесты идут в iframe
+    }
+}, { passive: true });
 </script>
 
 </body>
