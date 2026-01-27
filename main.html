@@ -2,39 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Console</title>
-
 <style>
     * { box-sizing: border-box; }
-    html, body { 
-        margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; 
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+    body { font-family: Arial, sans-serif; background: #0b0b0b; color: #eaeaea; }
+    
+    #menu, #gameContainer { 
+        width: 100vw; height: 100vh; 
+        display: flex; flex-direction: column; 
+        align-items: center; justify-content: center; 
     }
-    body { 
-        font-family: Arial, sans-serif; background: #0b0b0b; color: #eaeaea; 
-    }
-    #menu, #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    
     h1 { font-size: 26px; margin-bottom: 24px; }
-    .btn { width: 260px; padding: 14px; margin: 8px; font-size: 18px; border: none; border-radius: 10px; background: #1c1c1c; color: #fff; cursor: pointer; }
+    .btn { 
+        width: 260px; padding: 14px; margin: 8px; 
+        font-size: 18px; border: none; border-radius: 10px; 
+        background: #1c1c1c; color: #fff; cursor: pointer; 
+    }
     .btn:hover { background: #2c2c2c; }
-    #gameContainer { display: none; flex-direction: column; width: 100vw; height: 100vh; }
-    #topBar { width: 100%; background: rgba(17,17,17,0.98); padding: 10px; display: flex; justify-content: space-between; align-items: center; z-index: 9999; flex-shrink: 0; }
-    .topBtn { font-size: 15px; padding: 8px 14px; border-radius: 8px; background: #222; border: none; color: #fff; cursor: pointer; }
     
-    /* iframe - ПОЛНАЯ СВОБОДА масштабу */
-    #gameFrameWrapper { flex: 1; width: 100%; height: 100%; position: relative; background: #000; }
-    iframe#gameFrame { 
-        position: absolute; inset: 0; width: 100%; height: 100%; 
-        border: none; background: transparent; 
-        pointer-events: auto; touch-action: auto; 
+    #gameContainer { display: none; flex-direction: column; width: 100vw; height: 100vh; }
+    
+    #topBar { 
+        width: 100%; background: rgba(17,17,17,0.98); padding: 10px; 
+        display: flex; justify-content: space-between; align-items: center; 
+        z-index: 9999; flex-shrink: 0; 
+    }
+    .topBtn { 
+        font-size: 15px; padding: 8px 14px; border-radius: 8px; 
+        background: #222; border: none; color: #fff; cursor: pointer; 
     }
     
-    #rulesOverlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; z-index: 10000; }
+    /* iframe РАВЕН экрану */
+    #gameFrameWrapper { 
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+        z-index: 1; background: #000; 
+    }
+    iframe#gameFrame { 
+        width: 100vw !important; height: 100vh !important; 
+        border: none; position: absolute; top: 0; left: 0; 
+        transform: none !important; /* Только размер! */
+    }
+    
+    #rulesOverlay { 
+        position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
+        display: none; flex-direction: column; z-index: 10000; 
+    }
     #rulesHeader { background: #111; padding: 10px; display: flex; justify-content: flex-end; flex-shrink: 0; }
     #rulesFrame { flex: 1; width: 100%; border: none; background: #000; }
 </style>
 </head>
 <body>
+
 <div id="menu">
     <h1>🎮 Game Console</h1>
     <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
@@ -42,12 +63,12 @@
     <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
 </div>
 
-<div id="gameContainer">
+<div id="gameContainer" style="position: relative; z-index: 2;">
     <div id="topBar">
         <button class="topBtn" onclick="backToMenu()">← Back to Menu</button>
         <button class="topBtn" onclick="openRules()">Game Rules</button>
     </div>
-    <div id="gameFrameWrapper">
+    <div id="gameFrameWrapper" style="display: none;">
         <iframe id="gameFrame"></iframe>
     </div>
 </div>
@@ -65,28 +86,44 @@ function loadGame(gameFolder) {
     currentGame = gameFolder;
     document.getElementById('menu').style.display = 'none';
     document.getElementById('gameContainer').style.display = 'flex';
+    document.getElementById('gameFrameWrapper').style.display = 'block';
     
     const iframe = document.getElementById('gameFrame');
-    iframe.src = gameFolder + '/index.html';
+    iframe.src = 'about:blank';
     
-    iframe.onload = () => {
-        // ★ ПЕРЕДАЕМ игре НАСТОЯЩИЙ размер контейнера
-        iframe.contentWindow.postMessage({
-            type: 'consoleSize',
-            width: window.innerWidth,
-            height: window.innerHeight,
-            isIframe: true,
-            scaleHint: 1.0  // Совет: используй scale=1.0 вместо 0.4
-        }, '*');
-    };
+    setTimeout(() => {
+        iframe.src = gameFolder + '/index.html';
+        iframe.onload = () => {
+            // ★ ГЛАВНЫЙ ХАК: сообщаем игре размер ЭКРАНА (не iframe)
+            const msg = {
+                type: 'iframeFix',
+                screenWidth: window.screen.width,
+                screenHeight: window.screen.height,
+                innerWidth: window.innerWidth,
+                innerHeight: window.innerHeight,
+                useScale1: true  // Игнорируй scale=0.4
+            };
+            iframe.contentWindow.postMessage(msg, '*');
+        };
+    }, 100);
 }
+
 function backToMenu() {
     document.getElementById('gameFrame').src = '';
+    document.getElementById('gameFrameWrapper').style.display = 'none';
     document.getElementById('menu').style.display = 'flex';
     document.getElementById('gameContainer').style.display = 'none';
 }
-function openRules() { if (!currentGame) return; document.getElementById('rulesOverlay').style.display = 'flex'; document.getElementById('rulesFrame').src = currentGame + '/' + currentGame + '-rules.html'; }
-function closeRules() { document.getElementById('rulesFrame').src = ''; document.getElementById('rulesOverlay').style.display = 'none'; }
+
+function openRules() { 
+    if (!currentGame) return; 
+    document.getElementById('rulesOverlay').style.display = 'flex';
+    document.getElementById('rulesFrame').src = currentGame + '/' + currentGame + '-rules.html'; 
+}
+function closeRules() { 
+    document.getElementById('rulesFrame').src = ''; 
+    document.getElementById('rulesOverlay').style.display = 'none'; 
+}
 </script>
 </body>
 </html>
