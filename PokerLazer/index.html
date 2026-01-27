@@ -1,287 +1,709 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Техасский Холдем Покер</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        .player {
-            display: inline-block;
-            margin: 10px;
-            vertical-align: top;
-        }
-        .card {
-            width: 50px;
-            height: 75px;
-            border: 1px solid #000;
-            border-radius: 5px;
-            display: inline-block;
-            margin: 2px;
-            font-size: 20px;
-            line-height: 75px;
-            text-align: center;
-        }
-        .hearts {
-            color: red;
-        }
-        .diamonds {
-            color: blue;
-        }
-        .clubs {
-            color: green;
-        }
-        .spades {
-            color: black;
-        }
-        #board, #players {
-            margin-top: 20px;
-        }
-        button {
-            margin: 10px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>PokerLazer</title>
+<style>
+/* Остальные стили остаются без изменений */
+body {
+ font-family: 'Arial Black', 'Arial', sans-serif;
+ background-color: #111;
+ color: #fff;
+ margin: 0;
+ padding: 0;
+ overflow: hidden;
+ height: 100vh;
+}
+h1 { 
+ text-align: center; 
+ color: #ffd700; 
+ margin: 5px 0; 
+ font-size: 28px;
+ text-shadow: 0 2px 8px #000;
+}
+#controls { 
+ text-align: center; 
+ margin: 5px 0; 
+ padding-bottom: 5px;
+}
+button {
+ background: linear-gradient(145deg, #333, #555);
+ color: #ffd700;
+ border: 3px solid #ffd700;
+ border-radius: 12px;
+ padding: 16px 24px;
+ margin: 4px;
+ font-size: 18px;
+ cursor: pointer;
+ font-weight: bold;
+ text-transform: uppercase;
+ min-width: 120px;
+ box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+button:hover { 
+ background: linear-gradient(145deg, #555, #777);
+ box-shadow: 0 6px 20px rgba(255,215,0,0.6);
+ transform: translateY(-2px);
+}
+#table {
+ position: relative;
+ width: 100vw;
+ height: calc(100vh - 160px);
+ background: radial-gradient(ellipse at center, #0a0a0a 0%, #111 70%, #222 100%);
+ border-radius: 45px;
+ border: 8px solid #666;
+ box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+ overflow: hidden;
+ margin: 0;
+}
+#dealer {
+ position: absolute;
+ left: 50%;
+ top: 62%;
+ width: 30px;
+ height: 30px;
+ background: radial-gradient(circle, #0ff, #0099cc);
+ border-radius: 50%;
+ box-shadow: 0 0 50px #0ff;
+ transform: translate(-50%,-50%);
+ z-index: 2;
+ animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+ 0%, 100% { transform: translate(-50%,-50%) scale(1); }
+ 50% { transform: translate(-50%,-50%) scale(1.15); }
+}
+#community-cards { 
+ position: absolute; 
+ top: 50%; 
+ left: 50%; 
+ transform: translate(-50%, -50%); 
+ display: flex; 
+ gap: 16px; 
+ z-index: 5;
+}
+.player-wrapper {
+ position: absolute;
+ text-align: center;
+ pointer-events: none;
+ z-index: 5;
+}
+.player-name {
+ margin: 14px 0 8px 0;
+ font-size: 22px;
+ font-weight: bold;
+ text-shadow: 0 4px 8px #000;
+}
+.hand-strength {
+ font-size: 20px;
+ color: #90ff90;
+ margin: 8px 0;
+ font-weight: bold;
+ padding: 8px 16px;
+ background: rgba(0,0,0,0.9);
+ border-radius: 20px;
+ border: 2px solid #90ff90;
+ text-shadow: 0 2px 6px #000;
+ min-height: 32px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+.card {
+ width: 95px;
+ height: 140px;
+ border-radius: 14px;
+ font-weight: bold;
+ font-size: 44px;
+ line-height: 140px;
+ text-align: center;
+ position: absolute;
+ background: linear-gradient(145deg, #fff, #f5f5f5);
+ color: #000;
+ border: 4px solid #555;
+ box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+ z-index: 4;
+}
+.card.hearts, .card.diamonds { color: #e00; }
+.card.back { 
+ background: repeating-linear-gradient(45deg, #666 0, #666 10px, #777 10px, #777 20px); 
+ color: #fff;
+ font-size: 30px;
+ line-height: 140px;
+}
+.card.winner {
+ border: 5px solid #ff0 !important;
+ box-shadow: 0 0 60px #ff0, 0 10px 30px rgba(0,0,0,0.8) !important;
+ animation: winnerGlow 1s infinite alternate;
+}
+@keyframes winnerGlow {
+ 0% { box-shadow: 0 0 60px #ff0, 0 10px 30px rgba(0,0,0,0.8); }
+ 100% { box-shadow: 0 0 100px #ff0, 0 0 120px #ff0, 0 10px 30px rgba(0,0,0,0.8); }
+}
+.laser-beam {
+ position: fixed;
+ height: 6px;
+ background: linear-gradient(90deg, transparent, #0ff, #fff, #0ff, transparent);
+ box-shadow: 0 0 50px #0ff;
+ pointer-events: none;
+ z-index: 1000;
+ border-radius: 5px;
+ transform-origin: left center;
+}
+#deal-log {
+ position: fixed;
+ bottom: 5px;
+ left: 20px;
+ right: 20px;
+ max-height: 80px;
+ overflow-y: auto;
+ background: rgba(0,20,40,0.98);
+ border-radius: 20px;
+ padding: 16px;
+ font-size: 16px;
+ border: 4px solid #444;
+ box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+}
+.log-item {
+ margin: 5px 0;
+ padding: 10px 15px;
+ border-left: 6px solid #444;
+ border-radius: 8px;
+ font-weight: 600;
+}
+.log-winner { 
+ border-left-color: #ff0 !important; 
+ background: rgba(255,255,0,0.25) !important; 
+ box-shadow: inset 0 0 20px rgba(255,255,0,0.3);
+}
+</style>
 </head>
 <body>
+<h1>PokerLazer Holdem</h1>
+<div id="controls">
+ <button onclick="laserDealSequence()">🚀 Laser Deal</button>
+  <button onclick="revealFlop()">🂡 FLOPP</button>
+  <button onclick="revealTurn()">🔄 TURN</button>
+  <button onclick="revealRiver()">🌊 RIVER</button>
 
-<h1>Техасский Холдем Покер</h1>
 
-<div id="board">
-    <h2>Общие карты</h2>
-    <div id="community-cards"></div>
 </div>
-
-<div id="players">
-    <h2>Игроки</h2>
-    <div id="player-cards"></div>
+<div id="table">
+ <div id="dealer"></div>
+ <div id="community-cards"></div>
 </div>
-
-<button onclick="dealFlop()">Показать флоп</button>
-<button onclick="dealTurn()">Показать терн</button>
-<button onclick="dealRiver()">Показать ривер</button>
-<button onclick="redeal()">Полная перераздача</button>
-
+<div id="deal-log"></div>
 <script>
-    // Создание колоды карт
-    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-    const values = [
-        '2', '3', '4', '5', '6', '7', '8', '9', '10',
-        'J', 'Q', 'K', 'A'
-    ];
-    let deck = [];
-    let players = [];
-    let communityCards = [];
-    let stage = 0; // 0 - префлоп, 1 - флоп, 2 - терн, 3 - ривер
+const suits=['hearts','diamonds','clubs','spades'];
+const suitSymbols={hearts:'♥',diamonds:'♦',clubs:'♣',spades:'♠'};
+const values=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+const valueRanks = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+const handRanks = {
+ 'High Card': 0,
+ 'Pair': 1,
+ 'Two Pair': 2,
+ 'Three of a Kind': 3,
+ 'Straight': 4,
+ 'Flush': 5,
+ 'Full House': 6,
+ 'Four of a Kind': 7,
+ 'Straight Flush': 8,
+ 'Royal Flush': 9
+};
+let deck=[], players=[], communityCards=[], stage=0, logCounter=0;
+function createDeck(){
+ deck=[];
+ for(let s of suits){
+ for(let v of values){
+ deck.push({suit:s,value:v});
+ }
+ }
+}
+function shuffleDeck(){
+ for(let i=deck.length-1;i>0;i--){
+ let j=Math.floor(Math.random()*(i+1));
+ [deck[i],deck[j]]=[deck[j],deck[i]];
+ }
+}
+function addLog(text, isWinner=false){
+ logCounter++;
+ const log = document.getElementById('deal-log');
+ const item = document.createElement('div');
+ item.className = `log-item ${isWinner ? 'log-winner' : ''}`;
+ item.innerHTML = `<strong>#${logCounter}</strong> ${text}`;
+ log.insertBefore(item, log.firstChild);
+ log.scrollTop = 0;
+}
+function redeal(){
+ // Очищаем таблицу, но не очищаем лог
+ document.getElementById('table').innerHTML = '<div id="dealer"></div><div id="community-cards"></div>';
+ players = [];
+ communityCards = [];
+ stage = 0;
+ laserDealSequence();
+}
+// Остальные функции остаются без изменений
+function playLaserSound(){
+ try {
+ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+ const oscillator = audioCtx.createOscillator();
+ const gainNode = audioCtx.createGain();
+ 
+ oscillator.type = 'sawtooth';
+ oscillator.frequency.setValueAtTime(900 + Math.random()*800, audioCtx.currentTime);
+ 
+ gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+ gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+ 
+ oscillator.connect(gainNode);
+ gainNode.connect(audioCtx.destination);
+ 
+ oscillator.start();
+ oscillator.stop(audioCtx.currentTime + 0.12);
+ } catch(e) {}
+}
 
-    function createDeck() {
-        deck = [];
-        for (let suit of suits) {
-            for (let value of values) {
-                deck.push({ suit, value });
-            }
+
+function createLaserBeam(fromX, fromY, toX, toY, duration=450){
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const distance = Math.hypot(toX - fromX, toY - fromY);
+    
+    const beam = document.createElement('div');
+    beam.className = 'laser-beam';
+    beam.style.left = fromX + 'px';
+    beam.style.top = fromY + 'px';
+    beam.style.width = distance + 'px';
+    beam.style.transform = `rotate(${angle}rad)`;
+    beam.style.opacity = '0';
+    
+    document.body.appendChild(beam);
+    
+    beam.animate([
+        { opacity: 0, width: '0px' },
+        { opacity: 1, width: distance + 'px', offset: 0.35 },
+        { opacity: 0 }
+    ], {
+        duration: duration,
+        easing: 'ease-in-out'
+    }).onfinish = () => {
+        document.body.removeChild(beam);
+    };
+    
+    playLaserSound();
+}
+
+function laserDealSequence(){
+    createDeck();
+    shuffleDeck();
+    players=[];
+    communityCards=[];
+    stage=0;
+    addLog('New shuffle - Laser Deal');
+
+    const table=document.getElementById('table');
+    const tableRect=table.getBoundingClientRect();
+    const centerX=tableRect.left+tableRect.width/2;
+    const centerY=tableRect.top+tableRect.height/2;
+    const dealerEl = document.getElementById('dealer');
+    const dealerRect = dealerEl.getBoundingClientRect();
+    const dealerX = dealerRect.left + dealerRect.width/2;
+    const dealerY = dealerRect.top + dealerRect.height/2;
+    
+    // СПЛЮСНУТЫЙ ОВАЛ: меньше по высоте, шире по ширине
+    const horRadius = tableRect.width * 0.32 * 1.15;   // +15% шире
+    const verRadius = tableRect.height * 0.41;  // -15% уже по высоте
+    const numPlayers = 9;
+
+    const playerPositions = [];
+    for(let i=0; i<numPlayers; i++){
+        const angle = (Math.PI * 1.5 + (i / numPlayers) * Math.PI * 2);
+        let x, y;
+        
+        // Специальные позиции для игроков
+        if(i === 0) { // Player 1
+            x = centerX + Math.cos(angle) * horRadius * 1.2;
+            y = centerY + Math.sin(angle) * verRadius * 1.2;
+        } 
+        else if(i === 1 || i === 8) { // Players 2 and 9
+            x = centerX + Math.cos(angle) * horRadius * 1.1;
+            y = centerY + Math.sin(angle) * verRadius * 0.95;
         }
+        else if(i === 2 || i === 7) { // Players 3 and 8
+            x = centerX + Math.cos(angle) * horRadius;
+            y = centerY + Math.sin(angle) * verRadius * 0.9;
+        }
+        else if(i === 3 || i === 6) { // Players 4 and 7
+            x = centerX + Math.cos(angle) * horRadius * 0.95;
+            y = centerY + Math.sin(angle) * verRadius * 0.95;
+        }
+        else { // Players 5 and 6
+            x = centerX + Math.cos(angle) * horRadius * 0.9;
+            y = centerY + Math.sin(angle) * verRadius * 0.85;
+        }
+        
+        playerPositions.push({x: x - tableRect.left, y: y - tableRect.top});
     }
 
-    function shuffleDeck() {
-        for (let i = deck.length - 1; i > 0; i--) {
-            let j = Math.floor(Math.random() * (i + 1));
-            [deck[i], deck[j]] = [deck[j], deck[i]];
-        }
-    }
-
-    function deal() {
-        createDeck();
-        shuffleDeck();
-        players = [];
-        communityCards = [];
-        stage = 0;
-        for (let i = 0; i < 9; i++) {
-            players.push({
-                hand: [deck.pop(), deck.pop()],
-                bestHand: null,
-                handName: '',
-                winPercentage: 0
-            });
-        }
-        updateDisplay();
-    }
-
-    function dealFlop() {
-        if (stage === 0) {
-            communityCards.push(deck.pop(), deck.pop(), deck.pop());
-            stage = 1;
-            calculateWinPercentages();
-            updateDisplay();
-        }
-    }
-
-    function dealTurn() {
-        if (stage === 1) {
-            communityCards.push(deck.pop());
-            stage = 2;
-            calculateWinPercentages();
-            updateDisplay();
-        }
-    }
-
-    function dealRiver() {
-        if (stage === 2) {
-            communityCards.push(deck.pop());
-            stage = 3;
-            calculateWinPercentages();
-            evaluateHands();
-            updateDisplay();
-        }
-    }
-
-    function redeal() {
-        deal();
-    }
-
-    function updateDisplay() {
-        // Обновление общих карт
-        let communityDiv = document.getElementById('community-cards');
-        communityDiv.innerHTML = '';
-        for (let card of communityCards) {
-            let cardDiv = document.createElement('div');
-            cardDiv.className = 'card ' + card.suit;
-            cardDiv.innerHTML = card.value;
-            communityDiv.appendChild(cardDiv);
-        }
-
-        // Обновление карт игроков
-        let playersDiv = document.getElementById('player-cards');
-        playersDiv.innerHTML = '';
-        players.forEach((player, index) => {
-            let playerDiv = document.createElement('div');
-            playerDiv.className = 'player';
-            let handDiv = document.createElement('div');
-            for (let card of player.hand) {
-                let cardDiv = document.createElement('div');
-                cardDiv.className = 'card ' + card.suit;
-                cardDiv.innerHTML = card.value;
-                handDiv.appendChild(cardDiv);
-            }
-            playerDiv.innerHTML = `<h3>Игрок ${index + 1}</h3>`;
-            playerDiv.appendChild(handDiv);
-            if (player.handName) {
-                playerDiv.innerHTML += `<p>${player.handName}</p>`;
-            }
-            if (player.winPercentage > 0) {
-                playerDiv.innerHTML += `<p>Шанс победы: ${player.winPercentage}%</p>`;
-            }
-            playersDiv.appendChild(playerDiv);
+    // создание игроков
+    for(let i=0; i<numPlayers; i++){
+        players.push({
+            hand:[],
+            cards:[],
+            pos: playerPositions[i],
+            strengthEl: null,
+            strength: 'Waiting...'
         });
+        
+        const wrapper = document.createElement('div');
+        wrapper.className='player-wrapper';
+        const pos = playerPositions[i];
+        
+        // Специальные отступы для карт
+        let cardOffsetX = 0;
+        let cardOffsetY = 0;
+        let wrapperWidth = 200;
+        
+        if(i === 0) { // Player 1 - карты повыше
+            wrapper.style.left=(pos.x - 90)+'px';
+            wrapper.style.top=(pos.y - 110)+'px';
+            cardOffsetY = -110;
+        } 
+        else if(i === 1 || i === 8) { // Players 2 and 9
+            wrapper.style.left=(pos.x - 90)+'px';
+            wrapper.style.top=(pos.y - 80)+'px';
+            cardOffsetY = -80;
+        }
+        else if(i === 2 || i === 7) { // Players 3 and 8
+            wrapper.style.left=(pos.x - 90)+'px';
+            wrapper.style.top=(pos.y - 120)+'px';
+            cardOffsetY = -120;
+        }
+        else if(i === 3 || i === 6) { // Players 4 and 7
+            wrapper.style.left=(pos.x - 90)+'px';
+            wrapper.style.top=(pos.y - 80)+'px';
+            cardOffsetY = -80;
+        }
+        else { // Players 5 and 6
+            wrapper.style.left=(pos.x - 90)+'px';
+            wrapper.style.top=(pos.y - 80)+'px';
+            cardOffsetY = -80;
+        }
+        
+        wrapper.style.width = wrapperWidth + 'px';
+        
+        const name = document.createElement('div');
+        name.className='player-name';
+        name.textContent='Player '+(i+1);
+        
+        const strength = document.createElement('div');
+        strength.className='hand-strength';
+        strength.textContent='Waiting...';
+        players[i].strengthEl = strength;
+        
+        wrapper.appendChild(name);
+        wrapper.appendChild(strength);
+        table.appendChild(wrapper);
     }
 
-    function calculateWinPercentages() {
-        // Примерная оценка шансов на победу
-        if (stage === 0) return;
-        let simulations = 1000;
-        let wins = new Array(players.length).fill(0);
+    // раздача карт
+    for(let round=0; round<2; round++){
+        for(let i=0; i<numPlayers; i++){
+            players[i].hand.push(deck.pop());
+        }
+    }
 
-        for (let i = 0; i < simulations; i++) {
-            let tempDeck = deck.slice();
-            let tempCommunity = communityCards.slice();
-            while (tempCommunity.length < 5) {
-                tempCommunity.push(tempDeck.pop());
+    for(let i=0; i<5; i++){
+        let c=deck.pop();
+        c.revealed=false;
+        communityCards.push(c);
+    }
+
+    const communityDiv=document.getElementById('community-cards');
+    communityDiv.innerHTML='';
+    for(let i=0; i<5; i++){
+        const card=document.createElement('div');
+        card.className='card back';
+        card.style.position='relative';
+        communityDiv.appendChild(card);
+    }
+
+    const dealQueue=[];
+    for(let round=0; round<2; round++){
+        for(let i=0; i<numPlayers; i++){
+            dealQueue.push({type:'player', playerIndex:i, cardIndex:round});
+        }
+    }
+    for(let i=0; i<5; i++){
+        dealQueue.push({type:'community', index:i});
+    }
+
+    let index=0;
+    function nextDeal(){
+        if(index >= dealQueue.length){
+            updateHandStrengths();
+            addLog('✅ Раздача завершена!');
+            return;
+        }
+        
+        const item = dealQueue[index];
+        index++;
+
+        if(item.type === 'player'){
+            const player = players[item.playerIndex];
+            const c = player.hand[item.cardIndex];
+            
+            const card = document.createElement('div');
+            card.className = 'card ' + c.suit;
+            card.innerHTML = c.value + suitSymbols[c.suit];
+            
+            const pos = player.pos;
+            let x = pos.x;
+            let y = pos.y;
+            
+            // Специальные позиции для карт
+            if(item.playerIndex === 0) { // Player 1
+                x = pos.x - 90 + (item.cardIndex * 110);
+                y = pos.y - 140;
+            } 
+            else if(item.playerIndex === 1 || item.playerIndex === 8) { // Players 2 and 9
+                x = pos.x - 90 + (item.cardIndex * 100);
+                y = pos.y - 110;
             }
-            let tempPlayers = players.map(player => ({
-                hand: player.hand.slice(),
-                bestHand: null
-            }));
-            tempPlayers.forEach(player => {
-                player.bestHand = evaluateHand(player.hand.concat(tempCommunity));
-            });
-            tempPlayers.sort((a, b) => compareHands(b.bestHand, a.bestHand));
-            wins[tempPlayers.indexOf(tempPlayers[0])]++;
-        }
-
-        players.forEach((player, index) => {
-            player.winPercentage = ((wins[index] / simulations) * 100).toFixed(2);
-        });
-    }
-
-    function evaluateHands() {
-        players.forEach(player => {
-            player.bestHand = evaluateHand(player.hand.concat(communityCards));
-            player.handName = getHandName(player.bestHand.rank);
-        });
-        players.sort((a, b) => compareHands(b.bestHand, a.bestHand));
-    }
-
-    function evaluateHand(cards) {
-        // Простая функция оценки руки
-        // Для полной реализации потребуется более сложный алгоритм
-        let ranks = values.slice();
-        let counts = {};
-        let suitsCount = {};
-        cards.forEach(card => {
-            counts[card.value] = (counts[card.value] || 0) + 1;
-            suitsCount[card.suit] = (suitsCount[card.suit] || 0) + 1;
-        });
-
-        // Проверка на флеш
-        let flushSuit = null;
-        for (let suit in suitsCount) {
-            if (suitsCount[suit] >= 5) {
-                flushSuit = suit;
+            else {
+                x = pos.x - 90 + (item.cardIndex * 100);
+                y = pos.y - 110;
             }
-        }
+            
+            card.style.left = x + 'px';
+            card.style.top = y + 'px';
+            
+            table.appendChild(card);
+            player.cards[item.cardIndex] = card;
 
-        // Проверка на стрит
-        let cardIndices = cards.map(card => ranks.indexOf(card.value)).sort((a, b) => a - b);
-        let isStraight = false;
-        for (let i = 0; i <= cardIndices.length - 5; i++) {
-            if (cardIndices[i + 4] - cardIndices[i] === 4) {
-                isStraight = true;
-                break;
+            // Лазер из центра дилера
+            createLaserBeam(dealerX, dealerY, x + tableRect.left, y + tableRect.top);
+            setTimeout(nextDeal, 280);
+
+        } else if(item.type === 'community'){
+            const communityDiv = document.getElementById('community-cards');
+            const cardEl = communityDiv.children[item.index];
+            const targetRect = cardEl.getBoundingClientRect();
+            createLaserBeam(dealerX, dealerY, targetRect.left + 45, targetRect.top + 67);
+            setTimeout(nextDeal, 280);
+        }
+    }
+    
+    nextDeal();
+}
+
+// ПРАВИЛЬНЫЙ ПОКЕРНЫЙ ОЦЕНЩИК
+function evaluateHand(cards) {
+    const suits = cards.map(card => card.suit);
+    const ranks = cards.map(card => valueRanks[card.value]);
+    const isSameSuit = (new Set(suits)).size === 1;
+    const sortedRanks = [...ranks].sort((a,b) => a-b);
+    const isStraight = isConsecutive(sortedRanks);
+    
+    // Сбор статистики по картам
+    const rankCounts = {};
+    ranks.forEach(rank => {
+        rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+    });
+    
+    // Проверка на флеш-роял
+    if (isSameSuit && isStraight && sortedRanks[4] === 14) {
+        return {rank: 9, description: "Royal Flush", kickers: [14]};
+    }
+    
+    // Проверка на стрит-флеш
+    if (isSameSuit && isStraight) {
+        return {rank: 8, description: "Straight Flush", kickers: [sortedRanks[4]]};
+    }
+    
+    // Проверка на карэ
+    const fourOfAKind = Object.values(rankCounts).includes(4);
+    if (fourOfAKind) {
+        const fourRank = Object.keys(rankCounts).find(rank => rankCounts[rank] === 4);
+        const kicker = Object.keys(rankCounts).find(rank => rankCounts[rank] === 1);
+        return {rank: 7, description: "Four of a Kind", kickers: [fourRank, kicker]};
+    }
+    
+    // Проверка на фул-хаус
+    const threeOfAKind = Object.values(rankCounts).includes(3);
+    const pair = Object.values(rankCounts).includes(2);
+    if (threeOfAKind && pair) {
+        const threeRank = Object.keys(rankCounts).find(rank => rankCounts[rank] === 3);
+        const pairRank = Object.keys(rankCounts).find(rank => rankCounts[rank] === 2);
+        return {rank: 6, description: "Full House", kickers: [threeRank, pairRank]};
+    }
+    
+    // Проверка на флеш
+    if (isSameSuit) {
+        const kickers = sortedRanks.slice().sort((a,b) => b-a);
+        return {rank: 5, description: "Flush", kickers: kickers};
+    }
+    
+    // Проверка на стрит
+    if (isStraight) {
+        return {rank: 4, description: "Straight", kickers: [sortedRanks[4]]};
+    }
+    
+    // Проверка на тройку
+    if (threeOfAKind) {
+        const threeRank = Object.keys(rankCounts).find(rank => rankCounts[rank] === 3);
+        const kickers = Object.keys(rankCounts).filter(rank => rankCounts[rank] === 1).sort((a,b) => b-a);
+        return {rank: 3, description: "Three of a Kind", kickers: [threeRank, ...kickers]};
+    }
+    
+    // Проверка на дзве пары
+    const pairs = Object.values(rankCounts).filter(count => count === 2).length;
+    if (pairs === 2) {
+        const pairRanks = Object.keys(rankCounts).filter(rank => rankCounts[rank] === 2).sort((a,b) => b-a);
+        const kicker = Object.keys(rankCounts).find(rank => rankCounts[rank] === 1);
+        return {rank: 2, description: "Two Pair", kickers: [pairRanks[0], pairRanks[1], kicker]};
+    }
+    
+    // Проверка на пару
+    if (pairs === 1) {
+        const pairRank = Object.keys(rankCounts).find(rank => rankCounts[rank] === 2);
+        const kickers = Object.keys(rankCounts).filter(rank => rankCounts[rank] === 1).sort((a,b) => b-a);
+        return {rank: 1, description: "Pair", kickers: [pairRank, ...kickers]};
+    }
+    
+    // Высокая карта
+    const highCard = Math.max(...ranks);
+    return {rank: 0, description: "High Card", kickers: [highCard]};
+}
+
+function isConsecutive(ranks) {
+    // Проверка на стрит з учетам туза як 1
+    const sorted = [...ranks].sort((a,b) => a-b);
+    for(let i=0; i<sorted.length-1; i++) {
+        if(sorted[i+1] - sorted[i] !== 1) {
+            // Проверка на туза як 1
+            if(sorted[i+1] === 14 && sorted[i] === 5) {
+                return true;
             }
-        }
-
-        // Определение комбинации
-        let rank = 1; // Старшая карта
-        if (Object.values(counts).includes(4)) {
-            rank = 8; // Каре
-        } else if (Object.values(counts).includes(3) && Object.values(counts).includes(2)) {
-            rank = 7; // Фулл-хаус
-        } else if (flushSuit) {
-            rank = 6; // Флеш
-        } else if (isStraight) {
-            rank = 5; // Стрит
-        } else if (Object.values(counts).includes(3)) {
-            rank = 4; // Сет
-        } else if (Object.values(counts).filter(x => x === 2).length >= 2) {
-            rank = 3; // Две пары
-        } else if (Object.values(counts).includes(2)) {
-            rank = 2; // Пара
-        }
-        return { rank, counts };
-    }
-
-    function compareHands(a, b) {
-        return a.rank - b.rank;
-    }
-
-    function getHandName(rank) {
-        switch (rank) {
-            case 1: return 'Старшая карта';
-            case 2: return 'Пара';
-            case 3: return 'Две пары';
-            case 4: return 'Сет';
-            case 5: return 'Стрит';
-            case 6: return 'Флеш';
-            case 7: return 'Фулл-хаус';
-            case 8: return 'Каре';
-            default: return '';
+            return false;
         }
     }
+    return true;
+}
 
-    // Инициализация игры
-    deal();
+function getBestHand(playerHand, communityCards) {
+    const allCards = [...playerHand, ...communityCards];
+    const combinations = getCombinations(allCards, 5);
+    let bestHand = null;
+    
+    for(const combo of combinations) {
+        const hand = evaluateHand(combo);
+        if(!bestHand || hand.rank > bestHand.rank || 
+           (hand.rank === bestHand.rank && compareKickers(hand.kickers, bestHand.kickers) > 0)) {
+            bestHand = hand;
+        }
+    }
+    
+    return bestHand;
+}
+
+function getCombinations(arr, n) {
+    if(n === 0) return [[]];
+    if(arr.length === 0) return [];
+    
+    const first = arr[0];
+    const rest = arr.slice(1);
+    const combsWithoutFirst = getCombinations(rest, n);
+    const combsWithFirst = getCombinations(rest, n-1).map(comb => [first, ...comb]);
+    
+    return [...combsWithoutFirst, ...combsWithFirst];
+}
+
+function compareKickers(a, b) {
+    for(let i=0; i<Math.max(a.length, b.length); i++) {
+        if(a[i] > b[i]) return 1;
+        if(a[i] < b[i]) return -1;
+    }
+    return 0;
+}
+
+function updateHandStrengths(){
+    const visibleCommunity = communityCards.slice(0, Math.min(stage + 3, 5));
+    let bestHand = null;
+    let winners = [];
+    
+    players.forEach((player, i) => {
+        player.bestHand = getBestHand(player.hand, visibleCommunity);
+        player.strengthEl.textContent = player.bestHand.description;
+        
+        // Определение победителя
+        if(!bestHand || player.bestHand.rank > bestHand.rank || 
+           (player.bestHand.rank === bestHand.rank && compareKickers(player.bestHand.kickers, bestHand.kickers) > 0)) {
+            bestHand = player.bestHand;
+            winners = [i];
+        } else if(player.bestHand.rank === bestHand.rank && compareKickers(player.bestHand.kickers, bestHand.kickers) === 0) {
+            winners.push(i);
+        }
+        
+        // Цвет для победителя
+        if(winners.includes(i)) {
+            player.strengthEl.style.color = '#ff0';
+            player.strengthEl.style.borderColor = '#ff0';
+        } else {
+            player.strengthEl.style.color = '#90ff90';
+            player.strengthEl.style.borderColor = '#90ff90';
+        }
+    });
+    
+    // Лог победителя
+    if(winners.length === 1) {
+        addLog(`🏆 Player ${winners[0]+1} побеждает с ${bestHand.description}`, true);
+    } else {
+        const winnerText = winners.map(i => `Player ${i+1}`).join(', ');
+        addLog(`🏆 ${winnerText} делят победу с ${bestHand.description}`, true);
+    }
+}
+
+function revealFlop(){
+    if(stage === 0){
+        for(let i=0; i<3; i++) communityCards[i].revealed = true;
+        stage = 1;
+        revealCommunity();
+        addLog('🂡 FLOPPPPPPPPPP (3 карты)', true);
+        updateHandStrengths();
+    }
+}
+function revealTurn(){
+    if(stage === 1){
+        communityCards[3].revealed = true;
+        stage = 2;
+        revealCommunity();
+        addLog('🔄 TURNNNNNNNNNNN (4 карты)');
+        updateHandStrengths();
+    }
+}
+function revealRiver(){
+    if(stage === 2){
+        communityCards[4].revealed = true;
+        stage = 3;
+        revealCommunity();
+        addLog('🌊 RIVER - ПОБЕДИТЕЛЬ!', true);
+        updateHandStrengths();
+    }
+}
+
+function revealCommunity(){
+    const communityDiv = document.getElementById('community-cards');
+    communityDiv.innerHTML = '';
+    communityCards.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'card ' + (c.revealed ? c.suit : 'back');
+        card.style.position = 'relative';
+        if(c.revealed){
+            card.innerHTML = c.value + suitSymbols[c.suit];
+        }
+        communityDiv.appendChild(card);
+    });
+}
 </script>
-
 </body>
 </html>
