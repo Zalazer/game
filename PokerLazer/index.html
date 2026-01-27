@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PokerLazer</title>
+<title>PokerLazer - Holdem</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
@@ -174,10 +174,12 @@ canvas#pokerCanvas {
 </style>
 </head>
 <body>
-<h1>PokerLazer Holdem</h1>
+
+  <h1 style="margin-top: 21px;">PokerLazer Holdem</h1>
+
 <div id="controls">
     <button onclick="laserDealSequence()">🚀 Laser Deal</button>
-    <button onclick="revealFlop()">🂡 FLOPP</button>
+    <button onclick="revealFlop()">🂡 FLOP</button>
     <button onclick="revealTurn()">🔄 TURN</button>
     <button onclick="revealRiver()">🌊 RIVER</button>
 </div>
@@ -660,7 +662,7 @@ function revealFlop(){
         for(let i=0; i<3; i++) communityCards[i].revealed = true;
         stage = 1;
         revealCommunity();
-        addLog('🂡 FLOPPPPPPPPPP (3 карты)', true);
+        addLog('🂡 FLOP (3 карты)', true);
         updateHandStrengths();
     }
 }
@@ -669,7 +671,7 @@ function revealTurn(){
         communityCards[3].revealed = true;
         stage = 2;
         revealCommunity();
-        addLog('🔄 TURNNNNNNNNNNN (4 карты)');
+        addLog('🔄 TURN (4 карты)');
         updateHandStrengths();
     }
 }
