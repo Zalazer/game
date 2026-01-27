@@ -2,12 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Turn Strategy – Full Restore with WebAudio</title>
+<title>ChronoMonsters - Turn Strategy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 #info{position:fixed;top:21px;left:6px;font-family:monospace;font-size:18px;color:#0f0;background:rgba(0,0,0,0.65);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.3;}
 #log{position:fixed;bottom:6px;left:6px;right:6px;max-height:14%;overflow:auto;font-family:monospace;font-size:14px;color:#0f0;background:rgba(0,0,0,0.7);padding:6px;}
+
+#info .val{
+    color:#fff;
+    // background:rgba(255,255,255,0.15);
+    padding:0px 0px;
+    border-radius:0px;
+    font-weight:bold;
+}
+
+
+
+#info .lbl{
+    font-weight:bold;
+    margin-right:4px;
+}
+
+/* игрок — ровно как на карте */
+#info .player{
+    color: cyan;
+}
+
+/* сундуки */
+#info .chest{
+    color: yellow;
+}
+
+/* монстры */
+#info .monster{
+    color: red;
+}
+
+/* боты */
+#info .bot{
+    color: blue;
+}
+
+/* заблокированные клетки (белые) */
+#info .blocked{
+    color: white;
+}
+
+/* раунд — оставляем системный зелёный */
+#info .round{
+    color: #0f0;
+}
+
+
+
 
 
 #overlay {
@@ -732,10 +780,17 @@ function draw() {
         remainingMonsters = monsters.length,
         remainingBots = bots.filter(b => b.alive).length;
 
-    document.getElementById("info").innerText =
-        `POWER ${player.power}   SPEED ${player.speed}   MOVES ${player.movesLeft}
-Chests ${remainingChests}   Monsters ${remainingMonsters}   Bots ${remainingBots}
-Round ${roundNumber}`;
+ document.getElementById("info").innerHTML =
+`<span class="lbl player">Power</span> <span class="val">${player.power}</span>
+<span class="lbl player">Speed</span> <span class="val">${player.speed}</span>
+<span class="lbl player">Steps left</span> <span class="val">${player.movesLeft}</span><br>
+
+<span class="lbl chest">Chests</span> <span class="val">${remainingChests}</span>
+<span class="lbl monster">Monsters</span> <span class="val">${remainingMonsters}</span>
+<span class="lbl bot">Bots</span> <span class="val">${remainingBots}</span><br>
+
+<span class="lbl round">Round</span> <span class="val">${roundNumber}</span>
+<span class="lbl blocked">Blocked cells</span> <span class="val">${deadZones.length}</span>`;
 }
 
 
