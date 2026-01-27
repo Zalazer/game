@@ -21,7 +21,6 @@ html, body {
     font-family: Arial, sans-serif;
 }
 
-/* ===== MENU ===== */
 #menu {
     width: 100vw;
     height: 100vh;
@@ -31,28 +30,14 @@ html, body {
     justify-content: center;
 }
 
-h1 {
-    font-size: 26px;
-    margin-bottom: 24px;
-}
+h1 { font-size: 26px; margin-bottom: 24px; }
 
 .btn {
-    width: 260px;
-    padding: 14px;
-    margin: 8px;
-    font-size: 18px;
-    border: none;
-    border-radius: 10px;
-    background: #1c1c1c;
-    color: #fff;
-    cursor: pointer;
+    width: 260px; padding: 14px; margin: 8px; font-size: 18px;
+    border: none; border-radius: 10px; background: #1c1c1c; color: #fff; cursor: pointer;
 }
+.btn:hover { background: #2c2c2c; }
 
-.btn:hover {
-    background: #2c2c2c;
-}
-
-/* ===== GAME CONTAINER ===== */
 #gameContainer {
     display: none;
     width: 100vw;
@@ -60,7 +45,6 @@ h1 {
     flex-direction: column;
 }
 
-/* верхняя панель */
 #topBar {
     width: 100%;
     background: rgba(17,17,17,0.98);
@@ -73,41 +57,24 @@ h1 {
 }
 
 .topBtn {
-    font-size: 15px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: #222;
-    border: none;
-    color: #fff;
-    cursor: pointer;
+    font-size: 15px; padding: 8px 14px; border-radius: 8px;
+    background: #222; border: none; color: #fff; cursor: pointer;
 }
 
-/* ===== GAME FRAME ===== */
 #gameFrameWrapper {
     flex: 1;
     background: #000;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     overflow: hidden;
 }
 
-/* КЛЮЧЕВО: iframe НЕ масштабируется */
 iframe#gameFrame {
-    border: none;
-    display: block;
-    background: transparent;
-
-    width: auto;
-    height: auto;
-
-    touch-action: auto;
-    pointer-events: auto;
+    border: none; display: block; background: transparent;
+    width: auto; height: auto; touch-action: auto; pointer-events: auto;
 }
 
-/* ===== RULES OVERLAY ===== */
 #rulesOverlay {
     position: fixed;
     inset: 0;
@@ -135,7 +102,7 @@ iframe#gameFrame {
 
 <body>
 
-<!-- ===== MENU ===== -->
+<!-- MENU -->
 <div id="menu">
     <h1>🎮 Game Console</h1>
     <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
@@ -143,19 +110,19 @@ iframe#gameFrame {
     <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
 </div>
 
-<!-- ===== GAME ===== -->
+<!-- GAME -->
 <div id="gameContainer">
     <div id="topBar">
         <button class="topBtn" onclick="backToMenu()">← Back</button>
         <button class="topBtn" onclick="openRules()">Game Rules</button>
+        <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
     </div>
-
     <div id="gameFrameWrapper">
         <iframe id="gameFrame"></iframe>
     </div>
 </div>
 
-<!-- ===== RULES ===== -->
+<!-- RULES -->
 <div id="rulesOverlay">
     <div id="rulesHeader">
         <button class="topBtn" onclick="closeRules()">← Back to Game</button>
@@ -163,53 +130,105 @@ iframe#gameFrame {
     <iframe id="rulesFrame"></iframe>
 </div>
 
+<!-- AUDIO -->
+<audio id="musicMenu" src="music-menu.mp3" loop></audio>
+<audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
+<audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
+<audio id="music-ChronoMonsters" src="music-ChronoMonsters.mp3" loop></audio>
+
 <script>
 const menu          = document.getElementById('menu');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame     = document.getElementById('gameFrame');
 const rulesOverlay  = document.getElementById('rulesOverlay');
 const rulesFrame    = document.getElementById('rulesFrame');
+const muteBtn       = document.getElementById('muteBtn');
+
+const tracks = {
+    menu: document.getElementById('musicMenu'),
+    PokerLazer: document.getElementById('music-PokerLazer'),
+    StarDropper: document.getElementById('music-StarDropper'),
+    ChronoMonsters: document.getElementById('music-ChronoMonsters')
+};
 
 let currentGame = '';
+let musicStarted = false;
+let fadeInterval;
 
-function loadGame(gameFolder) {
+// ===== FADE FUNCTIONS =====
+function fadeIn(track, targetVolume = 0.4) {
+    track.muted = false;
+    track.volume = 0;
+    track.play().catch(e=>console.log("Music play blocked:",e));
+    if(fadeInterval) clearInterval(fadeInterval);
+    let v=0;
+    fadeInterval=setInterval(()=>{
+        v+=0.05;
+        if(v>=targetVolume){v=targetVolume; clearInterval(fadeInterval);}
+        track.volume=v;
+    },50);
+}
+
+function fadeOut(track, callback){
+    if(fadeInterval) clearInterval(fadeInterval);
+    let v = track.volume;
+    fadeInterval = setInterval(()=>{
+        v-=0.05;
+        if(v<=0){v=0; track.pause(); clearInterval(fadeInterval); if(callback) callback();}
+        track.volume=v;
+    },50);
+}
+
+// ===== MUTE / UNMUTE =====
+function toggleMute(){
+    const anyPlaying = Object.values(tracks).some(t=>!t.muted);
+    if(anyPlaying){
+        Object.values(tracks).forEach(t=>{fadeOut(t); t.muted=true;});
+        muteBtn.textContent="🔇";
+    } else {
+        Object.values(tracks).forEach(t=>t.muted=false);
+        muteBtn.textContent="🔊";
+        if(menu.style.display!=='none'){fadeIn(tracks.menu);}
+        else if(currentGame){fadeIn(tracks[currentGame]);}
+    }
+}
+
+// ===== START MUSIC ON FIRST INTERACTION =====
+function startMusic(track){ if(musicStarted) return; musicStarted=true; fadeIn(track); }
+
+// ===== LOAD GAME =====
+function loadGame(gameFolder){
+    startMusic(tracks.menu);
+
     currentGame = gameFolder;
+    fadeOut(tracks.menu, ()=> fadeIn(tracks[gameFolder]));
 
-    menu.style.display = 'none';
-    gameContainer.style.display = 'flex';
+    menu.style.display='none';
+    gameContainer.style.display='flex';
 
-    // ФИЗИЧЕСКИЙ размер iframe = реальный экран
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    gameFrame.style.width  = w + 'px';
-    gameFrame.style.height = h + 'px';
-
-    gameFrame.src = gameFolder + '/index.html';
+    gameFrame.style.width  = window.innerWidth+'px';
+    gameFrame.style.height = window.innerHeight+'px';
+    gameFrame.src = gameFolder+'/index.html';
 }
 
-function backToMenu() {
-    gameFrame.src = '';
-    menu.style.display = 'flex';
-    gameContainer.style.display = 'none';
+// ===== BACK TO MENU =====
+function backToMenu(){
+    fadeOut(tracks[currentGame], ()=> fadeIn(tracks.menu));
+    gameFrame.src='';
+    menu.style.display='flex';
+    gameContainer.style.display='none';
+    currentGame='';
 }
 
-function openRules() {
-    if (!currentGame) return;
-    rulesOverlay.style.display = 'flex';
-    rulesFrame.src = currentGame + '/' + currentGame + '-rules.html';
-}
+// ===== RULES =====
+function openRules(){ if(!currentGame) return; rulesOverlay.style.display='flex'; rulesFrame.src=currentGame+'/'+currentGame+'-rules.html'; }
+function closeRules(){ rulesFrame.src=''; rulesOverlay.style.display='none'; }
 
-function closeRules() {
-    rulesFrame.src = '';
-    rulesOverlay.style.display = 'none';
-}
-
-/* на поворот экрана */
-window.addEventListener('resize', () => {
-    if (!gameFrame.src) return;
-    gameFrame.style.width  = window.innerWidth + 'px';
-    gameFrame.style.height = window.innerHeight + 'px';
+/* RESIZE */
+window.addEventListener('resize',()=>{
+    if(!gameFrame.src) return;
+    gameFrame.style.width=window.innerWidth+'px';
+    gameFrame.style.height=window.innerHeight+'px';
 });
 </script>
 
