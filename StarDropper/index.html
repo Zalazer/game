@@ -2,177 +2,223 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
-<!-- viewport можно оставить, но теперь он не критичен -->
-<meta name="viewport"
-      content="width=device-width,
-               initial-scale=1.0,
-               maximum-scale=1.0,
-               user-scalable=no">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StarDropper</title>
-
 <style>
-html, body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: #000;
-}
-
-/* canvas = всё приложение */
-canvas {
-    display: block;
-    background: #000;
-
-    touch-action: none;
-    user-select: none;
+html, body {margin:0; padding:0; overflow:hidden; background:#000;}
+canvas {display:block; background:#000; touch-action:none; user-select:none;}
+button {
+    position:absolute; left:50%; top:65%; transform:translate(-50%,-50%);
+    padding:12px 24px; font-size:20px; cursor:pointer;
+    display:none; z-index:10;
+    background:#222; color:#fff; border:none; border-radius:6px;
 }
 </style>
 </head>
-
 <body>
-
 <canvas id="gameCanvas"></canvas>
+<button id="actionBtn"></button>
 
 <script>
-/* ===== CANVAS SETUP (КЛЮЧ) ===== */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const btn = document.getElementById('actionBtn');
 
 function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    canvas.width  = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-
-    canvas.style.width  = w + 'px';
-    canvas.style.height = h + 'px';
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const dpr = window.devicePixelRatio||1;
+    canvas.width = window.innerWidth*dpr;
+    canvas.height = window.innerHeight*dpr;
+    canvas.style.width = window.innerWidth+"px";
+    canvas.style.height = window.innerHeight+"px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
 }
-
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-/* ===== GAME SPACE (логические координаты) ===== */
-const GAME_WIDTH  = 360;
-const GAME_HEIGHT = 640;
+/* GAME CONST */
+const GAME_WIDTH=360, GAME_HEIGHT=640, ROUND_TIME=60, MAX_MISSED=5;
+function sx(x){return x*canvas.clientWidth/GAME_WIDTH;}
+function sy(y){return y*canvas.clientHeight/GAME_HEIGHT;}
 
-function sx(x) { return x * canvas.clientWidth  / GAME_WIDTH; }
-function sy(y) { return y * canvas.clientHeight / GAME_HEIGHT; }
+/* OBJECTS */
+const cannon={x:180,y:600,width:40,height:12};
+let bullets=[],balls=[],flashes=[];
 
-/* ===== GAME OBJECTS ===== */
-const cannon = {
-    x: GAME_WIDTH / 2,
-    y: GAME_HEIGHT - 40,
-    width: 40,
-    height: 12
-};
+/* STATE */
+let round=1,timeLeft=ROUND_TIME,lastTime=performance.now();
+let gameState='playing'; // playing, roundEnd, gameOver
+let hit=0,missed=0,shots=0,lastSecond=ROUND_TIME;
+let bestRound=Number(localStorage.getItem('bestRound')||1);
+let gameOverReason='';
+let timerAlpha=0; 
+let timerTargetAlpha=0;
 
-let bullets = [];
-let balls   = [];
-
-/* ===== INPUT ===== */
-canvas.addEventListener('pointerdown', e => {
-    const rect = canvas.getBoundingClientRect();
-    const px = (e.clientX - rect.left) * GAME_WIDTH / rect.width;
-    cannon.x = px;
-    fireBullet();
+/* INPUT */
+canvas.addEventListener('pointerdown',e=>{
+    if(gameState!=='playing') return;
+    const r=canvas.getBoundingClientRect();
+    cannon.x=(e.clientX-r.left)*GAME_WIDTH/r.width;
+    fire();
+});
+canvas.addEventListener('pointermove',e=>{
+    if(e.buttons!==1||gameState!=='playing') return;
+    const r=canvas.getBoundingClientRect();
+    cannon.x=(e.clientX-r.left)*GAME_WIDTH/r.width;
 });
 
-canvas.addEventListener('pointermove', e => {
-    if (e.buttons !== 1) return;
-    const rect = canvas.getBoundingClientRect();
-    const px = (e.clientX - rect.left) * GAME_WIDTH / rect.width;
-    cannon.x = px;
-});
-
-/* ===== GAME LOGIC ===== */
-function fireBullet() {
-    bullets.push({
-        x: cannon.x,
-        y: cannon.y,
-        r: 4,
-        speed: 9
-    });
+/* AUDIO */
+const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+function laserShot(){
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(1200,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(300,audioCtx.currentTime+0.2);
+    g.gain.setValueAtTime(0.005,audioCtx.currentTime); // ещё тише
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.2);
 }
+function splashHit(){
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(150,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(50,audioCtx.currentTime+0.3);
+    g.gain.setValueAtTime(0.32,audioCtx.currentTime); // громче попадания
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.3);
+}
+function beep(f,d,type='sine',vol=0.1){
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type=type; o.frequency.value=f; g.gain.value=vol;
+    o.connect(g).connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+d);
+}
+const sfx={shot:laserShot, hit:splashHit, death:()=>beep(80,0.5,'triangle',0.15), tick:()=>beep(600,0.04,'sine',0.05)};
 
-function update() {
-    bullets = bullets.filter(b => {
-        b.y -= b.speed;
-        return b.y > 0;
+/* LOGIC */
+function fire(){bullets.push({x:cannon.x,y:cannon.y,r:4,speed:9});shots++;sfx.shot();}
+function update(dt){
+    if(gameState!=='playing') return;
+
+    timeLeft-=dt;
+    if(timeLeft<=0){timeLeft=0; endRound();}
+    const sec=Math.ceil(timeLeft);
+    if(sec!==lastSecond){
+        lastSecond=sec;
+        timerTargetAlpha=0.35;
+        if(sec<=5) sfx.tick();
+    }
+    timerAlpha += (timerTargetAlpha-timerAlpha)*5*dt;
+    timerTargetAlpha *= Math.exp(-dt*4);
+
+    bullets=bullets.filter(b=>{b.y-=b.speed;return b.y>0;});
+    
+    balls=balls.filter(ball=>{
+        ball.y+=ball.speed;
+        if(ball.y+ball.r>=cannon.y && ball.x>cannon.x-cannon.width/2 && ball.x<cannon.x+cannon.width/2){
+            gameOverReason='Collided with target';
+            sfx.death(); gameOver(); return false;
+        }
+        if(ball.y>GAME_HEIGHT+20){missed++;if(missed>=MAX_MISSED){gameOverReason='Missed 5 targets'; sfx.death(); gameOver();} return false;}
+        return true;
     });
 
-    balls = balls.filter(ball => {
-        ball.y += ball.speed;
-        return ball.y < GAME_HEIGHT + 20;
-    });
-
-    for (let i = balls.length - 1; i >= 0; i--) {
-        for (let j = bullets.length - 1; j >= 0; j--) {
-            const dx = balls[i].x - bullets[j].x;
-            const dy = balls[i].y - bullets[j].y;
-            if (Math.hypot(dx, dy) < balls[i].r + bullets[j].r) {
-                balls.splice(i, 1);
-                bullets.splice(j, 1);
+    // столкновения с выстрелами
+    for(let i=balls.length-1;i>=0;i--){
+        for(let j=bullets.length-1;j>=0;j--){
+            if(Math.hypot(balls[i].x-bullets[j].x,balls[i].y-bullets[j].y)<balls[i].r+bullets[j].r){
+                bullets.splice(j,1);
+                hit++; sfx.hit();
+                flashes.push({x:balls[i].x, y:balls[i].y, r:balls[i].r, alpha:1});
+                balls.splice(i,1); 
                 break;
             }
         }
     }
 
-    if (Math.random() < 0.025) {
-        balls.push({
-            x: Math.random() * GAME_WIDTH,
-            y: -20,
-            r: 14,
-            speed: 2 + Math.random() * 2
-        });
+    // flash уменьшение
+    flashes.forEach(f=>f.alpha*=Math.exp(-dt*6));
+    flashes = flashes.filter(f=>f.alpha>0);
+
+    // новые шары
+    const diff=1+(round-1)*0.2;
+    if(Math.random()<0.025*diff){balls.push({x:Math.random()*GAME_WIDTH,y:-20,r:14,speed:(2+Math.random()*2)*diff});}
+}
+
+/* DRAW */
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // cannon
+    ctx.fillStyle='#fff';
+    ctx.fillRect(sx(cannon.x-cannon.width/2),sy(cannon.y),sx(cannon.width),sy(cannon.height));
+
+    // bullets
+    ctx.fillStyle='red'; bullets.forEach(b=>{ctx.beginPath();ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,7);ctx.fill();});
+
+    // balls
+    balls.forEach(b=>{
+        ctx.beginPath(); ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,7);
+        ctx.fillStyle='dodgerblue'; ctx.fill();
+    });
+
+    // flashes
+    flashes.forEach(f=>{
+        ctx.beginPath(); ctx.arc(sx(f.x),sy(f.y),sx(f.r),0,7);
+        ctx.fillStyle=`rgba(255,150,150,${f.alpha})`; ctx.fill();
+    });
+
+    // timer
+    ctx.save();
+    ctx.globalAlpha=timerAlpha;
+    ctx.fillStyle='rgba(255,255,255,1)';
+    ctx.font='bold 160px Arial';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(Math.ceil(timeLeft),canvas.clientWidth/2,canvas.clientHeight/2);
+    ctx.restore();
+
+    // HUD
+    ctx.fillStyle='#fff'; ctx.font='14px Arial'; ctx.textAlign='left';
+    const hudOffset=35;
+    ctx.fillText(`Round: ${round} (Best ${bestRound})`,10,18+hudOffset);
+    ctx.fillText(`Missed: ${missed}/${MAX_MISSED}`,10,36+hudOffset);
+    ctx.fillText(`Hit: ${hit}`,10,54+hudOffset);
+    ctx.fillText(`Shots: ${shots}`,10,72+hudOffset);
+
+    // overlay при пропущенных
+    if(missed>=4 && gameState==='playing'){
+        ctx.fillStyle=`rgba(255,0,0,${0.15+Math.sin(Date.now()/120)*0.05})`;
+        ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+    }
+
+    // overlay при окончании
+    if(gameState==='roundEnd'){
+        ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+        ctx.textAlign='center'; ctx.fillStyle='yellow'; ctx.font='bold 24px Arial';
+        ctx.fillText(`Round ${round} passed`,canvas.clientWidth/2,canvas.clientHeight/2-60);
+    }
+    if(gameState==='gameOver'){
+        ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+        ctx.textAlign='center'; ctx.fillStyle='red'; ctx.font='bold 32px Arial';
+        ctx.fillText('Game Over',canvas.clientWidth/2,canvas.clientHeight/2-60);
+        ctx.font='bold 22px Arial';
+        ctx.fillText(gameOverReason,canvas.clientWidth/2,canvas.clientHeight/2-20);
     }
 }
 
-/* ===== DRAW ===== */
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // cannon
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(
-        sx(cannon.x - cannon.width / 2),
-        sy(cannon.y),
-        sx(cannon.width),
-        sy(cannon.height)
-    );
-
-    // bullets
-    ctx.fillStyle = 'red';
-    bullets.forEach(b => {
-        ctx.beginPath();
-        ctx.arc(sx(b.x), sy(b.y), sx(b.r), 0, Math.PI * 2);
-        ctx.fill();
-    });
-
-    // balls
-    ctx.fillStyle = 'dodgerblue';
-    balls.forEach(ball => {
-        ctx.beginPath();
-        ctx.arc(sx(ball.x), sy(ball.y), sx(ball.r), 0, Math.PI * 2);
-        ctx.fill();
-    });
+/* BUTTONS */
+function showButton(label,callback){
+    btn.textContent=label; btn.style.display='block';
+    btn.onclick=()=>{btn.style.display='none'; callback();};
 }
+function endRound(){gameState='roundEnd'; showButton('Start next round',nextRound);}
+function gameOver(){gameState='gameOver'; bestRound=Math.max(bestRound,round); localStorage.setItem('bestRound',bestRound); showButton('Restart Game',restart);}
+function nextRound(){bullets=[]; balls=[]; flashes=[]; round++; timeLeft=ROUND_TIME; missed=0; timerAlpha=0; timerTargetAlpha=0; gameState='playing'; lastTime=performance.now();}
+function restart(){bullets=[]; balls=[]; flashes=[]; round=1; hit=missed=shots=0; timeLeft=ROUND_TIME; timerAlpha=0; timerTargetAlpha=0; gameState='playing'; lastTime=performance.now();}
 
-/* ===== LOOP ===== */
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-
-loop();
+/* LOOP */
+function loop(now){const dt=(now-lastTime)/1000; lastTime=now; update(dt); draw(); requestAnimationFrame(loop);}
+loop(performance.now());
 </script>
-
 </body>
 </html>
