@@ -2,343 +2,645 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>StarDropper</title>
+
 <style>
-/* ================== БАЗОВЫЕ СТИЛИ ================== */
 html, body {
-    margin:0;
-    padding:0;
-    overflow:hidden;
-    background:#000;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #000;
 }
+
 canvas {
-    display:block;
-    background:#000;
-    touch-action:none;
-    user-select:none;
+    display: block;
+    background: #000;
+    touch-action: none;
+    user-select: none;
 }
+
+
 button {
-    position:absolute;
-    left:50%;
-    top:65%;
-    transform:translate(-50%,-50%);
-    padding:12px 24px;
-    font-size:20px;
-    cursor:pointer;
-    display:none;
-    z-index:10;
-    background:#222;
-    color:#fff;
-    border:none;
-    border-radius:6px;
+    position: absolute;
+    top: 10px;       /* верхний отступ */
+    right: 10px;     /* правый отступ */
+    padding: 12px 26px;
+    font-size: 18px;
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+
+    /* убрать старые свойства */
+    left: auto;
+    transform: none;
 }
+
+
+
+
+
 </style>
 </head>
+
 <body>
+
 <canvas id="gameCanvas"></canvas>
-<button id="actionBtn"></button>
+<button id="mainBtn"></button>
+<button id="clearBtn">Clear leaderboard</button>
 
 <script>
-/* ================== CANVAS SETUP ================== */
+
+/* =========================================================
+   CANVAS SETUP
+========================================================= */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const btn = document.getElementById('actionBtn');
+const mainBtn = document.getElementById('mainBtn');
+const clearBtn = document.getElementById('clearBtn');
 
-function resizeCanvas(){
+
+mainBtn.style.position = 'absolute';
+mainBtn.style.left = 'auto';
+mainBtn.style.transform = 'none';
+mainBtn.style.top = '10px';
+mainBtn.style.right = '10px';
+
+clearBtn.style.position = 'absolute';
+clearBtn.style.left = 'auto';
+clearBtn.style.transform = 'none';
+clearBtn.style.top = '50px';
+clearBtn.style.right = '10px';
+
+
+
+
+
+function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
     canvas.style.width = window.innerWidth + 'px';
     canvas.style.height = window.innerHeight + 'px';
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
-/* ================== КОНСТАНТЫ И ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ================== */
+/* =========================================================
+   GAME SPACE
+========================================================= */
 const GAME_WIDTH = 360;
 const GAME_HEIGHT = 640;
+
+function sx(x) { return x * canvas.clientWidth / GAME_WIDTH; }
+function sy(y) { return y * canvas.clientHeight / GAME_HEIGHT; }
+
+/* =========================================================
+   CONSTANTS
+========================================================= */
 const ROUND_TIME = 60;
 const MAX_MISSED = 5;
+const LEADERBOARD_KEY = 'stardropper_leaderboard';
+const LEADERBOARD_MAX = 10;
 
-function sx(x){ return x * canvas.clientWidth / GAME_WIDTH; }
-function sy(y){ return y * canvas.clientHeight / GAME_HEIGHT; }
+/* =========================================================
+   GAME OBJECTS
+========================================================= */
+const cannon = {
+    x: GAME_WIDTH / 2,
+    y: GAME_HEIGHT - 40,
+    width: 40,
+    height: 12
+};
 
-/* ================== ОБЪЕКТЫ И СОСТОЯНИЕ ИГРЫ ================== */
-const cannon = { x: GAME_WIDTH/2, y: GAME_HEIGHT-40, width:40, height:12 };
 let bullets = [];
 let balls = [];
 let flashes = [];
 
+/* =========================================================
+   GAME STATE
+========================================================= */
 let round = 1;
+let bestRound = 1;
+
 let timeLeft = ROUND_TIME;
 let lastTime = performance.now();
-let gameState = 'playing'; // 'playing', 'roundEnd', 'gameOver'
 
-let hit = 0;
-let missed = 0;
 let shots = 0;
-let lastSecond = ROUND_TIME;
+let hits = 0;
+let missed = 0;
+
 let ammo = 1000;
 
-let bestRound = Number(localStorage.getItem('bestRound')||1);
-let totalHit = Number(localStorage.getItem('totalHit')||0);
+let totalShots = 0;
+let totalHits = 0;
+
+let gameState = 'playing'; // playing | roundEnd | final
 let gameOverReason = '';
+
 let timerAlpha = 0;
 let timerTargetAlpha = 0;
+let lastSecond = ROUND_TIME;
 
-/* ================== ОБРАБОТКА ВВОДА ================== */
-canvas.addEventListener('pointerdown', e=>{
-    if(gameState!=='playing') return;
-    const rect = canvas.getBoundingClientRect();
-    cannon.x = (e.clientX - rect.left)*GAME_WIDTH/rect.width;
-    fire();
-});
+let lastGameScore = null;
 
-canvas.addEventListener('pointermove', e=>{
-    if(e.buttons!==1 || gameState!=='playing') return;
-    const rect = canvas.getBoundingClientRect();
-    cannon.x = (e.clientX - rect.left)*GAME_WIDTH/rect.width;
-});
-
-/* ================== АУДИО ================== */
+/* =========================================================
+   AUDIO
+========================================================= */
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-// Выстрел лазером (тише)
-function laserShot(){ 
-    if(ammo<=0) return;
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.type='sawtooth';
-    o.frequency.setValueAtTime(1200,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(300,audioCtx.currentTime+0.2);
-    g.gain.setValueAtTime(0.003,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+function playLaser() {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(900, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.2);
+    g.gain.setValueAtTime(0.002, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0005, audioCtx.currentTime + 0.2);
     o.connect(g).connect(audioCtx.destination);
     o.start();
-    o.stop(audioCtx.currentTime+0.2);
+    o.stop(audioCtx.currentTime + 0.2);
 }
 
-// Попадание по цели (громче)
-function splashHit(){
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.type='sine';
-    o.frequency.setValueAtTime(150,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(50,audioCtx.currentTime+0.3);
-    g.gain.setValueAtTime(0.5,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+function playHit() {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(140, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.3);
+    g.gain.setValueAtTime(0.8, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
     o.connect(g).connect(audioCtx.destination);
     o.start();
-    o.stop(audioCtx.currentTime+0.3);
+    o.stop(audioCtx.currentTime + 0.3);
 }
 
 // Звуки смерти/тики
-function beep(f,d,type='sine',vol=0.1){
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.type=type; o.frequency.value=f; g.gain.value=vol;
+function beep(frequency, duration, type='sine', volume=0.1){
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    g.gain.setValueAtTime(volume, audioCtx.currentTime);
+
     o.connect(g).connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime+d);
+    o.start();
+    o.stop(audioCtx.currentTime + duration);
+
+    // Убираем осциллятор после окончания, чтобы GC не блокировал
+    o.onended = () => { o.disconnect(); g.disconnect(); };
 }
 
 const sfx = { 
-    shot: laserShot, 
-    hit: splashHit, 
+    shot: playLaser, 
+    hit: playHit, 
     death: ()=>beep(80,0.5,'triangle',0.15), 
-    tick: ()=>beep(600,0.04,'sine',0.05) 
+    tick: ()=>beep(600,0.04,'sine',0.05)
 };
 
-/* ================== ФУНКЦИИ ИГРЫ ================== */
-function fire(){
-    if(ammo<=0) return;
-    bullets.push({x:cannon.x,y:cannon.y,r:4,speed:9});
+
+
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+canvas.addEventListener('pointerdown', e => {
+    if (gameState !== 'playing') return;
+    if (ammo <= 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    cannon.x = (e.clientX - rect.left) * GAME_WIDTH / rect.width;
+
+    bullets.push({ x: cannon.x, y: cannon.y, r: 4, speed: 9 });
     shots++;
+    totalShots++;
     ammo--;
-    sfx.shot();
+
+    playLaser();
+});
+
+canvas.addEventListener('pointermove', e => {
+    if (e.buttons !== 1 || gameState !== 'playing') return;
+    const rect = canvas.getBoundingClientRect();
+    cannon.x = (e.clientX - rect.left) * GAME_WIDTH / rect.width;
+});
+
+/* =========================================================
+   LEADERBOARD
+========================================================= */
+function saveToLeaderboard(entry) {
+    let board = JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
+    board.push(entry);
+    board.sort((a, b) => b.score - a.score);
+    if (board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(board));
+    lastGameScore = entry.score;
 }
 
-function update(dt){
-    if(gameState!=='playing') return;
+function clearLeaderboard() {
+    localStorage.removeItem(LEADERBOARD_KEY);
+}
+
+/* =========================================================
+   GAME LOGIC
+========================================================= */
+function update(dt) {
+    if (gameState !== 'playing') return;
+
     timeLeft -= dt;
-    if(timeLeft<=0){ timeLeft=0; endRound(); }
-
-    // Таймер прозрачный
-    const sec=Math.ceil(timeLeft);
-    if(sec!==lastSecond){ 
-        lastSecond=sec; 
-        timerTargetAlpha=0.35; 
-        if(sec<=5) sfx.tick();
+    if (timeLeft <= 0) {
+        timeLeft = 0;
+        endRound();
     }
-    timerAlpha += (timerTargetAlpha-timerAlpha)*5*dt;
-    timerTargetAlpha *= Math.exp(-dt*4);
 
-    // Обновление пуль
-    bullets = bullets.filter(b=>{ b.y-=b.speed; return b.y>0; });
 
-    // Обновление целей
-    balls = balls.filter(ball=>{
+
+
+const sec = Math.ceil(timeLeft);
+if (sec !== lastSecond) {
+    lastSecond = sec;
+    timerTargetAlpha = 0.35; // мерцание таймера
+
+    // Звуковой тик на последние 5 секунд
+    if (sec <= 5 && gameState === 'playing' && sfx && typeof sfx.tick === 'function') {
+        sfx.tick();
+    }
+}
+timerAlpha += (timerTargetAlpha - timerAlpha) * 5 * dt;
+timerTargetAlpha *= Math.exp(-dt * 4);
+
+
+
+
+
+
+
+    bullets = bullets.filter(b => {
+        b.y -= b.speed;
+        return b.y > 0;
+    });
+
+    balls = balls.filter(ball => {
         ball.y += ball.speed;
 
-        // Проверка на столкновение с пушкой
-        if(ball.y+ball.r >= cannon.y && ball.x>cannon.x-cannon.width/2 && ball.x<cannon.x+cannon.width/2){
+        if (
+            ball.y + ball.r >= cannon.y &&
+            ball.x > cannon.x - cannon.width / 2 &&
+            ball.x < cannon.x + cannon.width / 2
+        ) {
             gameOverReason = 'Collided with target';
-            sfx.death(); gameOver();
+            gameOver();
             return false;
         }
 
-        // Проверка на пропущенные цели
-        if(ball.y > GAME_HEIGHT+20){
+        if (ball.y > GAME_HEIGHT + 20) {
             missed++;
-            if(missed>=MAX_MISSED){
+            if (missed >= MAX_MISSED) {
                 gameOverReason = 'Missed 5 targets';
-                sfx.death(); gameOver();
+                gameOver();
             }
             return false;
         }
-
         return true;
     });
 
-    // Проверка попаданий
-    for(let i=balls.length-1;i>=0;i--){
-        for(let j=bullets.length-1;j>=0;j--){
-            if(Math.hypot(balls[i].x-bullets[j].x,balls[i].y-bullets[j].y)<balls[i].r+bullets[j].r){
-                bullets.splice(j,1); 
-                hit++; 
-                totalHit++; 
-                ammo+=10; 
-                sfx.hit();
-                flashes.push({x:balls[i].x,y:balls[i].y,r:balls[i].r,alpha:1});
-                balls.splice(i,1); 
+    for (let i = balls.length - 1; i >= 0; i--) {
+        for (let j = bullets.length - 1; j >= 0; j--) {
+            const dx = balls[i].x - bullets[j].x;
+            const dy = balls[i].y - bullets[j].y;
+            if (Math.hypot(dx, dy) < balls[i].r + bullets[j].r) {
+                bullets.splice(j, 1);
+                hits++;
+                totalHits++;
+                ammo += 10;
+
+                flashes.push({
+                    x: balls[i].x,
+                    y: balls[i].y,
+                    r: balls[i].r,
+                    alpha: 1
+                });
+
+                playHit();
+                balls.splice(i, 1);
                 break;
             }
         }
     }
 
-    // Обновление flash-анимаций
-    flashes.forEach(f=>f.alpha *= Math.exp(-dt*6));
-    flashes = flashes.filter(f=>f.alpha>0);
+    flashes.forEach(f => f.alpha *= Math.exp(-dt * 6));
+    flashes = flashes.filter(f => f.alpha > 0);
 
-    // ===== SPAWN BALLS WITH INCREASING DIFFICULTY (+10% per round) =====
-    const difficultyMultiplier = 1 + (round-1)*0.1;
-    if(Math.random() < 0.025*difficultyMultiplier){
-        balls.push({x:Math.random()*GAME_WIDTH, y:-20, r:14, speed:(2+Math.random()*2)*difficultyMultiplier});
+    const difficulty = 1 + (round - 1) * 0.1;
+    if (Math.random() < 0.025 * difficulty) {
+        balls.push({
+            x: Math.random() * GAME_WIDTH,
+            y: -20,
+            r: 14,
+            speed: (2 + Math.random() * 2) * difficulty
+        });
     }
 }
 
-/* ================== ОТРИСОВКА ================== */
-function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+/* =========================================================
+   DRAW
+========================================================= */
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Пушка
-    ctx.fillStyle='#fff';
-    ctx.fillRect(sx(cannon.x-cannon.width/2), sy(cannon.y), sx(cannon.width), sy(cannon.height));
+    // Cannon
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(
+        sx(cannon.x - cannon.width / 2),
+        sy(cannon.y),
+        sx(cannon.width),
+        sy(cannon.height)
+    );
 
-    // Пули
-    ctx.fillStyle='red';
-    bullets.forEach(b=>{ ctx.beginPath(); ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,Math.PI*2); ctx.fill(); });
+    // Bullets
+    ctx.fillStyle = 'red';
+    bullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(sx(b.x), sy(b.y), sx(b.r), 0, Math.PI * 2);
+        ctx.fill();
+    });
 
-    // Цели
-    balls.forEach(b=>{ ctx.beginPath(); ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,Math.PI*2); ctx.fillStyle='dodgerblue'; ctx.fill(); });
+    // Balls
+    balls.forEach(ball => {
+        ctx.beginPath();
+        ctx.arc(sx(ball.x), sy(ball.y), sx(ball.r), 0, Math.PI * 2);
+        ctx.fillStyle = 'dodgerblue';
+        ctx.fill();
+    });
 
-    // Flash-анимации
-    flashes.forEach(f=>{ ctx.beginPath(); ctx.arc(sx(f.x),sy(f.y),sx(f.r),0,Math.PI*2); ctx.fillStyle=`rgba(255,150,150,${f.alpha})`; ctx.fill(); });
+    // Flash
+    flashes.forEach(f => {
+        ctx.beginPath();
+        ctx.arc(sx(f.x), sy(f.y), sx(f.r), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,150,150,${f.alpha})`;
+        ctx.fill();
+    });
 
-    // Таймер
-    ctx.save();
-    ctx.globalAlpha = timerAlpha;
-    ctx.fillStyle='rgba(255,255,255,1)';
-    ctx.font='bold 200px Arial';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(Math.ceil(timeLeft), canvas.clientWidth/2, canvas.clientHeight/2);
-    ctx.restore();
+   // ================= CENTER TIMER =================
+
+// Отрисовка таймера в центре
+ctx.save();
+ctx.globalAlpha = timerAlpha;
+ctx.fillStyle = 'rgba(255,255,255,1)'; // ярко белый
+ctx.font = 'bold 200px Arial';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(Math.ceil(timeLeft), canvas.clientWidth / 2, canvas.clientHeight / 2);
+ctx.restore();
+
+
+
+// ===== Мерцание при критических пропусках =====
+if (missed >= 4 && gameState === 'playing') {
+    // alpha меняется плавно для эффекта мерцания
+    const pulse = 0.15 + Math.sin(Date.now() / 120) * 0.05;
+    ctx.fillStyle = `rgba(255,0,0,${pulse})`;
+    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+}
+
+
+
+
 
     // HUD
-    const hudOffset = 35;
-    ctx.font='14px Arial'; ctx.textAlign='left';
-    ctx.fillStyle=(ammo<50)?'orange':'#fff';
-    ctx.fillText(`Round: ${round} (Best ${bestRound})`,10,18+hudOffset);
-    ctx.fillText(`Missed: ${missed}/${MAX_MISSED}`,10,36+hudOffset);
-    ctx.fillText(`Hit: ${hit}`,10,54+hudOffset);
-    ctx.fillText(`Shots: ${shots}`,10,72+hudOffset);
-    ctx.fillText(`Ammo: ${ammo}`,10,90+hudOffset);
-    ctx.fillText(`Total Hit: ${totalHit}`,10,108+hudOffset);
+    const hudY = 35;
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'left';
 
-    // Мерцание при критических пропусках
-    if(missed>=4 && gameState==='playing'){
-        ctx.fillStyle = `rgba(255,0,0,${0.15 + Math.sin(Date.now()/120)*0.05})`;
-        ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+    ctx.fillText(`Round ${round} ( Best ${bestRound} )`, 10, 20 + hudY);
+    ctx.fillText(`Missed targets: ${missed}/${MAX_MISSED}`, 10, 38 + hudY);
+    ctx.fillText(`Shots: ${shots}`, 10, 56 + hudY);
+    ctx.fillText(`Hits: ${hits}`, 10, 74 + hudY);
+    ctx.fillText(`Ammo: ${ammo}`, 10, 92 + hudY);
+    ctx.fillText(`Total shots: ${totalShots}`, 10, 110 + hudY);
+    ctx.fillText(`Total hits: ${totalHits}`, 10, 128 + hudY);
+
+    const accuracy = totalShots > 0 ? Math.round((totalHits / totalShots) * 100) : 0;
+    ctx.fillText(`Accuracy: ${accuracy}%`, 10, 146 + hudY);
+
+    const score = Math.round((ammo + totalHits) * (accuracy / 100) * round);
+    ctx.fillText(`Total score: ${score}`, 10, 164 + hudY);
+
+    if (gameState !== 'playing') {
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
     }
 
-    // Round End Overlay
-    if(gameState==='roundEnd'){
-        ctx.fillStyle='rgba(0,0,0,0.65)';
-        ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-        ctx.textAlign='center'; ctx.fillStyle='yellow'; ctx.font='bold 24px Arial';
-        ctx.fillText(`Round ${round} passed`, canvas.clientWidth/2, canvas.clientHeight/2-90);
-        ctx.font='bold 20px Arial';
-        ctx.fillText(`Shots: ${shots}, Hits: ${hit}`, canvas.clientWidth/2, canvas.clientHeight/2-60);
-    }
 
-    // Game Over Overlay
-    if(gameState==='gameOver'){
-        ctx.fillStyle='rgba(0,0,0,0.65)';
-        ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-        ctx.textAlign='center'; ctx.fillStyle='red'; ctx.font='bold 32px Arial';
-        ctx.fillText('Game Over', canvas.clientWidth/2, canvas.clientHeight/2-90);
-        ctx.font='bold 22px Arial';
-        ctx.fillText(gameOverReason, canvas.clientWidth/2, canvas.clientHeight/2-60);
-        ctx.font='bold 20px Arial';
-        ctx.fillText(`Shots: ${shots}, Hits: ${hit}`, canvas.clientWidth/2, canvas.clientHeight/2-30);
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+// ===== Round End Overlay =====
+if (gameState === 'roundEnd') {
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+    // Вычисляем показатели
+    const accuracy = shots > 0 ? Math.round((hits / shots) * 100) : 0;
+    const score = Math.round((ammo + hits) * (accuracy / 100) * round);
+
+    // Заголовок
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'yellow';
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText(`Round ${round} Completed`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 90);
+
+    // Жёлтый score и accuracy
+    ctx.fillStyle = 'yellow';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(`Score: ${score} | Accuracy: ${accuracy}%`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 60);
+
+    // Остальная статистика
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText(`Shots fired: ${shots}`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 30);
+    ctx.fillText(`Hits: ${hits}`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 10);
+    ctx.fillText(`Missed: ${missed}`, canvas.clientWidth / 2, canvas.clientHeight / 2 + 10);
+    ctx.fillText(`Ammo left: ${ammo}`, canvas.clientWidth / 2, canvas.clientHeight / 2 + 30);
 }
 
-/* ================== КНОПКИ ================== */
-function showButton(label,callback){
-    btn.textContent = label;
-    btn.style.display='block';
-    btn.onclick = ()=>{ btn.style.display='none'; callback(); };
+
+
+
+if (gameState === 'final') {
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'red';
+    ctx.font = 'bold 36px Arial';
+    ctx.fillText('Game Over', canvas.clientWidth / 2, canvas.clientHeight / 2 - 120);
+
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = 'red';
+    ctx.fillText(`Reason: ${gameOverReason}`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 80);
+
+
+
+
+
+ctx.font = 'bold 12px Arial';
+ctx.fillStyle = 'white';
+ctx.textAlign = 'center';
+
+const accuracy = totalShots > 0 ? Math.round((totalHits / totalShots) * 100) : 0;
+
+
+// Первая строка: раунды, выстрелы, попадания
+ctx.fillText( `Rounds: ${round} | Shots: ${totalShots} | Hits: ${totalHits}`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 50);
+
+// Вторая строка: финальный патрон, score и точность
+ctx.fillText(`Ammo left: ${ammo} | Score: ${score} | Accuracy: ${accuracy}%`, canvas.clientWidth / 2, canvas.clientHeight / 2 - 20);
+
+
+
+
+
+
+
+    // 👇 рисуем лидерборд под статистикой
+    drawLeaderboard(canvas.clientHeight / 2 + 20);
 }
 
-function endRound(){ 
-    gameState='roundEnd'; 
-    showButton('Start next round', nextRound);
 }
 
-function gameOver(){
-    gameState='gameOver';
+
+
+function drawLeaderboard(startY) {
+    const board = JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
+    ctx.textAlign = 'center';
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'yellow';
+    ctx.fillText('LEADERBOARD', canvas.clientWidth / 2, startY);
+
+    let y = startY + 30;
+    board.forEach((e, i) => {
+        let color = '#ccc';
+        let icon = `${i + 1}.`;
+
+        if (i === 0) icon = '🥇';
+        if (i === 1) icon = '🥈';
+        if (i === 2) icon = '🥉';
+
+        if (e.score === lastGameScore) color = '#00ff99';
+
+        ctx.fillStyle = color;
+        ctx.font = '16px Arial';
+        ctx.fillText(
+            `${icon} Score ${e.score} | Round ${e.round} | Acc ${e.accuracy}%`,
+            canvas.clientWidth / 2,
+            y
+        );
+        y += 22;
+    });
+}
+
+/* =========================================================
+   GAME FLOW
+========================================================= */
+function endRound() {
+    gameState = 'roundEnd';
+    mainBtn.textContent = 'Start next round';
+    mainBtn.style.display = 'block';
+    mainBtn.style.top = '135px';      // чуть ниже верхнего края, на уровне HUD
+    mainBtn.style.right = '10px';
+    mainBtn.style.left = 'auto';
+    mainBtn.style.transform = 'none';
+}
+
+function gameOver() {
+    gameState = 'final';
     bestRound = Math.max(bestRound, round);
-    localStorage.setItem('bestRound', bestRound);
-    localStorage.setItem('totalHit', totalHit);
-    showButton('Restart Game', restart);
+
+    const accuracy = totalShots > 0 ? Math.round((totalHits / totalShots) * 100) : 0;
+    const score = Math.round((ammo + totalHits) * (accuracy / 100) * round);
+
+    saveToLeaderboard({
+        score,
+        round,
+        accuracy,
+        totalHits,
+        totalShots,
+        ammo,
+        date: new Date().toLocaleString()
+    });
+
+    mainBtn.textContent = 'Restart game';
+    mainBtn.style.display = 'block';
+    mainBtn.style.top = '135px';      // уровень HUD
+    mainBtn.style.right = '10px';
+    mainBtn.style.left = 'auto';
+    mainBtn.style.transform = 'none';
+
+    clearBtn.style.display = 'block';
+    clearBtn.style.top = '35px';     // чуть ниже основной кнопки
+    clearBtn.style.right = '10px';
+    clearBtn.style.left = 'auto';
+    clearBtn.style.transform = 'none';
 }
 
-function nextRound(){
-    bullets=[]; balls=[]; flashes=[]; shots=0; hit=0; 
-    timeLeft=ROUND_TIME; missed=0; timerAlpha=0; timerTargetAlpha=0; 
-    gameState='playing'; lastTime=performance.now();
-    round++; // увеличение раунда при старте нового
-}
+mainBtn.onclick = () => {
+    mainBtn.style.display = 'none';
+    clearBtn.style.display = 'none';
 
-function restart(){
-    bullets=[]; balls=[]; flashes=[];
-    round=1; hit=0; missed=0; shots=0; ammo=1000;
-    timeLeft=ROUND_TIME; timerAlpha=0; timerTargetAlpha=0;
-    gameState='playing'; lastTime=performance.now();
-}
+    if (gameState === 'roundEnd') {
+        round++;
+        timeLeft = ROUND_TIME;
+        shots = 0;
+        hits = 0;
+        missed = 0;
+        bullets = [];
+        balls = [];
+        flashes = [];
+        gameState = 'playing';
+    } else {
+        round = 1;
+        ammo = 1000;
+        shots = hits = missed = 0;
+        totalShots = totalHits = 0;
+        timeLeft = ROUND_TIME;
+        bullets = balls = flashes = [];
+        gameState = 'playing';
+    }
+};
 
-/* ================== LOOP ================== */
-function loop(now){
-    const dt=(now-lastTime)/1000; 
-    lastTime=now;
-    update(dt); 
+clearBtn.onclick = clearLeaderboard;
+
+
+/* =========================================================
+   LOOP
+========================================================= */
+function loop(now) {
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+    update(dt);
     draw();
     requestAnimationFrame(loop);
 }
 loop(performance.now());
-
 </script>
+
 </body>
 </html>
