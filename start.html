@@ -1,7 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=main.html">
+<title>Start</title>
+<script>
+(function () {
+    if (window.Telegram && window.Telegram.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+    }
+
+    // входная точка → консоль
+    window.location.replace("main.html");
+})();
+</script>
 </head>
+<body></body>
 </html>
