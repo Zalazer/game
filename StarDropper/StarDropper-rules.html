@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StarDropper – Game Rules</title>
 
+<!--
+© 2026 ZALAZER
+StarDropper rules document.
+Unauthorized reproduction or modification is prohibited.
+-->
+
+<meta name="generator" content="ZALAZER rules engine v1">
+
 <style>
     body {
         margin: 0;
@@ -105,10 +113,19 @@
         margin-top: 6px;
     }
 
+    /* hidden ownership marker */
+    .doc-signature {
+        display: none;
+        opacity: 0.15;
+    }
 </style>
 </head>
 
 <body>
+
+<div class="doc-signature">
+    © 2026 ZALAZER · StarDropper · Rules Document
+</div>
 
 <h1 class="game-title">
     ⭐ StarDropper<br>
@@ -123,6 +140,7 @@ Shoot from the bottom of the screen to destroy incoming blue balls.
 Avoid collisions and prevent missing more than 5 balls per round. Each round lasts <strong>1 minute</strong>.  
 As new rounds begin, the difficulty gradually increases.
 </p>
+
 <h3>How to Play</h3>
 <ul>
     <li>Move your ship left and right along the bottom.</li>
@@ -130,12 +148,14 @@ As new rounds begin, the difficulty gradually increases.
     <li>Destroy the blue balls before they reach your ship.</li>
     <li>You cannot let more than 5 balls pass in a single round — otherwise, you lose the round.</li>
 </ul>
+
 <h3>Rounds</h3>
 <ul>
     <li>Each round lasts 1 minute.</li>
     <li>With each new round, balls may move faster or appear more frequently.</li>
     <li>Your goal is to survive as long as possible and achieve a high score.</li>
 </ul>
+
 <div class="note">
 Stay focused! Avoid collisions and try to hit every ball.
 </div>
@@ -148,6 +168,7 @@ Stay focused! Avoid collisions and try to hit every ball.
 Уникайте зіткнень і не пропускайте більше 5 куль за раунд. Кожен раунд триває <strong>1 хвилину</strong>.  
 З кожним новим раундом складність збільшується.
 </p>
+
 <h3>Як грати</h3>
 <ul>
     <li>Рухайте свій корабель вліво та вправо внизу екрану.</li>
@@ -155,12 +176,14 @@ Stay focused! Avoid collisions and try to hit every ball.
     <li>Знищуйте сині кулі, перш ніж вони досягнуть корабля.</li>
     <li>Не пропускайте більше 5 куль за один раунд — інакше програєте раунд.</li>
 </ul>
+
 <h3>Раунди</h3>
 <ul>
     <li>Кожен раунд триває 1 хвилину.</li>
     <li>З новими раундами кулі рухаються швидше або з’являються частіше.</li>
     <li>Мета — вижити якомога довше та набрати високий рахунок.</li>
 </ul>
+
 <div class="note">
 Будьте уважні! Уникайте зіткнень і намагайтеся влучити в кожну кулю.
 </div>
@@ -173,6 +196,7 @@ Stay focused! Avoid collisions and try to hit every ball.
 Избегайте столкновений и не пропускайте более 5 шариков за раунд. Каждый раунд длится <strong>1 минуту</strong>.  
 С каждым новым раундом сложность увеличивается.
 </p>
+
 <h3>Как играть</h3>
 <ul>
     <li>Двигайте корабль влево и вправо внизу экрана.</li>
@@ -180,12 +204,14 @@ Stay focused! Avoid collisions and try to hit every ball.
     <li>Уничтожайте синие шарики до того, как они достигнут корабля.</li>
     <li>Не пропускайте более 5 шариков за один раунд — иначе проигрыш.</li>
 </ul>
+
 <h3>Раунды</h3>
 <ul>
     <li>Каждый раунд длится 1 минуту.</li>
     <li>С каждым новым раундом шарики движутся быстрее или появляются чаще.</li>
     <li>Цель — выжить как можно дольше и набрать высокий счёт.</li>
 </ul>
+
 <div class="note">
 Сосредоточьтесь! Избегайте столкновений и старайтесь поразить каждый шарик.
 </div>
@@ -199,7 +225,6 @@ Stay focused! Avoid collisions and try to hit every ball.
         All rights reserved.
     </div>
 
-    <!-- Contact / Feedback Button -->
     <button class="rules-contact-btn" onclick="sendFeedback()">
         Contact / Feedback
     </button>
@@ -210,10 +235,22 @@ Stay focused! Avoid collisions and try to hit every ball.
 </div>
 
 <script>
+/*
+© 2026 ZALAZER
+StarDropper rules logic layer.
+Internal use only.
+*/
+
+const __docSignature = {
+    product: "StarDropper",
+    type: "rules",
+    revision: "1.0",
+    year: 2026
+};
+
 // Telegram WebApp reference
 const tg = window.Telegram?.WebApp;
 
-// Функция для отправки фидбека
 async function sendFeedback() {
     if(!tg) {
         alert("Feedback works only inside Telegram WebApp");
@@ -223,15 +260,13 @@ async function sendFeedback() {
     const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
     if(!feedbackText) return;
 
-    // Выбор скриншота
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
     fileInput.onchange = async () => {
         let fileData = null;
         if(fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            fileData = await fileToBase64(file);
+            fileData = await fileToBase64(fileInput.files[0]);
         }
 
         const payload = {
@@ -252,7 +287,6 @@ async function sendFeedback() {
     fileInput.click();
 }
 
-// Конвертер файла в Base64
 function fileToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -262,7 +296,6 @@ function fileToBase64(file) {
     });
 }
 
-// Проверка WebApp
 if (tg) {
     console.log("Telegram WebApp доступен ✅");
 } else {
