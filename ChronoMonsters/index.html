@@ -75,7 +75,7 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
   border-radius: 18px;
   background: rgba(0,0,0,0.85); /* тёмный полупрозрачный фон */
   color: white; /* по умолчанию */
-  font-size: 14px;
+  font-size: 18px;
   font-weight: bold;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
@@ -112,7 +112,7 @@ canvas.width = innerWidth;
 canvas.height = innerHeight;
 
 /* ==================== КАМЕРА И ЖЕСТЫ ==================== */
-let camX = 0, camY = 0, scale = 1;
+let camX = 0, camY = 150, scale = 0.49;
 let pointers = new Map(), lastPinch = null;
 
 /* ==================== DOM ==================== */
@@ -195,10 +195,10 @@ function endGame(text){
    // log(`=== ${text} | last event: ${lastEntry} ===`);
 
     if(text.startsWith("Game Over")){
-        msgDiv.style.color = "yellow";
+        msgDiv.style.color = "red";
         playLoseSound();
     } else if(text.startsWith("You Win")){
-        msgDiv.style.color = "red";
+        msgDiv.style.color = "yellow";
         playWinSound();
     } else {
         msgDiv.style.color = "white";
