@@ -50,23 +50,79 @@
         padding: 12px;
         margin: 20px 0;
     }
+
+    .rules-footer-sep {
+        margin-top: 50px;
+        border: 0;
+        border-top: 1px solid #333;
+    }
+
+    .rules-footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.7;
+    }
+
+    .rules-copyright {
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .rules-contact-btn {
+        background: #151515;
+        color: #ffd36a;
+        border: 1px solid #333;
+        padding: 8px 18px;
+        cursor: pointer;
+        font-size: 12px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .rules-contact-btn:hover {
+        background: #1e1e1e;
+        border-color: #ffd36a;
+    }
+
+    .rules-note {
+        margin-top: 10px;
+        font-size: 11px;
+        opacity: 0.5;
+    }
+
+    .game-title {
+        text-align: center;
+        margin-bottom: 30px;
+        line-height: 1.3;
+    }
+
+    .game-subtitle {
+        display: block;
+        font-size: 0.65em;
+        font-weight: normal;
+        opacity: 0.7;
+        margin-top: 6px;
+    }
+
 </style>
 </head>
 
 <body>
 
-<h1>⭐ StarDropper — Game Rules</h1>
+<h1 class="game-title">
+    ⭐ StarDropper<br>
+    <span class="game-subtitle">Game Rules</span>
+</h1>
 
 <!-- ENGLISH -->
 <h2>🇬🇧 English</h2>
-
 <h3>Goal of the Game</h3>
 <p>
 Shoot from the bottom of the screen to destroy incoming blue balls.  
 Avoid collisions and prevent missing more than 5 balls per round. Each round lasts <strong>1 minute</strong>.  
 As new rounds begin, the difficulty gradually increases.
 </p>
-
 <h3>How to Play</h3>
 <ul>
     <li>Move your ship left and right along the bottom.</li>
@@ -74,28 +130,24 @@ As new rounds begin, the difficulty gradually increases.
     <li>Destroy the blue balls before they reach your ship.</li>
     <li>You cannot let more than 5 balls pass in a single round — otherwise, you lose the round.</li>
 </ul>
-
 <h3>Rounds</h3>
 <ul>
     <li>Each round lasts 1 minute.</li>
     <li>With each new round, balls may move faster or appear more frequently.</li>
     <li>Your goal is to survive as long as possible and achieve a high score.</li>
 </ul>
-
 <div class="note">
 Stay focused! Avoid collisions and try to hit every ball.
 </div>
 
 <!-- UKRAINIAN -->
 <h2>🇺🇦 Українською</h2>
-
 <h3>Мета гри</h3>
 <p>
 Стріляйте знизу, щоб знищувати сині кулі.  
 Уникайте зіткнень і не пропускайте більше 5 куль за раунд. Кожен раунд триває <strong>1 хвилину</strong>.  
 З кожним новим раундом складність збільшується.
 </p>
-
 <h3>Як грати</h3>
 <ul>
     <li>Рухайте свій корабель вліво та вправо внизу екрану.</li>
@@ -103,28 +155,24 @@ Stay focused! Avoid collisions and try to hit every ball.
     <li>Знищуйте сині кулі, перш ніж вони досягнуть корабля.</li>
     <li>Не пропускайте більше 5 куль за один раунд — інакше програєте раунд.</li>
 </ul>
-
 <h3>Раунди</h3>
 <ul>
     <li>Кожен раунд триває 1 хвилину.</li>
     <li>З новими раундами кулі рухаються швидше або з’являються частіше.</li>
     <li>Мета — вижити якомога довше та набрати високий рахунок.</li>
 </ul>
-
 <div class="note">
 Будьте уважні! Уникайте зіткнень і намагайтеся влучити в кожну кулю.
 </div>
 
 <!-- RUSSIAN -->
 <h2>🇷🇺 По-русски</h2>
-
 <h3>Цель игры</h3>
 <p>
 Стреляйте с нижней части экрана, чтобы уничтожать синие шарики.  
 Избегайте столкновений и не пропускайте более 5 шариков за раунд. Каждый раунд длится <strong>1 минуту</strong>.  
 С каждым новым раундом сложность увеличивается.
 </p>
-
 <h3>Как играть</h3>
 <ul>
     <li>Двигайте корабль влево и вправо внизу экрана.</li>
@@ -132,38 +180,95 @@ Stay focused! Avoid collisions and try to hit every ball.
     <li>Уничтожайте синие шарики до того, как они достигнут корабля.</li>
     <li>Не пропускайте более 5 шариков за один раунд — иначе проигрыш.</li>
 </ul>
-
 <h3>Раунды</h3>
 <ul>
     <li>Каждый раунд длится 1 минуту.</li>
     <li>С каждым новым раундом шарики движутся быстрее или появляются чаще.</li>
     <li>Цель — выжить как можно дольше и набрать высокий счёт.</li>
 </ul>
-
 <div class="note">
 Сосредоточьтесь! Избегайте столкновений и старайтесь поразить каждый шарик.
 </div>
-    
-<script>
-// Проверка WebApp
-window.addEventListener('DOMContentLoaded', () => {
-    const tg = window.Telegram?.WebApp;
 
-    if(tg) {
-        // WebApp доступно
-        console.log("✅ Telegram WebApp доступно");
-        alert(`✅ WebApp активировано!
-Платформа: ${tg.platform}
-User ID: ${tg.initDataUnsafe?.user?.id || "неизвестно"}
-Язык: ${tg.initDataUnsafe?.user?.language_code || "неизвестно"}`);
-    } else {
-        // WebApp недоступно (например, открыто в обычном браузере)
-        console.log("❌ Telegram WebApp НЕ доступно");
-        alert("❌ WebApp НЕ доступно. Откройте через Telegram бота.");
+<hr class="rules-footer-sep">
+
+<div class="rules-footer">
+    <div class="rules-copyright">
+        © 2026 <strong>ZALAZER</strong><br>
+        StarDropper and its source code are protected by copyright law.<br>
+        All rights reserved.
+    </div>
+
+    <!-- Contact / Feedback Button -->
+    <button class="rules-contact-btn" onclick="sendFeedback()">
+        Contact / Feedback
+    </button>
+
+    <div class="rules-note">
+        Feedback can include text and optional screenshot. No reply guaranteed.
+    </div>
+</div>
+
+<script>
+// Telegram WebApp reference
+const tg = window.Telegram?.WebApp;
+
+// Функция для отправки фидбека
+async function sendFeedback() {
+    if(!tg) {
+        alert("Feedback works only inside Telegram WebApp");
+        return;
     }
-});
+
+    const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
+    if(!feedbackText) return;
+
+    // Выбор скриншота
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async () => {
+        let fileData = null;
+        if(fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            fileData = await fileToBase64(file);
+        }
+
+        const payload = {
+            type: 'feedback',
+            game: 'StarDropper',
+            page: 'rules',
+            text: feedbackText,
+            screenshot: fileData,
+            platform: tg.platform,
+            lang: tg.initDataUnsafe?.user?.language_code,
+            user: tg.initDataUnsafe?.user?.id,
+            ts: Date.now()
+        };
+
+        tg.sendData(JSON.stringify(payload));
+        alert("Thank you! Your feedback has been sent ✅");
+    };
+    fileInput.click();
+}
+
+// Конвертер файла в Base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Проверка WebApp
+if (tg) {
+    console.log("Telegram WebApp доступен ✅");
+} else {
+    console.log("Telegram WebApp НЕ доступен ❌");
+}
 </script>
 
-    
 </body>
 </html>
