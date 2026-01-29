@@ -143,12 +143,27 @@ Stay focused! Avoid collisions and try to hit every ball.
 <div class="note">
 Сосредоточьтесь! Избегайте столкновений и старайтесь поразить каждый шарик.
 </div>
+    
 <script>
-if (window.Telegram?.WebApp) {
-    alert("WebApp доступен ✅");
-} else {
-    alert("WebApp НЕ доступен ❌");
-}
+// Проверка WebApp
+window.addEventListener('DOMContentLoaded', () => {
+    const tg = window.Telegram?.WebApp;
+
+    if(tg) {
+        // WebApp доступно
+        console.log("✅ Telegram WebApp доступно");
+        alert(`✅ WebApp активировано!
+Платформа: ${tg.platform}
+User ID: ${tg.initDataUnsafe?.user?.id || "неизвестно"}
+Язык: ${tg.initDataUnsafe?.user?.language_code || "неизвестно"}`);
+    } else {
+        // WebApp недоступно (например, открыто в обычном браузере)
+        console.log("❌ Telegram WebApp НЕ доступно");
+        alert("❌ WebApp НЕ доступно. Откройте через Telegram бота.");
+    }
+});
 </script>
+
+    
 </body>
 </html>
