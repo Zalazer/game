@@ -38,7 +38,7 @@ html, body {
 #content {
     position: relative;
     z-index: 1;
-    padding: 20px;
+    padding: 10px 20px 40px 20px; /* верх 20, правый 20, низ 40, левый 20 */
 }
 
 h1 {
@@ -76,6 +76,66 @@ li {
     padding: 12px;
     margin: 20px 0;
 }
+
+.rules-footer-sep {
+    margin-top: 50px;
+    border: 0;
+    border-top: 1px solid #333;
+}
+
+.rules-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.rules-copyright {
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.rules-contact-btn {
+    background: #151515;
+    color: #ffd36a;
+    border: 1px solid #333;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.rules-contact-btn:hover {
+    background: #1e1e1e;
+    border-color: #ffd36a;
+}
+
+.rules-note {
+    margin-top: 10px;
+    font-size: 11px;
+    opacity: 0.5;
+}
+
+.game-title {
+    text-align: center;
+    margin-bottom: 30px;
+    line-height: 1.3;
+}
+
+.game-subtitle {
+    display: block;
+    font-size: 0.65em;
+    font-weight: normal;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+/* hidden ownership marker */
+.doc-signature {
+    display: none;
+    opacity: 0.15;
+}
 </style>
 </head>
 
@@ -87,74 +147,99 @@ li {
 <!-- ОСНОВНОЙ КОНТЕНТ -->
 <div id="content">
 
-<h1>♠️ PokerLazer — Game Rules</h1>
+  <!-- скрытый копирайт -->
+  <div class="doc-signature">
+      © 2026 ZALAZER · PokerLazer · Rules Document
+  </div>
 
-<!-- ENGLISH -->
-<h2>🇬🇧 English</h2>
+  <h1 class="game-title">
+      ♠️ PokerLazer<br>
+      <span class="game-subtitle">Game Rules</span>
+  </h1>
 
-<h3>Goal of the Game</h3>
-<p>
-PokerLazer simulates a Texas Hold’em game with <strong>9 players</strong>.
-Your goal is to win chips by making the best hand at showdown or by forcing opponents to fold.
-</p>
+  <!-- ENGLISH -->
+  <h2>🇬🇧 English</h2>
+  <h3>Goal of the Game</h3>
+  <p>
+  PokerLazer simulates a Texas Hold’em game with <strong>9 players</strong>.
+  Your goal is to win chips by making the best hand at showdown or by forcing opponents to fold.
+  </p>
 
-<h3>How the Game Works</h3>
-<ul>
-    <li>You are one of 9 players at the table.</li>
-    <li>Each player receives <strong>2 hole cards</strong>.</li>
-    <li>Gameplay proceeds in rounds:</li>
-    <ul>
-        <li><strong>Pre-flop:</strong> Hole cards only</li>
-        <li><strong>Flop:</strong> 3 community cards</li>
-        <li><strong>Turn:</strong> 4th community card</li>
-        <li><strong>River:</strong> 5th community card</li>
-    </ul>
-    <li>The best 5-card hand wins.</li>
-</ul>
+  <h3>How the Game Works</h3>
+  <ul>
+      <li>You are one of 9 players at the table.</li>
+      <li>Each player receives <strong>2 hole cards</strong>.</li>
+      <li>Gameplay proceeds in rounds:</li>
+      <ul>
+          <li><strong>Pre-flop:</strong> Hole cards only</li>
+          <li><strong>Flop:</strong> 3 community cards</li>
+          <li><strong>Turn:</strong> 4th community card</li>
+          <li><strong>River:</strong> 5th community card</li>
+      </ul>
+      <li>The best 5-card hand wins.</li>
+  </ul>
 
-<div class="note">
-Each hand simulates a real 9-player Texas Hold’em table.
-</div>
+  <div class="note">
+  Each hand simulates a real 9-player Texas Hold’em table.
+  </div>
 
-<!-- UKRAINIAN -->
-<h2>🇺🇦 Українською</h2>
+  <!-- UKRAINIAN -->
+  <h2>🇺🇦 Українською</h2>
 
-<h3>Мета гри</h3>
-<p>
-PokerLazer імітує гру Texas Hold’em для <strong>9 гравців</strong>.
-Мета — створити найкращу комбінацію карт або змусити суперників скинути карти.
-</p>
+  <h3>Мета гри</h3>
+  <p>
+  PokerLazer імітує гру Texas Hold’em для <strong>9 гравців</strong>.
+  Мета — створити найкращу комбінацію карт або змусити суперників скинути карти.
+  </p>
 
-<h3>Як грати</h3>
-<ul>
-    <li>Кожен гравець отримує 2 карти.</li>
-    <li>Відкриття спільних карт відбувається поетапно.</li>
-    <li>Перемагає найсильніша комбінація.</li>
-</ul>
+  <h3>Як грати</h3>
+  <ul>
+      <li>Кожен гравець отримує 2 карти.</li>
+      <li>Відкриття спільних карт відбувається поетапно.</li>
+      <li>Перемагає найсильніша комбінація.</li>
+  </ul>
 
-<div class="note">
-Кожна роздача — симуляція реального покерного столу.
-</div>
+  <div class="note">
+  Кожна роздача — симуляція реального покерного столу.
+  </div>
 
-<!-- RUSSIAN -->
-<h2>🇷🇺 По-русски</h2>
+  <!-- RUSSIAN -->
+  <h2>🇷🇺 По-русски</h2>
 
-<h3>Цель игры</h3>
-<p>
-PokerLazer имитирует Texas Hold’em для <strong>9 игроков</strong>.
-Цель — собрать лучшую комбинацию или заставить соперников сбросить карты.
-</p>
+  <h3>Цель игры</h3>
+  <p>
+  PokerLazer имитирует Texas Hold’em для <strong>9 игроков</strong>.
+  Цель — собрать лучшую комбинацию или заставить соперников сбросить карты.
+  </p>
 
-<h3>Как играть</h3>
-<ul>
-    <li>2 карты каждому игроку.</li>
-    <li>5 общих карт открываются поэтапно.</li>
-    <li>Побеждает лучшая комбинация.</li>
-</ul>
+  <h3>Как играть</h3>
+  <ul>
+      <li>2 карты каждому игроку.</li>
+      <li>5 общих карт открываются поэтапно.</li>
+      <li>Побеждает лучшая комбинация.</li>
+  </ul>
 
-<div class="note">
-Полная симуляция настоящей игры в Texas Hold’em.
-</div>
+  <div class="note">
+  Полная симуляция настоящей игры в Texas Hold’em.
+  </div>
+
+  <hr class="rules-footer-sep">
+
+  <div class="rules-footer">
+      <div class="rules-copyright">
+          © 2026 <strong>ZALAZER</strong><br>
+          PokerLazer and its source code are protected by copyright law.<br>
+          All rights reserved.
+      </div>
+
+      <button class="rules-contact-btn" onclick="sendFeedback()">
+          Contact / Feedback
+      </button>
+
+      <div class="rules-note">
+          Feedback can include text and screenshot. No reply guaranteed.
+      </div>
+  </div>
 
 </div>
 
@@ -172,6 +257,74 @@ const shield = document.getElementById('touchShield');
         }
     }, { passive:false });
 });
+</script>
+
+<script>
+/*
+© 2026 ZALAZER
+PokerLazer rules logic layer.
+Internal use only.
+*/
+
+const __docSignature = {
+    product: "PokerLazer",
+    type: "rules",
+    revision: "1.0",
+    year: 2026
+};
+
+const tg = window.Telegram?.WebApp;
+
+async function sendFeedback() {
+    if(!tg) {
+        alert("Feedback works only inside Telegram WebApp");
+        return;
+    }
+
+    const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
+    if(!feedbackText) return;
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async () => {
+        let fileData = null;
+        if(fileInput.files.length > 0) {
+            fileData = await fileToBase64(fileInput.files[0]);
+        }
+
+        const payload = {
+            type: 'feedback',
+            game: 'PokerLazer',
+            page: 'rules',
+            text: feedbackText,
+            screenshot: fileData,
+            platform: tg.platform,
+            lang: tg.initDataUnsafe?.user?.language_code,
+            user: tg.initDataUnsafe?.user?.id,
+            ts: Date.now()
+        };
+
+        tg.sendData(JSON.stringify(payload));
+        alert("Thank you! Your feedback has been sent ✅");
+    };
+    fileInput.click();
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+if (tg) {
+    console.log("Telegram WebApp доступен ✅");
+} else {
+    console.log("Telegram WebApp НЕ доступен ❌");
+}
 </script>
 
 </body>
