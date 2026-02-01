@@ -1021,6 +1021,10 @@ function glowStyleLabel(cls) {
     }
 }
 
+
+
+
+
 /* ==================== DRAW ==================== */
 function draw() {
     ctx.setTransform(1,0,0,1,0,0);
@@ -1029,15 +1033,11 @@ function draw() {
 
     updateStatFX();
 
+    // ===== СЕТКА ПОЛЯ: минималистичная отрисовка вместо фонового квадрата =====
     for(let x=0;x<MAP;x++){
         for(let y=0;y<MAP;y++){
-            const px = x * TILE;
-            const py = y * TILE;
-            ctx.fillStyle = "#1e1e1e";
-            roundRect(px, py, TILE, TILE, 6, true);
-            ctx.strokeStyle = "rgba(255,255,255,0.03)";
-            ctx.lineWidth = 1;
-            roundRect(px, py, TILE, TILE, 6, false);
+            ctx.strokeStyle="#333";
+            ctx.strokeRect(x*TILE, y*TILE, TILE, TILE);
         }
     }
 
@@ -1133,7 +1133,7 @@ function draw() {
         let soft=false,color=b.color;
         if(color==="blue"){ color="#1e90ff"; soft=true; }
         drawCandy(b.x*TILE+6,b.y*TILE+6,32,color,soft);
-        ctx.fillStyle="white";
+        ctx.fillStyle = "white";
         ctx.fillText(b.power,b.x*TILE+12,b.y*TILE+30);
     });
 
@@ -1160,7 +1160,6 @@ function draw() {
 
     decrementGlow();
 }
-
 
 
 
