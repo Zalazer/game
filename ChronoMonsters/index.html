@@ -945,91 +945,260 @@ canvas.addEventListener("wheel", e => {
 });
 
 
+
+
+
+// ===== UI STATS GLOW SYSTEM =====
+const statFX = {
+    power: { glow: 0, delta: 0 },
+    speed: { glow: 0, delta: 0 },
+    movesLeft: { glow: 0, delta: 0 },
+    chests: { glow: 0, delta: 0 },
+    monsters: { glow: 0, delta: 0 },
+    bots: { glow: 0, delta: 0 },
+    roundNumber: { glow: 0, delta: 0 },
+    blockedCells: { glow: 0, delta: 0 }
+};
+
+const statLast = {
+    power: player.power,
+    speed: player.speed,
+    movesLeft: player.movesLeft,
+    chests: chests.length,
+    monsters: monsters.length,
+    bots: bots.filter(b=>b.alive).length,
+    roundNumber: roundNumber,
+    blockedCells: deadZones.length
+};
+
+function updateStatFX() {
+    const stats = [
+        { key: "power", value: player.power },
+        { key: "speed", value: player.speed },
+        { key: "movesLeft", value: player.movesLeft },
+        { key: "chests", value: chests.length },
+        { key: "monsters", value: monsters.length },
+        { key: "bots", value: bots.filter(b=>b.alive).length },
+        { key: "roundNumber", value: roundNumber },
+        { key: "blockedCells", value: deadZones.length }
+    ];
+    stats.forEach(s => {
+        if (s.value !== statLast[s.key]) {
+            statFX[s.key].glow = 18;
+            statFX[s.key].delta = s.value > statLast[s.key] ? 1 : -1;
+            statLast[s.key] = s.value;
+        }
+    });
+}
+
+function decrementGlow() {
+    for (let k in statFX) {
+        if (statFX[k].glow > 0) statFX[k].glow--;
+    }
+}
+
+function glowStyleNumber(fx) {
+    if (fx.glow <= 0) return "color:white; font-weight:bold;";
+    const intensity = fx.glow / 18;
+    const color = fx.delta > 0
+        ? `rgba(0,255,0,${0.6 + 0.4*intensity})`
+        : `rgba(255,0,0,${0.6 + 0.4*intensity})`;
+    const shadow = fx.delta > 0
+        ? `0 0 ${6 + 10*intensity}px rgba(0,255,0,${0.7 + 0.3*intensity})`
+        : `0 0 ${6 + 10*intensity}px rgba(255,0,0,${0.7 + 0.3*intensity})`;
+    return `font-weight:bold; color:${color}; text-shadow:${shadow};`;
+}
+
+function glowStyleLabel(cls) {
+    switch(cls) {
+        case "player": return "color:#00ced1;"; // бирюзовый
+        case "chest": return "color:#f5c542;";   // жёлтый
+        case "monster": return "color:#e53935;"; // красный
+        case "bot": return "color:#1e90ff;";     // синий
+        case "round": return "color:#0f0;";   // зелёный 
+        case "blocked": return "color:#ffffff;"; // белый
+        default: return "color:white;";
+    }
+}
+
 /* ==================== DRAW ==================== */
 function draw() {
     ctx.setTransform(1,0,0,1,0,0);
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
     ctx.setTransform(scale,0,0,scale,camX,camY);
 
-    for(let x=0;x<MAP;x++)
+    updateStatFX();
+
+    for(let x=0;x<MAP;x++){
         for(let y=0;y<MAP;y++){
-            ctx.strokeStyle="#333";
-            ctx.strokeRect(x*TILE,y*TILE,TILE,TILE);
+            const px = x * TILE;
+            const py = y * TILE;
+            ctx.fillStyle = "#1e1e1e";
+            roundRect(px, py, TILE, TILE, 6, true);
+            ctx.strokeStyle = "rgba(255,255,255,0.03)";
+            ctx.lineWidth = 1;
+            roundRect(px, py, TILE, TILE, 6, false);
         }
+    }
 
     bfsReachable(player).forEach(c=>{
-        ctx.fillStyle="rgba(160,160,160,0.25)";
-        ctx.fillRect(c.x*TILE,c.y*TILE,TILE,TILE);
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
     });
 
     bots.filter(b=>b.alive).forEach(b=>{
         bfsReachable(b).forEach(c=>{
-            ctx.fillStyle="rgba(80,80,200,0.15)";
-            ctx.fillRect(c.x*TILE,c.y*TILE,TILE,TILE);
+            ctx.fillStyle = "rgba(80,80,200,0.10)";
+            roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
         });
     });
 
+    function drawCandy(x, y, size, baseColor, softCenter=false, noGradient=false){
+        if(noGradient){ ctx.fillStyle = baseColor; }
+        else{
+            let grad;
+            if(softCenter){
+                grad = ctx.createLinearGradient(x, y, x, y+size);
+                grad.addColorStop(0, lightenColor(baseColor, 0.15));
+                grad.addColorStop(0.5, darkenColor(baseColor, 0.05));
+                grad.addColorStop(1, lightenColor(baseColor, 0.15));
+                ctx.fillStyle = grad;
+            } else {
+                grad = ctx.createLinearGradient(x, y, x, y+size);
+                grad.addColorStop(0, lightenColor(baseColor, 0.4));
+                grad.addColorStop(0.5, baseColor);
+                grad.addColorStop(1, darkenColor(baseColor, 0.2));
+                ctx.fillStyle = grad;
+            }
+        }
+        roundRect(x, y, size, size, size/4, true);
+        const shine = ctx.createLinearGradient(x, y, x, y + size/3);
+        shine.addColorStop(0, "rgba(255,255,255,0.2)");
+        shine.addColorStop(1, "rgba(255,255,255,0)");
+        roundRect(x, y, size, size/3, size/4, true);
+        const cellX = Math.floor(x/TILE);
+        const cellY = Math.floor(y/TILE);
+        if(deadZones.some(d=>d.x===cellX && d.y===cellY)){
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            roundRect(x, y, size, size, size/4, false);
+        }
+    }
+
+    function roundRect(x, y, w, h, r, fill=true){
+        ctx.beginPath();
+        ctx.moveTo(x+r, y);
+        ctx.lineTo(x+w-r, y);
+        ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+        ctx.lineTo(x+w, y+h-r);
+        ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+        ctx.lineTo(x+r, y+h);
+        ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+        ctx.lineTo(x, y+r);
+        ctx.quadraticCurveTo(x, y, x+r, y);
+        ctx.closePath();
+        if(fill) ctx.fill(); else ctx.stroke();
+    }
+
+    function lightenColor(color, percent){
+        const f=parseInt(color.slice(1),16),t=255,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+        return "#"+(0x1000000+((Math.round((t-R)*percent)+R)*0x10000+(Math.round((t-G)*percent)+G)*0x100+(Math.round((t-B)*percent)+B))).toString(16).slice(1);
+    }
+
+    function darkenColor(color, percent){
+        const f=parseInt(color.slice(1),16),t=0,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+        return "#"+(0x1000000+((Math.round((t-R)*percent)+R)*0x10000+(Math.round((t-G)*percent)+G)*0x100+(Math.round((t-B)*percent)+B))).toString(16).slice(1);
+    }
+
     deadZones.forEach(d=>{
-        ctx.fillStyle="white";
-        ctx.fillRect(d.x*TILE,d.y*TILE,TILE,TILE);
-        ctx.fillStyle="black";
-        ctx.font="18px monospace";
-        ctx.fillText(d.number,d.x*TILE+12,d.y*TILE+28);
+        drawCandy(d.x*TILE+4, d.y*TILE+4, TILE-8, "#ffffff");
+        ctx.fillStyle = "#000";
+        ctx.fillText(d.number, d.x*TILE+12, d.y*TILE+28);
     });
 
     chests.forEach(c=>{
-        ctx.fillStyle="gold";
-        ctx.fillRect(c.x*TILE+10,c.y*TILE+10,20,20);
-        ctx.fillStyle="black";
-        ctx.font="18px monospace";
-        ctx.fillText(c.power,c.x*TILE+14,c.y*TILE+28);
+        drawCandy(c.x*TILE+8, c.y*TILE+8, 28, "#f5c542");
+        ctx.fillStyle = "#000";
+        ctx.fillText(c.power, c.x*TILE+14, c.y*TILE+30);
     });
 
     monsters.forEach(m=>{
-        ctx.fillStyle="red";
-        ctx.fillRect(m.x*TILE+8,m.y*TILE+8,24,24);
-        ctx.fillStyle="white";
-        ctx.font="18px monospace";
-        ctx.fillText(m.power,m.x*TILE+12,m.y*TILE+28);
+        drawCandy(m.x*TILE+6, m.y*TILE+6, 32, "#e53935");
+        ctx.fillStyle = "white";
+        ctx.fillText(m.power, m.x*TILE+12, m.y*TILE+30);
     });
 
     bots.forEach(b=>{
         if(!b.alive) return;
-        ctx.fillStyle=b.color;
-        ctx.fillRect(b.x*TILE+6,b.y*TILE+6,28,28);
+        let soft=false,color=b.color;
+        if(color==="blue"){ color="#1e90ff"; soft=true; }
+        drawCandy(b.x*TILE+6,b.y*TILE+6,32,color,soft);
         ctx.fillStyle="white";
-        ctx.font="18px monospace";
-        ctx.fillText(b.power,b.x*TILE+10,b.y*TILE+28);
+        ctx.fillText(b.power,b.x*TILE+12,b.y*TILE+30);
     });
 
-    ctx.fillStyle=player.color;
-    ctx.fillRect(player.x*TILE+6,player.y*TILE+6,28,28);
+    drawCandy(player.x*TILE+5,player.y*TILE+5,34,"#00ced1",false);
     ctx.fillStyle="white";
-    ctx.font="18px monospace";
-    ctx.fillText(player.power,player.x*TILE+10,player.y*TILE+28);
+    ctx.fillText(player.power,player.x*TILE+12,player.y*TILE+30);
 
     flashes.forEach(f=>{
         ctx.fillStyle=`rgba(255,255,255,${f.alpha})`;
-        ctx.fillRect(f.x*TILE,f.y*TILE,TILE,TILE);
+        roundRect(f.x*TILE+4,f.y*TILE+4,TILE-8,TILE-8,6,true);
         f.alpha-=0.05;
     });
     flashes = flashes.filter(f=>f.alpha>0);
 
-    let remainingChests = chests.length,
-        remainingMonsters = monsters.length,
-        remainingBots = bots.filter(b=>b.alive).length;
-
     document.getElementById("info").innerHTML=
-`<span class="lbl player">Power</span> <span class="val">${player.power}</span>
-<span class="lbl player">Speed</span> <span class="val">${player.speed}</span>
-<span class="lbl player">Steps left</span> <span class="val">${player.movesLeft}</span><br>
-<span class="lbl chest">Chests</span> <span class="val">${remainingChests}</span>
-<span class="lbl monster">Monsters</span> <span class="val">${remainingMonsters}</span>
-<span class="lbl bot">Bots</span> <span class="val">${remainingBots}</span><br>
-<span class="lbl round">Round</span> <span class="val">${roundNumber}</span>
-<span class="lbl blocked">Blocked cells</span> <span class="val">${deadZones.length}</span>`;
+`<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
+<span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
+<span class="lbl monster" style="${glowStyleLabel('monster')}">Monsters</span><span class="val" style="${glowStyleNumber(statFX.monsters)}">${monsters.length}</span>
+<span class="lbl bot" style="${glowStyleLabel('bot')}">Bots</span><span class="val" style="${glowStyleNumber(statFX.bots)}">${bots.filter(b=>b.alive).length}</span><br>
+<span class="lbl round" style="${glowStyleLabel('round')}">Round</span><span class="val" style="${glowStyleNumber(statFX.roundNumber)}">${roundNumber}</span>
+<span class="lbl blocked" style="${glowStyleLabel('blocked')}">Blocked cells</span><span class="val" style="${glowStyleNumber(statFX.blockedCells)}">${deadZones.length}</span>`;
+
+    decrementGlow();
 }
+
+
+
+
+
+
+
+// ===== Вспомогательная функция скруглённого прямоугольника =====
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    if (typeof r === 'undefined') r = 5;
+    if (typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r};
+    else {
+        const defaultR = {tl:0,tr:0,br:0,bl:0};
+        for(let side in defaultR){ r[side] = r[side] || defaultR[side]; }
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + w - r.tr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+    ctx.lineTo(x + w, y + h - r.br);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+    ctx.lineTo(x + r.bl, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+    if(fill) ctx.fill();
+    if(stroke) ctx.stroke();
+}
+
+// ===== Вспомогательная функция затемнения цвета =====
+function shadeColor(color, percent) {
+    const f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent;
+    const R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
+    return "#" + (0x1000000 + (Math.round((t-R)*p/100)+R)*0x10000 + (Math.round((t-G)*p/100)+G)*0x100 + (Math.round((t-B)*p/100)+B)).toString(16).slice(1);
+}
+
+
+
 
 
 /* ==================== GAME LOOP ==================== */
