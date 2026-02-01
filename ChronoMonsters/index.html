@@ -7,7 +7,7 @@
 <style>
 html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 #info{position:fixed;top:21px;left:6px;font-family:monospace;font-size:18px;color:#0f0;background:rgba(0,0,0,0.65);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.3;}
-#log{position:fixed;bottom:6px;left:6px;right:6px;max-height:14%;overflow:auto;font-family:monospace;font-size:14px;color:#0f0;background:rgba(0,0,0,0.7);padding:6px;}
+#log{position:fixed;bottom:6px;left:6px;right:6px;max-height:14%;overflow:auto;font-family:monospace;font-size:14px;color:#39ff14;background:rgba(0,0,0,0.7);padding:6px;}
 
 #info .val{
     color:#fff;
@@ -132,9 +132,27 @@ let bots=[], monsters=[], chests=[], flashes=[], deadZones=[];
 /* ==================== ЛОГ С НУМЕРАЦИЕЙ ==================== */
 function log(t){
     logCounter++;
-    logBox.innerHTML += `${logCounter}. ${t}<br>`;
-    logBox.scrollTop = logBox.scrollHeight;
+
+    // раскраска ключевых слов по игровым цветам
+    const coloredText = t.replace(/\b(\w+)\b/g, (match) => {
+        let color = "#39ff14";  // остальной текст ярко-зелёный
+        const lower = match.toLowerCase();
+        if(lower.includes("player")) color = "cyan";
+        else if(lower.includes("chest")) color = "yellow";
+        else if(lower.includes("monster")) color = "red";
+        else if(lower.includes("bot")) color = "blue";
+        return `<span style="color:${color}; font-weight:bold">${match}</span>`;
+    });
+
+    logBox.innerHTML = `${logCounter}. ${coloredText}<br>` + logBox.innerHTML;
+
+    // обрезаем лог до последних 50 строк
+    const lines = logBox.innerHTML.split("<br>");
+    if(lines.length > 50) logBox.innerHTML = lines.slice(0,50).join("<br>");
+
+    logBox.scrollTop = 0; // всегда скроллим вверх, чтобы последние события были сверху
 }
+
 
 /* ==================== ПОМОЩЬ ==================== */
 function posKey(x,y){ return `${x},${y}`; }
