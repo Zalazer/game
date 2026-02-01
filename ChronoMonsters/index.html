@@ -929,7 +929,7 @@ canvas.addEventListener("pointermove", e => {
 
             // Масштабируем
             scale *= factor;
-            scale = Math.min(Math.max(scale,0.2),2);
+            scale = Math.min(Math.max(scale,0.1),7);
 
             // Смещаем камеру так, чтобы центр pinch оставался на месте
             camX = newCenter.x - pinchWorld.x * scale;
@@ -1064,12 +1064,24 @@ function draw() {
         roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
     });
 
-    bots.filter(b=>b.alive).forEach(b=>{
-        bfsReachable(b).forEach(c=>{
-            ctx.fillStyle = "rgba(80,80,200,0.10)";
-            roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
-        });
+
+
+  bots.filter(b=>b.alive).forEach(b=>{
+    // временно подменяем movesLeft для корректной визуализации
+    const savedMoves = b.movesLeft;
+    b.movesLeft = b.speed;
+
+    bfsReachable(b).forEach(c=>{
+        ctx.fillStyle = "rgba(80,80,200,0.10)";
+        roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
     });
+
+    // возвращаем реальное значение
+    b.movesLeft = savedMoves;
+});
+
+
+
 
     function drawCandy(x, y, size, baseColor, softCenter=false, noGradient=false){
         if(noGradient){ ctx.fillStyle = baseColor; }
