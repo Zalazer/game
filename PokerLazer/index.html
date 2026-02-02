@@ -46,7 +46,7 @@ button:hover {
 #table {
     position: relative; 
     width: 100vw; 
-    height: calc(85vh - 110px);
+    height: calc(85vh - 50px);
     background: radial-gradient(ellipse at center, #0a0a0a 0%, #111 70%, #222 100%);
     border-radius: 10px; 
     overflow: hidden; 
@@ -72,12 +72,12 @@ canvas#pokerCanvas {
 
 
 /* DEALER, CARDS, LOG */
-#dealer { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px;
+#dealer { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px;
     background: radial-gradient(circle, #0ff, #0099cc); border-radius: 50%;
     box-shadow: 0 0 50px #0ff; transform: translate(-50%,-50%);
     animation: pulse 1.8s infinite; z-index: 2;
 }
-@keyframes pulse {0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.15);}}
+@keyframes pulse {0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(3.15);}}
 #community-cards { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     display: flex; gap: 16px; z-index: 5;
 }
@@ -351,7 +351,7 @@ function laserDealSequence() {
     const verRadius = tableRect.height * 0.41;
     const numPlayers = 9;
 
-    const verticalShift = 80; // смещение всех игроков вниз
+    const verticalShift = 150; // смещение всех игроков вниз
 
     const playerPositions = [];
     for (let i = 0; i < numPlayers; i++) {
@@ -462,8 +462,8 @@ function laserDealSequence() {
             const pos = player.pos;
             let x = pos.x;
             let y = pos.y;
-            if (item.playerIndex === 0) x = pos.x - 90 + (item.cardIndex * 110), y = pos.y - 140;
-            else x = pos.x - 90 + (item.cardIndex * 100), y = pos.y - 110;
+            if (item.playerIndex === 0) x = pos.x - 35 + (item.cardIndex * 55), y = pos.y - 140;
+            else x = pos.x - 35 + (item.cardIndex * 55), y = pos.y - 110;
 
             card.style.left = x + 'px';
             card.style.top = y + 'px';
