@@ -57,7 +57,7 @@ button:hover {
 #table {
     position: relative;
     width: 100vw;
-    height: calc(85vh - 50px);
+    height: calc(var(--vh) * 85 - 50px);
     background: #000;
     border-radius: 10px;
     overflow: hidden;
@@ -317,6 +317,17 @@ function shuffleDeck(){
  [deck[i],deck[j]]=[deck[j],deck[i]];
  }
 }
+
+
+
+function fixTelegramViewport() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+fixTelegramViewport();
+window.addEventListener('resize', fixTelegramViewport);
+
 
 
 function addLog(text, isWinner=false){
