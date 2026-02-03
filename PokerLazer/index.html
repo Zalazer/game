@@ -45,17 +45,40 @@ button:hover {
 /* TABLE & CANVAS */
 #table {
     position: relative; 
-    width: 105vw; 
+    width: 100vw; 
     height: calc(85vh - 50px);
-    background: radial-gradient(ellipse at center, #0a0a0a 0%, #111 70%, #222 100%);
+
+    /* 🖤 старт — чисто чёрный */
+    background: #000;
+
     border-radius: 10px; 
     overflow: hidden; 
     margin: 0 auto;
 
-    /* 🔹 Уменьшение масштаба всего стола */
-    transform: scale(0.9);        /* уменьшаем до % */
-    transform-origin: top center; /* верхний центр как якорь, чтобы стол не съезжал */
+    transform: scale(0.9);
+    transform-origin: top center;
+
+    transition: background 0.12s ease-out;
 }
+
+/* 💛 ЗОЛОТОЙ ЭЛЛИПС ПОСЛЕ РАЗДАЧИ */
+
+
+
+#table.gold-frame {
+    background:
+        radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 1) 44%,
+            rgba(0, 40, 60, 0.85) 55%,
+            rgba(0, 90, 130, 0.55) 70%,
+            rgba(0, 160, 200, 0.35) 82%,
+            rgba(0, 220, 255, 0.18) 100%
+        );
+}
+
+
+
 
 canvas#pokerCanvas {
     width: 100%; 
@@ -66,22 +89,49 @@ canvas#pokerCanvas {
 
 
 
-
-
-
-
-
 /* DEALER, CARDS, LOG */
-#dealer { position: absolute; left: 50%; top: 50%; width: 130px; height: 197px;
-    background: radial-gradient(circle, #0ff, #0099cc); border-radius: 50%;
-    box-shadow: 0 0 50px #0ff; transform: translate(-50%,-50%);
-    animation: pulse 8.8s infinite; z-index: 2;
+
+#dealer {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 130px;
+    height: 197px; /* оставляем твой высокий размер */
+    background: radial-gradient(circle, #0ff, #0099cc); /* центр эллипса */
+    border-radius: 50%;
+    /* голубой ореол вместо зелёного */
+    box-shadow: 0 0 50px #0ff; 
+    transform: translate(-50%, -50%);
+    animation: pulse 8.8s infinite;
+    z-index: 2;
 }
-@keyframes pulse {0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(3.15);}}
-#community-cards { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    display: flex; gap: 16px; z-index: 5;
+
+@keyframes pulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(0.1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(4.35);
+    }
 }
-.player-wrapper { position: absolute; text-align:center; pointer-events:none; z-index:5; }
+
+#community-cards {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 16px;
+    z-index: 5;
+}
+
+.player-wrapper {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+    z-index: 5;
+}
+
 
 
 
@@ -338,7 +388,12 @@ function laserDealSequence() {
 
     /* ================== 🔥 ПОЛНАЯ ОЧИСТКА СТОЛА ================== */
 
-    const table = document.getElementById('table');
+
+const table = document.getElementById('table');
+table.classList.remove('gold-frame');
+table.style.background = '';
+
+
     table.querySelectorAll('.card, .player-wrapper').forEach(el => el.remove());
 
     const communityDiv = document.getElementById('community-cards');
@@ -492,11 +547,20 @@ function laserDealSequence() {
     let index = 0;
 
     function nextDeal() {
-        if (index >= dealQueue.length) {
-            updateHandStrengths();
-            addLog('✅ Раздача завершена!');
-            return;
-        }
+if (index >= dealQueue.length) {
+    updateHandStrengths();
+    addLog('✅ Раздача завершена!');
+
+    const table = document.getElementById('table');
+
+    // ⚡ резкий золотой акцент
+ //   table.classList.add('gold-frame');
+
+
+    return;
+}
+
+
 
         const item = dealQueue[index++];
 
@@ -524,12 +588,12 @@ function laserDealSequence() {
             player.cards[item.cardIndex] = card;
 
             createLaserBeam(dealerX, dealerY, x + tableRect.left, y + tableRect.top);
-            setTimeout(nextDeal, 280);
+            setTimeout(nextDeal, 80);
 
         } else {
             const target = communityDiv.children[item.index].getBoundingClientRect();
             createLaserBeam(dealerX, dealerY, target.left + 45, target.top + 27);
-            setTimeout(nextDeal, 280);
+            setTimeout(nextDeal, 80);
         }
     }
 
