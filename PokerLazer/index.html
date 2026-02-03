@@ -45,7 +45,7 @@ button:hover {
 /* TABLE & CANVAS */
 #table {
     position: relative; 
-    width: 100vw; 
+    width: 105vw; 
     height: calc(85vh - 50px);
     background: radial-gradient(ellipse at center, #0a0a0a 0%, #111 70%, #222 100%);
     border-radius: 10px; 
@@ -72,10 +72,10 @@ canvas#pokerCanvas {
 
 
 /* DEALER, CARDS, LOG */
-#dealer { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px;
+#dealer { position: absolute; left: 50%; top: 50%; width: 130px; height: 197px;
     background: radial-gradient(circle, #0ff, #0099cc); border-radius: 50%;
     box-shadow: 0 0 50px #0ff; transform: translate(-50%,-50%);
-    animation: pulse 1.8s infinite; z-index: 2;
+    animation: pulse 8.8s infinite; z-index: 2;
 }
 @keyframes pulse {0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(3.15);}}
 #community-cards { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
@@ -330,117 +330,167 @@ function createLaserBeam(fromX, fromY, toX, toY, duration=450){
 
 
 
+
+
+
+
 function laserDealSequence() {
-    createDeck();
-    shuffleDeck();
+
+    /* ================== 🔥 ПОЛНАЯ ОЧИСТКА СТОЛА ================== */
+
+    const table = document.getElementById('table');
+    table.querySelectorAll('.card, .player-wrapper').forEach(el => el.remove());
+
+    const communityDiv = document.getElementById('community-cards');
+    communityDiv.innerHTML = '';
+
     players = [];
     communityCards = [];
     stage = 0;
+
+    /* ================== 🎴 НОВАЯ РАЗДАЧА ================== */
+
+    createDeck();
+    shuffleDeck();
     addLog('New shuffle - Laser Deal');
 
-    const table = document.getElementById('table');
     const tableRect = table.getBoundingClientRect();
-    const centerX = tableRect.left + tableRect.width / 2;
-    const centerY = tableRect.top + tableRect.height / 2;
+
     const dealerEl = document.getElementById('dealer');
     const dealerRect = dealerEl.getBoundingClientRect();
     const dealerX = dealerRect.left + dealerRect.width / 2;
     const dealerY = dealerRect.top + dealerRect.height / 2;
 
+    const centerX = tableRect.width / 2;
+    const centerY = tableRect.height / 2;
+
     const horRadius = tableRect.width * 0.32 * 1.15;
     const verRadius = tableRect.height * 0.41;
     const numPlayers = 9;
-
-    const verticalShift = 150; // смещение всех игроков вниз
+    const verticalShift = 150;
 
     const playerPositions = [];
+
     for (let i = 0; i < numPlayers; i++) {
-        const angle = (Math.PI * 1.5 + (i / numPlayers) * Math.PI * 2);
+        const angle = Math.PI * 1.5 + (i / numPlayers) * Math.PI * 2;
         let x, y;
 
-        if (i === 0) x = centerX + Math.cos(angle) * horRadius * 1.2, y = centerY + Math.sin(angle) * verRadius * 1.2 + verticalShift;
-        else if (i === 1 || i === 8) x = centerX + Math.cos(angle) * horRadius * 1.1, y = centerY + Math.sin(angle) * verRadius * 0.95 + verticalShift;
-        else if (i === 2 || i === 7) x = centerX + Math.cos(angle) * horRadius, y = centerY + Math.sin(angle) * verRadius * 0.9 + verticalShift;
-        else if (i === 3 || i === 6) x = centerX + Math.cos(angle) * horRadius * 0.95, y = centerY + Math.sin(angle) * verRadius * 0.95 + verticalShift;
-        else x = centerX + Math.cos(angle) * horRadius * 0.9, y = centerY + Math.sin(angle) * verRadius * 0.85 + verticalShift;
+        if (i === 0)
+            x = centerX + Math.cos(angle) * horRadius * 1.2,
+            y = centerY + Math.sin(angle) * verRadius * 1.2 + verticalShift;
+        else if (i === 1 || i === 8)
+            x = centerX + Math.cos(angle) * horRadius * 1.1,
+            y = centerY + Math.sin(angle) * verRadius * 0.95 + verticalShift;
+        else if (i === 2 || i === 7)
+            x = centerX + Math.cos(angle) * horRadius,
+            y = centerY + Math.sin(angle) * verRadius * 0.9 + verticalShift;
+        else if (i === 3 || i === 6)
+            x = centerX + Math.cos(angle) * horRadius * 0.95,
+            y = centerY + Math.sin(angle) * verRadius * 0.95 + verticalShift;
+        else
+            x = centerX + Math.cos(angle) * horRadius * 0.9,
+            y = centerY + Math.sin(angle) * verRadius * 0.85 + verticalShift;
 
-        playerPositions.push({ x: x - tableRect.left, y: y - tableRect.top });
+        playerPositions.push({ x, y });
     }
 
-    // создание игроков
+    /* ================== 👤 СОЗДАНИЕ ИГРОКОВ ================== */
+
     for (let i = 0; i < numPlayers; i++) {
+        let pos = playerPositions[i];
+
+        // вертикальные смещения
+        let yOffset = 0;
+        if (i === 1 || i === 8) yOffset -= 40; // игроки 2 и 9
+        if (i === 2 || i === 7) yOffset += 15; // игроки 3 и 8
+        if (i === 3 || i === 6) yOffset -= 25; // игроки 4 и 7
+        if (i === 4 || i === 5) yOffset += 5;  // игроки 5 и 6
+
+        // горизонтальные смещения: игроки 5 и 6 по x координатам игроков 2 и 9
+        let xPos = pos.x;
+        if (i === 4) xPos = playerPositions[1].x - 20; // игрок 5 сдвигаем на 5
+        if (i === 5) xPos = playerPositions[8].x + 20; // игрок 6 сдвигаем на 5
+
+        pos = { x: xPos, y: pos.y }; // применяем горизонтальное смещение
+
         players.push({
             hand: [],
             cards: [],
-            pos: playerPositions[i],
+            pos,
             strengthEl: null,
             strength: 'Waiting...'
         });
 
+        /* координата базовой линии карт с учётом смещений */
+        const cardsBaseY = ((i === 0) ? pos.y - 140 : pos.y - 110) + yOffset;
+
+        /* подпись строго под картами */
+        const labelsTop = cardsBaseY + 78 + 6 - 10;
+
+        const cardWidth = 70;
+        const spacing = 55;
+        const card1Left = pos.x - 35;
+        const card2Left = card1Left + spacing;
+        const centerBetweenCards = card1Left + (cardWidth + spacing) / 2;
+
         const wrapper = document.createElement('div');
         wrapper.className = 'player-wrapper';
-        const pos = playerPositions[i];
+        wrapper.style.width = '200px';
+        wrapper.style.left = (centerBetweenCards - 100 - 10) + 'px';
+        wrapper.style.top = labelsTop + 'px';
 
-        // уменьшаем подписи игроков и их комбинации в 2 раза
         const name = document.createElement('div');
         name.className = 'player-name';
-        name.style.fontSize = '11px';
         name.textContent = 'Player ' + (i + 1);
 
         const strength = document.createElement('div');
         strength.className = 'hand-strength';
-        strength.style.fontSize = '10px';
-        strength.style.padding = '4px 8px';
-        strength.style.minHeight = '16px';
         strength.textContent = 'Waiting...';
-        players[i].strengthEl = strength;
+        strength.style.marginTop = '-10px';
 
-        // стандартные смещения карт для игроков
-        let wrapperLeft = pos.x - 90;
-        let wrapperTop = pos.y - 110; // общий верхний сдвиг
-        wrapper.style.left = wrapperLeft + 'px';
-        wrapper.style.top = wrapperTop + 'px';
-        wrapper.style.width = '200px';
+        players[i].strengthEl = strength;
 
         wrapper.appendChild(name);
         wrapper.appendChild(strength);
         table.appendChild(wrapper);
     }
 
-    // раздача карт игрокам
+    /* ================== 🎴 РАЗДАЧА КАРТ ================== */
+
     for (let round = 0; round < 2; round++) {
         for (let i = 0; i < numPlayers; i++) {
             players[i].hand.push(deck.pop());
         }
     }
 
-    // общие карты
     for (let i = 0; i < 5; i++) {
         let c = deck.pop();
         c.revealed = false;
         communityCards.push(c);
     }
 
-    const communityDiv = document.getElementById('community-cards');
-    communityDiv.innerHTML = '';
     for (let i = 0; i < 5; i++) {
         const card = document.createElement('div');
         card.className = 'card back';
         card.style.position = 'relative';
+        card.style.top = '-55px'; // поднятие общих карт
         communityDiv.appendChild(card);
     }
 
     const dealQueue = [];
+
     for (let round = 0; round < 2; round++) {
         for (let i = 0; i < numPlayers; i++) {
             dealQueue.push({ type: 'player', playerIndex: i, cardIndex: round });
         }
     }
+
     for (let i = 0; i < 5; i++) {
         dealQueue.push({ type: 'community', index: i });
     }
 
     let index = 0;
+
     function nextDeal() {
         if (index >= dealQueue.length) {
             updateHandStrengths();
@@ -448,8 +498,7 @@ function laserDealSequence() {
             return;
         }
 
-        const item = dealQueue[index];
-        index++;
+        const item = dealQueue[index++];
 
         if (item.type === 'player') {
             const player = players[item.playerIndex];
@@ -460,10 +509,13 @@ function laserDealSequence() {
             card.innerHTML = c.value + suitSymbols[c.suit];
 
             const pos = player.pos;
-            let x = pos.x;
-            let y = pos.y;
-            if (item.playerIndex === 0) x = pos.x - 35 + (item.cardIndex * 55), y = pos.y - 140;
-            else x = pos.x - 35 + (item.cardIndex * 55), y = pos.y - 110;
+            let x = pos.x - 35 + item.cardIndex * 55;
+            let y = ((item.playerIndex === 0) ? pos.y - 140 : pos.y - 110);
+
+            if (item.playerIndex === 1 || item.playerIndex === 8) y -= 40;
+            if (item.playerIndex === 2 || item.playerIndex === 7) y += 15;
+            if (item.playerIndex === 3 || item.playerIndex === 6) y -= 25;
+            if (item.playerIndex === 4 || item.playerIndex === 5) y += 5;
 
             card.style.left = x + 'px';
             card.style.top = y + 'px';
@@ -473,10 +525,10 @@ function laserDealSequence() {
 
             createLaserBeam(dealerX, dealerY, x + tableRect.left, y + tableRect.top);
             setTimeout(nextDeal, 280);
-        } else if (item.type === 'community') {
-            const cardEl = communityDiv.children[item.index];
-            const targetRect = cardEl.getBoundingClientRect();
-            createLaserBeam(dealerX, dealerY, targetRect.left + 45, targetRect.top + 67);
+
+        } else {
+            const target = communityDiv.children[item.index].getBoundingClientRect();
+            createLaserBeam(dealerX, dealerY, target.left + 45, target.top + 27);
             setTimeout(nextDeal, 280);
         }
     }
@@ -687,17 +739,19 @@ function revealRiver(){
 
 function revealCommunity(){
     const communityDiv = document.getElementById('community-cards');
-    communityDiv.innerHTML = '';
-    communityCards.forEach(c => {
-        const card = document.createElement('div');
-        card.className = 'card ' + (c.revealed ? c.suit : 'back');
-        card.style.position = 'relative';
+    // используем существующие div'ы, не создаём новые
+    communityCards.forEach((c, i) => {
+        const cardDiv = communityDiv.children[i];
         if(c.revealed){
-            card.innerHTML = c.value + suitSymbols[c.suit];
+            cardDiv.className = 'card ' + c.suit; // меняем back на настоящую масть
+            cardDiv.innerHTML = c.value + suitSymbols[c.suit];
         }
-        communityDiv.appendChild(card);
     });
 }
+
+
+
+
 </script>
 </body>
 </html>
