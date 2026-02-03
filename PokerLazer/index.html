@@ -378,7 +378,7 @@ function addLog(text, isWinner=false){
 
 
 function redeal(){
-    addLog('♻️ Новая раздача начинается...');
+    addLog('♻️ New hand starts');
 
     const table = document.getElementById('table');
 
@@ -490,7 +490,7 @@ function laserDealSequence() {
 
     createDeck();
     shuffleDeck();
-    addLog('New shuffle - Laser Deal');
+    addLog('🃏 Shuffling deck — Lazer Deal');
 
     const tableRect = table.getBoundingClientRect();
     const dealerEl = document.getElementById('dealer');
@@ -652,8 +652,8 @@ function laserDealSequence() {
 
     function nextDeal() {
         if (index >= dealQueue.length) {
+            addLog('✅ Hole cards dealt');
             updateHandStrengths();
-            addLog('✅ Раздача завершена!');
             return;
         }
 
@@ -866,7 +866,7 @@ function evaluateHand(cards) {
     const kicker = Number(Object.keys(rankCounts).find(rank => rankCounts[rank] === 1));
     return {
       rank: 2,
-      description: `Two Pair (${rankToName(pairRanks[0])}s & ${rankToName(pairRanks[1])}s)`,
+      description: `Two Pairs (${rankToName(pairRanks[0])}s & ${rankToName(pairRanks[1])}s)`,
       kickers: [...pairRanks, kicker]
     };
   }
@@ -960,6 +960,11 @@ function applyWinnerGlow(winners, isFinal=false){
 
 
 
+function formatHoleCards(hand){
+    return hand.map(c => `${c.value}${suitSymbols[c.suit]}`).join(' ');
+}
+
+
 
 
 function updateHandStrengths() {
@@ -1011,12 +1016,24 @@ function updateHandStrengths() {
                     stage === 1 ? 'FLOP' :
                     stage === 2 ? 'TURN' : 'RIVER';
 
-  if (winners.length === 1) {
-    addLog(`${stageText}: Player ${winners[0] + 1} - ${bestHand.description}`, stage === 3);
-  } else {
-    const w = winners.map(i => `Player ${i + 1}`).join(', ');
-    addLog(`${stageText}: ${w} - ${bestHand.description}`, stage === 3);
-  }
+if (winners.length === 1) {
+    const i = winners[0];
+    const hole = formatHoleCards(players[i].hand);
+    addLog(
+        `${stageText} WINNER: Player ${i + 1} | ${hole} | ${bestHand.description}`,
+        stage === 3
+    );
+} else {
+    const winnersText = winners.map(i => {
+        const hole = formatHoleCards(players[i].hand);
+        return `Player ${i + 1} (${hole})`;
+    }).join(' , ');
+
+    addLog(
+        `${stageText} SPLIT POT: ${winnersText} | ${bestHand.description}`,
+        stage === 3
+    );
+}
 }
 
 
@@ -1029,7 +1046,7 @@ function revealFlop(){
         for(let i=0; i<3; i++) communityCards[i].revealed = true;
         stage = 1;
         revealCommunity();
-        addLog('🂡 FLOP (3 карты)', true);
+        addLog('🂡 FLOP — 3 community cards');
         updateHandStrengths();
     }
 }
@@ -1038,7 +1055,7 @@ function revealTurn(){
         communityCards[3].revealed = true;
         stage = 2;
         revealCommunity();
-        addLog('🔄 TURN (4 карты)');
+        addLog('🔄 TURN — 4th community card');
         updateHandStrengths();
     }
 }
@@ -1047,7 +1064,7 @@ function revealRiver(){
         communityCards[4].revealed = true;
         stage = 3;
         revealCommunity();
-        addLog('🌊 RIVER - ПОБЕДИТЕЛЬ!', true);
+        addLog('🌊 RIVER — final card', true);
         updateHandStrengths();
     }
 }
