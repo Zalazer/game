@@ -181,6 +181,7 @@ canvas#pokerCanvas {
 
 
 
+/* ================== 🔥 НОВЫЙ СТИЛЬ ЛОГА В СТИЛЕ КНОПОК ================== */
 
 #deal-log {
     position: fixed;
@@ -189,26 +190,46 @@ canvas#pokerCanvas {
     right: 20px;
     max-height: 40px;            /* уменьшено с 80px */
     overflow-y: auto;
-    background: rgba(0,20,40,0.98);
-    border-radius: 20px;
+    background: linear-gradient(145deg, #333, #555);  /* градиент как у кнопок */
+    border-radius: 8px;           /* скругление как у кнопок */
     padding: 8px;                 /* уменьшено с 16px */
-    font-size: 8px;               /* уменьшено с 16px */
-    border: 4px solid #444;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+    font-size: 8px;               /* уменьшено в 2 раза */
+    border: 2px solid #ffd700;   /* рамка как у кнопок */
+    box-shadow: 0 3px 10px rgba(255,215,0,0.5); /* тень как у кнопок */
 }
 
+/* отдельные элементы лога */
 .log-item {
     margin: 3px 0;                /* уменьшено с 5px */
     padding: 5px 8px;             /* уменьшено с 10px 15px */
-    border-left: 6px solid #444;
-    border-radius: 8px;
+    border-left: 6px solid #444;  /* тонкая левая граница */
+    border-radius: 8px;           /* скругление элементов */
     font-weight: 600;
+    transition: background 0.4s, box-shadow 0.4s; /* плавный переход при свечении */
 }
 
+/* подсветка победителя */
 .log-winner {
     border-left-color: #ff0 !important;
     background: rgba(255,255,0,0.25) !important;
     box-shadow: inset 0 0 20px rgba(255,255,0,0.3);
+}
+
+/* Анимация появления нового лога с золотым свечением */
+@keyframes logGlow {
+    0% {
+        background: linear-gradient(145deg, #fff5b1, #ffd700);
+        box-shadow: 0 0 20px rgba(255,215,0,0.8);
+    }
+    100% {
+        background: linear-gradient(145deg, #333, #555);
+        box-shadow: 0 3px 10px rgba(255,215,0,0.5);
+    }
+}
+
+/* класс для нового лога */
+.log-item.new {
+    animation: logGlow 1.2s ease forwards;
 }
 
 
@@ -285,14 +306,19 @@ function shuffleDeck(){
  [deck[i],deck[j]]=[deck[j],deck[i]];
  }
 }
+
+
 function addLog(text, isWinner=false){
- logCounter++;
- const log = document.getElementById('deal-log');
- const item = document.createElement('div');
- item.className = `log-item ${isWinner ? 'log-winner' : ''}`;
- item.innerHTML = `<strong>#${logCounter}</strong> ${text}`;
- log.insertBefore(item, log.firstChild);
- log.scrollTop = 0;
+    logCounter++;
+    const log = document.getElementById('deal-log');
+    const item = document.createElement('div');
+    item.className = `log-item ${isWinner ? 'log-winner' : ''} new`; // добавляем класс "new"
+    item.innerHTML = `<strong>#${logCounter}</strong> ${text}`;
+    log.insertBefore(item, log.firstChild);
+    log.scrollTop = 0;
+
+    // Убираем класс "new" после анимации
+    setTimeout(() => item.classList.remove('new'), 1200);
 }
 
 
