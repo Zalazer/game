@@ -5,244 +5,255 @@
 <title>PokerLazer - Holdem</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+
 <style>
-/* ОБЩИЕ СТИЛИ */
-body, html {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; font-family: 'Arial Black', 'Arial', sans-serif;
-    background-color: #111; color: #fff; touch-action: none;
+/* ================== GLOBAL ================== */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Arial Black', Arial, sans-serif;
+    background: #111;
+    color: #fff;
+    touch-action: none;
 }
+
 h1 {
-    text-align: center; font-size: 25px; color: #ffd700;
-    text-shadow: 0 2px 8px #000; margin: 8px 0;
+    text-align: center;
+    font-size: 25px;
+    color: #ffd700;
+    text-shadow: 0 2px 8px #000;
+    margin: 8px 0;
 }
-#controls { text-align: center; margin: 8px 0; }
 
+#controls {
+    text-align: center;
+    margin: 8px 0;
+}
 
-
-
+/* ================== BUTTONS ================== */
 button {
     background: linear-gradient(145deg, #333, #555);
-    color: #ffd700; 
-    border: 2px solid #ffd700;   /* рамка тоньше */
-    border-radius: 8px;           /* скругление меньше */
-    padding: 6px 12px;            /* компактные внутренние отступы */
-    margin: 2px;                  /* маленький внешний отступ */
-    font-size: 12px;              /* уменьшенный текст */
-    cursor: pointer;
-    font-weight: bold; 
+    color: #ffd700;
+    border: 2px solid #ffd700;
+    border-radius: 8px;
+    padding: 6px 12px;
+    margin: 2px;
+    font-size: 12px;
+    font-weight: bold;
     text-transform: uppercase;
+    cursor: pointer;
 }
-button:hover { 
+
+button:hover {
     background: linear-gradient(145deg, #555, #777);
-    box-shadow: 0 3px 10px rgba(255,215,0,0.5); /* тень меньше */
-    transform: translateY(-1px);                 /* легкий сдвиг при ховере */
+    box-shadow: 0 3px 10px rgba(255,215,0,.5);
+    transform: translateY(-1px);
 }
 
-
-
-
-/* TABLE & CANVAS */
+/* ================== TABLE ================== */
 #table {
-    position: relative; 
-    width: 100vw; 
-    height: calc(85vh - 30px);
-
-    /* 🖤 старт — чисто чёрный */
+    position: relative;
+    width: 100vw;
+    height: calc(85vh - 50px);
     background: #000;
-
-    border-radius: 10px; 
-    overflow: hidden; 
+    border-radius: 10px;
+    overflow: hidden;
     margin: 0 auto;
-
-//    transform: scale(0.9);
-    transform-origin: top center;
-
-    transition: background 0.12s ease-out;
+    transition: background .12s ease-out;
 }
 
-/* 💛 ЗОЛОТОЙ ЭЛЛИПС ПОСЛЕ РАЗДАЧИ */
-
-
-
+/* золотой эллипс */
 #table.gold-frame {
     background:
         radial-gradient(
             ellipse at center,
-            rgba(0, 0, 0, 1) 44%,
-            rgba(0, 40, 60, 0.85) 55%,
-            rgba(0, 90, 130, 0.55) 70%,
-            rgba(0, 160, 200, 0.35) 82%,
-            rgba(0, 220, 255, 0.18) 100%
+            rgba(0,0,0,1) 44%,
+            rgba(0,40,60,.85) 55%,
+            rgba(0,90,130,.55) 70%,
+            rgba(0,160,200,.35) 82%,
+            rgba(0,220,255,.18) 100%
         );
 }
 
-
-
-
 canvas#pokerCanvas {
-    width: 100%; 
-    height: 100%; 
-    display: block; 
+    width: 100%;
+    height: 100%;
+    display: block;
     background: transparent;
 }
 
-
-
-/* DEALER, CARDS, LOG */
-
+/* ================== DEALER ================== */
 #dealer {
     position: absolute;
     left: 50%;
     top: 50%;
     width: 130px;
-    height: 197px; /* оставляем твой высокий размер */
-    background: radial-gradient(circle, #0ff, #0099cc); /* центр эллипса */
+    height: 197px;
+    background: radial-gradient(circle, #0ff, #0099cc);
     border-radius: 50%;
-    /* голубой ореол вместо зелёного */
-    box-shadow: 0 0 50px #0ff; 
+    box-shadow: 0 0 50px #0ff;
     transform: translate(-50%, -50%);
     animation: pulse 8.8s infinite;
-    z-index: 2;
+    z-index: 1;
+    pointer-events: none;
 }
 
 @keyframes pulse {
-    0%, 100% {
-        transform: translate(-50%, -50%) scale(0.1);
+    0%,100% {
+        transform: translate(-50%, -50%) scale(.15);
+        opacity: .6;
     }
     50% {
-        transform: translate(-50%, -50%) scale(4.35);
+        transform: translate(-50%, -50%) scale(3.6);
+        opacity: 1;
     }
 }
 
+/* ================== COMMUNITY CARDS ================== */
 #community-cards {
     position: absolute;
-    top: 50%;
     left: 50%;
+    top: 45%;
     transform: translate(-50%, -50%);
     display: flex;
     gap: 16px;
-    z-index: 5;
+    width: max-content;
+    justify-content: center;
+    z-index: 6;
+    pointer-events: none;
 }
 
+/* ================== PLAYERS ================== */
 .player-wrapper {
     position: absolute;
     text-align: center;
+    z-index: 6;
     pointer-events: none;
-    z-index: 5;
 }
 
+/* базовое центрирование игроков */
+.player-top { top: 10%; left: 50%; transform: translateX(-50%); }
+.player-bottom { top: 85%; left: 50%; transform: translateX(-50%); }
+.player-left { top: 50%; left: 10%; transform: translateY(-50%); }
+.player-right { top: 50%; left: 90%; transform: translateY(-50%); }
 
-
-
+/* индивидуальные смещения для игроков 6,7,8,9,1 */
+.player-6, .player-7, .player-8, .player-9, .player-1 {
+    transform: translate(calc(-50% - 20px), -15px); /* сдвиг влево и вверх */
+}
 
 .player-name {
-    margin: 7px 0 4px;      /* уменьшено в 2 раза */
-    font-size: 11px;         /* уменьшено с 22px */
+    margin: 7px 0 4px;
+    font-size: 11px;
     font-weight: bold;
-    text-shadow: 0 2px 4px #000; /* уменьшена тень */
+    text-shadow: 0 2px 4px #000;
 }
 
 .hand-strength {
-    font-size: 10px;         /* уменьшено с 20px */
+    font-size: 10px;
     margin: 4px 0;
-    padding: 4px 8px;        /* уменьшено в 2 раза */
-    border-radius: 10px;     /* уменьшено в 2 раза */
-    min-height: 16px;        /* уменьшено с 32px */
+    padding: 4px 8px;
+    border-radius: 10px;
+    min-height: 16px;
 }
 
-
-
-
-.card { 
-    width: 50px;          /* уменьшено с 65 */
-    height: 73px;         /* уменьшено с 95 */
-    font-size: 22px;      /* уменьшено с 28 */
-    line-height: 73px;    /* уменьшено с 95 */
-    text-align: center;
+/* ================== CARDS ================== */
+.card {
     position: absolute;
-    border-radius: 8px; 
-    font-weight: bold; 
+    width: 50px;
+    height: 73px;
+    font-size: 22px;
+    line-height: 73px;
+    text-align: center;
+    border-radius: 8px;
+    font-weight: bold;
     background: linear-gradient(145deg,#fff,#f5f5f5);
     color: #000;
     border: 2px solid #555;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.7);
-    z-index:4;
-}
-.card.hearts,.card.diamonds{color:#e00;}
-.card.back{ 
-    background: repeating-linear-gradient(45deg,#666 0,#666 8px,#777 8px,#777 16px); 
-    color:#fff; 
-    font-size:18px; 
-    line-height:73px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,.7);
+    z-index: 5;
 }
 
+.card.hearts,
+.card.diamonds { color:#e00; }
 
+.card.back {
+    background: repeating-linear-gradient(
+        45deg,#666 0,#666 8px,#777 8px,#777 16px
+    );
+    color:#fff;
+    font-size:18px;
+    line-height:73px;
+}
 
-
-
-/* ================== 🔥 НОВЫЙ СТИЛЬ ЛОГА В СТИЛЕ КНОПОК ================== */
-
+/* ================== DEAL LOG ================== */
 #deal-log {
     position: fixed;
-    bottom: 5px;
-    left: 20px;
-    right: 20px;
-    max-height: 40px;            /* уменьшено с 80px */
+    bottom: env(safe-area-inset-bottom, 6px);
+    left: 16px;
+    right: 16px;
+    max-height: 42px;
     overflow-y: auto;
-    background: linear-gradient(145deg, #333, #555);  /* градиент как у кнопок */
-    border-radius: 8px;           /* скругление как у кнопок */
-    padding: 8px;                 /* уменьшено с 16px */
-    font-size: 8px;               /* уменьшено в 2 раза */
-    border: 2px solid #ffd700;   /* рамка как у кнопок */
-    box-shadow: 0 3px 10px rgba(255,215,0,0.5); /* тень как у кнопок */
+    background: linear-gradient(145deg,#333,#555);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 8px;
+    border: 2px solid #ffd700;
+    box-shadow: 0 3px 10px rgba(255,215,0,.5);
+    z-index: 3000;
+    pointer-events: auto;
 }
 
-/* отдельные элементы лога */
 .log-item {
-    margin: 3px 0;                /* уменьшено с 5px */
-    padding: 5px 8px;             /* уменьшено с 10px 15px */
-    border-left: 6px solid #444;  /* тонкая левая граница */
-    border-radius: 8px;           /* скругление элементов */
+    margin: 3px 0;
+    padding: 5px 8px;
+    border-left: 5px solid #444;
+    border-radius: 8px;
     font-weight: 600;
-    transition: background 0.4s, box-shadow 0.4s; /* плавный переход при свечении */
 }
 
-/* подсветка победителя */
 .log-winner {
-    border-left-color: #ff0 !important;
-    background: rgba(255,255,0,0.25) !important;
-    box-shadow: inset 0 0 20px rgba(255,255,0,0.3);
+    border-left-color:#ff0!important;
+    background:rgba(255,255,0,.25)!important;
+    box-shadow: inset 0 0 20px rgba(255,215,0,.3);
 }
 
-/* Анимация появления нового лога с золотым свечением */
 @keyframes logGlow {
-    0% {
-        background: linear-gradient(145deg, #fff5b1, #ffd700);
-        box-shadow: 0 0 20px rgba(255,215,0,0.8);
+    from {
+        background: linear-gradient(145deg,#fff5b1,#ffd700);
+        box-shadow:0 0 20px rgba(255,215,0,.8);
     }
-    100% {
-        background: linear-gradient(145deg, #333, #555);
-        box-shadow: 0 3px 10px rgba(255,215,0,0.5);
+    to {
+        background: linear-gradient(145deg,#333,#555);
+        box-shadow:0 3px 10px rgba(255,215,0,.5);
     }
 }
 
-/* класс для нового лога */
 .log-item.new {
     animation: logGlow 1.2s ease forwards;
 }
 
-
-
-
-.laser-beam { position: fixed; height:6px; background: linear-gradient(90deg,transparent,#0ff,#fff,#0ff,transparent);
-    box-shadow:0 0 50px #0ff; pointer-events:none; z-index:1000; border-radius:5px; transform-origin:left center; }
-
-
-
-
-
+/* ================== LASER ================== */
+.laser-beam {
+    position: fixed;
+    height: 6px;
+    background: linear-gradient(90deg,transparent,#0ff,#fff,#0ff,transparent);
+    box-shadow: 0 0 50px #0ff;
+    border-radius: 5px;
+    pointer-events: none;
+    z-index: 1000;
+    transform-origin: left center;
+}
 </style>
+
+
+
+
+
+
 </head>
 <body>
 
@@ -255,7 +266,7 @@ canvas#pokerCanvas {
     <button onclick="revealRiver()">🌊 RIVER</button>
 </div>
 <div id="table">
-    <canvas id="pokerCanvas" width="1024" height="768"></canvas>
+    <canvas id="pokerCanvas"></canvas>
     <div id="dealer"></div>
     <div id="community-cards"></div>
 </div>
@@ -405,20 +416,27 @@ function createLaserBeam(fromX, fromY, toX, toY, duration=450){
 
 
 
+function resizeCanvasToTable() {
+    const table = document.getElementById('table');
+    const canvas = document.getElementById('pokerCanvas');
+
+    canvas.width = table.clientWidth;
+    canvas.height = table.clientHeight;
+}
+
+resizeCanvasToTable();
+window.addEventListener('resize', resizeCanvasToTable);
+
+
 
 
 
 
 
 function laserDealSequence() {
-
-    /* ================== 🔥 ПОЛНАЯ ОЧИСТКА СТОЛА ================== */
-
-
-const table = document.getElementById('table');
-table.classList.remove('gold-frame');
-table.style.background = '';
-
+    const table = document.getElementById('table');
+    table.classList.remove('gold-frame');
+    table.style.background = '';
 
     table.querySelectorAll('.card, .player-wrapper').forEach(el => el.remove());
 
@@ -429,14 +447,11 @@ table.style.background = '';
     communityCards = [];
     stage = 0;
 
-    /* ================== 🎴 НОВАЯ РАЗДАЧА ================== */
-
     createDeck();
     shuffleDeck();
     addLog('New shuffle - Laser Deal');
 
     const tableRect = table.getBoundingClientRect();
-
     const dealerEl = document.getElementById('dealer');
     const dealerRect = dealerEl.getBoundingClientRect();
     const dealerX = dealerRect.left + dealerRect.width / 2;
@@ -445,10 +460,10 @@ table.style.background = '';
     const centerX = tableRect.width / 2;
     const centerY = tableRect.height / 2;
 
-    const horRadius = tableRect.width * 0.32 * 1.15;
-    const verRadius = tableRect.height * 0.41;
+    const horRadius = tableRect.width * 0.28;
+    const verRadius = tableRect.height * 0.36;
     const numPlayers = 9;
-    const verticalShift = 150;
+    const verticalShift = tableRect.height * 0.12;
 
     const playerPositions = [];
 
@@ -457,7 +472,7 @@ table.style.background = '';
         let x, y;
 
         if (i === 0)
-            x = centerX + Math.cos(angle) * horRadius * 1.2,
+            x = centerX + Math.cos(angle) * horRadius,
             y = centerY + Math.sin(angle) * verRadius * 1.2 + verticalShift;
         else if (i === 1 || i === 8)
             x = centerX + Math.cos(angle) * horRadius * 1.1,
@@ -475,24 +490,20 @@ table.style.background = '';
         playerPositions.push({ x, y });
     }
 
-    /* ================== 👤 СОЗДАНИЕ ИГРОКОВ ================== */
-
     for (let i = 0; i < numPlayers; i++) {
         let pos = playerPositions[i];
 
-        // вертикальные смещения
         let yOffset = 0;
-        if (i === 1 || i === 8) yOffset -= 40; // игроки 2 и 9
-        if (i === 2 || i === 7) yOffset += 15; // игроки 3 и 8
-        if (i === 3 || i === 6) yOffset -= 25; // игроки 4 и 7
-        if (i === 4 || i === 5) yOffset += 5;  // игроки 5 и 6
+        if (i === 1 || i === 8) yOffset -= 40;
+        if (i === 2 || i === 7) yOffset += 15;
+        if (i === 3 || i === 6) yOffset -= 25;
+        if (i === 4 || i === 5) yOffset += 5;
 
-        // горизонтальные смещения: игроки 5 и 6 по x координатам игроков 2 и 9
         let xPos = pos.x;
-        if (i === 4) xPos = playerPositions[1].x - 20; // игрок 5 сдвигаем на 5
-        if (i === 5) xPos = playerPositions[8].x + 20; // игрок 6 сдвигаем на 5
+        if (i === 4) xPos = playerPositions[1].x - 20;
+        if (i === 5) xPos = playerPositions[8].x + 20;
 
-        pos = { x: xPos, y: pos.y }; // применяем горизонтальное смещение
+        pos = { x: xPos, y: pos.y };
 
         players.push({
             hand: [],
@@ -502,16 +513,12 @@ table.style.background = '';
             strength: 'Waiting...'
         });
 
-        /* координата базовой линии карт с учётом смещений */
         const cardsBaseY = ((i === 0) ? pos.y - 140 : pos.y - 110) + yOffset;
-
-        /* подпись строго под картами */
         const labelsTop = cardsBaseY + 78 + 6 - 10;
 
         const cardWidth = 70;
         const spacing = 55;
         const card1Left = pos.x - 35;
-        const card2Left = card1Left + spacing;
         const centerBetweenCards = card1Left + (cardWidth + spacing) / 2;
 
         const wrapper = document.createElement('div');
@@ -519,6 +526,38 @@ table.style.background = '';
         wrapper.style.width = '200px';
         wrapper.style.left = (centerBetweenCards - 100 - 10) + 'px';
         wrapper.style.top = labelsTop + 'px';
+
+        // 🔧 Сдвиг влево подписей для игроков 6,7,8,9,1
+        if ([0,5,6,7,8].includes(i)) {
+            wrapper.style.left = (parseFloat(wrapper.style.left) - 40) + 'px';
+        }
+
+        // 🔧 Сдвиг влево подписей для игрока 1
+        if ([0].includes(i)) {
+            wrapper.style.left = (parseFloat(wrapper.style.left) + 20) + 'px';
+        }
+
+
+        // 🔧 Сдвиг влево подписей для игрока 2
+        if ([1].includes(i)) {
+            wrapper.style.left = (parseFloat(wrapper.style.left) + 20) + 'px';
+        }
+
+
+        // 🔧 Сдвиг влево подписей для игрока 9
+        if ([8].includes(i)) {
+            wrapper.style.left = (parseFloat(wrapper.style.left) - 20) + 'px';
+        }
+
+
+
+        // 🔧 Поднимаем подписи всех игроков
+        wrapper.style.top = (parseFloat(wrapper.style.top) + 5) + 'px';
+
+        // 🔧 Игрок 1 дополнительно поднимаем подпись
+        if (i === 0) {
+            wrapper.style.top = (parseFloat(wrapper.style.top) + 15) + 'px';
+        }
 
         const name = document.createElement('div');
         name.className = 'player-name';
@@ -536,8 +575,6 @@ table.style.background = '';
         table.appendChild(wrapper);
     }
 
-    /* ================== 🎴 РАЗДАЧА КАРТ ================== */
-
     for (let round = 0; round < 2; round++) {
         for (let i = 0; i < numPlayers; i++) {
             players[i].hand.push(deck.pop());
@@ -554,7 +591,7 @@ table.style.background = '';
         const card = document.createElement('div');
         card.className = 'card back';
         card.style.position = 'relative';
-        card.style.top = '-55px'; // поднятие общих карт
+        card.style.top = '-60px';
         communityDiv.appendChild(card);
     }
 
@@ -573,23 +610,13 @@ table.style.background = '';
     let index = 0;
 
     function nextDeal() {
-if (index >= dealQueue.length) {
-    updateHandStrengths();
-    addLog('✅ Раздача завершена!');
-
-    const table = document.getElementById('table');
-
-    // ⚡ резкий золотой акцент
- //   table.classList.add('gold-frame');
-
-
-    return;
-}
-
-
+        if (index >= dealQueue.length) {
+            updateHandStrengths();
+            addLog('✅ Раздача завершена!');
+            return;
+        }
 
         const item = dealQueue[index++];
-
         if (item.type === 'player') {
             const player = players[item.playerIndex];
             const c = player.hand[item.cardIndex];
@@ -600,12 +627,44 @@ if (index >= dealQueue.length) {
 
             const pos = player.pos;
             let x = pos.x - 35 + item.cardIndex * 55;
-            let y = ((item.playerIndex === 0) ? pos.y - 140 : pos.y - 110);
+            let y = pos.y - tableRect.height * 0.12;
 
             if (item.playerIndex === 1 || item.playerIndex === 8) y -= 40;
             if (item.playerIndex === 2 || item.playerIndex === 7) y += 15;
             if (item.playerIndex === 3 || item.playerIndex === 6) y -= 25;
             if (item.playerIndex === 4 || item.playerIndex === 5) y += 5;
+
+            // 🔧 Поднимаем карты всех игроков
+            y -= 25;
+
+            // 🔧 Игрок 1 дополнительно поднимаем карты
+            if (item.playerIndex === 0) y -= 15;
+
+            // 🔧 Сдвиг карт влево только для игроков 6,7,8,9,1
+            if ([0,5,6,7,8].includes(item.playerIndex)) {
+                x -= 40;
+            }
+
+
+
+            // 🔧 Сдвиг карт влево только для игрока 1
+            if ([0].includes(item.playerIndex)) {
+                x += 20;
+            }
+
+            // 🔧 Сдвиг карт влево только для игрока 2
+            if ([1].includes(item.playerIndex)) {
+                x += 20;
+            }
+
+
+            // 🔧 Сдвиг карт влево только для игрока 9
+            if ([8].includes(item.playerIndex)) {
+                x -= 20;
+            }
+
+
+
 
             card.style.left = x + 'px';
             card.style.top = y + 'px';
