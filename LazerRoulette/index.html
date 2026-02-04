@@ -1,1 +1,420 @@
-test
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LazerRoulette</title>
+
+<style>
+html,body{
+    margin:0;
+    padding:0;
+    background:#070707;
+    color:#fff;
+    overflow:hidden;
+    font-family:Arial Black, Arial, sans-serif;
+}
+
+#title{
+    text-align:center;
+    font-size:34px;
+    margin:10px 0;
+    color:#d4af37;
+    text-shadow:0 0 6px red,0 0 18px #aa0000;
+}
+
+.section{
+    position:relative;
+    overflow:hidden;
+    touch-action:none;
+}
+
+#wheelWrap{ height:42vh; }
+#historyWrap{ height:9vh; border-top:1px solid #333; border-bottom:1px solid #333; }
+#tableWrap{ height:32vh; }
+#stats{ height:12vh; padding:8px; font-size:14px; }
+
+canvas{
+    display:block;
+    width:100%;
+    height:100%;
+}
+</style>
+</head>
+
+<body>
+
+<div id="title">LazerRoulette</div>
+
+<div id="wheelWrap" class="section">
+    <canvas id="wheel"></canvas>
+</div>
+
+<div id="historyWrap" class="section">
+    <canvas id="history"></canvas>
+</div>
+
+<div id="tableWrap" class="section">
+    <canvas id="table"></canvas>
+</div>
+
+<div id="stats">
+Игрок: Lazer<br>
+Баланс: 1000<br>
+Текущая ставка: 0<br>
+История ставок: —
+</div>
+
+<script>
+/* =====================================================
+   УТИЛИТЫ
+===================================================== */
+function resizeCanvas(c){
+    const dpr = devicePixelRatio || 1;
+    const w = c.clientWidth;
+    const h = c.clientHeight;
+    c.width  = w * dpr;
+    c.height = h * dpr;
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+/* =====================================================
+   ДАННЫЕ РУЛЕТКИ
+===================================================== */
+const wheelNumbers=[
+0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,
+8,23,10,5,24,16,33,1,20,14,31,9,22,18,
+29,7,28,12,35,3,26
+];
+const reds=[32,19,21,25,34,27,36,30,23,5,16,1,14,9,18,7,12,3];
+const getColor=n=>n===0?'#1fa055':(reds.includes(n)?'#c22':'#000');
+const SLICE=Math.PI*2/wheelNumbers.length;
+
+/* =====================================================
+   СОСТОЯНИЕ ШАРИКА
+===================================================== */
+let ballAngle=-Math.PI/2;
+let ballRadius=0;
+let speed=0;
+let direction=1;
+let lastDirection=1;
+let spinning=false;
+let slowing=false;
+let bouncing=false;
+let bouncesLeft=0;
+
+/* =====================================================
+   ИСТОРИЯ
+===================================================== */
+let history=[];
+
+/* =====================================================
+   СВАЙПЫ И ЗУМ
+===================================================== */
+const wheelCanvas=document.getElementById('wheel');
+let wheelState={x:0,y:0,zoom:1,ox:0,oy:0,startDist:0};
+
+const historyCanvas=document.getElementById('history');
+let historyState={x:0,y:0,zoom:1,ox:0,oy:0,startDist:0};
+
+const tableCanvas=document.getElementById('table');
+let tableState={x:0,y:0,zoom:1,ox:0,oy:0,startDist:0};
+
+function setupPanZoom(canvas,state,maxZoom=3){
+    let pointers=[];
+    canvas.addEventListener('pointerdown',e=>{
+        canvas.setPointerCapture(e.pointerId);
+        pointers.push(e);
+        state.ox=state.x;
+        state.oy=state.y;
+        if(pointers.length===2){
+            state.startDist=Math.hypot(
+                pointers[0].clientX-pointers[1].clientX,
+                pointers[0].clientY-pointers[1].clientY
+            );
+        }
+    });
+
+    canvas.addEventListener('pointermove',e=>{
+        for(let i=0;i<pointers.length;i++){
+            if(pointers[i].pointerId===e.pointerId) pointers[i]=e;
+        }
+        if(pointers.length===1){
+            const dx=e.clientX-pointers[0].clientX;
+            const dy=e.clientY-pointers[0].clientY;
+            state.x=state.ox+dx;
+            state.y=state.oy+dy;
+        }
+        if(pointers.length===2){
+            const dist=Math.hypot(
+                pointers[0].clientX-pointers[1].clientX,
+                pointers[0].clientY-pointers[1].clientY
+            );
+            state.zoom=Math.min(maxZoom,Math.max(1,state.zoom*dist/state.startDist));
+            state.startDist=dist;
+        }
+    });
+
+    canvas.addEventListener('pointerup',e=>{
+        canvas.releasePointerCapture(e.pointerId);
+        pointers=pointers.filter(p=>p.pointerId!==e.pointerId);
+    });
+}
+
+setupPanZoom(wheelCanvas, wheelState,3);
+setupPanZoom(historyCanvas, historyState,3);
+setupPanZoom(tableCanvas, tableState,8);
+
+/* =====================================================
+   WHEEL
+===================================================== */
+const wctx=wheelCanvas.getContext('2d');
+
+function drawWheel(){
+    resizeCanvas(wheelCanvas);
+    const cw=wheelCanvas.clientWidth;
+    const ch=wheelCanvas.clientHeight;
+    const ctx=wctx;
+
+    ctx.clearRect(0,0,cw,ch);
+    ctx.save();
+    ctx.translate(cw/2+wheelState.x,ch/2+wheelState.y);
+    ctx.scale(wheelState.zoom,wheelState.zoom);
+
+    const R=Math.min(cw,ch)*0.45;
+    const POCKET_R=R*0.78;
+    const TRACK_R=R*0.93;
+
+    ctx.rotate(-Math.PI/2 - SLICE/2);
+
+    for(let i=0;i<wheelNumbers.length;i++){
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.arc(0,0,R,i*SLICE,(i+1)*SLICE);
+        ctx.fillStyle=getColor(wheelNumbers[i]);
+        ctx.fill();
+    }
+
+    for(let i=0;i<wheelNumbers.length;i++){
+        const a=i*SLICE+SLICE/2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a)*POCKET_R,Math.sin(a)*POCKET_R,R*0.045,0,Math.PI*2);
+        ctx.fillStyle='#111';
+        ctx.fill();
+        ctx.strokeStyle='#d4af37';
+        ctx.lineWidth=2;
+        ctx.stroke();
+    }
+
+    ctx.font=(R*0.065)+'px Arial';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillStyle='#fff';
+    for(let i=0;i<wheelNumbers.length;i++){
+        ctx.save();
+        ctx.rotate(i*SLICE+SLICE/2);
+        ctx.translate(R*0.88,0);
+        ctx.rotate(Math.PI/2);
+        ctx.fillText(wheelNumbers[i],0,0);
+        ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(0,0,R*0.18,0,Math.PI*2);
+    ctx.fillStyle='#111';
+    ctx.fill();
+    ctx.strokeStyle='#d4af37';
+    ctx.lineWidth=5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-R*0.08,0); ctx.lineTo(R*0.08,0);
+    ctx.moveTo(0,-R*0.08); ctx.lineTo(0,R*0.08);
+    ctx.stroke();
+
+    if(!ballRadius) ballRadius=TRACK_R;
+    ctx.beginPath();
+    ctx.arc(
+        Math.cos(ballAngle)*ballRadius,
+        Math.sin(ballAngle)*ballRadius,
+        R*0.03,0,Math.PI*2
+    );
+    ctx.fillStyle='#fff';
+    ctx.shadowColor='gold';
+    ctx.shadowBlur=8;
+    ctx.fill();
+    ctx.shadowBlur=0;
+
+    ctx.restore();
+
+    // ФИЗИКА
+    if(spinning){
+        ballAngle+=speed*direction;
+        speed*=0.995;
+        if(speed<0.04 && !slowing){
+            slowing=true;
+            bouncing=true;
+            bouncesLeft=1+Math.floor(Math.random()*5);
+        }
+        if(bouncing && bouncesLeft>0 && Math.random()<0.03){
+            if(Math.random()<0.5) direction*=-1;
+            speed*=0.7;
+            bouncesLeft--;
+        }
+        if(speed<0.012){
+            spinning=false;
+            slowing=false;
+            bouncing=false;
+            const rawIndex=((ballAngle+Math.PI*2)%(Math.PI*2))/SLICE;
+            const idx=Math.round(rawIndex)%wheelNumbers.length;
+            history.unshift(wheelNumbers[idx]);
+            ballAngle=idx*SLICE+SLICE/2;
+            ballRadius=POCKET_R;
+        }
+    }
+}
+
+wheelCanvas.onclick=()=>{
+    if(!spinning){
+        spinning=true;
+        slowing=false;
+        bouncing=false;
+        speed=0.22+Math.random()*0.08;
+        direction=-lastDirection;
+        lastDirection=direction;
+        ballRadius=0;
+    }
+};
+
+/* =====================================================
+   HISTORY
+===================================================== */
+const hctx=historyCanvas.getContext('2d');
+
+function drawHistory(){
+    resizeCanvas(historyCanvas);
+    const w=historyCanvas.clientWidth;
+    const h=historyCanvas.clientHeight;
+    hctx.clearRect(0,0,w,h);
+
+    hctx.font='22px Arial';
+    hctx.textBaseline='middle';
+
+    history.forEach((n,i)=>{
+        if(n===undefined) return;
+        const cx=30+i*50+historyState.x;
+        const cy=h/2+historyState.y;
+        hctx.fillStyle=getColor(n);
+        hctx.beginPath();
+        hctx.arc(cx,cy,20,0,Math.PI*2);
+        hctx.fill();
+        hctx.strokeStyle='#d4af37';
+        hctx.lineWidth=2;
+        hctx.stroke();
+        hctx.fillStyle='#fff';
+        hctx.textAlign='center';
+        hctx.fillText(n,cx,cy);
+    });
+}
+
+/* =====================================================
+   TABLE
+===================================================== */
+const tctx=tableCanvas.getContext('2d');
+
+function drawTable(){
+    resizeCanvas(tableCanvas);
+    const w=tableCanvas.clientWidth;
+    const h=tableCanvas.clientHeight;
+    tctx.clearRect(0,0,w,h);
+    tctx.save();
+    tctx.translate(tableState.x,tableState.y);
+    tctx.scale(tableState.zoom,tableState.zoom);
+
+    const rows=5;
+    const cols=13;
+    const cellW=w/cols;
+    const cellH=h/7.5;
+
+    tctx.font='14px Arial';
+    tctx.textAlign='center';
+    tctx.textBaseline='middle';
+    tctx.lineWidth=1;
+
+    const cellColor=n=>getColor(n);
+
+    const numRows=[
+        [0,3,6,9,12,15,18,21,24,27,30,33,'C3'],
+        [0,2,5,8,11,14,17,20,23,26,29,32,'C2'],
+        [0,1,4,7,10,13,16,19,22,25,28,31,'C1']
+    ];
+
+    for(let r=0;r<3;r++){
+        for(let c=0;c<13;c++){
+            let x=c*cellW;
+            let y=r*cellH;
+            let val=numRows[r][c];
+            let wSpan=1;
+            if(c===0 && r<3) wSpan=3;
+            tctx.fillStyle=typeof val==='number'?cellColor(val):'#d4af37';
+            tctx.fillRect(x,y,cellW*wSpan,cellH);
+            tctx.strokeStyle='#000';
+            tctx.strokeRect(x,y,cellW*wSpan,cellH);
+            tctx.fillStyle='#fff';
+            tctx.fillText(val,x+cellW*wSpan/2,y+cellH/2);
+        }
+    }
+
+    // Строка 4: Dozen
+    const dozenLabels=['Dozen 1','Dozen 2','Dozen 3'];
+    for(let i=0;i<3;i++){
+        let x=(1+i*4)*cellW;
+        let y=3*cellH;
+        tctx.fillStyle='#d4af37';
+        tctx.fillRect(x,y,cellW*4,cellH);
+        tctx.strokeStyle='#000';
+        tctx.strokeRect(x,y,cellW*4,cellH);
+        tctx.fillStyle='#fff';
+        tctx.fillText(dozenLabels[i],x+2*cellW,y+cellH/2);
+    }
+
+    // Строка 5: диапазоны
+    const fifthLabels=['1-18','Even','Red','Black','Odd','19-36'];
+    for(let i=0;i<6;i++){
+        let x=(1+i*2)*cellW;
+        let y=4*cellH;
+        tctx.fillStyle='#d4af37';
+        tctx.fillRect(x,y,cellW*2,cellH);
+        tctx.strokeStyle='#000';
+        tctx.strokeRect(x,y,cellW*2,cellH);
+        tctx.fillStyle='#fff';
+        if(fifthLabels[i]==='Red' || fifthLabels[i]==='Black'){
+            tctx.save();
+            tctx.translate(x+cellW,y+cellH/2);
+            tctx.rotate(Math.PI/4);
+            tctx.fillStyle=fifthLabels[i]==='Red'?'#c22':'#000';
+            tctx.fillRect(-cellW*0.4,-cellH*0.4,cellW*0.8,cellH*0.8);
+            tctx.restore();
+            tctx.fillStyle='#fff';
+        }
+        tctx.fillText(fifthLabels[i],x+cellW,y+cellH/2);
+    }
+
+    tctx.restore();
+}
+
+/* =====================================================
+   LOOP
+===================================================== */
+function loop(){
+    drawWheel();
+    drawHistory();
+    drawTable();
+    requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
