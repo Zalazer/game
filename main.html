@@ -108,6 +108,7 @@ iframe#gameFrame {
     <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
     <button class="btn" onclick="loadGame('StarDropper')">⭐ StarDropper</button>
     <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
+    <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
 </div>
 
 <!-- GAME -->
@@ -135,6 +136,7 @@ iframe#gameFrame {
 <audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
 <audio id="music-ChronoMonsters" src="music-ChronoMonsters.mp3" loop></audio>
+<audio id="music-LazerRoulette" src="music-LazerRoulette.mp3" loop></audio>
 
 <script>
 const menu          = document.getElementById('menu');
@@ -148,7 +150,8 @@ const tracks = {
     menu: document.getElementById('musicMenu'),
     PokerLazer: document.getElementById('music-PokerLazer'),
     StarDropper: document.getElementById('music-StarDropper'),
-    ChronoMonsters: document.getElementById('music-ChronoMonsters')
+    ChronoMonsters: document.getElementById('music-ChronoMonsters'),
+    LazerRoulette: document.getElementById('music-LazerRoulette')
 };
 
 let currentGame = '';
@@ -221,8 +224,15 @@ function backToMenu(){
 }
 
 // ===== RULES =====
-function openRules(){ if(!currentGame) return; rulesOverlay.style.display='flex'; rulesFrame.src=currentGame+'/'+currentGame+'-rules.html'; }
-function closeRules(){ rulesFrame.src=''; rulesOverlay.style.display='none'; }
+function openRules(){
+    if(!currentGame) return;
+    rulesOverlay.style.display='flex';
+    rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
+}
+function closeRules(){
+    rulesFrame.src='';
+    rulesOverlay.style.display='none';
+}
 
 /* RESIZE */
 window.addEventListener('resize',()=>{
