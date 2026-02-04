@@ -1,0 +1,422 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+<title>LazerRoulette – Game Rules</title>
+
+<!--
+© 2026 ZALAZER
+LazerRoulette rules document.
+Unauthorized reproduction or modification is prohibited.
+-->
+
+<meta name="generator" content="ZALAZER rules engine v1">
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    background: #0b0b0b;
+    color: #eaeaea;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    overflow-y: auto;
+    touch-action: manipulation;
+}
+
+/* TOUCH SHIELD */
+#touchShield {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    touch-action: none;
+}
+
+/* CONTENT */
+#content {
+    position: relative;
+    z-index: 1;
+    padding: 10px 20px 40px;
+}
+
+.game-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #ffd36a;
+    text-shadow: 0 0 8px red;
+}
+
+.game-subtitle {
+    display: block;
+    font-size: 0.65em;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+.lang-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+h2 {
+    margin-top: 50px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    color: #ffd36a;
+}
+
+h3 {
+    margin-top: 24px;
+    color: #9fd6ff;
+}
+
+p {
+    margin: 10px 0;
+}
+
+ul {
+    margin: 10px 0 20px 20px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+.note {
+    background: #151515;
+    border-left: 4px solid #ffd36a;
+    padding: 12px;
+    margin: 20px 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 6px;
+    text-align: center;
+}
+
+th {
+    background-color: #222;
+    color: #ffd36a;
+}
+
+td {
+    background-color: #151515;
+}
+
+
+/* hidden ownership marker */
+.doc-signature {
+    display: none;
+    opacity: 0.15;
+}
+
+
+
+.rules-footer-sep {
+    margin-top: 50px;
+    border: 0;
+    border-top: 1px solid #333;
+}
+
+.rules-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.rules-copyright {
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.rules-contact-btn {
+    background: #151515;
+    color: #ffd36a;
+    border: 1px solid #333;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.rules-contact-btn:hover {
+    background: #1e1e1e;
+    border-color: #ffd36a;
+}
+
+.rules-note {
+    margin-top: 10px;
+    font-size: 11px;
+    opacity: 0.5;
+}
+
+</style>
+</head>
+
+
+<script>
+function go(id){
+    document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+}
+</script>
+
+
+<body>
+
+<canvas id="touchShield"></canvas>
+
+<div id="content">
+
+<h1 class="game-title">
+🎡 LazerRoulette<br>
+<span class="game-subtitle">
+<a class="lang-link" onclick="go('en')">Game Rules</a> /
+<a class="lang-link" onclick="go('ua')">Правила гри</a> /
+<a class="lang-link" onclick="go('ru')">Правила игры</a>
+</span>
+</h1>
+
+<!-- ENGLISH -->
+<h2 id="en">🇬🇧 English</h2>
+
+
+
+
+
+
+
+<h3>Objective</h3>
+  <p>
+  LazerRoulette simulates a European Roulette wheel. Your goal is to place bets and win chips by predicting where the ball will land.
+  </p>
+
+  <h3>Gameplay & Bets</h3>
+  <ul>
+      <li>European Roulette has numbers <strong>0–36</strong>.</li>
+      <li>The wheel contains <strong>18 red</strong>, <strong>18 black</strong>, and <strong>1 green (0)</strong>.</li>
+      <li>You can place bets on individual numbers, splits, streets, corners, six lines, dozens, columns, colors, odd/even, or halves (1–18 / 19–36).</li>
+      <li>Spin the wheel. The ball will land in one numbered pocket.</li>
+      <li>Payouts depend on the type of bet:</li>
+  </ul>
+
+  
+
+<h3>Inside Bets</h3>
+<table>
+<tr><th>Bet</th><th>Payout</th><th>Description</th></tr>
+<tr><td>Straight</td><td>35:1</td><td>Single number (0–36)</td></tr>
+<tr><td>Split</td><td>17:1</td><td>Two adjacent numbers</td></tr>
+<tr><td>Street</td><td>11:1</td><td>Vertical group of three numbers (1–2–3, 4–5–6)</td></tr>
+<tr><td>Corner</td><td>8:1</td><td>Four numbers forming a square</td></tr>
+<tr><td>Six Line</td><td>5:1</td><td>Two adjacent vertical streets (6 numbers)</td></tr>
+<tr><td>Trio</td><td>11:1</td><td>0–1–2 or 0–2–3</td></tr>
+</table>
+
+<h3>Outside Bets</h3>
+<table>
+<tr><th>Bet</th><th>Payout</th><th>Numbers</th></tr>
+<tr><td>Red / Black</td><td>1:1</td><td>All red or black</td></tr>
+<tr><td>Even / Odd</td><td>1:1</td><td>Even or odd numbers</td></tr>
+<tr><td>1–18 / 19–36</td><td>1:1</td><td>Low / High</td></tr>
+<tr><td>Dozens</td><td>2:1</td><td>1–12 / 13–24 / 25–36</td></tr>
+<tr><td>Columns</td><td>2:1</td><td>Vertical columns</td></tr>
+</table>
+
+
+<div class="note">
+  European Roulette: 37 pockets (0–36), fair and fully randomized spins.
+  </div>
+
+
+
+<!-- UKRAINIAN -->
+<h2 id="ua">🇺🇦 Українською</h2>
+
+
+  <h3>Мета гри</h3>
+  <p>
+  LazerRoulette імітує європейське колесо рулетки. Мета — робити ставки та вигравати фішки, передбачаючи, куди впаде кулька.
+  </p>
+
+  <h3>Як грати & Ставки</h3>
+  <ul>
+      <li>Європейська рулетка має числа <strong>0–36</strong>.</li>
+      <li>На колесі <strong>18 червоних</strong>, <strong>18 чорних</strong> та <strong>1 зелений (0)</strong>.</li>
+      <li>Ставки можна робити на окремі числа, спліти, стріти (вертикальні), квадрати (4 числа), шести лінії (два суміжних стріти), дюжини, колонки, кольори, пар/непар або половини поля (1–18 / 19–36).</li>
+      <li>Запускайте колесо. Кулька впаде в одну з кишень.</li>
+      <li>Виплата залежить від типу ставки:</li>
+  </ul>
+
+<h3>Внутрішні ставки</h3>
+<table>
+<tr><th>Ставка</th><th>Виплата</th><th>Опис</th></tr>
+<tr><td>Пряма</td><td>35:1</td><td>Один номер</td></tr>
+<tr><td>Спліт</td><td>17:1</td><td>Два сусідні числа</td></tr>
+<tr><td>Стріт</td><td>11:1</td><td>Вертикальні 3 числа (1–2–3)</td></tr>
+<tr><td>Кут</td><td>8:1</td><td>Чотири числа</td></tr>
+<tr><td>Подвійний стріт</td><td>5:1</td><td>Два сусідні стріти</td></tr>
+<tr><td>Тріо</td><td>11:1</td><td>0–1–2 або 0–2–3</td></tr>
+</table>
+
+<h3>Зовнішні ставки</h3>
+<table>
+<tr><th>Ставка</th><th>Виплата</th><th>Числа</th></tr>
+<tr><td>Червоне / Чорне</td><td>1:1</td><td>Усі червоні або чорні числа</td></tr>
+<tr><td>Парне / Непарне</td><td>1:1</td><td>Парні або непарні числа</td></tr>
+<tr><td>1–18 / 19–36</td><td>1:1</td><td>Малі / Великі</td></tr>
+<tr><td>Дюжини</td><td>2:1</td><td>1–12 / 13–24 / 25–36</td></tr>
+<tr><td>Колонки</td><td>2:1</td><td>Вертикальні колонки</td></tr>
+</table>
+
+<div class="note">
+  Європейська рулетка: 37 кишень (0–36), чесні і повністю випадкові спіни.
+  </div>
+
+
+<!-- RUSSIAN -->
+<h2 id="ru">🇷🇺 По-русски</h2>
+
+<h3>Цель игры</h3>
+  <p>
+  LazerRoulette имитирует европейское колесо рулетки. Цель — делать ставки и выигрывать фишки, предсказывая, куда упадёт шарик.
+  </p>
+
+  <h3>Как играть & Ставки</h3>
+  <ul>
+      <li>Европейская рулетка содержит числа <strong>0–36</strong>.</li>
+      <li>На колесе <strong>18 красных</strong>, <strong>18 чёрных</strong> и <strong>1 зелёный (0)</strong>.</li>
+      <li>Ставки делаются на отдельные числа, сплиты, стриты (вертикальные), квадраты (4 числа), шести линии (две соседние вертикальные стриты), дюжины, колонки, цвета, чёт/нечёт, половины поля (1–18 / 19–36).</li>
+      <li>Запускайте колесо. Шарик попадёт в одну из ячеек.</li>
+      <li>Выплаты зависят от типа ставки:</li>
+  </ul>
+
+<h3>Внутренние ставки</h3>
+<table>
+<tr><th>Ставка</th><th>Выплата</th><th>Описание</th></tr>
+<tr><td>Прямая</td><td>35:1</td><td>Один номер</td></tr>
+<tr><td>Сплит</td><td>17:1</td><td>Два соседних числа</td></tr>
+<tr><td>Стрит</td><td>11:1</td><td>Вертикальная тройка</td></tr>
+<tr><td>Квартет</td><td>8:1</td><td>Четыре числа</td></tr>
+<tr><td>Двойной стрит</td><td>5:1</td><td>Два стрита</td></tr>
+<tr><td>Трио</td><td>11:1</td><td>0–1–2 / 0–2–3</td></tr>
+</table>
+
+<h3>Внешние ставки</h3>
+<table>
+<tr><th>Ставка</th><th>Выплата</th><th>Числа</th></tr>
+<tr><td>Красное / Чёрное</td><td>1:1</td><td>Все красные или чёрные числа</td></tr>
+<tr><td>Чёт / Нечёт</td><td>1:1</td><td>Чётные или нечётные числа</td></tr>
+<tr><td>1–18 / 19–36</td><td>1:1</td><td>Малые / Большие</td></tr>
+<tr><td>Дюжины</td><td>2:1</td><td>1–12 / 13–24 / 25–36</td></tr>
+<tr><td>Колонки</td><td>2:1</td><td>Вертикальные колонки</td></tr>
+</table>
+
+<div class="note">
+  Европейская рулетка: 37 ячеек (0–36), честные и полностью случайные спины.
+  </div>
+
+  <hr class="rules-footer-sep">
+
+  <div class="rules-footer">
+      <div class="rules-copyright">
+          © 2026 <strong>ZALAZER</strong><br>
+          LazerRoulette and its source code are protected by copyright law.<br>
+          All rights reserved.
+      </div>
+
+      <button class="rules-contact-btn" onclick="sendFeedback()">
+          Contact / Feedback
+      </button>
+
+      <div class="rules-note">
+          Feedback can include text and screenshot. No reply guaranteed.
+      </div>
+  </div>
+
+</div>
+
+<script>
+['gesturestart','gesturechange','gestureend'].forEach(evt => {
+    document.addEventListener(evt, e => e.preventDefault(), { passive:false });
+});
+
+const shield = document.getElementById('touchShield');
+['touchstart','touchmove','touchend'].forEach(evt => {
+    shield.addEventListener(evt, e => {
+        if (e.touches && e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive:false });
+});
+
+const tg = window.Telegram?.WebApp;
+
+async function sendFeedback() {
+    if(!tg) {
+        alert("Feedback works only inside Telegram WebApp");
+        return;
+    }
+
+    const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
+    if(!feedbackText) return;
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async () => {
+        let fileData = null;
+        if(fileInput.files.length > 0) {
+            fileData = await fileToBase64(fileInput.files[0]);
+        }
+
+        const payload = {
+            type: 'feedback',
+            game: 'LazerRoulette',
+            page: 'rules',
+            text: feedbackText,
+            screenshot: fileData,
+            platform: tg.platform,
+            lang: tg.initDataUnsafe?.user?.language_code,
+            user: tg.initDataUnsafe?.user?.id,
+            ts: Date.now()
+        };
+
+        tg.sendData(JSON.stringify(payload));
+        alert("Thank you! Your feedback has been sent ✅");
+    };
+    fileInput.click();
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+if (tg) {
+    console.log("Telegram WebApp доступен ✅");
+} else {
+    console.log("Telegram WebApp НЕ доступен ❌");
+}
+</script>
+
+</body>
+</html>
