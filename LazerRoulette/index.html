@@ -18,7 +18,7 @@ html,body{
 #title{
     text-align: center;
     font-size: 34px;
-    margin: 21px 0 10px 0; /* сверху 21px, снизу 10px */
+    margin: 21px 0 10px 0;
     color: #d4af37;
     text-shadow: 0 0 6px red, 0 0 18px #aa0000;
 }
@@ -105,9 +105,11 @@ let bouncing=false;
 let bouncesLeft=0;
 
 /* =====================================================
-   ИСТОРИЯ
+   ПОДСВЕТКА + ИСТОРИЯ
 ===================================================== */
 let history=[];
+let winningNumber = null; // Выигрышный номер
+let highlightTime = 0;
 
 /* =====================================================
    СВАЙПЫ И ЗУМ
@@ -188,6 +190,7 @@ function drawWheel(){
 
     ctx.rotate(-Math.PI/2 - SLICE/2);
 
+    // Сектора
     for(let i=0;i<wheelNumbers.length;i++){
         ctx.beginPath();
         ctx.moveTo(0,0);
@@ -196,6 +199,7 @@ function drawWheel(){
         ctx.fill();
     }
 
+    // Карманы
     for(let i=0;i<wheelNumbers.length;i++){
         const a=i*SLICE+SLICE/2;
         ctx.beginPath();
@@ -207,6 +211,7 @@ function drawWheel(){
         ctx.stroke();
     }
 
+    // Числа
     ctx.font=(R*0.065)+'px Arial';
     ctx.textAlign='center';
     ctx.textBaseline='middle';
@@ -220,6 +225,7 @@ function drawWheel(){
         ctx.restore();
     }
 
+    // Центр
     ctx.beginPath();
     ctx.arc(0,0,R*0.18,0,Math.PI*2);
     ctx.fillStyle='#111';
@@ -227,12 +233,12 @@ function drawWheel(){
     ctx.strokeStyle='#d4af37';
     ctx.lineWidth=5;
     ctx.stroke();
-
     ctx.beginPath();
     ctx.moveTo(-R*0.08,0); ctx.lineTo(R*0.08,0);
     ctx.moveTo(0,-R*0.08); ctx.lineTo(0,R*0.08);
     ctx.stroke();
 
+    // Шарик
     if(!ballRadius) ballRadius=TRACK_R;
     ctx.beginPath();
     ctx.arc(
@@ -250,61 +256,51 @@ function drawWheel(){
 
     // ФИЗИКА
     if(spinning){
-        ballAngle+=speed*direction;
-        speed*=0.995;
-        if(speed<0.04 && !slowing){
-            slowing=true;
-            bouncing=true;
-            bouncesLeft=1+Math.floor(Math.random()*5);
+        ballAngle += speed * direction;
+        speed *= 0.995;
+        
+        if(speed < 0.04 && !slowing){
+            slowing = true;
+            bouncing = true;
+            bouncesLeft = 1 + Math.floor(Math.random()*5);
         }
-        if(bouncing && bouncesLeft>0 && Math.random()<0.03){
-            if(Math.random()<0.5) direction*=-1;
-            speed*=0.7;
+        
+        if(bouncing && bouncesLeft > 0 && Math.random() < 0.03){
+            direction *= Math.random() < 0.5 ? -1 : 1;
+            speed *= 0.7;
             bouncesLeft--;
         }
-
-
-
-
-let historyUpdated = false;
-
-
-
-if (speed < 0.012) {
-    spinning = false;
-    slowing  = false;
-    bouncing = false;
-
-    // ЖЁСТКАЯ НОРМАЛИЗАЦИЯ УГЛА (0 .. 2π)
-    const angle = ((ballAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-
-    // ТОЧНОЕ ПОПАДАНИЕ В СЕКТОР
-    const rawIndex = angle / SLICE;
-    const idx = Math.round(rawIndex) % wheelNumbers.length;
-
-    // ДОБАВЛЕНИЕ В ИСТОРИЮ БЕЗ ПРОПУСКОВ
-    history.unshift(wheelNumbers[idx]);
-
-    // ФИКСАЦИЯ ШАРИКА В ЦЕНТРЕ ЯЧЕЙКИ
-    ballAngle  = idx * SLICE + SLICE / 2;
-    ballRadius = POCKET_R;
-}
-
-
-
-
+        
+        if(speed < 0.012){
+            spinning = false;
+            slowing = false;
+            bouncing = false;
+            
+            // РЕЗУЛЬТАТ
+            const angle = ((ballAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+            const idx = Math.round(angle / SLICE) % wheelNumbers.length;
+            const resultNumber = wheelNumbers[idx];
+            
+            history.unshift(resultNumber);
+            winningNumber = resultNumber; // Запускаем подсветку!
+            ballAngle = idx * SLICE + SLICE / 2;
+            ballRadius = POCKET_R;
+            highlightTime = 0;
+        }
     }
 }
 
-wheelCanvas.onclick=()=>{
+wheelCanvas.onclick = () => {
     if(!spinning){
-        spinning=true;
-        slowing=false;
-        bouncing=false;
-        speed=0.22+Math.random()*0.08;
-        direction=-lastDirection;
-        lastDirection=direction;
-        ballRadius=0;
+        // Очищаем подсветку при новом спине
+        winningNumber = null;
+        spinning = true;
+        slowing = false;
+        bouncing = false;
+        speed = 0.22 + Math.random() * 0.08;
+        direction = -lastDirection;
+        lastDirection = direction;
+        ballRadius = TRACK_R * 0.95;
     }
 };
 
@@ -320,7 +316,6 @@ function drawHistory(){
     const ctx = hctx;
 
     ctx.clearRect(0,0,w,h);
-
     ctx.font = '22px Arial';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'center';
@@ -328,35 +323,25 @@ function drawHistory(){
     const spacing = 50;
     const startX = w - 30 + historyState.x;
     const cy = h/2 + historyState.y;
-
     const time = performance.now() * 0.006;
 
-    history.forEach((n,i)=>{
+    history.forEach((n,i) => {
         if(n === undefined) return;
-
         const cx = startX - i * spacing;
-        const r  = 20;
+        const r = 20;
 
-        // ===== ОСНОВНОЙ КРУГ =====
         ctx.fillStyle = getColor(n);
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.lineWidth = 2;
         ctx.strokeStyle = '#d4af37';
         ctx.stroke();
 
-        // ===== УСИЛЕННОЕ ПУЛЬСИРУЮЩЕЕ КОЛЬЦО =====
         if(i === 0){
             const pulse = 0.5 + 0.5 * Math.sin(time);
             const glowR = r + 8 + pulse * 6;
-
-            // ВНЕШНИЙ ГРАДИЕНТ
-            const grad = ctx.createRadialGradient(
-                cx, cy, r + 2,
-                cx, cy, glowR
-            );
+            const grad = ctx.createRadialGradient(cx, cy, r + 2, cx, cy, glowR);
             grad.addColorStop(0.0, 'rgba(255,215,0,0.0)');
             grad.addColorStop(0.25,'rgba(255,215,0,0.9)');
             grad.addColorStop(0.6, 'rgba(255,215,0,0.6)');
@@ -372,7 +357,6 @@ function drawHistory(){
             ctx.stroke();
             ctx.restore();
 
-            // ВНУТРЕННИЙ ЗОЛОТОЙ КОНТУР
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, r + 1.5, 0, Math.PI * 2);
@@ -383,7 +367,6 @@ function drawHistory(){
             ctx.restore();
         }
 
-        // ===== ЧИСЛО =====
         ctx.fillStyle = '#fff';
         ctx.fillText(n, cx, cy);
     });
@@ -393,73 +376,134 @@ function drawHistory(){
 
 
 
+
 /* =====================================================
-   TABLE
+   TABLE С 14 столбцами (13 чисел + C1/C2/C3)
 ===================================================== */
-const tctx=tableCanvas.getContext('2d');
+const tctx = tableCanvas.getContext('2d');
+
+function getWinningCells(number) {
+    if (number === null || number === undefined) return [];
+    
+    const cells = [];
+    const w = tableCanvas.clientWidth;
+    const h = tableCanvas.clientHeight;
+    const cols = 14;
+    const cellW = w / cols;
+    const cellH = h / 7.5;
+
+    const numRows = [
+        [3,6,9,12,15,18,21,24,27,30,33,36],
+        [2,5,8,11,14,17,20,23,26,29,32,35],
+        [1,4,7,10,13,16,19,22,25,28,31,34]
+    ];
+
+    // 0. НОЛЬ
+    if (number === 0){
+        cells.push({x: 0, y: 0, w: cellW, h: cellH * 3});
+        return cells;
+    }
+
+    // 1. ТОЧНАЯ КЛЕТКА (столбцы 1–12)
+    for (let r = 0; r < 3; r++){
+        for (let c = 0; c < 12; c++){
+            if (numRows[r][c] === number){
+                cells.push({x: (c+1) * cellW, y: r * cellH, w: cellW, h: cellH});
+            }
+        }
+    }
+
+    // 2. DOZENS (только если НЕ пересекает пустое место)
+    if (number >= 1 && number <= 12) cells.push({x: 1*cellW, y: cellH*3, w: cellW*4, h: cellH});
+    else if (number >= 13 && number <= 24) cells.push({x: 5*cellW, y: cellH*3, w: cellW*4, h: cellH});
+    else if (number >= 25 && number <= 36) cells.push({x: 9*cellW, y: cellH*3, w: cellW*4, h: cellH});
+
+    // 3. 5-я СТРОКА — БЕЗ ПУСТЫХ МЕСТ ПОД C1/C2/C3!
+    if (number >= 1 && number <= 18) cells.push({x: 1*cellW, y: cellH*4, w: cellW*2, h: cellH});
+    
+    // 19-36 — только до 11-го столбца (НЕ касается 12-14!)
+    if (number >= 19 && number <= 36) {
+        cells.push({x: 11*cellW, y: cellH*4, w: cellW*2, h: cellH}); // Только 11-12!
+    }
+
+    // Even/Red/Black/Odd — только слева (до 10-го столбца)
+    if (number % 2 === 0) cells.push({x: 3*cellW, y: cellH*4, w: cellW*2, h: cellH});  // Even
+    if (number % 2 === 1) cells.push({x: 9*cellW, y: cellH*4, w: cellW*2, h: cellH});  // Odd
+    if (reds.includes(number)) cells.push({x: 5*cellW, y: cellH*4, w: cellW*2, h: cellH}); // Red
+    else cells.push({x: 7*cellW, y: cellH*4, w: cellW*2, h: cellH}); // Black
+
+    // 4. C1/C2/C3 (14-й столбец) — только числовые колонки!
+    const colIndex = (number - 1) % 3;
+    if (colIndex === 0) cells.push({x: 13*cellW, y: 2*cellH, w: cellW, h: cellH}); // C1
+    else if (colIndex === 1) cells.push({x: 13*cellW, y: 1*cellH, w: cellW, h: cellH}); // C2
+    else cells.push({x: 13*cellW, y: 0*cellH, w: cellW, h: cellH}); // C3
+
+    return cells;
+}
+
+
+
+
 
 function drawTable(){
     resizeCanvas(tableCanvas);
     const w = tableCanvas.clientWidth;
     const h = tableCanvas.clientHeight;
-    tctx.clearRect(0,0,w,h);
-    tctx.save();
-    tctx.translate(tableState.x,tableState.y);
-    tctx.scale(tableState.zoom,tableState.zoom);
-
-    const cols = 13;
+    const cols = 14; // 14 столбцов!
     const rows = 3;
     const cellW = w / cols;
     const cellH = h / 7.5;
+    
+    tctx.clearRect(0,0,w,h);
+    tctx.save();
+    tctx.translate(tableState.x, tableState.y);
+    tctx.scale(tableState.zoom, tableState.zoom);
 
     tctx.font = '14px Arial';
     tctx.textAlign = 'center';
     tctx.textBaseline = 'middle';
     tctx.lineWidth = 1;
 
+    // Ряды с числами + C1/C2/C3
     const numRows = [
-        [0,3,6,9,12,15,18,21,24,27,30,33,'C3'],
-        [0,2,5,8,11,14,17,20,23,26,29,32,'C2'],
-        [0,1,4,7,10,13,16,19,22,25,28,31,'C1']
+        [0,3,6,9,12,15,18,21,24,27,30,33,36,'C3'],
+        [0,2,5,8,11,14,17,20,23,26,29,32,35,'C2'],
+        [0,1,4,7,10,13,16,19,22,25,28,31,34,'C1']
     ];
 
-    // === ЧИСЛА (без нуля) ===
-    for(let r=0;r<rows;r++){
-        for(let c=1;c<13;c++){ // начинаем с 1, чтобы ноль слева был отдельным
+    // ОСНОВНАЯ СЕТКА (столбцы 1-14)
+    for(let r=0; r<rows; r++){
+        for(let c=1; c<14; c++){ // До 14-го столбца!
             let val = numRows[r][c];
             let x = c * cellW;
             let y = r * cellH;
 
-            tctx.fillStyle = typeof val === 'number' ? getColor(val) : '#d4af37';
+            if (typeof val === 'number'){
+                tctx.fillStyle = getColor(val); // Фон по цвету рулетки!
+            } else {
+                tctx.fillStyle = '#d4af37';
+            }
             tctx.fillRect(x,y,cellW,cellH);
-
             tctx.strokeStyle = '#000';
             tctx.strokeRect(x,y,cellW,cellH);
-
             tctx.fillStyle = '#fff';
             tctx.fillText(val, x + cellW/2, y + cellH/2);
         }
     }
 
-    // === НОЛЬ (одна ячейка слева) ===
-    const zeroX = 0;
-    const zeroY = 0;
-    const zeroW = cellW;
-    const zeroH = cellH * rows;
-
+    // НОЛЬ
+    const zeroX = 0, zeroY = 0, zeroW = cellW, zeroH = cellH * rows;
     tctx.fillStyle = '#0a7a2f';
     tctx.fillRect(zeroX, zeroY, zeroW, zeroH);
-
     tctx.strokeStyle = '#000';
     tctx.strokeRect(zeroX, zeroY, zeroW, zeroH);
-
     tctx.fillStyle = '#fff';
     tctx.font = '16px Arial';
     tctx.fillText('0', zeroX + zeroW/2, zeroY + zeroH/2);
 
-    // === DOZEN ===
+    // DOZENS
     const dozenLabels = ['Dozen 1','Dozen 2','Dozen 3'];
-    for(let i=0;i<3;i++){
+    for(let i=0; i<3; i++){
         let x = (1 + i*4) * cellW;
         let y = cellH * rows;
         tctx.fillStyle = '#d4af37';
@@ -470,30 +514,25 @@ function drawTable(){
         tctx.fillText(dozenLabels[i], x + cellW*2, y + cellH/2);
     }
 
-    // === 5 СТРОКА: 1-18 / EVEN / RED / BLACK / ODD / 19-36 ===
+    // 5-я СТРОКА
     const fifthLabels = ['1-18','Even','Red','Black','Odd','19-36'];
-    for(let i=0;i<6;i++){
+    for(let i=0; i<6; i++){
         let x = (1 + i*2) * cellW;
         let y = cellH * (rows + 1);
-
         tctx.fillStyle = '#d4af37';
         tctx.fillRect(x,y,cellW*2,cellH);
         tctx.strokeStyle = '#000';
         tctx.strokeRect(x,y,cellW*2,cellH);
 
         if(fifthLabels[i] === 'Red' || fifthLabels[i] === 'Black'){
-            const cx = x + cellW;
-            const cy = y + cellH/2;
-            const hw = cellW;
-            const hh = cellH/2;
-
+            const cx = x + cellW, cy = y + cellH/2;
+            const hw = cellW, hh = cellH/2;
             tctx.beginPath();
             tctx.moveTo(cx, cy - hh);
             tctx.lineTo(cx + hw, cy);
             tctx.lineTo(cx, cy + hh);
             tctx.lineTo(cx - hw, cy);
             tctx.closePath();
-
             tctx.fillStyle = fifthLabels[i] === 'Red' ? '#c22' : '#000';
             tctx.fill();
         }
@@ -502,8 +541,29 @@ function drawTable(){
         tctx.fillText(fifthLabels[i], x + cellW, y + cellH/2);
     }
 
+    // ПОДСВЕТКА
+    if(winningNumber !== null){
+        highlightTime += 0.12;
+        const pulse = Math.sin(highlightTime) * 0.4 + 0.6;
+        
+        tctx.lineWidth = 4 + pulse * 2;
+        tctx.strokeStyle = `rgba(255, 215, 0, ${0.9})`;
+        tctx.shadowColor = '#ffd700';
+        tctx.shadowBlur = 10 + pulse * 6;
+        tctx.lineJoin = 'round';
+        tctx.lineCap = 'round';
+
+        const winningCells = getWinningCells(winningNumber);
+        winningCells.forEach(cell => {
+            tctx.strokeRect(cell.x, cell.y, cell.w, cell.h);
+        });
+        
+        tctx.shadowBlur = 0;
+    }
+
     tctx.restore();
 }
+
 
 
 
