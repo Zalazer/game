@@ -111,96 +111,269 @@ let history=[];
 let winningNumber = null; // Выигрышный номер
 let highlightTime = 0;
 
+
+
 /* =====================================================
-   СВАЙПЫ И ЗУМ
+СВАЙПЫ И ЗУМ - РАБОТАЮЩИЙ + ГРАНИЦЫ ЗУМА + ПРАВИЛЬНАЯ ИСТОРИЯ
 ===================================================== */
-const wheelCanvas=document.getElementById('wheel');
-let wheelState={x:0,y:0,zoom:1,ox:0,oy:0,startDist:0};
+const wheelCanvas = document.getElementById('wheel');
+let wheelState = {x:0, y:0, zoom:1};
 
-const historyCanvas=document.getElementById('history');
-let historyState={x:0,y:0,zoom:1,ox:0,oy:0,startDist:0};
+const tableCanvas = document.getElementById('table');
+let tableState = {x:0, y:0, zoom:1};
 
-const tableCanvas=document.getElementById('table');
-let tableState={x:0,y:0,zoom:1,ox:0,oy:0,startDist:0};
+const historyCanvas = document.getElementById('history');
+let historyState = {x:0, y:0};
 
-function setupPanZoom(canvas,state,maxZoom=3){
-    let pointers=[];
-    canvas.addEventListener('pointerdown',e=>{
-        canvas.setPointerCapture(e.pointerId);
-        pointers.push(e);
-        state.ox=state.x;
-        state.oy=state.y;
-        if(pointers.length===2){
-            state.startDist=Math.hypot(
-                pointers[0].clientX-pointers[1].clientX,
-                pointers[0].clientY-pointers[1].clientY
-            );
-        }
-    });
+// ======== PAN + ZOOM (колесо/стол) с рабочим drag и free zoom ========
+function setupPanZoom(canvas, state, minZoom=0.5, maxZoom=3) {
+  let pointers = [];
+  let start = {x:0, y:0, zoom:state.zoom, centerX:0, centerY:0, ox:0, oy:0};
 
-    canvas.addEventListener('pointermove',e=>{
-        for(let i=0;i<pointers.length;i++){
-            if(pointers[i].pointerId===e.pointerId) pointers[i]=e;
-        }
-        if(pointers.length===1){
-            const dx=e.clientX-pointers[0].clientX;
-            const dy=e.clientY-pointers[0].clientY;
-            state.x=state.ox+dx;
-            state.y=state.oy+dy;
-        }
-        if(pointers.length===2){
-            const dist=Math.hypot(
-                pointers[0].clientX-pointers[1].clientX,
-                pointers[0].clientY-pointers[1].clientY
-            );
-            state.zoom=Math.min(maxZoom,Math.max(1,state.zoom*dist/state.startDist));
-            state.startDist=dist;
-        }
-    });
+  canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    pointers.push(e);
+    if (pointers.length === 1) {
+      start.ox = state.x;
+      start.oy = state.y;
+      start.x = e.clientX;
+      start.y = e.clientY;
+    }
+    if (pointers.length === 2) {
+      const [p1, p2] = pointers;
+      start.startDist = Math.hypot(p1.clientX-p2.clientX, p1.clientY-p2.clientY);
+      start.zoom = state.zoom;
+      start.centerX = (p1.clientX+p2.clientX)/2;
+      start.centerY = (p1.clientY+p2.clientY)/2;
+      start.ox = state.x;
+      start.oy = state.y;
+    }
+  });
 
-    canvas.addEventListener('pointerup',e=>{
-        canvas.releasePointerCapture(e.pointerId);
-        pointers=pointers.filter(p=>p.pointerId!==e.pointerId);
-    });
+  canvas.addEventListener('pointermove', e => {
+    for(let i=0;i<pointers.length;i++){
+      if(pointers[i].pointerId === e.pointerId) pointers[i] = e;
+    }
+    if(pointers.length === 1){
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      state.x = start.ox + dx;
+      state.y = start.oy + dy;
+    }
+    if(pointers.length === 2){
+      const [p1,p2] = pointers;
+      const dist = Math.hypot(p1.clientX-p2.clientX, p1.clientY-p2.clientY);
+      let newZoom = start.zoom * dist / start.startDist;
+      newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+      const cx = start.centerX;
+      const cy = start.centerY;
+      state.x = cx - (cx - start.ox) * (newZoom / state.zoom);
+      state.y = cy - (cy - start.oy) * (newZoom / state.zoom);
+      state.zoom = newZoom;
+    }
+  });
+
+  canvas.addEventListener('pointerup', e => {
+    canvas.releasePointerCapture(e.pointerId);
+    pointers = pointers.filter(p=>p.pointerId!==e.pointerId);
+  });
 }
 
-setupPanZoom(wheelCanvas, wheelState,3);
-setupPanZoom(historyCanvas, historyState,3);
-setupPanZoom(tableCanvas, tableState,8);
+// Колесо и стол - с границами зума 0.5-3x
+setupPanZoom(wheelCanvas, wheelState,0.5,3);
+setupPanZoom(tableCanvas, tableState,0.5,3);
+
+
+
+
+// ======== HISTORY DRAG (последний номер может уехать вправо) ========
+
+let isDragging = false;
+let dragStartX = 0;
+let startHistoryX = 0;
+
+historyCanvas.addEventListener('pointerdown', (e) => {
+  historyCanvas.setPointerCapture(e.pointerId);
+  isDragging = true;
+  dragStartX = e.clientX;
+  startHistoryX = historyState.x;
+});
+
+historyCanvas.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+
+  const w = historyCanvas.clientWidth;
+  const spacing = 50;
+  const histLen = history ? history.filter(n => n !== undefined).length : 0;
+  const contentWidth = histLen * spacing;
+
+  if (contentWidth <= w) {
+    // Весь контент помещается — движение не нужно
+    historyState.x = 0;
+    return;
+  }
+
+  const dx = e.clientX - dragStartX;
+  let newX = startHistoryX + dx; // палец вправо → контент вправо
+
+  // Границы:
+  const maxX = contentWidth - w; // максимально вправо: последний номер уехал за экран
+  const minX = w - contentWidth; // максимально влево: последний номер прижат к правой границе
+
+  // Ограничиваем движение
+  if (newX > maxX) newX = maxX;
+  if (newX < minX) newX = minX;
+
+  historyState.x = newX;
+});
+
+historyCanvas.addEventListener('pointerup', (e) => {
+  isDragging = false;
+  historyCanvas.releasePointerCapture(e.pointerId);
+});
+
+historyCanvas.addEventListener('pointercancel', () => {
+  isDragging = false;
+});
+
+
+
+
+
+
+
+
 
 /* =====================================================
-   WHEEL
+   СЕКТОРЫ - 2 КОЛЬЦА ШАХМАТНЫМ ПОРЯДКОМ
 ===================================================== */
-const wctx=wheelCanvas.getContext('2d');
+const sectors = [
+    {name: 'Zero Game', numbers: [12,35,3,26,0,32,15], ring: 0},
+    {name: 'Orphans 1', numbers: [1,20,14,31,9], ring: 1},
+    {name: 'Orphans 2', numbers: [17,34,6], ring: 0},
+    {name: 'Neighbors of Zero', numbers: [22,18,29,7,28,12,35,3,26,0,32,15,19,4,21,2,25], ring: 1},
+    {name: 'Third of Wheel', numbers: [27,13,36,11,30,8,23,10,5,24,16,33], ring: 0}
+];
 
+/* =====================================================
+   drawWheel - 2 КОЛЬЦА ШАХМАТНЫМ ПОРЯДКОМ
+===================================================== */
+
+
+
+
+
+
+
+
+const wctx = wheelCanvas.getContext('2d');
+
+/* ===== ТЕКСТ ПО ДУГЕ ===== */
+function drawArcText(ctx, text, radius, startAngle, endAngle, fontSize, padding=0.04){
+    const chars = text.split('');
+    const angleRange = endAngle - startAngle - 2 * padding; // отступ от границ
+    const charAngle = angleRange / chars.length;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff'; // белый текст
+
+    // Максимальный размер шрифта под дугу, без наложений букв
+    let adjustedFontSize = fontSize;
+    const maxCharAngle = angleRange / chars.length;
+    ctx.font = `bold ${adjustedFontSize}px Arial`;
+    let textWidth = ctx.measureText('W').width; // пример ширины буквы
+    let arcLength = radius * maxCharAngle;
+    if(textWidth > arcLength){
+        adjustedFontSize = adjustedFontSize * arcLength / textWidth;
+        ctx.font = `bold ${adjustedFontSize}px Arial`;
+    }
+
+    let angle = startAngle + padding + charAngle/2;
+    for(const ch of chars){
+        ctx.save();
+        ctx.rotate(angle);
+        ctx.translate(radius, 0);
+        ctx.rotate(Math.PI/2);
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
+        angle += charAngle;
+    }
+    ctx.restore();
+}
+
+/* ===== МУЛЬТИ-ДИАПАЗОНЫ ===== */
+function getSectorRanges(numbers){
+    const ranges = [];
+    let current = null;
+
+    for(let i=0;i<wheelNumbers.length;i++){
+        if(numbers.includes(wheelNumbers[i])){
+            if(!current) current = {start:i*SLICE,end:(i+1)*SLICE};
+            else current.end = (i+1)*SLICE;
+        } else if(current){
+            ranges.push(current);
+            current = null;
+        }
+    }
+    if(current) ranges.push(current);
+    return ranges;
+}
+
+/* ===== ВЫРЕЗАНИЕ ПОДСЕКТОРОВ ===== */
+function subtractRanges(base, cuts){
+    let ranges = [base];
+
+    for(const cut of cuts){
+        ranges = ranges.flatMap(r=>{
+            if(cut.end<=r.start||cut.start>=r.end) return [r];
+            const out=[];
+            if(cut.start>r.start) out.push({start:r.start,end:cut.start});
+            if(cut.end<r.end) out.push({start:cut.end,end:r.end});
+            return out;
+        });
+    }
+    return ranges;
+}
+
+/* =====================================================
+   ОСНОВНАЯ ОТРИСОВКА
+===================================================== */
 function drawWheel(){
     resizeCanvas(wheelCanvas);
-    const cw=wheelCanvas.clientWidth;
-    const ch=wheelCanvas.clientHeight;
-    const ctx=wctx;
+    const cw = wheelCanvas.clientWidth;
+    const ch = wheelCanvas.clientHeight;
+    const ctx = wctx;
 
     ctx.clearRect(0,0,cw,ch);
     ctx.save();
-    ctx.translate(cw/2+wheelState.x,ch/2+wheelState.y);
-    ctx.scale(wheelState.zoom,wheelState.zoom);
+    ctx.translate(cw/2 + wheelState.x, ch/2 + wheelState.y);
+    ctx.scale(wheelState.zoom, wheelState.zoom);
 
-    const R=Math.min(cw,ch)*0.45;
-    const POCKET_R=R*0.78;
-    const TRACK_R=R*0.93;
+    const R = Math.min(cw,ch)*0.45;
+    const POCKET_R = R*0.76;
+    const TRACK_R  = R*0.90;
+
+    const INNER_IN  = R*0.38;
+    const INNER_OUT = R*0.52;
+
+    const OUTER_IN  = R*0.54;
+    const OUTER_OUT = R*0.66;
 
     ctx.rotate(-Math.PI/2 - SLICE/2);
 
-    // Сектора
+    /* ===== ОСНОВНЫЕ СЕКТОРА ===== */
     for(let i=0;i<wheelNumbers.length;i++){
         ctx.beginPath();
         ctx.moveTo(0,0);
         ctx.arc(0,0,R,i*SLICE,(i+1)*SLICE);
         ctx.fillStyle=getColor(wheelNumbers[i]);
         ctx.fill();
-    }
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.stroke();
 
-    // Карманы
-    for(let i=0;i<wheelNumbers.length;i++){
         const a=i*SLICE+SLICE/2;
         ctx.beginPath();
         ctx.arc(Math.cos(a)*POCKET_R,Math.sin(a)*POCKET_R,R*0.045,0,Math.PI*2);
@@ -211,41 +384,119 @@ function drawWheel(){
         ctx.stroke();
     }
 
-    // Числа
+    /* ===== ЧИСЛА ===== */
     ctx.font=(R*0.065)+'px Arial';
+    ctx.fillStyle='#fff';
     ctx.textAlign='center';
     ctx.textBaseline='middle';
-    ctx.fillStyle='#fff';
     for(let i=0;i<wheelNumbers.length;i++){
         ctx.save();
         ctx.rotate(i*SLICE+SLICE/2);
-        ctx.translate(R*0.88,0);
+        ctx.translate(R*0.84,0);
         ctx.rotate(Math.PI/2);
         ctx.fillText(wheelNumbers[i],0,0);
         ctx.restore();
     }
 
-    // Центр
+    /* ===== ВНЕШНЕЕ КОЛЬЦО — ORPHANS + ZERO GAME ===== */
+    const orphanSets = [
+        [1,20,14,31,9],
+        [17,34,6]
+    ];
+
+    // Orphans
+    for(const nums of orphanSets){
+        const ranges = getSectorRanges(nums);
+        for(const r of ranges){
+            ctx.beginPath();
+            ctx.arc(0,0,OUTER_OUT,r.start,r.end);
+            ctx.arc(0,0,OUTER_IN,r.end,r.start,true);
+            ctx.closePath();
+            ctx.fillStyle='#d4af37';
+            ctx.fill();
+            ctx.strokeStyle='#000';
+            ctx.lineWidth=1;
+            ctx.stroke();
+
+            drawArcText(ctx,'Orphans',(OUTER_IN+OUTER_OUT)/2,r.start,r.end,R*0.06,0.04);
+        }
+    }
+
+    // Zero Game — сплошной сектор
+    const zeroNumbers = [12,35,3,26,0,32,15];
+    let startIdx = wheelNumbers.indexOf(zeroNumbers[0]);
+    let endIdx = wheelNumbers.indexOf(zeroNumbers[zeroNumbers.length-1]);
+    if(endIdx < startIdx) endIdx += wheelNumbers.length;
+    const zeroStart = startIdx * SLICE;
+    const zeroEnd = (endIdx+1) * SLICE;
+
+    ctx.beginPath();
+    ctx.arc(0,0,OUTER_OUT,zeroStart,zeroEnd);
+    ctx.arc(0,0,OUTER_IN,zeroEnd,zeroStart,true);
+    ctx.closePath();
+    ctx.fillStyle='#d4af37';
+    ctx.fill();
+    ctx.strokeStyle='#000';
+    ctx.lineWidth=1;
+    ctx.stroke();
+
+    drawArcText(ctx,'Zero Game',(OUTER_IN+OUTER_OUT)/2,zeroStart,zeroEnd,R*0.06,0.04);
+
+    /* ===== ВНУТРЕННЕЕ КОЛЬЦО — NEIGHBORS OF ZERO + TIERS ===== */
+    const neighborsNumbers = [22,18,29,7,28,12,35,3,26,0,32,15,19,4,21,2,25];
+    let neighborStartIdx = wheelNumbers.indexOf(neighborsNumbers[0]);
+    let neighborEndIdx = wheelNumbers.indexOf(neighborsNumbers[neighborsNumbers.length-1]);
+    if(neighborEndIdx < neighborStartIdx) neighborEndIdx += wheelNumbers.length;
+
+    let neighborsStart = neighborStartIdx * SLICE;
+    let neighborsEnd = (neighborEndIdx+1) * SLICE; // включаем 25
+
+    const orphanRanges = orphanSets.flatMap(getSectorRanges);
+    const neighborBase = {start: neighborsStart, end: neighborsEnd};
+    const neighborParts = subtractRanges(neighborBase, orphanRanges);
+
+    for(const p of neighborParts){
+        ctx.beginPath();
+        ctx.arc(0,0,INNER_OUT,p.start,p.end);
+        ctx.arc(0,0,INNER_IN,p.end,p.start,true);
+        ctx.closePath();
+        ctx.fillStyle='#d4af37';
+        ctx.fill();
+        ctx.strokeStyle='#000';
+        ctx.lineWidth=1;
+        ctx.stroke();
+
+        drawArcText(ctx,'Neighbors of Zero',(INNER_IN+INNER_OUT)/2,p.start,p.end,R*0.055,0.04);
+    }
+
+    // Third of the Wheel / Tiers
+    const tiersNumbers = [27,13,36,11,30,8,23,10,5,24,16,33];
+    for(const r of getSectorRanges(tiersNumbers)){
+        ctx.beginPath();
+        ctx.arc(0,0,INNER_OUT,r.start,r.end);
+        ctx.arc(0,0,INNER_IN,r.end,r.start,true);
+        ctx.closePath();
+        ctx.fillStyle='#d4af37';
+        ctx.fill();
+        ctx.strokeStyle='#000';
+        ctx.lineWidth=1;
+        ctx.stroke();
+
+        drawArcText(ctx,'Third of the Wheel',(INNER_IN+INNER_OUT)/2,r.start,r.end,R*0.05,0.04);
+    }
+
+    /* ===== ЦЕНТР + ШАРИК ===== */
     ctx.beginPath();
     ctx.arc(0,0,R*0.18,0,Math.PI*2);
     ctx.fillStyle='#111';
     ctx.fill();
-    ctx.strokeStyle='#d4af37';
-    ctx.lineWidth=5;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-R*0.08,0); ctx.lineTo(R*0.08,0);
-    ctx.moveTo(0,-R*0.08); ctx.lineTo(0,R*0.08);
+    ctx.strokeStyle='#000';
+    ctx.lineWidth=1;
     ctx.stroke();
 
-    // Шарик
     if(!ballRadius) ballRadius=TRACK_R;
     ctx.beginPath();
-    ctx.arc(
-        Math.cos(ballAngle)*ballRadius,
-        Math.sin(ballAngle)*ballRadius,
-        R*0.03,0,Math.PI*2
-    );
+    ctx.arc(Math.cos(ballAngle)*ballRadius,Math.sin(ballAngle)*ballRadius,R*0.03,0,Math.PI*2);
     ctx.fillStyle='#fff';
     ctx.shadowColor='gold';
     ctx.shadowBlur=8;
@@ -254,41 +505,33 @@ function drawWheel(){
 
     ctx.restore();
 
-    // ФИЗИКА
     if(spinning){
-        ballAngle += speed * direction;
-        speed *= 0.995;
-        
-        if(speed < 0.04 && !slowing){
-            slowing = true;
-            bouncing = true;
-            bouncesLeft = 1 + Math.floor(Math.random()*5);
-        }
-        
-        if(bouncing && bouncesLeft > 0 && Math.random() < 0.03){
-            direction *= Math.random() < 0.5 ? -1 : 1;
-            speed *= 0.7;
+        ballAngle+=speed*direction;
+        speed*=0.995;
+        if(speed<0.04&&!slowing){slowing=true;bouncing=true;bouncesLeft=1+Math.floor(Math.random()*5);}
+        if(bouncing&&bouncesLeft>0&&Math.random()<0.03){
+            direction*=Math.random()<0.5?-1:1;
+            speed*=0.7;
             bouncesLeft--;
         }
-        
-        if(speed < 0.012){
-            spinning = false;
-            slowing = false;
-            bouncing = false;
-            
-            // РЕЗУЛЬТАТ
-            const angle = ((ballAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-            const idx = Math.round(angle / SLICE) % wheelNumbers.length;
-            const resultNumber = wheelNumbers[idx];
-            
-            history.unshift(resultNumber);
-            winningNumber = resultNumber; // Запускаем подсветку!
-            ballAngle = idx * SLICE + SLICE / 2;
-            ballRadius = POCKET_R;
-            highlightTime = 0;
+        if(speed<0.012){
+            spinning=false;slowing=false;bouncing=false;
+            const angle=((ballAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+            const idx=Math.round(angle/SLICE)%wheelNumbers.length;
+            winningNumber=wheelNumbers[idx];
+            history.unshift(winningNumber);
+            ballAngle=idx*SLICE+SLICE/2;
+            ballRadius=POCKET_R;
+            highlightTime=0;
         }
     }
 }
+
+
+
+
+
+
 
 wheelCanvas.onclick = () => {
     if(!spinning){
