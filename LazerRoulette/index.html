@@ -88,6 +88,10 @@ canvas{
 
 
 
+/* =====================================================
+   CHIPS — CASINO STYLE (6 CHECKERS)
+===================================================== */
+
 .chips {
     display: flex;
     gap: 6px;
@@ -95,57 +99,163 @@ canvas{
     justify-content: center;
 }
 
+/* ===============================
+   CHIP BASE
+================================ */
 .chip {
     width: 42px;
     height: 42px;
     border-radius: 50%;
     position: relative;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     font-weight: bold;
     font-family: 'Arial Black', sans-serif;
+    font-size: 14px;
+
     cursor: pointer;
+
     border: 2px solid #000;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 0 4px rgba(255,255,255,0.6);
+    box-shadow:
+        0 2px 4px rgba(0,0,0,0.5),
+        inset 0 0 4px rgba(255,255,255,0.6);
+
     transition: transform 0.2s, box-shadow 0.2s;
-    color: #000;
 }
 
-/* Белые шахматки по периметру (12 сегментов) */
-.chip::before, .chip::after,
-.chip::nth-child(1)::before, .chip::nth-child(1)::after,
-.chip::nth-child(2)::before, .chip::nth-child(2)::after,
-.chip::nth-child(3)::before, .chip::nth-child(3)::after,
-.chip::nth-child(4)::before, .chip::nth-child(4)::after,
-.chip::nth-child(5)::before, .chip::nth-child(5)::after {
+/* ===============================
+   6 CHECKER INLAYS (EDGE-TO-EDGE)
+================================ */
+.chip::before {
     content: '';
     position: absolute;
-    width: 6px;
-    height: 3px;
-    background: #fff;
-    border-radius: 1px;
+    inset: 0;
+    border-radius: 50%;
+
+    background:
+        conic-gradient(
+            var(--chip-accent) 0deg 20deg,
+            transparent 20deg 60deg,
+            var(--chip-accent) 60deg 80deg,
+            transparent 80deg 120deg,
+            var(--chip-accent) 120deg 140deg,
+            transparent 140deg 180deg,
+            var(--chip-accent) 180deg 200deg,
+            transparent 200deg 240deg,
+            var(--chip-accent) 240deg 260deg,
+            transparent 260deg 300deg,
+            var(--chip-accent) 300deg 320deg,
+            transparent 320deg 360deg
+        );
+
+    -webkit-mask:
+        radial-gradient(circle, transparent 60%, #000 61%);
+    mask:
+        radial-gradient(circle, transparent 60%, #000 61%);
+
+    pointer-events: none;
 }
 
-/* Расположение сегментов по окружности */
-.chip::before { top: 2px; left: 50%; transform: translateX(-50%) rotate(0deg); }
-.chip::after { bottom: 2px; left: 50%; transform: translateX(-50%) rotate(0deg); }
-.chip span.segment1 { position: absolute; top: 4px; left: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(30deg);}
-.chip span.segment2 { position: absolute; top: 4px; right: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(-30deg);}
-.chip span.segment3 { position: absolute; bottom: 4px; left: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(-30deg);}
-.chip span.segment4 { position: absolute; bottom: 4px; right: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(30deg);}
+/* ===============================
+   CENTER DISC
+================================ */
+.chip::after {
+    content: '';
+    position: absolute;
+    inset: 9px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.6);
+    pointer-events: none;
+}
 
-/* Цвета по номиналу */
-.chip[data-value="1"] { background: radial-gradient(circle at 30% 30%, #ffffff, #dddddd 60%, #bbbbbb 100%); color: #000; }
-.chip[data-value="5"] { background: radial-gradient(circle at 30% 30%, #ff0000, #b22222 60%, #800000 100%); color: #fff; }
-.chip[data-value="25"] { background: radial-gradient(circle at 30% 30%, #00ff00, #008000 60%, #006400 100%); color: #000; }
-.chip[data-value="100"] { background: radial-gradient(circle at 30% 30%, #000000, #222222 60%, #444444 100%); color: #fff; }
-.chip[data-value="500"] { background: radial-gradient(circle at 30% 30%, #800080, #4b0082 60%, #2e004f 100%); color: #fff; }
+/* ===============================
+   COLORS & ACCENTS
+================================ */
 
-/* Активная фишка */
+/* ===============================
+   CENTER DISC — darkened border for chip 1
+================================ */
+
+/* --- 1 (white body, gray center feel, WHITE number) --- */
+.chip[data-value="1"] {
+    background: radial-gradient(circle at 30% 30%, #ffffff, #d9d9d9 60%, #cfcfcf 100%);
+    color: #ffffff; /* цифра */
+    --chip-accent: #0a1f44;
+
+    text-shadow:
+        0 0 1px #000,
+        0 1px 3px #000,
+        0 -1px 3px #000;
+
+    position: relative; /* чтобы ::after не перекрывал текст */
+}
+
+/* Центральный серый кружок */
+.chip[data-value="1"]::after {
+    content: '';
+    position: absolute;
+    inset: 9px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #4a4a4a, #1f1f1f);
+    box-shadow: inset 0 0 4px rgba(255,255,255,0.6);
+    pointer-events: none;
+    z-index: 0; /* чтобы кружок был под цифрой */
+}
+
+/* Цифра поверх внутреннего круга */
+.chip[data-value="1"] span.value {
+    position: absolute;
+    z-index: 2;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+    pointer-events: none;
+}
+
+
+
+
+/* --- 5 (red) --- */
+.chip[data-value="5"] {
+    background: radial-gradient(circle at 30% 30%, #ff2b2b, #b22222 60%, #800000 100%);
+    color: #ffffff;
+    --chip-accent: #ffffff;
+}
+
+/* --- 25 (green, white number) --- */
+.chip[data-value="25"] {
+    background: radial-gradient(circle at 30% 30%, #00c851, #007a33 60%, #005922 100%);
+    color: #ffffff;
+    --chip-accent: #ffffff;
+}
+
+/* --- 100 (black) --- */
+.chip[data-value="100"] {
+    background: radial-gradient(circle at 30% 30%, #111111, #222222 60%, #444444 100%);
+    color: #ffffff;
+    --chip-accent: #ffffff;
+}
+
+/* --- 500 (purple) --- */
+.chip[data-value="500"] {
+    background: radial-gradient(circle at 30% 30%, #8a2be2, #4b0082 60%, #2e004f 100%);
+    color: #ffffff;
+    --chip-accent: #ffffff;
+}
+
+/* ===============================
+   ACTIVE CHIP
+================================ */
 .chip.active {
     transform: scale(1.15);
-    box-shadow: 0 0 10px gold, 0 2px 6px rgba(0,0,0,0.5), inset 0 0 6px rgba(255,255,255,0.6);
+    box-shadow:
+        0 0 10px gold,
+        0 2px 6px rgba(0,0,0,0.6),
+        inset 0 0 6px rgba(255,255,255,0.6);
 }
 
 
@@ -1060,9 +1170,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     // дефолтная активная фишка
-    chips.forEach(c => c.classList.remove('active'));
-    chips[2].classList.add('active'); // default 25
-    playerState.chipValue = +chips[2].dataset.value;
+// Сбрасываем активность со всех фишек
+chips.forEach(c => c.classList.remove('active'));
+
+// Делаем активной первую фишку (номинал 1)
+chips[0].classList.add('active');
+playerState.chipValue = +chips[0].dataset.value;
+
 
     /* ================================
        BUTTONS
@@ -1220,7 +1334,9 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <div class="chips">
-        <div class="chip" data-value="1">1</div>
+    
+<div class="chip active" data-value="1"><span class="value">1</span></div>
+
         <div class="chip" data-value="5">5</div>
         <div class="chip" data-value="25">25</div>
         <div class="chip" data-value="100">100</div>
