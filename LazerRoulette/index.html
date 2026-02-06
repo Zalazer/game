@@ -858,7 +858,7 @@ function drawTable(){
         highlightTime += 0.12;
         const pulse = Math.sin(highlightTime) * 0.4 + 0.6;
         
-        tctx.lineWidth = 4 + pulse * 2;
+        tctx.lineWidth = 0 + pulse * 2;
         tctx.strokeStyle = `rgba(255, 215, 0, ${0.9})`;
         tctx.shadowColor = '#ffd700';
         tctx.shadowBlur = 10 + pulse * 6;
