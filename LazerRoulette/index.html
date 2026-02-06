@@ -23,6 +23,12 @@ html,body{
     text-shadow: 0 0 6px red, 0 0 18px #aa0000;
 }
 
+
+#title {
+    display: none; /* скрываем текст заголовка */
+}
+
+
 .section{
     position:relative;
     overflow:hidden;
@@ -30,15 +36,139 @@ html,body{
 }
 
 #wheelWrap{ height:42vh; }
-#historyWrap{ height:9vh; border-top:1px solid #333; border-bottom:1px solid #333; }
-#tableWrap{ height:32vh; }
-#stats{ height:12vh; padding:8px; font-size:14px; }
+#historyWrap{ height:7vh; border-top:1px solid #333; border-bottom:1px solid #333; }
+#tableWrap{ height:28vh; }
+
 
 canvas{
     display:block;
     width:100%;
     height:100%;
 }
+
+
+#playerPanel{
+    height: 20vh;
+    background: #0b0b0b;
+    border-top: 1px solid #333;
+    padding: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+
+    margin-top: -40px; /* <-- сдвигаем вверх на 30px */
+    position: relative; /* чтобы margin сработал корректно */
+}
+
+
+.playerRow{
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.betButtons{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.betButtons button{
+    flex: 1;
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
+    padding:6px;
+    cursor:pointer;
+}
+
+.betButtons button:hover{
+    background:#333;
+}
+
+
+
+
+.chips {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    justify-content: center;
+}
+
+.chip {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-family: 'Arial Black', sans-serif;
+    cursor: pointer;
+    border: 2px solid #000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 0 4px rgba(255,255,255,0.6);
+    transition: transform 0.2s, box-shadow 0.2s;
+    color: #000;
+}
+
+/* Белые шахматки по периметру (12 сегментов) */
+.chip::before, .chip::after,
+.chip::nth-child(1)::before, .chip::nth-child(1)::after,
+.chip::nth-child(2)::before, .chip::nth-child(2)::after,
+.chip::nth-child(3)::before, .chip::nth-child(3)::after,
+.chip::nth-child(4)::before, .chip::nth-child(4)::after,
+.chip::nth-child(5)::before, .chip::nth-child(5)::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 3px;
+    background: #fff;
+    border-radius: 1px;
+}
+
+/* Расположение сегментов по окружности */
+.chip::before { top: 2px; left: 50%; transform: translateX(-50%) rotate(0deg); }
+.chip::after { bottom: 2px; left: 50%; transform: translateX(-50%) rotate(0deg); }
+.chip span.segment1 { position: absolute; top: 4px; left: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(30deg);}
+.chip span.segment2 { position: absolute; top: 4px; right: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(-30deg);}
+.chip span.segment3 { position: absolute; bottom: 4px; left: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(-30deg);}
+.chip span.segment4 { position: absolute; bottom: 4px; right: 4px; width: 6px; height: 3px; background:#fff; transform: rotate(30deg);}
+
+/* Цвета по номиналу */
+.chip[data-value="1"] { background: radial-gradient(circle at 30% 30%, #ffffff, #dddddd 60%, #bbbbbb 100%); color: #000; }
+.chip[data-value="5"] { background: radial-gradient(circle at 30% 30%, #ff0000, #b22222 60%, #800000 100%); color: #fff; }
+.chip[data-value="25"] { background: radial-gradient(circle at 30% 30%, #00ff00, #008000 60%, #006400 100%); color: #000; }
+.chip[data-value="100"] { background: radial-gradient(circle at 30% 30%, #000000, #222222 60%, #444444 100%); color: #fff; }
+.chip[data-value="500"] { background: radial-gradient(circle at 30% 30%, #800080, #4b0082 60%, #2e004f 100%); color: #fff; }
+
+/* Активная фишка */
+.chip.active {
+    transform: scale(1.15);
+    box-shadow: 0 0 10px gold, 0 2px 6px rgba(0,0,0,0.5), inset 0 0 6px rgba(255,255,255,0.6);
+}
+
+
+
+
+
+
+
+
+.playerHistory{
+    height: 5vh;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-top: 1px solid #333;
+    padding-top: 4px;
+}
+
+.playerHistory span{
+    margin-right: 12px;
+    color:#d4af37;
+}
+
+
 </style>
 </head>
 
@@ -46,7 +176,7 @@ canvas{
 
 <div id="title">LazerRoulette</div>
 
-<div id="wheelWrap" class="section">
+<div id="wheelWrap" class="section"    style="margin-top:21px;" >
     <canvas id="wheel"></canvas>
 </div>
 
@@ -58,12 +188,6 @@ canvas{
     <canvas id="table"></canvas>
 </div>
 
-<div id="stats">
-Игрок: Lazer<br>
-Баланс: 1000<br>
-Текущая ставка: 0<br>
-История ставок: —
-</div>
 
 <script>
 /* =====================================================
@@ -889,7 +1013,226 @@ function loop(){
     requestAnimationFrame(loop);
 }
 loop();
+
+
+
+
+
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    /* =====================================================
+       PLAYER STATE (ISOLATED MODULE)
+    ==================================================== */
+    const playerState = {
+        name: 'Lazer',
+        balance: 1000,
+        currentBet: 0,
+        chipValue: 25, // дефолтная фишка
+        history: [],
+        lastBet: 0
+    };
+
+    const tableBets = []; // массив фишек на столе {x, y, value}
+
+    // DOM refs
+    const balanceEl = document.getElementById('playerBalance');
+    const betEl = document.getElementById('playerBet');
+    const historyEl = document.getElementById('betHistory');
+    const chips = document.querySelectorAll('.chip');
+    const tableCanvas = document.getElementById('table');
+
+    // INIT
+    updatePlayerUI();
+
+    /* ================================
+       CHIP SELECTION
+    ================================ */
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            playerState.chipValue = +chip.dataset.value;
+        });
+    });
+    // дефолтная активная фишка
+    chips.forEach(c => c.classList.remove('active'));
+    chips[2].classList.add('active'); // default 25
+    playerState.chipValue = +chips[2].dataset.value;
+
+    /* ================================
+       BUTTONS
+    ================================ */
+    document.querySelector('.betButtons').addEventListener('click', e => {
+        if (!e.target.dataset.action) return;
+
+        if (e.target.dataset.action === 'repeat') {
+            addBet(playerState.lastBet);
+        }
+
+        if (e.target.dataset.action === 'double') {
+            addBet(playerState.currentBet);
+        }
+
+        if (e.target.dataset.action === 'clear') {
+            // Возврат ставки на баланс
+            playerState.balance += playerState.currentBet;
+            playerState.currentBet = 0;
+            tableBets.length = 0; // очищаем фишки со стола
+            drawTableBets();
+            updatePlayerUI();
+        }
+    });
+
+    /* ================================
+       ADD BET
+    ================================ */
+    function addBet(amount) {
+        if (playerState.balance < amount || amount <= 0) return;
+        playerState.balance -= amount;
+        playerState.currentBet += amount;
+        playerState.lastBet = amount;
+        updatePlayerUI();
+    }
+
+    /* ================================
+       TABLE CLICK - PLACE BET
+    ================================ */
+    tableCanvas.addEventListener('click', e => {
+        const rect = tableCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const betAmount = playerState.chipValue;
+        if (playerState.balance < betAmount) return;
+
+        addBet(betAmount);
+
+        // Добавляем фишку на стол
+        tableBets.push({x, y, value: betAmount});
+        drawTableBets();
+
+        logResult(`Bet ${betAmount} placed at (${Math.round(x)},${Math.round(y)})`);
+    });
+
+    /* ================================
+       DRAW TABLE BETS
+    ================================ */
+    function drawTableBets() {
+        resizeCanvas(tableCanvas); // Важно: canvas подгоняем под размеры DOM
+        const ctx = tableCanvas.getContext('2d');
+        ctx.clearRect(0, 0, tableCanvas.width, tableCanvas.height);
+
+        tableBets.forEach(bet => {
+            ctx.beginPath();
+            ctx.arc(bet.x, bet.y, 20, 0, Math.PI*2);
+
+            switch(bet.value){
+                case 1: ctx.fillStyle='white'; break;
+                case 5: ctx.fillStyle='red'; break;
+                case 25: ctx.fillStyle='green'; break;
+                case 100: ctx.fillStyle='black'; break;
+                case 500: ctx.fillStyle='purple'; break;
+                default: ctx.fillStyle='yellow';
+            }
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle='gold';
+            ctx.stroke();
+
+            ctx.fillStyle = (bet.value <= 25) ? 'black' : 'white';
+            ctx.font='bold 12px Arial';
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillText(bet.value, bet.x, bet.y);
+        });
+    }
+
+    /* ================================
+       RESIZE CANVAS UTILITY
+    ================================ */
+    function resizeCanvas(c){
+        const dpr = devicePixelRatio || 1;
+        const w = c.clientWidth;
+        const h = c.clientHeight;
+        c.width  = w * dpr;
+        c.height = h * dpr;
+        const ctx = c.getContext('2d');
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+
+    /* ================================
+       LOG RESULT
+    ================================ */
+    function logResult(text) {
+        playerState.history.unshift(text);
+        if (playerState.history.length > 20) playerState.history.pop();
+        renderHistory();
+    }
+
+    /* ================================
+       UPDATE UI
+    ================================ */
+    function updatePlayerUI() {
+        balanceEl.textContent = playerState.balance;
+        betEl.textContent = playerState.currentBet;
+    }
+
+    /* ================================
+       RENDER HISTORY
+    ================================ */
+    function renderHistory() {
+        historyEl.innerHTML = '';
+        playerState.history.forEach(h => {
+            const span = document.createElement('span');
+            span.textContent = h;
+            historyEl.appendChild(span);
+        });
+    }
+
+});
+
+
+
 </script>
+
+
+
+
+
+
+<!-- PLAYER PANEL -->
+<div id="playerPanel">
+    <div class="playerRow">
+        <div class="playerName">Player: <span id="playerName">Lazer</span></div>
+        <div class="playerBalance">Balance: <span id="playerBalance">1000</span></div>
+        <div class="playerBet">Current Bet: <span id="playerBet">0</span></div>
+    </div>
+
+    <div class="betButtons">
+        <button data-action="repeat">Repeat</button>
+        <button data-action="double">x2</button>
+        <button data-action="clear">Clear</button>
+    </div>
+
+    <div class="chips">
+        <div class="chip" data-value="1">1</div>
+        <div class="chip" data-value="5">5</div>
+        <div class="chip" data-value="25">25</div>
+        <div class="chip" data-value="100">100</div>
+        <div class="chip" data-value="500">500</div>
+    </div>
+
+    <div class="playerHistory">
+        <div class="historyTitle">Bet History</div>
+        <div id="betHistory"></div>
+    </div>
+</div>
+
 
 </body>
 </html>
