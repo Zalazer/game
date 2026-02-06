@@ -1129,39 +1129,38 @@ loop();
 
 
 
-
-
-
-
 document.addEventListener('DOMContentLoaded', () => {
-
-    /* =====================================================
-       PLAYER STATE (ISOLATED MODULE)
-    ==================================================== */
+    /* ==========================
+       PLAYER STATE
+    ========================== */
     const playerState = {
         name: 'Lazer',
         balance: 1000,
         currentBet: 0,
-        chipValue: 25, // дефолтная фишка
-        history: [],
-        lastBet: 0
+        chipValue: 1,
+        lastBet: 0,
+        history: []
     };
 
-    const tableBets = []; // массив фишек на столе {x, y, value}
+    const tableBets = []; // массив ставок {x,y,value,spotId}
 
-    // DOM refs
     const balanceEl = document.getElementById('playerBalance');
     const betEl = document.getElementById('playerBet');
     const historyEl = document.getElementById('betHistory');
     const chips = document.querySelectorAll('.chip');
     const tableCanvas = document.getElementById('table');
+    const tctx = tableCanvas.getContext('2d');
 
-    // INIT
+    // Активная фишка по умолчанию
+    chips.forEach(c => c.classList.remove('active'));
+    chips[0].classList.add('active');
+    playerState.chipValue = +chips[0].dataset.value;
+
     updatePlayerUI();
 
-    /* ================================
+    /* ==========================
        CHIP SELECTION
-    ================================ */
+    ========================== */
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
             chips.forEach(c => c.classList.remove('active'));
@@ -1169,136 +1168,38 @@ document.addEventListener('DOMContentLoaded', () => {
             playerState.chipValue = +chip.dataset.value;
         });
     });
-    // дефолтная активная фишка
-// Сбрасываем активность со всех фишек
-chips.forEach(c => c.classList.remove('active'));
 
-// Делаем активной первую фишку (номинал 1)
-chips[0].classList.add('active');
-playerState.chipValue = +chips[0].dataset.value;
-
-
-    /* ================================
+    /* ==========================
        BUTTONS
-    ================================ */
+    ========================== */
     document.querySelector('.betButtons').addEventListener('click', e => {
         if (!e.target.dataset.action) return;
 
-        if (e.target.dataset.action === 'repeat') {
-            addBet(playerState.lastBet);
-        }
-
-        if (e.target.dataset.action === 'double') {
-            addBet(playerState.currentBet);
-        }
-
+        if (e.target.dataset.action === 'repeat') addBet(playerState.lastBet);
+        if (e.target.dataset.action === 'double') addBet(playerState.currentBet);
         if (e.target.dataset.action === 'clear') {
-            // Возврат ставки на баланс
             playerState.balance += playerState.currentBet;
             playerState.currentBet = 0;
-            tableBets.length = 0; // очищаем фишки со стола
-            drawTableBets();
+            tableBets.length = 0;
+            renderTableAndBets();
             updatePlayerUI();
         }
     });
 
-    /* ================================
-       ADD BET
-    ================================ */
-    function addBet(amount) {
-        if (playerState.balance < amount || amount <= 0) return;
-        playerState.balance -= amount;
-        playerState.currentBet += amount;
-        playerState.lastBet = amount;
-        updatePlayerUI();
+    /* ==========================
+       UTILS
+    ========================== */
+    function updatePlayerUI() {
+        balanceEl.textContent = playerState.balance;
+        betEl.textContent = playerState.currentBet;
     }
 
-    /* ================================
-       TABLE CLICK - PLACE BET
-    ================================ */
-    tableCanvas.addEventListener('click', e => {
-        const rect = tableCanvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const betAmount = playerState.chipValue;
-        if (playerState.balance < betAmount) return;
-
-        addBet(betAmount);
-
-        // Добавляем фишку на стол
-        tableBets.push({x, y, value: betAmount});
-        drawTableBets();
-
-        logResult(`Bet ${betAmount} placed at (${Math.round(x)},${Math.round(y)})`);
-    });
-
-    /* ================================
-       DRAW TABLE BETS
-    ================================ */
-    function drawTableBets() {
-        resizeCanvas(tableCanvas); // Важно: canvas подгоняем под размеры DOM
-        const ctx = tableCanvas.getContext('2d');
-        ctx.clearRect(0, 0, tableCanvas.width, tableCanvas.height);
-
-        tableBets.forEach(bet => {
-            ctx.beginPath();
-            ctx.arc(bet.x, bet.y, 20, 0, Math.PI*2);
-
-            switch(bet.value){
-                case 1: ctx.fillStyle='white'; break;
-                case 5: ctx.fillStyle='red'; break;
-                case 25: ctx.fillStyle='green'; break;
-                case 100: ctx.fillStyle='black'; break;
-                case 500: ctx.fillStyle='purple'; break;
-                default: ctx.fillStyle='yellow';
-            }
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle='gold';
-            ctx.stroke();
-
-            ctx.fillStyle = (bet.value <= 25) ? 'black' : 'white';
-            ctx.font='bold 12px Arial';
-            ctx.textAlign='center';
-            ctx.textBaseline='middle';
-            ctx.fillText(bet.value, bet.x, bet.y);
-        });
-    }
-
-    /* ================================
-       RESIZE CANVAS UTILITY
-    ================================ */
-    function resizeCanvas(c){
-        const dpr = devicePixelRatio || 1;
-        const w = c.clientWidth;
-        const h = c.clientHeight;
-        c.width  = w * dpr;
-        c.height = h * dpr;
-        const ctx = c.getContext('2d');
-        ctx.setTransform(dpr,0,0,dpr,0,0);
-    }
-
-    /* ================================
-       LOG RESULT
-    ================================ */
     function logResult(text) {
         playerState.history.unshift(text);
         if (playerState.history.length > 20) playerState.history.pop();
         renderHistory();
     }
 
-    /* ================================
-       UPDATE UI
-    ================================ */
-    function updatePlayerUI() {
-        balanceEl.textContent = playerState.balance;
-        betEl.textContent = playerState.currentBet;
-    }
-
-    /* ================================
-       RENDER HISTORY
-    ================================ */
     function renderHistory() {
         historyEl.innerHTML = '';
         playerState.history.forEach(h => {
@@ -1308,6 +1209,234 @@ playerState.chipValue = +chips[0].dataset.value;
         });
     }
 
+    function addBet(amount) {
+        if (playerState.balance < amount || amount <= 0) return;
+        playerState.balance -= amount;
+        playerState.currentBet += amount;
+        playerState.lastBet = amount;
+        updatePlayerUI();
+    }
+
+    function range(start, end, step = 1) {
+        const arr = [];
+        for (let i = start; i <= end; i += step) arr.push(i);
+        return arr;
+    }
+
+    /* ==========================
+       BET SPOTS — ВСЕ ВАРИАНТЫ СТАВОК
+    ========================== */
+    function generateBetSpots(canvas, tableState) {
+        const w = canvas.clientWidth * tableState.zoom;
+        const h = canvas.clientHeight * tableState.zoom;
+        const cols = 14;
+        const rows = 3;
+        const cellW = w / cols;
+        const cellH = h / 7.5;
+
+        const numRows = [
+            [3,6,9,12,15,18,21,24,27,30,33,36],
+            [2,5,8,11,14,17,20,23,26,29,32,35],
+            [1,4,7,10,13,16,19,22,25,28,31,34]
+        ];
+
+        const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+        const betSpots = [];
+
+        // --- STRAIGHT
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 12; c++) {
+                const n = numRows[r][c];
+                betSpots.push({
+                    id: 'n' + n,
+                    type: 'straight',
+                    numbers: [n],
+                    x: (c+1)*cellW + cellW/2,
+                    y: r*cellH + cellH/2,
+                    w: cellW,
+                    h: cellH
+                });
+            }
+        }
+
+        // --- ZERO
+        betSpots.push({
+            id: '0',
+            type: 'straight',
+            numbers: [0],
+            x: cellW/2,
+            y: cellH*1.5,
+            w: cellW,
+            h: cellH*3
+        });
+
+        // --- LINE (2 числа)
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 11; c++) {
+                betSpots.push({
+                    id: `line${r}${c}`,
+                    type: 'line',
+                    numbers: [numRows[r][c], numRows[r][c+1]],
+                    x: (c+1)*cellW + cellW,
+                    y: r*cellH + cellH/2,
+                    w: cellW*2,
+                    h: cellH
+                });
+            }
+        }
+
+        // --- CORNER (4 числа)
+        for (let r = 0; r < 2; r++) {
+            for (let c = 0; c < 11; c++) {
+                betSpots.push({
+                    id: `corner${r}${c}`,
+                    type: 'corner',
+                    numbers: [numRows[r][c], numRows[r][c+1], numRows[r+1][c], numRows[r+1][c+1]],
+                    x: (c+1)*cellW + cellW,
+                    y: r*cellH + cellH,
+                    w: cellW*2,
+                    h: cellH*2
+                });
+            }
+        }
+
+        // --- STREET (3 числа)
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 10; c++) {
+                betSpots.push({
+                    id: `street${r}${c}`,
+                    type: 'street',
+                    numbers: [numRows[r][c], numRows[r][c+1], numRows[r][c+2]],
+                    x: (c+1)*cellW + cellW,
+                    y: r*cellH + cellH/2,
+                    w: cellW*3,
+                    h: cellH
+                });
+            }
+        }
+
+        // --- SIXLINE (6 чисел)
+        for (let r = 0; r < 2; r++) {
+            for (let c = 0; c < 10; c++) {
+                betSpots.push({
+                    id: `sixline${r}${c}`,
+                    type: 'sixline',
+                    numbers: [
+                        numRows[r][c], numRows[r][c+1], numRows[r][c+2],
+                        numRows[r+1][c], numRows[r+1][c+1], numRows[r+1][c+2]
+                    ],
+                    x: (c+1)*cellW + cellW*1.5,
+                    y: r*cellH + cellH,
+                    w: cellW*3,
+                    h: cellH*2
+                });
+            }
+        }
+
+        // --- DOZEN
+        betSpots.push({id:'d1', type:'dozen', numbers:range(1,12), x:1*cellW + 2*cellW, y:cellH*3 + cellH/2, w:4*cellW, h:cellH});
+        betSpots.push({id:'d2', type:'dozen', numbers:range(13,24), x:5*cellW + 2*cellW, y:cellH*3 + cellH/2, w:4*cellW, h:cellH});
+        betSpots.push({id:'d3', type:'dozen', numbers:range(25,36), x:9*cellW + 2*cellW, y:cellH*3 + cellH/2, w:4*cellW, h:cellH});
+
+        // --- COLUMNS
+        betSpots.push({id:'c1', type:'column', numbers: [...Array(12).keys()].map(i=>i*3+1), x:13*cellW + cellW/2, y:2*cellH, w:cellW, h:cellH});
+        betSpots.push({id:'c2', type:'column', numbers: [...Array(12).keys()].map(i=>i*3+2), x:13*cellW + cellW/2, y:1*cellH, w:cellW, h:cellH});
+        betSpots.push({id:'c3', type:'column', numbers: [...Array(12).keys()].map(i=>i*3+3), x:13*cellW + cellW/2, y:0*cellH, w:cellW, h:cellH});
+
+        // --- LOW/HIGH, EVEN/ODD, RED/BLACK
+        const lowerY = cellH*4 + cellH/2;
+        betSpots.push({id:'low', type:'low', numbers:range(1,18), x:2*cellW + cellW, y:lowerY, w:2*cellW, h:cellH});
+        betSpots.push({id:'high', type:'high', numbers:range(19,36), x:11*cellW + cellW, y:lowerY, w:2*cellW, h:cellH});
+        betSpots.push({id:'even', type:'even', numbers:range(2,36,2), x:4*cellW + cellW, y:lowerY, w:2*cellW, h:cellH});
+        betSpots.push({id:'odd', type:'odd', numbers:range(1,35,2), x:10*cellW + cellW, y:lowerY, w:2*cellW, h:cellH});
+        betSpots.push({id:'red', type:'red', numbers:reds, x:6*cellW + cellW, y:lowerY, w:2*cellW, h:cellH});
+        betSpots.push({id:'black', type:'black', numbers:[...Array(36).keys()].map(n=>n+1).filter(n=>!reds.includes(n)), x:8*cellW + cellW, y:lowerY, w:2*cellW, h:cellH});
+
+        return betSpots;
+    }
+
+    /* ==========================
+       PLACE BET
+    ========================== */
+    tableCanvas.addEventListener('click', e => {
+        const rect = tableCanvas.getBoundingClientRect();
+        const clickX = (e.clientX - rect.left - tableState.x) / tableState.zoom;
+        const clickY = (e.clientY - rect.top - tableState.y) / tableState.zoom;
+
+        const spots = generateBetSpots(tableCanvas, tableState);
+
+        const nearest = spots.find(s =>
+            clickX >= s.x - s.w/2 &&
+            clickX <= s.x + s.w/2 &&
+            clickY >= s.y - s.h/2 &&
+            clickY <= s.y + s.h/2
+        );
+
+        if (!nearest) return; // клик вне поля
+
+        const betAmount = playerState.chipValue;
+        if (playerState.balance < betAmount) return;
+
+        playerState.balance -= betAmount;
+        playerState.currentBet += betAmount;
+        playerState.lastBet = betAmount;
+
+        tableBets.push({spotId: nearest.id, x: nearest.x, y: nearest.y, value: betAmount});
+        renderTableAndBets();
+        logResult(`Bet ${betAmount} on ${nearest.id}`);
+        updatePlayerUI();
+    });
+
+    /* ==========================
+       DRAW BETS
+    ========================== */
+    function drawTableBets() {
+        const ctx = tctx;
+        const stackOffset = 4;
+
+        const stacks = {};
+        tableBets.forEach(b=>{
+            if(!stacks[b.spotId]) stacks[b.spotId]=[];
+            stacks[b.spotId].push(b);
+        });
+
+        Object.values(stacks).forEach(stack=>{
+            stack.forEach((b,i)=>{
+                const x = b.x;
+                const y = b.y - i*stackOffset;
+                ctx.beginPath();
+                ctx.arc(x, y, 20, 0, Math.PI*2);
+                switch(b.value){
+                    case 1: ctx.fillStyle='white'; break;
+                    case 5: ctx.fillStyle='red'; break;
+                    case 25: ctx.fillStyle='green'; break;
+                    case 100: ctx.fillStyle='black'; break;
+                    case 500: ctx.fillStyle='purple'; break;
+                    default: ctx.fillStyle='yellow';
+                }
+                ctx.fill();
+                ctx.lineWidth=2;
+                ctx.strokeStyle='gold';
+                ctx.stroke();
+                ctx.fillStyle = (b.value<=25)?'black':'white';
+                ctx.font='bold 12px Arial';
+                ctx.textAlign='center';
+                ctx.textBaseline='middle';
+                ctx.fillText(b.value, x, y);
+            });
+        });
+    }
+
+    /* ==========================
+       RENDER TABLE + BETS
+    ========================== */
+    function renderTableAndBets(){
+        drawTable();      // твой код рисования стола
+        drawTableBets();  // фишки поверх
+    }
+
+    // При старте
+    renderTableAndBets();
 });
 
 
