@@ -365,13 +365,16 @@ function drawWheel(){
 
     /* ===== ОСНОВНЫЕ СЕКТОРА ===== */
     for(let i=0;i<wheelNumbers.length;i++){
+        const num = wheelNumbers[i];
+        const isWin = (num === winningNumber);
+
         ctx.beginPath();
         ctx.moveTo(0,0);
         ctx.arc(0,0,R,i*SLICE,(i+1)*SLICE);
-        ctx.fillStyle=getColor(wheelNumbers[i]);
+        ctx.fillStyle = getColor(num);
         ctx.fill();
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = isWin ? '#d4af37' : '#000';
+        ctx.lineWidth = isWin ? 3 : 1;
         ctx.stroke();
 
         const a=i*SLICE+SLICE/2;
@@ -384,19 +387,37 @@ function drawWheel(){
         ctx.stroke();
     }
 
-    /* ===== ЧИСЛА ===== */
-    ctx.font=(R*0.065)+'px Arial';
-    ctx.fillStyle='#fff';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    for(let i=0;i<wheelNumbers.length;i++){
-        ctx.save();
-        ctx.rotate(i*SLICE+SLICE/2);
-        ctx.translate(R*0.84,0);
-        ctx.rotate(Math.PI/2);
-        ctx.fillText(wheelNumbers[i],0,0);
-        ctx.restore();
-    }
+
+
+
+
+
+/* ===== ЧИСЛА ===== */
+const pocketRadius = R * 0.045;
+
+const minR = POCKET_R - pocketRadius;
+const maxR = R;
+const textRadius = minR + (maxR - minR) * 0.6;
+
+ctx.font = (R * 0.085) + 'px Arial';
+ctx.fillStyle = '#fff';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+
+for(let i = 0; i < wheelNumbers.length; i++){
+    ctx.save();
+    ctx.rotate(i * SLICE + SLICE / 2);
+    ctx.translate(textRadius, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillText(wheelNumbers[i], 0, 0);
+    ctx.restore();
+}
+
+
+
+
+
+
 
     /* ===== ВНЕШНЕЕ КОЛЬЦО — ORPHANS + ZERO GAME ===== */
     const orphanSets = [
@@ -494,9 +515,45 @@ function drawWheel(){
     ctx.lineWidth=1;
     ctx.stroke();
 
+
+
+
+    /* ===== ЦЕНТР: ВЫПАВШИЙ НОМЕР (КАК В HISTORY) ===== */
+    if(winningNumber !== null){
+        const r = R * 0.18;
+
+        ctx.beginPath();
+        ctx.arc(0,0,r,0,Math.PI*2);
+        ctx.fillStyle = getColor(winningNumber);
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#d4af37';
+        ctx.stroke();
+
+ctx.save();
+
+// компенсируем поворот колеса → делаем текст горизонтальным
+ctx.rotate(Math.PI/2 + SLICE/2);
+
+ctx.font = `bold ${r*1.1}px Arial`;
+ctx.fillStyle = '#fff';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText(winningNumber, 0, 2);
+
+ctx.restore();
+
+    }
+
+    /* ===== ШАРИК ===== */
     if(!ballRadius) ballRadius=TRACK_R;
     ctx.beginPath();
-    ctx.arc(Math.cos(ballAngle)*ballRadius,Math.sin(ballAngle)*ballRadius,R*0.03,0,Math.PI*2);
+    ctx.arc(
+        Math.cos(ballAngle)*ballRadius,
+        Math.sin(ballAngle)*ballRadius,
+        R*0.03,0,Math.PI*2
+    );
     ctx.fillStyle='#fff';
     ctx.shadowColor='gold';
     ctx.shadowBlur=8;
@@ -505,28 +562,40 @@ function drawWheel(){
 
     ctx.restore();
 
+    /* ===== ЛОГИКА ВРАЩЕНИЯ ===== */
     if(spinning){
         ballAngle+=speed*direction;
         speed*=0.995;
-        if(speed<0.04&&!slowing){slowing=true;bouncing=true;bouncesLeft=1+Math.floor(Math.random()*5);}
+
+        if(speed<0.04&&!slowing){
+            slowing=true;
+            bouncing=true;
+            bouncesLeft=1+Math.floor(Math.random()*5);
+        }
+
         if(bouncing&&bouncesLeft>0&&Math.random()<0.03){
             direction*=Math.random()<0.5?-1:1;
             speed*=0.7;
             bouncesLeft--;
         }
+
         if(speed<0.012){
-            spinning=false;slowing=false;bouncing=false;
+            spinning=false;
+            slowing=false;
+            bouncing=false;
+
             const angle=((ballAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
             const idx=Math.round(angle/SLICE)%wheelNumbers.length;
+
             winningNumber=wheelNumbers[idx];
             history.unshift(winningNumber);
+
             ballAngle=idx*SLICE+SLICE/2;
             ballRadius=POCKET_R;
             highlightTime=0;
         }
     }
 }
-
 
 
 
