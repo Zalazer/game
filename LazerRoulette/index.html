@@ -35,9 +35,20 @@ html,body{
     touch-action:none;
 }
 
-#wheelWrap{ height:40vh; }
+
+#wheelWrap{
+    height: calc(40vh - 21px);
+    margin-top: 21px;
+}
+
 #historyWrap{ height:7vh; border-top:1px solid #333; border-bottom:1px solid #333; }
 #tableWrap{ height:28vh; }
+
+
+#wheelWrap canvas{
+    margin: 0;
+    padding: 0;
+}
 
 
 canvas{
