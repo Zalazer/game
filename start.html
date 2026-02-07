@@ -3,17 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <title>Start</title>
+</head>
+<body>
+<div id="app"></div>
+
 <script>
-(function () {
+(async function(){
     if (window.Telegram && window.Telegram.WebApp) {
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
     }
 
-    // входная точка → консоль
-    window.location.replace("main.html");
+    // загружаем main.html внутрь start.html
+    const resp = await fetch('main.html');
+    const html = await resp.text();
+    document.getElementById('app').innerHTML = html;
 })();
 </script>
-</head>
-<body></body>
+</body>
 </html>
