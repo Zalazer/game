@@ -2,22 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <title>Start</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0b0b0b;
+}
+#iframeMain {
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    display: block;
+}
+</style>
 </head>
 <body>
-<div id="app"></div>
+<iframe id="iframeMain" src=""></iframe>
 
 <script>
 (async function(){
-    if (window.Telegram && window.Telegram.WebApp) {
+    // Подготовка WebApp Telegram
+    if(window.Telegram && window.Telegram.WebApp){
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
     }
 
-    // загружаем main.html внутрь start.html
-    const resp = await fetch('main.html');
-    const html = await resp.text();
-    document.getElementById('app').innerHTML = html;
+    // Загружаем main.html через iframe
+    const iframe = document.getElementById('iframeMain');
+    iframe.src = 'main.html';
+
+    // Если нужно, чтобы iframe занимал реально всю рабочую область Telegram
+    function resizeFrame(){
+        iframe.style.width = window.innerWidth + 'px';
+        iframe.style.height = window.innerHeight + 'px';
+    }
+    window.addEventListener('resize', resizeFrame);
+    resizeFrame();
 })();
 </script>
 </body>
