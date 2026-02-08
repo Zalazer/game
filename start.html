@@ -43,6 +43,7 @@ h1 { font-size:28px; margin-bottom:24px; text-align:center; }
   flex-direction:column;
   width:100%;
   height:100%;
+  position:relative;
 }
 
 #topBar {
@@ -67,9 +68,7 @@ h1 { font-size:28px; margin-bottom:24px; text-align:center; }
 
 #gameFrameWrapper {
   flex:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  position:relative;
   overflow:hidden;
   background:#000;
 }
@@ -80,7 +79,22 @@ iframe#gameFrame {
   height:100%;
 }
 
-/* ===== FOOTER (CONSOLE ONLY) ===== */
+/* ===== RULES OVERLAY ===== */
+#rulesOverlay {
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.96);
+  z-index:20;
+  display:none;
+}
+
+#rulesFrame {
+  width:100%;
+  height:100%;
+  border:none;
+}
+
+/* ===== FOOTER ===== */
 hr.rules-footer-sep {
   margin:0;
   border:0;
@@ -161,8 +175,13 @@ hr.rules-footer-sep {
     <button class="topBtn" onclick="openRules()">Game Rules</button>
     <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
   </div>
+
   <div id="gameFrameWrapper">
     <iframe id="gameFrame"></iframe>
+
+    <div id="rulesOverlay">
+      <iframe id="rulesFrame"></iframe>
+    </div>
   </div>
 </div>
 
@@ -179,6 +198,8 @@ hr.rules-footer-sep {
 const menu = document.getElementById('menu');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
+const rulesOverlay = document.getElementById('rulesOverlay');
+const rulesFrame = document.getElementById('rulesFrame');
 const muteBtn = document.getElementById('muteBtn');
 
 const tracks = {
@@ -196,7 +217,9 @@ let fadeInterval;
 
 /* ===== AUDIO ===== */
 function fadeIn(track, v=0.4){
-  track.muted=false; track.volume=0; track.play().catch(()=>{});
+  track.muted=false;
+  track.volume=0;
+  track.play().catch(()=>{});
   clearInterval(fadeInterval);
   let x=0;
   fadeInterval=setInterval(()=>{
@@ -210,7 +233,11 @@ function fadeOut(track, cb){
   let v=track.volume;
   fadeInterval=setInterval(()=>{
     v-=0.05;
-    if(v<=0){ track.pause(); clearInterval(fadeInterval); cb&&cb(); }
+    if(v<=0){
+      track.pause();
+      clearInterval(fadeInterval);
+      cb && cb();
+    }
     track.volume=v;
   },50);
 }
@@ -230,13 +257,15 @@ function loadGame(game){
 function openRules(){
   if(!currentGame) return;
   inRules = true;
-  gameFrame.src = currentGame + '/' + currentGame + '-rules.html';
+  rulesFrame.src = currentGame + '/' + currentGame + '-rules.html';
+  rulesOverlay.style.display = 'block';
 }
 
 function handleBack(){
   if(inRules){
     inRules = false;
-    gameFrame.src = gameSrc;
+    rulesOverlay.style.display = 'none';
+    rulesFrame.src = '';
     return;
   }
   backToMenu();
@@ -273,8 +302,6 @@ async function sendFeedback(){
     type:'feedback',
     page:'console',
     text,
-    platform: tg.platform,
-    lang: tg.initDataUnsafe?.user?.language_code,
     user: tg.initDataUnsafe?.user?.id,
     ts: Date.now()
   }));
