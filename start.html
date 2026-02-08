@@ -102,27 +102,97 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
 
+<!-- AUDIO -->
+<audio id="musicMenu" src="music-menu.mp3" loop></audio>
+<audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
+<audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
+<audio id="music-ChronoMonsters" src="music-ChronoMonsters.mp3" loop></audio>
+<audio id="music-LazerRoulette" src="music-LazerRoulette.mp3" loop></audio>
+
 <script>
 const menu = document.getElementById('menu');
+const menuContent = document.getElementById('menuContent');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
+const muteBtn = document.getElementById('muteBtn');
 
+const tracks = {
+  menu: document.getElementById('musicMenu'),
+  PokerLazer: document.getElementById('music-PokerLazer'),
+  StarDropper: document.getElementById('music-StarDropper'),
+  ChronoMonsters: document.getElementById('music-ChronoMonsters'),
+  LazerRoulette: document.getElementById('music-LazerRoulette')
+};
+
+let currentGame = '';
+let fadeInterval;
+
+/* ===== AUDIO FADE ===== */
+function fadeIn(track, targetVolume = 0.4) {
+  track.muted = false;
+  track.volume = 0;
+  track.play().catch(()=>{});
+  clearInterval(fadeInterval);
+  let v=0;
+  fadeInterval=setInterval(()=>{
+    v+=0.05;
+    if(v>=targetVolume){v=targetVolume; clearInterval(fadeInterval);}
+    track.volume=v;
+  },50);
+}
+function fadeOut(track, cb){
+  clearInterval(fadeInterval);
+  let v = track.volume;
+  fadeInterval=setInterval(()=>{
+    v-=0.05;
+    if(v<=0){ track.pause(); clearInterval(fadeInterval); if(cb) cb(); }
+    track.volume=v;
+  },50);
+}
+
+/* ===== MUTE ===== */
+function toggleMute(){
+  const active = Object.values(tracks).some(t=>!t.muted);
+  if(active){
+    Object.values(tracks).forEach(t=>{ fadeOut(t); t.muted=true; });
+    muteBtn.textContent="🔇";
+  }else{
+    Object.values(tracks).forEach(t=>t.muted=false);
+    muteBtn.textContent="🔊";
+    if(menu.style.display!=='none') fadeIn(tracks.menu);
+    else if(currentGame) fadeIn(tracks[currentGame]);
+  }
+}
+
+/* ===== GAME FLOW ===== */
 function loadGame(game){
+  currentGame = game;
+  fadeOut(tracks.menu,()=>fadeIn(tracks[game]));
   menu.style.display='none';
   gameContainer.style.display='flex';
+  gameFrame.style.width = innerWidth+'px';
+  gameFrame.style.height = innerHeight+'px';
   gameFrame.src = game+'/index.html';
 }
 function backToMenu(){
+  fadeOut(tracks[currentGame],()=>fadeIn(tracks.menu));
   gameFrame.src='';
   menu.style.display='flex';
   gameContainer.style.display='none';
+  currentGame='';
 }
 function openRules(){
-  if(!gameFrame.src) return;
-  gameFrame.src = gameFrame.src.replace('.html','-rules.html');
+  if(!currentGame) return;
+  gameFrame.src = currentGame+'/'+currentGame+'-rules.html';
 }
+addEventListener('resize',()=>{
+  if(gameFrame.src){
+    gameFrame.style.width = innerWidth+'px';
+    gameFrame.style.height = innerHeight+'px';
+  }
+});
 
-/* Feedback only in console */
+/* ==== FEEDBACK ONLY IN CONSOLE ==== */
 const tg = window.Telegram?.WebApp;
 async function sendFeedback() {
   if(!tg){ alert("Feedback works only inside Telegram WebApp"); return; }
@@ -130,9 +200,9 @@ async function sendFeedback() {
   if(!text) return;
   const fileInput = document.createElement('input');
   fileInput.type='file'; fileInput.accept='image/*';
-  fileInput.onchange = async () => {
+  fileInput.onchange = async ()=>{
     let fileData=null;
-    if(fileInput.files.length>0) fileData=await fileToBase64(fileInput.files[0]);
+    if(fileInput.files.length>0) fileData = await fileToBase64(fileInput.files[0]);
     tg.sendData(JSON.stringify({
       type:'feedback', page:'console', text:text, screenshot:fileData,
       platform: tg.platform,
