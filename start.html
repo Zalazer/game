@@ -4,14 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Console</title>
+
 <style>
 * { box-sizing: border-box; }
-html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial,sans-serif; background:#0b0b0b; color:#eaeaea; overflow:hidden; }
+html, body {
+  margin:0; padding:0; width:100%; height:100%;
+  font-family:Arial,sans-serif;
+  background:#0b0b0b; color:#eaeaea;
+  overflow:hidden;
+}
 
+/* ===== MENU ===== */
 #menu {
   display:flex;
   flex-direction:column;
-  justify-content:space-between; /* распределяем контент и футер */
+  justify-content:space-between;
   height:100%;
   padding:20px 0;
 }
@@ -30,38 +37,99 @@ h1 { font-size:28px; margin-bottom:24px; text-align:center; }
 }
 .btn:hover { background:#2c2c2c; }
 
-#gameContainer { display:none; flex-direction:column; width:100%; height:100%; }
+/* ===== GAME ===== */
+#gameContainer {
+  display:none;
+  flex-direction:column;
+  width:100%;
+  height:100%;
+}
 
 #topBar {
-  width:100%; background:rgba(17,17,17,0.98); padding:10px;
-  display:flex; justify-content:space-between; align-items:center; z-index:10;
+  width:100%;
+  background:rgba(17,17,17,0.98);
+  padding:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  z-index:10;
 }
-.topBtn { font-size:15px; padding:8px 14px; border-radius:8px; background:#222; border:none; color:#fff; cursor:pointer; }
 
-#gameFrameWrapper { flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#000; }
-iframe#gameFrame { border:none; width:100%; height:100%; }
+.topBtn {
+  font-size:15px;
+  padding:8px 14px;
+  border-radius:8px;
+  background:#222;
+  border:none;
+  color:#fff;
+  cursor:pointer;
+}
 
-/* FOOTER ON CONSOLE ONLY */
-hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
+#gameFrameWrapper {
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:#000;
+}
+
+iframe#gameFrame {
+  border:none;
+  width:100%;
+  height:100%;
+}
+
+/* ===== FOOTER (CONSOLE ONLY) ===== */
+hr.rules-footer-sep {
+  margin:0;
+  border:0;
+  border-top:1px solid #333;
+}
+
 .rules-footer {
-  width:100%; text-align:center; font-size:12px;
-  opacity:0.85; padding:8px 0 12px 0; background:rgba(11,11,11,0.95);
+  width:100%;
+  text-align:center;
+  font-size:12px;
+  opacity:0.85;
+  padding:8px 0 12px 0;
+  background:rgba(11,11,11,0.95);
 }
-.rules-copyright { line-height:1.5; margin-bottom:6px; }
+
+.rules-copyright {
+  line-height:1.5;
+  margin-bottom:6px;
+}
+
 .rules-contact-btn {
-  background:#151515; color:#ffd36a; border:1px solid #333;
-  padding:6px 16px; cursor:pointer; font-size:12px; border-radius:4px; transition:all 0.2s ease;
+  background:#151515;
+  color:#ffd36a;
+  border:1px solid #333;
+  padding:6px 16px;
+  cursor:pointer;
+  font-size:12px;
+  border-radius:4px;
 }
-.rules-contact-btn:hover { background:#1e1e1e; border-color:#ffd36a; }
-.rules-note { margin-top:6px; font-size:11px; opacity:0.5; }
+
+.rules-contact-btn:hover {
+  background:#1e1e1e;
+  border-color:#ffd36a;
+}
+
+.rules-note {
+  margin-top:6px;
+  font-size:11px;
+  opacity:0.5;
+}
 
 .doc-signature { display:none; opacity:0.15; }
 </style>
 </head>
+
 <body>
 
+<!-- ===== MENU ===== -->
 <div id="menu">
-  <!-- Верхняя часть с кнопками -->
   <div id="menuContent">
     <h1>🎮 Game Console</h1>
     <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
@@ -70,7 +138,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
     <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
   </div>
 
-  <!-- Нижний футер -->
   <div>
     <hr class="rules-footer-sep">
     <div class="rules-footer">
@@ -79,9 +146,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
         All code and content are protected by copyright law.<br>
         All rights reserved.
       </div>
-      <button class="rules-contact-btn" onclick="sendFeedback()">
-        Contact / Feedback
-      </button>
+      <button class="rules-contact-btn" onclick="sendFeedback()">Contact / Feedback</button>
       <div class="rules-note">
         Feedback can include text and screenshot. No reply guaranteed.
       </div>
@@ -89,9 +154,10 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   </div>
 </div>
 
+<!-- ===== GAME ===== -->
 <div id="gameContainer">
   <div id="topBar">
-    <button class="topBtn" onclick="backToMenu()">← Back</button>
+    <button class="topBtn" onclick="handleBack()">← Back</button>
     <button class="topBtn" onclick="openRules()">Game Rules</button>
     <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
   </div>
@@ -102,7 +168,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
 
-<!-- AUDIO -->
+<!-- ===== AUDIO ===== -->
 <audio id="musicMenu" src="music-menu.mp3" loop></audio>
 <audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
@@ -111,7 +177,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 <script>
 const menu = document.getElementById('menu');
-const menuContent = document.getElementById('menuContent');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
 const muteBtn = document.getElementById('muteBtn');
@@ -125,29 +190,64 @@ const tracks = {
 };
 
 let currentGame = '';
+let gameSrc = '';
+let inRules = false;
 let fadeInterval;
 
-/* ===== AUDIO FADE ===== */
-function fadeIn(track, targetVolume = 0.4) {
-  track.muted = false;
-  track.volume = 0;
-  track.play().catch(()=>{});
+/* ===== AUDIO ===== */
+function fadeIn(track, v=0.4){
+  track.muted=false; track.volume=0; track.play().catch(()=>{});
   clearInterval(fadeInterval);
-  let v=0;
+  let x=0;
   fadeInterval=setInterval(()=>{
-    v+=0.05;
-    if(v>=targetVolume){v=targetVolume; clearInterval(fadeInterval);}
-    track.volume=v;
+    x+=0.05;
+    if(x>=v){x=v; clearInterval(fadeInterval);}
+    track.volume=x;
   },50);
 }
 function fadeOut(track, cb){
   clearInterval(fadeInterval);
-  let v = track.volume;
+  let v=track.volume;
   fadeInterval=setInterval(()=>{
     v-=0.05;
-    if(v<=0){ track.pause(); clearInterval(fadeInterval); if(cb) cb(); }
+    if(v<=0){ track.pause(); clearInterval(fadeInterval); cb&&cb(); }
     track.volume=v;
   },50);
+}
+
+/* ===== GAME FLOW ===== */
+function loadGame(game){
+  currentGame = game;
+  gameSrc = game + '/index.html';
+  inRules = false;
+
+  fadeOut(tracks.menu,()=>fadeIn(tracks[game]));
+  menu.style.display='none';
+  gameContainer.style.display='flex';
+  gameFrame.src = gameSrc;
+}
+
+function openRules(){
+  if(!currentGame) return;
+  inRules = true;
+  gameFrame.src = currentGame + '/' + currentGame + '-rules.html';
+}
+
+function handleBack(){
+  if(inRules){
+    inRules = false;
+    gameFrame.src = gameSrc;
+    return;
+  }
+  backToMenu();
+}
+
+function backToMenu(){
+  fadeOut(tracks[currentGame],()=>fadeIn(tracks.menu));
+  gameFrame.src='';
+  gameContainer.style.display='none';
+  menu.style.display='flex';
+  currentGame='';
 }
 
 /* ===== MUTE ===== */
@@ -159,69 +259,28 @@ function toggleMute(){
   }else{
     Object.values(tracks).forEach(t=>t.muted=false);
     muteBtn.textContent="🔊";
-    if(menu.style.display!=='none') fadeIn(tracks.menu);
-    else if(currentGame) fadeIn(tracks[currentGame]);
+    currentGame ? fadeIn(tracks[currentGame]) : fadeIn(tracks.menu);
   }
 }
 
-/* ===== GAME FLOW ===== */
-function loadGame(game){
-  currentGame = game;
-  fadeOut(tracks.menu,()=>fadeIn(tracks[game]));
-  menu.style.display='none';
-  gameContainer.style.display='flex';
-  gameFrame.style.width = innerWidth+'px';
-  gameFrame.style.height = innerHeight+'px';
-  gameFrame.src = game+'/index.html';
-}
-function backToMenu(){
-  fadeOut(tracks[currentGame],()=>fadeIn(tracks.menu));
-  gameFrame.src='';
-  menu.style.display='flex';
-  gameContainer.style.display='none';
-  currentGame='';
-}
-function openRules(){
-  if(!currentGame) return;
-  gameFrame.src = currentGame+'/'+currentGame+'-rules.html';
-}
-addEventListener('resize',()=>{
-  if(gameFrame.src){
-    gameFrame.style.width = innerWidth+'px';
-    gameFrame.style.height = innerHeight+'px';
-  }
-});
-
-/* ==== FEEDBACK ONLY IN CONSOLE ==== */
+/* ===== FEEDBACK ===== */
 const tg = window.Telegram?.WebApp;
-async function sendFeedback() {
+async function sendFeedback(){
   if(!tg){ alert("Feedback works only inside Telegram WebApp"); return; }
   const text = prompt("Please enter your feedback:");
   if(!text) return;
-  const fileInput = document.createElement('input');
-  fileInput.type='file'; fileInput.accept='image/*';
-  fileInput.onchange = async ()=>{
-    let fileData=null;
-    if(fileInput.files.length>0) fileData = await fileToBase64(fileInput.files[0]);
-    tg.sendData(JSON.stringify({
-      type:'feedback', page:'console', text:text, screenshot:fileData,
-      platform: tg.platform,
-      lang: tg.initDataUnsafe?.user?.language_code,
-      user: tg.initDataUnsafe?.user?.id,
-      ts: Date.now()
-    }));
-    alert("Thank you! Your feedback has been sent ✅");
-  };
-  fileInput.click();
-}
-function fileToBase64(file){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result);
-    reader.onerror=reject;
-    reader.readAsDataURL(file);
-  });
+  tg.sendData(JSON.stringify({
+    type:'feedback',
+    page:'console',
+    text,
+    platform: tg.platform,
+    lang: tg.initDataUnsafe?.user?.language_code,
+    user: tg.initDataUnsafe?.user?.id,
+    ts: Date.now()
+  }));
+  alert("Thank you! Your feedback has been sent ✅");
 }
 </script>
+
 </body>
 </html>
