@@ -150,6 +150,7 @@ hr.rules-footer-sep {
     <button class="btn" onclick="loadGame('StarDropper')">⭐ StarDropper</button>
     <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
     <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
+    <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
   </div>
 
   <div>
@@ -193,6 +194,7 @@ hr.rules-footer-sep {
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
 <audio id="music-ChronoMonsters" src="music-ChronoMonsters.mp3" loop></audio>
 <audio id="music-LazerRoulette" src="music-LazerRoulette.mp3" loop></audio>
+<audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 
 <script>
 const menu = document.getElementById('menu');
@@ -207,7 +209,8 @@ const tracks = {
   PokerLazer: document.getElementById('music-PokerLazer'),
   StarDropper: document.getElementById('music-StarDropper'),
   ChronoMonsters: document.getElementById('music-ChronoMonsters'),
-  LazerRoulette: document.getElementById('music-LazerRoulette')
+  LazerRoulette: document.getElementById('music-LazerRoulette'),
+  Odrive: document.getElementById('music-Odrive')
 };
 
 let currentGame = '';
@@ -228,6 +231,7 @@ function fadeIn(track, v=0.4){
     track.volume=x;
   },50);
 }
+
 function fadeOut(track, cb){
   clearInterval(fadeInterval);
   let v=track.volume;
@@ -248,7 +252,12 @@ function loadGame(game){
   gameSrc = game + '/index.html';
   inRules = false;
 
-  fadeOut(tracks.menu,()=>fadeIn(tracks[game]));
+  // Плавная смена музыки
+  Object.values(tracks).forEach(t => {
+    if(t !== tracks[game]) fadeOut(t);
+  });
+  fadeIn(tracks[game]);
+
   menu.style.display='none';
   gameContainer.style.display='flex';
   gameFrame.src = gameSrc;
