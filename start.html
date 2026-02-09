@@ -216,51 +216,63 @@ const tracks = {
 let currentGame = '';
 let gameSrc = '';
 let inRules = false;
-let fadeInterval;
+let fadeIntervals = new Map();
+let isMuted = false;
 
 /* ===== AUDIO ===== */
-function fadeIn(track, v=0.4){
+function fadeIn(track, volume=0.4){
+  if(isMuted) return;
+  clearInterval(fadeIntervals.get(track));
   track.muted=false;
   track.volume=0;
   track.play().catch(()=>{});
-  clearInterval(fadeInterval);
-  let x=0;
-  fadeInterval=setInterval(()=>{
-    x+=0.05;
-    if(x>=v){x=v; clearInterval(fadeInterval);}
-    track.volume=x;
-  },50);
+  fadeIntervals.set(track, setInterval(()=>{
+    track.volume = Math.min(track.volume + 0.05, volume);
+    if(track.volume >= volume){
+      clearInterval(fadeIntervals.get(track));
+    }
+  },50));
 }
 
-function fadeOut(track, cb){
-  clearInterval(fadeInterval);
-  let v=track.volume;
-  fadeInterval=setInterval(()=>{
-    v-=0.05;
-    if(v<=0){
-      track.pause();
-      clearInterval(fadeInterval);
-      cb && cb();
-    }
-    track.volume=v;
-  },50);
+function fadeOut(track){
+  return new Promise(resolve=>{
+    clearInterval(fadeIntervals.get(track));
+    fadeIntervals.set(track, setInterval(()=>{
+      track.volume = Math.max(track.volume - 0.05, 0);
+      if(track.volume <= 0){
+        track.pause();
+        clearInterval(fadeIntervals.get(track));
+        resolve();
+      }
+    },50));
+  });
+}
+
+async function switchMusic(nextTrack){
+  const promises = Object.values(tracks)
+    .filter(t => t !== nextTrack)
+    .map(t => fadeOut(t));
+  await Promise.all(promises);
+  fadeIn(nextTrack);
 }
 
 /* ===== GAME FLOW ===== */
-function loadGame(game){
+async function loadGame(game){
   currentGame = game;
   gameSrc = game + '/index.html';
   inRules = false;
-
-  // Плавная смена музыки
-  Object.values(tracks).forEach(t => {
-    if(t !== tracks[game]) fadeOut(t);
-  });
-  fadeIn(tracks[game]);
-
+  await switchMusic(tracks[game]);
   menu.style.display='none';
   gameContainer.style.display='flex';
   gameFrame.src = gameSrc;
+}
+
+async function backToMenu(){
+  await switchMusic(tracks.menu);
+  gameFrame.src='';
+  gameContainer.style.display='none';
+  menu.style.display='flex';
+  currentGame='';
 }
 
 function openRules(){
@@ -280,25 +292,18 @@ function handleBack(){
   backToMenu();
 }
 
-function backToMenu(){
-  fadeOut(tracks[currentGame],()=>fadeIn(tracks.menu));
-  gameFrame.src='';
-  gameContainer.style.display='none';
-  menu.style.display='flex';
-  currentGame='';
-}
-
 /* ===== MUTE ===== */
 function toggleMute(){
-  const active = Object.values(tracks).some(t=>!t.muted);
-  if(active){
-    Object.values(tracks).forEach(t=>{ fadeOut(t); t.muted=true; });
-    muteBtn.textContent="🔇";
-  }else{
-    Object.values(tracks).forEach(t=>t.muted=false);
-    muteBtn.textContent="🔊";
-    currentGame ? fadeIn(tracks[currentGame]) : fadeIn(tracks.menu);
-  }
+  isMuted = !isMuted;
+  Object.values(tracks).forEach(t=>{
+    t.muted = isMuted;
+    if(isMuted) t.pause();
+    else {
+      if(currentGame) fadeIn(tracks[currentGame]);
+      else fadeIn(tracks.menu);
+    }
+  });
+  muteBtn.textContent = isMuted ? "🔇" : "🔊";
 }
 
 /* ===== FEEDBACK ===== */
