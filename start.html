@@ -14,127 +14,34 @@ html, body {
   overflow:hidden;
 }
 
-/* ===== MENU ===== */
-#menu {
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  height:100%;
-  padding:20px 0;
-}
-#menuContent {
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-}
-
+#menu { display:flex; flex-direction:column; justify-content:space-between; height:100%; padding:20px 0; }
+#menuContent { display:flex; flex-direction:column; align-items:center; }
 h1 { font-size:28px; margin-bottom:24px; text-align:center; }
-
-.btn {
-  width:260px; padding:14px; margin:8px;
-  font-size:18px; border:none; border-radius:10px;
-  background:#1c1c1c; color:#fff; cursor:pointer;
-}
+.btn { width:260px; padding:14px; margin:8px; font-size:18px; border:none; border-radius:10px; background:#1c1c1c; color:#fff; cursor:pointer; }
 .btn:hover { background:#2c2c2c; }
 
-/* ===== GAME ===== */
-#gameContainer {
-  display:none;
-  flex-direction:column;
-  width:100%;
-  height:100%;
-  position:relative;
-}
+#gameContainer { display:none; flex-direction:column; width:100%; height:100%; position:relative; }
+#topBar { width:100%; background:rgba(17,17,17,0.98); padding:10px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
+.topBtn { font-size:15px; padding:8px 14px; border-radius:8px; background:#222; border:none; color:#fff; cursor:pointer; }
 
-#topBar {
-  width:100%;
-  background:rgba(17,17,17,0.98);
-  padding:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  z-index:10;
-}
+#gameFrameWrapper { flex:1; position:relative; overflow:hidden; background:#000; }
+iframe#gameFrame { border:none; width:100%; height:100%; }
 
-.topBtn {
-  font-size:15px;
-  padding:8px 14px;
-  border-radius:8px;
-  background:#222;
-  border:none;
-  color:#fff;
-  cursor:pointer;
-}
+#rulesOverlay { position:absolute; inset:0; background:rgba(0,0,0,0.96); z-index:20; display:none; }
+#rulesFrame { width:100%; height:100%; border:none; }
 
-#gameFrameWrapper {
-  flex:1;
-  position:relative;
-  overflow:hidden;
-  background:#000;
-}
+hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
+.rules-footer { width:100%; text-align:center; font-size:12px; opacity:0.85; padding:8px 0 12px 0; background:rgba(11,11,11,0.95); }
+.rules-copyright { line-height:1.5; margin-bottom:6px; }
+.rules-contact-btn { background:#151515; color:#ffd36a; border:1px solid #333; padding:6px 16px; cursor:pointer; font-size:12px; border-radius:4px; }
+.rules-contact-btn:hover { background:#1e1e1e; border-color:#ffd36a; }
+.rules-note { margin-top:6px; font-size:11px; opacity:0.5; }
 
-iframe#gameFrame {
-  border:none;
-  width:100%;
-  height:100%;
-}
-
-/* ===== RULES OVERLAY ===== */
-#rulesOverlay {
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,0.96);
-  z-index:20;
-  display:none;
-}
-
-#rulesFrame {
-  width:100%;
-  height:100%;
-  border:none;
-}
-
-/* ===== FOOTER ===== */
-hr.rules-footer-sep {
-  margin:0;
-  border:0;
-  border-top:1px solid #333;
-}
-
-.rules-footer {
-  width:100%;
-  text-align:center;
-  font-size:12px;
-  opacity:0.85;
-  padding:8px 0 12px 0;
-  background:rgba(11,11,11,0.95);
-}
-
-.rules-copyright {
-  line-height:1.5;
-  margin-bottom:6px;
-}
-
-.rules-contact-btn {
-  background:#151515;
-  color:#ffd36a;
-  border:1px solid #333;
-  padding:6px 16px;
-  cursor:pointer;
-  font-size:12px;
-  border-radius:4px;
-}
-
-.rules-contact-btn:hover {
-  background:#1e1e1e;
-  border-color:#ffd36a;
-}
-
-.rules-note {
-  margin-top:6px;
-  font-size:11px;
-  opacity:0.5;
-}
+#feedbackModal { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:30; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+#feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
+#feedbackModal input[type=file] { margin-bottom:12px; }
+#feedbackModal button { padding:10px 18px; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
+#feedbackModal button:hover { background:#2c2c2c; }
 
 .doc-signature { display:none; opacity:0.15; }
 </style>
@@ -161,10 +68,8 @@ hr.rules-footer-sep {
         All code and content are protected by copyright law.<br>
         All rights reserved.
       </div>
-      <button class="rules-contact-btn" onclick="sendFeedback()">Contact / Feedback</button>
-      <div class="rules-note">
-        Feedback can include text and screenshot. No reply guaranteed.
-      </div>
+      <button class="rules-contact-btn" onclick="openFeedbackModal()">Send Feedback / Screenshot</button>
+      <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
     </div>
   </div>
 </div>
@@ -179,11 +84,16 @@ hr.rules-footer-sep {
 
   <div id="gameFrameWrapper">
     <iframe id="gameFrame"></iframe>
-
-    <div id="rulesOverlay">
-      <iframe id="rulesFrame"></iframe>
-    </div>
+    <div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
   </div>
+</div>
+
+<!-- ===== FEEDBACK MODAL ===== -->
+<div id="feedbackModal">
+  <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
+  <input type="file" id="feedbackPhoto" accept="image/*" />
+  <button onclick="sendFeedback()">Send Feedback ✅</button>
+  <button onclick="closeFeedbackModal()">Cancel ❌</button>
 </div>
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
@@ -204,6 +114,10 @@ const rulesOverlay = document.getElementById('rulesOverlay');
 const rulesFrame = document.getElementById('rulesFrame');
 const muteBtn = document.getElementById('muteBtn');
 
+const feedbackModal = document.getElementById('feedbackModal');
+const feedbackText = document.getElementById('feedbackText');
+const feedbackPhoto = document.getElementById('feedbackPhoto');
+
 const tracks = {
   menu: document.getElementById('musicMenu'),
   PokerLazer: document.getElementById('music-PokerLazer'),
@@ -216,46 +130,63 @@ const tracks = {
 let currentGame = '';
 let gameSrc = '';
 let inRules = false;
-let fadeInterval;
+let fadeIntervals = new Map();
+let isMuted = false;
 
 /* ===== AUDIO ===== */
-function fadeIn(track, v=0.4){
+function fadeIn(track, volume=0.4){
+  if(isMuted) return;
+  clearInterval(fadeIntervals.get(track));
   track.muted=false;
   track.volume=0;
   track.play().catch(()=>{});
-  clearInterval(fadeInterval);
-  let x=0;
-  fadeInterval=setInterval(()=>{
-    x+=0.05;
-    if(x>=v){ x=v; clearInterval(fadeInterval); }
-    track.volume = x;
-  },50);
+  fadeIntervals.set(track, setInterval(()=>{
+    track.volume = Math.min(track.volume + 0.05, volume);
+    if(track.volume >= volume){
+      clearInterval(fadeIntervals.get(track));
+    }
+  },50));
 }
 
-function fadeOut(track, cb){
-  clearInterval(fadeInterval);
-  let v = track.volume;
-  fadeInterval = setInterval(()=>{
-    v -= 0.05;
-    if(v <= 0){
-      track.pause();
-      clearInterval(fadeInterval);
-      cb && cb();
-    }
-    track.volume = v;
-  },50);
+function fadeOut(track){
+  return new Promise(resolve=>{
+    clearInterval(fadeIntervals.get(track));
+    fadeIntervals.set(track, setInterval(()=>{
+      track.volume = Math.max(track.volume - 0.05, 0);
+      if(track.volume <= 0){
+        track.pause();
+        clearInterval(fadeIntervals.get(track));
+        resolve();
+      }
+    },50));
+  });
+}
+
+async function switchMusic(nextTrack){
+  const promises = Object.values(tracks)
+    .filter(t => t !== nextTrack)
+    .map(t => fadeOut(t));
+  await Promise.all(promises);
+  fadeIn(nextTrack);
 }
 
 /* ===== GAME FLOW ===== */
-function loadGame(game){
+async function loadGame(game){
   currentGame = game;
   gameSrc = game + '/index.html';
   inRules = false;
-
-  fadeOut(tracks.menu,()=>fadeIn(tracks[game]));
+  await switchMusic(tracks[game]);
   menu.style.display='none';
   gameContainer.style.display='flex';
   gameFrame.src = gameSrc;
+}
+
+async function backToMenu(){
+  await switchMusic(tracks.menu);
+  gameFrame.src='';
+  gameContainer.style.display='none';
+  menu.style.display='flex';
+  currentGame='';
 }
 
 function openRules(){
@@ -275,41 +206,59 @@ function handleBack(){
   backToMenu();
 }
 
-function backToMenu(){
-  fadeOut(tracks[currentGame],()=>fadeIn(tracks.menu));
-  gameFrame.src='';
-  gameContainer.style.display='none';
-  menu.style.display='flex';
-  currentGame='';
-}
-
 /* ===== MUTE ===== */
 function toggleMute(){
-  const active = Object.values(tracks).some(t=>!t.muted);
-  if(active){
-    Object.values(tracks).forEach(t=>{ fadeOut(t); t.muted=true; });
-    muteBtn.textContent="🔇";
-  }else{
-    Object.values(tracks).forEach(t=>t.muted=false);
-    muteBtn.textContent="🔊";
-    currentGame ? fadeIn(tracks[currentGame]) : fadeIn(tracks.menu);
-  }
+  isMuted = !isMuted;
+  Object.values(tracks).forEach(t=>{
+    t.muted = isMuted;
+    if(isMuted) t.pause();
+    else {
+      if(currentGame) fadeIn(tracks[currentGame]);
+      else fadeIn(tracks.menu);
+    }
+  });
+  muteBtn.textContent = isMuted ? "🔇" : "🔊";
 }
 
-/* ===== FEEDBACK ===== */
+/* ===== FEEDBACK MODAL ===== */
+function openFeedbackModal(){
+  feedbackModal.style.display='flex';
+}
+function closeFeedbackModal(){
+  feedbackModal.style.display='none';
+  feedbackText.value='';
+  feedbackPhoto.value='';
+}
+
+/* ===== SEND FEEDBACK ===== */
 const tg = window.Telegram?.WebApp;
 async function sendFeedback(){
   if(!tg){ alert("Feedback works only inside Telegram WebApp"); return; }
-  const text = prompt("Please enter your feedback:");
-  if(!text) return;
+
+  const text = feedbackText.value.trim();
+  if(!text && !feedbackPhoto.files.length){ alert("Add text or photo"); return; }
+
+  let photoBase64 = null;
+  if(feedbackPhoto.files.length){
+    const file = feedbackPhoto.files[0];
+    photoBase64 = await new Promise(resolve=>{
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
   tg.sendData(JSON.stringify({
     type:'feedback',
     page:'console',
     text,
+    photo: photoBase64,
     user: tg.initDataUnsafe?.user?.id,
     ts: Date.now()
   }));
+
   alert("Thank you! Your feedback has been sent ✅");
+  closeFeedbackModal();
 }
 </script>
 
