@@ -42,10 +42,17 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 #feedbackModal { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:30; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 #feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
-
-#feedbackModal input[type=file] { margin-bottom:12px; }
-#feedbackModal button { padding:10px 18px; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
-#feedbackModal button:hover { background:#2c2c2c; }
+#feedbackPhotoWrapper { display:flex; align-items:center; width:80%; margin-bottom:12px; }
+#feedbackPhotoWrapper input { flex:1; }
+#removePhotoBtn {
+  margin-left:8px; cursor:pointer; background:#550000; color:#fff;
+  border:none; border-radius:4px; padding:4px 8px;
+  display:inline-block;
+}
+#feedbackModal .feedback-buttons { display:flex; justify-content:space-between; width:80%; margin-top:8px; }
+#feedbackModal .feedback-buttons button { flex:1; margin:0 4px; padding:10px 0; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
+#feedbackModal .feedback-buttons button:hover { background:#2c2c2c; }
+#feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
 
 .doc-signature { display:none; opacity:0.15; }
 </style>
@@ -95,16 +102,15 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <!-- ===== FEEDBACK MODAL ===== -->
 <div id="feedbackModal">
   <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
-
-  <div style="display:flex; align-items:center; width:80%; margin-bottom:12px;">
-    <input type="file" id="feedbackPhoto" accept="image/*" style="flex:1;" />
-    <button id="removePhotoBtn" style="margin-left:8px; padding:6px 10px; font-size:14px; border-radius:6px; border:none; background:#a33; color:#fff; cursor:pointer;">❌</button>
+  <div id="feedbackPhotoWrapper">
+    <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
+    <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
   </div>
-
-  <div style="display:flex; justify-content:space-between; width:80%;">
-    <button onclick="sendFeedback()" style="flex:1; margin-right:6px;">Send Feedback ✅</button>
-    <button onclick="closeFeedbackModal()" style="flex:1; margin-left:6px;">Cancel ❌</button>
+  <div class="feedback-buttons">
+    <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
+    <button onclick="closeFeedbackModal()">Cancel ❌</button>
   </div>
+  <div id="feedbackStatus"></div>
 </div>
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
@@ -118,25 +124,21 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 
 <script>
-
 /* =========================
    TELEGRAM INIT
 ========================= */
 let tg = null;
 function initTelegram(){
-  if (window.Telegram && window.Telegram.WebApp){
+  if(window.Telegram && window.Telegram.WebApp){
     tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
     console.log("Telegram WebApp detected");
-  } else {
-    console.log("Telegram WebApp NOT detected");
-  }
+  } else console.log("Telegram WebApp NOT detected");
 }
 initTelegram();
 
 /* ========================= */
-
 const menu = document.getElementById('menu');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
@@ -144,10 +146,11 @@ const rulesOverlay = document.getElementById('rulesOverlay');
 const rulesFrame = document.getElementById('rulesFrame');
 const muteBtn = document.getElementById('muteBtn');
 
+const feedbackModal = document.getElementById('feedbackModal');
 const feedbackText = document.getElementById('feedbackText');
 const feedbackPhoto = document.getElementById('feedbackPhoto');
-const feedbackModal = document.getElementById('feedbackModal');
-const removePhotoBtn = document.getElementById('removePhotoBtn');
+const feedbackStatus = document.getElementById('feedbackStatus');
+const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
 
 const tracks = {
   menu: document.getElementById('musicMenu'),
@@ -159,7 +162,6 @@ const tracks = {
 };
 
 let currentGame = '';
-let gameSrc = '';
 let inRules = false;
 let fadeIntervals = new Map();
 let isMuted = false;
@@ -168,46 +170,37 @@ let isMuted = false;
 function fadeIn(track, volume=0.4){
   if(isMuted) return;
   clearInterval(fadeIntervals.get(track));
-  track.muted=false;
-  track.volume=0;
+  track.muted=false; track.volume=0;
   track.play().catch(()=>{});
-  fadeIntervals.set(track, setInterval(()=>{
-    track.volume = Math.min(track.volume + 0.05, volume);
-    if(track.volume >= volume) clearInterval(fadeIntervals.get(track));
+  fadeIntervals.set(track,setInterval(()=>{
+    track.volume = Math.min(track.volume+0.05,volume);
+    if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
   },50));
 }
 
 function fadeOut(track){
   return new Promise(resolve=>{
     clearInterval(fadeIntervals.get(track));
-    fadeIntervals.set(track, setInterval(()=>{
-      track.volume = Math.max(track.volume - 0.05, 0);
-      if(track.volume <= 0){
-        track.pause();
-        clearInterval(fadeIntervals.get(track));
-        resolve();
-      }
+    fadeIntervals.set(track,setInterval(()=>{
+      track.volume=Math.max(track.volume-0.05,0);
+      if(track.volume<=0){ track.pause(); clearInterval(fadeIntervals.get(track)); resolve(); }
     },50));
   });
 }
 
 async function switchMusic(nextTrack){
-  const promises = Object.values(tracks)
-    .filter(t => t !== nextTrack)
-    .map(t => fadeOut(t));
+  const promises=Object.values(tracks).filter(t=>t!==nextTrack).map(t=>fadeOut(t));
   await Promise.all(promises);
   fadeIn(nextTrack);
 }
 
 /* ===== GAME FLOW ===== */
 async function loadGame(game){
-  currentGame = game;
-  gameSrc = game + '/index.html';
-  inRules = false;
+  currentGame=game; inRules=false;
   await switchMusic(tracks[game]);
   menu.style.display='none';
   gameContainer.style.display='flex';
-  gameFrame.src = gameSrc;
+  gameFrame.src=game+'/index.html';
 }
 
 async function backToMenu(){
@@ -220,80 +213,77 @@ async function backToMenu(){
 
 function openRules(){
   if(!currentGame) return;
-  inRules = true;
-  rulesFrame.src = currentGame + '/' + currentGame + '-rules.html';
-  rulesOverlay.style.display = 'block';
+  inRules=true;
+  rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
+  rulesOverlay.style.display='block';
 }
 
 function handleBack(){
-  if(inRules){
-    inRules = false;
-    rulesOverlay.style.display = 'none';
-    rulesFrame.src = '';
-    return;
-  }
+  if(inRules){ inRules=false; rulesOverlay.style.display='none'; rulesFrame.src=''; return; }
   backToMenu();
 }
 
 /* ===== MUTE ===== */
 function toggleMute(){
-  isMuted = !isMuted;
+  isMuted=!isMuted;
   Object.values(tracks).forEach(t=>{
-    t.muted = isMuted;
-    if(isMuted) t.pause();
-    else {
-      if(currentGame) fadeIn(tracks[currentGame]);
-      else fadeIn(tracks.menu);
-    }
+    t.muted=isMuted;
+    if(isMuted) t.pause(); else { if(currentGame) fadeIn(tracks[currentGame]); else fadeIn(tracks.menu); }
   });
-  muteBtn.textContent = isMuted ? "🔇" : "🔊";
+  muteBtn.textContent=isMuted?"🔇":"🔊";
 }
 
 /* ===== FEEDBACK MODAL ===== */
 function openFeedbackModal(){ feedbackModal.style.display='flex'; }
-function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; }
+function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; feedbackStatus.textContent=''; toggleRemoveBtn(); }
 
-removePhotoBtn.addEventListener('click', ()=>{
-  feedbackPhoto.value='';
-});
+function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
+function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
 
+/* ===== SEND FEEDBACK ===== */
 async function sendFeedback(){
-  if(!tg){
-    alert("Feedback works only inside Telegram WebApp");
-    return;
-  }
-
+  if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
   const text = feedbackText.value.trim();
-  if(!text && !feedbackPhoto.files.length){
-    alert("Add text or photo");
-    return;
-  }
+  if(!text && !feedbackPhoto.files.length){ feedbackStatus.textContent="Add text or photo"; return; }
+
+  sendFeedbackBtn.disabled=true;
+  feedbackStatus.textContent="Sending...";
 
   let photoBase64 = null;
   if(feedbackPhoto.files.length){
-    const file = feedbackPhoto.files[0];
+    const file=feedbackPhoto.files[0];
     photoBase64 = await new Promise(resolve=>{
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target.result);
+      const reader=new FileReader();
+      reader.onload = e=>resolve(e.target.result);
       reader.readAsDataURL(file);
     });
   }
 
-  tg.sendData(JSON.stringify({
-    type:'feedback',
-    page:'console',
-    text,
-    photo: photoBase64,
-    user: tg.initDataUnsafe?.user?.id,
-    ts: Date.now()
-  }));
+  // GET ONE-TIME KEY
+  let ticket=null;
+  try{
+    const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket',{
+      method:'POST', headers:{'Content-Type':'application/json'}
+    });
+    const tJson = await tResp.json();
+    ticket=tJson.k;
+  } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
 
-  feedbackText.value='';
-  feedbackPhoto.value='';
-  feedbackModal.style.display='none';
+  const payload = { type:'feedback', page:'console', text, photo:photoBase64, user: tg.initDataUnsafe?.user?.id, ts: Date.now() };
 
-  tg.showAlert("Thank you! Your feedback has been sent ✅");
+  try{
+    const resp = await fetch('https://game.shooleeyack.workers.dev/__emit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ k: ticket, d: payload })
+    });
+    const result = await resp.json();
+    if(result.ok){ feedbackStatus.textContent="✅ Feedback sent!"; feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn(); }
+    else feedbackStatus.textContent="Failed to send feedback";
+  } catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
+  sendFeedbackBtn.disabled=false;
 }
+toggleRemoveBtn();
 </script>
 
 </body>
