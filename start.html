@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Console</title>
 
+<!-- ✅ TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 * { box-sizing: border-box; }
 html, body {
@@ -107,6 +110,28 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 
 <script>
+
+/* =========================
+   TELEGRAM INIT (FIX)
+========================= */
+
+let tg = null;
+
+function initTelegram(){
+  if (window.Telegram && window.Telegram.WebApp){
+    tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    console.log("Telegram WebApp detected");
+  } else {
+    console.log("Telegram WebApp NOT detected");
+  }
+}
+
+initTelegram();
+
+/* ========================= */
+
 const menu = document.getElementById('menu');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
@@ -231,14 +256,21 @@ function closeFeedbackModal(){
 }
 
 /* ===== SEND FEEDBACK ===== */
-const tg = window.Telegram?.WebApp;
 async function sendFeedback(){
-  if(!tg){ alert("Feedback works only inside Telegram WebApp"); return; }
+
+  if(!tg){
+    alert("Feedback works only inside Telegram WebApp");
+    return;
+  }
 
   const text = feedbackText.value.trim();
-  if(!text && !feedbackPhoto.files.length){ alert("Add text or photo"); return; }
+  if(!text && !feedbackPhoto.files.length){
+    alert("Add text or photo");
+    return;
+  }
 
   let photoBase64 = null;
+
   if(feedbackPhoto.files.length){
     const file = feedbackPhoto.files[0];
     photoBase64 = await new Promise(resolve=>{
@@ -260,6 +292,7 @@ async function sendFeedback(){
   alert("Thank you! Your feedback has been sent ✅");
   closeFeedbackModal();
 }
+
 </script>
 
 </body>
