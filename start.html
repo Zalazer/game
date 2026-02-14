@@ -42,6 +42,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 #feedbackModal { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:30; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 #feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
+
 #feedbackModal input[type=file] { margin-bottom:12px; }
 #feedbackModal button { padding:10px 18px; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
 #feedbackModal button:hover { background:#2c2c2c; }
@@ -94,9 +95,16 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <!-- ===== FEEDBACK MODAL ===== -->
 <div id="feedbackModal">
   <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
-  <input type="file" id="feedbackPhoto" accept="image/*" />
-  <button onclick="sendFeedback()">Send Feedback ✅</button>
-  <button onclick="closeFeedbackModal()">Cancel ❌</button>
+
+  <div style="display:flex; align-items:center; width:80%; margin-bottom:12px;">
+    <input type="file" id="feedbackPhoto" accept="image/*" style="flex:1;" />
+    <button id="removePhotoBtn" style="margin-left:8px; padding:6px 10px; font-size:14px; border-radius:6px; border:none; background:#a33; color:#fff; cursor:pointer;">❌</button>
+  </div>
+
+  <div style="display:flex; justify-content:space-between; width:80%;">
+    <button onclick="sendFeedback()" style="flex:1; margin-right:6px;">Send Feedback ✅</button>
+    <button onclick="closeFeedbackModal()" style="flex:1; margin-left:6px;">Cancel ❌</button>
+  </div>
 </div>
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
@@ -112,11 +120,9 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <script>
 
 /* =========================
-   TELEGRAM INIT (FIX)
+   TELEGRAM INIT
 ========================= */
-
 let tg = null;
-
 function initTelegram(){
   if (window.Telegram && window.Telegram.WebApp){
     tg = window.Telegram.WebApp;
@@ -127,7 +133,6 @@ function initTelegram(){
     console.log("Telegram WebApp NOT detected");
   }
 }
-
 initTelegram();
 
 /* ========================= */
@@ -139,9 +144,10 @@ const rulesOverlay = document.getElementById('rulesOverlay');
 const rulesFrame = document.getElementById('rulesFrame');
 const muteBtn = document.getElementById('muteBtn');
 
-const feedbackModal = document.getElementById('feedbackModal');
 const feedbackText = document.getElementById('feedbackText');
 const feedbackPhoto = document.getElementById('feedbackPhoto');
+const feedbackModal = document.getElementById('feedbackModal');
+const removePhotoBtn = document.getElementById('removePhotoBtn');
 
 const tracks = {
   menu: document.getElementById('musicMenu'),
@@ -167,9 +173,7 @@ function fadeIn(track, volume=0.4){
   track.play().catch(()=>{});
   fadeIntervals.set(track, setInterval(()=>{
     track.volume = Math.min(track.volume + 0.05, volume);
-    if(track.volume >= volume){
-      clearInterval(fadeIntervals.get(track));
-    }
+    if(track.volume >= volume) clearInterval(fadeIntervals.get(track));
   },50));
 }
 
@@ -246,18 +250,14 @@ function toggleMute(){
 }
 
 /* ===== FEEDBACK MODAL ===== */
-function openFeedbackModal(){
-  feedbackModal.style.display='flex';
-}
-function closeFeedbackModal(){
-  feedbackModal.style.display='none';
-  feedbackText.value='';
+function openFeedbackModal(){ feedbackModal.style.display='flex'; }
+function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; }
+
+removePhotoBtn.addEventListener('click', ()=>{
   feedbackPhoto.value='';
-}
+});
 
-/* ===== SEND FEEDBACK ===== */
 async function sendFeedback(){
-
   if(!tg){
     alert("Feedback works only inside Telegram WebApp");
     return;
@@ -270,7 +270,6 @@ async function sendFeedback(){
   }
 
   let photoBase64 = null;
-
   if(feedbackPhoto.files.length){
     const file = feedbackPhoto.files[0];
     photoBase64 = await new Promise(resolve=>{
@@ -289,10 +288,12 @@ async function sendFeedback(){
     ts: Date.now()
   }));
 
-  alert("Thank you! Your feedback has been sent ✅");
-  closeFeedbackModal();
-}
+  feedbackText.value='';
+  feedbackPhoto.value='';
+  feedbackModal.style.display='none';
 
+  tg.showAlert("Thank you! Your feedback has been sent ✅");
+}
 </script>
 
 </body>
