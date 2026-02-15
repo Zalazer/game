@@ -16,51 +16,38 @@ html, body {
   background:#0b0b0b; color:#eaeaea;
   overflow:hidden;
 }
-
 #menu { display:flex; flex-direction:column; justify-content:space-between; height:100%; padding:20px 0; }
 #menuContent { display:flex; flex-direction:column; align-items:center; }
 h1 { font-size:28px; margin-bottom:24px; text-align:center; }
 .btn { width:260px; padding:14px; margin:8px; font-size:18px; border:none; border-radius:10px; background:#1c1c1c; color:#fff; cursor:pointer; }
 .btn:hover { background:#2c2c2c; }
-
 #gameContainer { display:none; flex-direction:column; width:100%; height:100%; position:relative; }
 #topBar { width:100%; background:rgba(17,17,17,0.98); padding:10px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
 .topBtn { font-size:15px; padding:8px 14px; border-radius:8px; background:#222; border:none; color:#fff; cursor:pointer; }
-
 #gameFrameWrapper { flex:1; position:relative; overflow:hidden; background:#000; }
 iframe#gameFrame { border:none; width:100%; height:100%; }
-
 #rulesOverlay { position:absolute; inset:0; background:rgba(0,0,0,0.96); z-index:20; display:none; }
 #rulesFrame { width:100%; height:100%; border:none; }
-
 hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 .rules-footer { width:100%; text-align:center; font-size:12px; opacity:0.85; padding:8px 0 12px 0; background:rgba(11,11,11,0.95); }
 .rules-copyright { line-height:1.5; margin-bottom:6px; }
 .rules-contact-btn { background:#151515; color:#ffd36a; border:1px solid #333; padding:6px 16px; cursor:pointer; font-size:12px; border-radius:4px; }
 .rules-contact-btn:hover { background:#1e1e1e; border-color:#ffd36a; }
 .rules-note { margin-top:6px; font-size:11px; opacity:0.5; }
-
 #feedbackModal { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:30; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 #feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
 #feedbackPhotoWrapper { display:flex; align-items:center; width:80%; margin-bottom:12px; }
 #feedbackPhotoWrapper input { flex:1; }
-#removePhotoBtn {
-  margin-left:8px; cursor:pointer; background:#550000; color:#fff;
-  border:none; border-radius:4px; padding:4px 8px;
-  display:inline-block;
-}
+#removePhotoBtn { margin-left:8px; cursor:pointer; background:#550000; color:#fff; border:none; border-radius:4px; padding:4px 8px; display:inline-block; }
 #feedbackModal .feedback-buttons { display:flex; justify-content:space-between; width:80%; margin-top:8px; }
 #feedbackModal .feedback-buttons button { flex:1; margin:0 4px; padding:10px 0; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
 #feedbackModal .feedback-buttons button:hover { background:#2c2c2c; }
 #feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
-
 .doc-signature { display:none; opacity:0.15; }
 </style>
 </head>
-
 <body>
 
-<!-- ===== MENU ===== -->
 <div id="menu">
   <div id="menuContent">
     <h1>🎮 Game Console</h1>
@@ -70,7 +57,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
     <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
     <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
   </div>
-
   <div>
     <hr class="rules-footer-sep">
     <div class="rules-footer">
@@ -85,21 +71,18 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   </div>
 </div>
 
-<!-- ===== GAME ===== -->
 <div id="gameContainer">
   <div id="topBar">
     <button class="topBtn" onclick="handleBack()">← Back</button>
     <button class="topBtn" onclick="openRules()">Game Rules</button>
     <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
   </div>
-
   <div id="gameFrameWrapper">
     <iframe id="gameFrame"></iframe>
     <div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
   </div>
 </div>
 
-<!-- ===== FEEDBACK MODAL ===== -->
 <div id="feedbackModal">
   <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
   <div id="feedbackPhotoWrapper">
@@ -115,7 +98,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
 
-<!-- ===== AUDIO ===== -->
 <audio id="musicMenu" src="music-menu.mp3" loop></audio>
 <audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
@@ -162,18 +144,15 @@ let inRules = false;
 let fadeIntervals = new Map();
 let isMuted = false;
 
-/* ===== AUDIO ===== */
 function fadeIn(track, volume=0.4){
   if(isMuted) return;
   clearInterval(fadeIntervals.get(track));
-  track.muted=false; track.volume=0;
-  track.play().catch(()=>{});
+  track.muted=false; track.volume=0; track.play().catch(()=>{});
   fadeIntervals.set(track,setInterval(()=>{
     track.volume = Math.min(track.volume+0.05,volume);
     if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
   },50));
 }
-
 function fadeOut(track){
   return new Promise(resolve=>{
     clearInterval(fadeIntervals.get(track));
@@ -183,14 +162,11 @@ function fadeOut(track){
     },50));
   });
 }
-
 async function switchMusic(nextTrack){
   const promises=Object.values(tracks).filter(t=>t!==nextTrack).map(t=>fadeOut(t));
   await Promise.all(promises);
   fadeIn(nextTrack);
 }
-
-/* ===== GAME FLOW ===== */
 async function loadGame(game){
   currentGame=game; inRules=false;
   await switchMusic(tracks[game]);
@@ -198,7 +174,6 @@ async function loadGame(game){
   gameContainer.style.display='flex';
   gameFrame.src=game+'/index.html';
 }
-
 async function backToMenu(){
   await switchMusic(tracks.menu);
   gameFrame.src='';
@@ -206,20 +181,16 @@ async function backToMenu(){
   menu.style.display='flex';
   currentGame='';
 }
-
 function openRules(){
   if(!currentGame) return;
   inRules=true;
   rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
   rulesOverlay.style.display='block';
 }
-
 function handleBack(){
   if(inRules){ inRules=false; rulesOverlay.style.display='none'; rulesFrame.src=''; return; }
   backToMenu();
 }
-
-/* ===== MUTE ===== */
 function toggleMute(){
   isMuted=!isMuted;
   Object.values(tracks).forEach(t=>{
@@ -228,20 +199,14 @@ function toggleMute(){
   });
   muteBtn.textContent=isMuted?"🔇":"🔊";
 }
-
-/* ===== FEEDBACK MODAL ===== */
 function openFeedbackModal(){ feedbackModal.style.display='flex'; }
 function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; feedbackStatus.textContent=''; toggleRemoveBtn(); }
-
 function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
 function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
-
-/* ===== SEND FEEDBACK ===== */
 async function sendFeedback(){
   if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
   const text = feedbackText.value.trim();
   if(!text && !feedbackPhoto.files.length){ feedbackStatus.textContent="Add text or photo"; return; }
-
   sendFeedbackBtn.disabled=true;
   feedbackStatus.textContent="Sending...";
 
@@ -255,7 +220,6 @@ async function sendFeedback(){
     });
   }
 
-  // GET ONE-TIME KEY
   let ticket=null;
   try{
     const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket',{
@@ -265,7 +229,6 @@ async function sendFeedback(){
     ticket=tJson.k;
   } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
 
-  // FULL USER INFO
   const userObj = tg.initDataUnsafe?.user || {};
   const payload = {
     type:'feedback',
@@ -299,6 +262,5 @@ async function sendFeedback(){
 }
 toggleRemoveBtn();
 </script>
-
 </body>
 </html>
