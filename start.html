@@ -54,6 +54,9 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 #feedbackModal .feedback-buttons button:hover { background:#2c2c2c; }
 #feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
 
+#uploadTest { padding:10px; background:#111; color:#ffd36a; margin:10px; border:1px solid #333; }
+#uploadTest h3 { margin:0 0 8px 0; font-size:16px; }
+
 .doc-signature { display:none; opacity:0.15; }
 </style>
 </head>
@@ -99,6 +102,14 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   </div>
 </div>
 
+<!-- ===== TEST UPLOAD ===== -->
+<div id="uploadTest">
+  <h3>Test Telegram uploadFile</h3>
+  <input type="file" id="testPhoto" accept="image/*"/>
+  <button onclick="testUpload()">Test Upload</button>
+  <div id="status"></div>
+</div>
+
 <!-- ===== FEEDBACK MODAL ===== -->
 <div id="feedbackModal">
   <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
@@ -108,8 +119,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   </div>
   <div class="feedback-buttons">
     <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
-    <!-- ===== DEBUG BUTTON ===== -->
-    <button id="debugUploadBtn" onclick="debugUpload()">Debug Upload 🐛</button>
     <button onclick="closeFeedbackModal()">Cancel ❌</button>
   </div>
   <div id="feedbackStatus"></div>
@@ -238,7 +247,7 @@ function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.
 function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
 function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
 
-/* ===== SEND FEEDBACK - ✅ НОВАЯ ВЕРСИЯ С PHOTO_FILE_ID ===== */
+/* ===== SEND FEEDBACK - PHOTO_FILE_ID ===== */
 async function sendFeedback(){
   if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
   const text = feedbackText.value.trim();
@@ -258,7 +267,7 @@ async function sendFeedback(){
     
     try {
       feedbackStatus.textContent="📤 Uploading photo...";
-      photoFileId = await tg.WebApp.uploadFile(file);
+      photoFileId = await tg.WebApp.uploadFile(file);  // ✅ TG file_id
       console.log("✅ TG file_id получен:", photoFileId);
     } catch(e){
       console.error("❌ TG upload failed:", e);
@@ -322,42 +331,31 @@ async function sendFeedback(){
   sendFeedbackBtn.disabled=false;
 }
 
-/* ===== DEBUG UTILS ===== */
-async function debugUpload(fileInputId = 'feedbackPhoto') {
-  const fileInput = document.getElementById(fileInputId);
+/* ===== TEST UPLOAD FUNCTION ===== */
+async function testUpload() {
+  const status = document.getElementById('status');
+
+  if (!tg || !tg.uploadFile) {
+    status.textContent = "❌ tg.uploadFile API недоступен!";
+    return;
+  }
+
+  const fileInput = document.getElementById('testPhoto');
+  if (!fileInput.files.length) {
+    status.textContent = "⚠️ Выберите файл для теста";
+    return;
+  }
+
   const file = fileInput.files[0];
-  
-  console.log("=== TG UPLOAD DEBUG ===");
-  
-  if(!window.Telegram || !window.Telegram.WebApp){
-    console.warn("❌ Telegram WebApp НЕ обнаружен");
-    alert("Telegram WebApp не доступен!");
-    return;
-  }
-  
-  if(!window.Telegram.WebApp.uploadFile){
-    console.warn("❌ TG WebApp uploadFile API НЕ доступен");
-    alert("TG uploadFile API не доступен!");
-    return;
-  }
-  
-  if(!file){
-    console.warn("⚠️ Нет выбранного файла для загрузки");
-    alert("Выберите файл для загрузки!");
-    return;
-  }
-  
-  console.log("Файл для загрузки:", file.name, "Размер (Б):", file.size, "Тип:", file.type);
-  
+  status.textContent = `📤 Загружаем ${file.name} (${Math.round(file.size/1024)} KB)...`;
+
   try {
-    const start = performance.now();
-    const fileId = await Telegram.WebApp.uploadFile(file);
-    const end = performance.now();
-    console.log(`✅ Успешно загружен! file_id: ${fileId} (Время: ${(end-start).toFixed(2)}ms)`);
-    alert("TG uploadFile прошёл успешно! Проверь консоль для file_id.");
-  } catch(e){
-    console.error("❌ Ошибка при uploadFile:", e);
-    alert("Ошибка при uploadFile! Проверь консоль.");
+    const fileId = await tg.uploadFile(file);
+    status.textContent = `✅ Успешно! file_id: ${fileId}`;
+    console.log("file_id:", fileId);
+  } catch (e) {
+    status.textContent = `❌ Ошибка загрузки: ${e.message}`;
+    console.error(e);
   }
 }
 
