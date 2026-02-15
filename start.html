@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Console</title>
+
 <!-- ✅ TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 * { box-sizing: border-box; }
 html, body {
@@ -43,19 +45,20 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 #feedbackPhotoWrapper { display:flex; flex-direction:column; align-items:flex-start; width:80%; margin-bottom:12px; }
 #feedbackPhotoWrapper input { width:100%; margin-bottom:4px; }
 #photoHint { font-size:12px; opacity:0.8; margin-top:2px; color:#ffd36a; }
-#removePhotoBtn { margin-top:4px; cursor:pointer; background:#550000; color:#fff; border:none; border-radius:4px; padding:4px 8px; display:none; }
+#removePhotoBtn {
+  margin-top:4px; cursor:pointer; background:#550000; color:#fff;
+  border:none; border-radius:4px; padding:4px 8px;
+  display:none;
+}
 #feedbackModal .feedback-buttons { display:flex; justify-content:space-between; width:80%; margin-top:8px; }
 #feedbackModal .feedback-buttons button { flex:1; margin:0 4px; padding:10px 0; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
 #feedbackModal .feedback-buttons button:hover { background:#2c2c2c; }
 #feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
 
-#tgUploadDebug { margin-top:12px; text-align:center; }
-#tgUploadDebug button { padding:6px 16px; border:none; border-radius:4px; background:#444; color:#ffd36a; cursor:pointer; }
-#tgUploadStatus { margin-top:6px; font-size:14px; color:#ffd36a; }
-
 .doc-signature { display:none; opacity:0.15; }
 </style>
 </head>
+
 <body>
 
 <!-- ===== MENU ===== -->
@@ -68,6 +71,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
     <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
     <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
   </div>
+
   <div>
     <hr class="rules-footer-sep">
     <div class="rules-footer">
@@ -89,6 +93,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
     <button class="topBtn" onclick="openRules()">Game Rules</button>
     <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
   </div>
+
   <div id="gameFrameWrapper">
     <iframe id="gameFrame"></iframe>
     <div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
@@ -101,7 +106,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   <div id="feedbackPhotoWrapper">
     <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
     <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖ Remove</button>
-    <!-- ⚠️ Предупреждение о старой версии -->
     <div id="photoHint"></div>
   </div>
   <div class="feedback-buttons">
@@ -109,12 +113,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
     <button onclick="closeFeedbackModal()">Cancel ❌</button>
   </div>
   <div id="feedbackStatus"></div>
-</div>
-
-<div id="tgUploadDebug">
-  <input type="file" id="tgDebugPhoto" accept="image/*" />
-  <button onclick="testTgUpload()">Test Upload</button>
-  <div id="tgUploadStatus"></div>
 </div>
 
 <div class="doc-signature">© 2026 ZALAZER · Game Console</div>
@@ -128,73 +126,66 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 
 <script>
-let tg = null;
-let canUploadFile = false;
-
+let tg=null, canUploadFile=false;
 function initTelegram(){
   if(window.Telegram && window.Telegram.WebApp){
-    tg = window.Telegram.WebApp;
+    tg=window.Telegram.WebApp;
     tg.ready();
     tg.expand();
     console.log("Telegram WebApp detected");
-
-    canUploadFile = typeof tg.uploadFile === 'function';
-    const hint = document.getElementById('photoHint');
-    const photoInput = document.getElementById('feedbackPhoto');
-
+    canUploadFile=typeof tg.uploadFile==='function';
+    const hint=document.getElementById('photoHint');
+    const photoInput=document.getElementById('feedbackPhoto');
     if(!canUploadFile){
-      hint.textContent = "⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.";
-      photoInput.disabled = true;
+      hint.textContent="⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.";
+      photoInput.disabled=true;
     } else {
-      hint.textContent = "Photo upload available (max 2MB).";
-      photoInput.disabled = false;
+      hint.textContent="Photo upload available (max 2MB).";
+      photoInput.disabled=false;
     }
-
   } else {
-    document.getElementById('photoHint').textContent = "WebApp not detected. Upload not available.";
-    document.getElementById('feedbackPhoto').disabled = true;
+    document.getElementById('photoHint').textContent="WebApp not detected. Upload not available.";
+    document.getElementById('feedbackPhoto').disabled=true;
   }
 }
 initTelegram();
 
 /* ===== GAME & AUDIO LOGIC ===== */
-const menu = document.getElementById('menu');
-const gameContainer = document.getElementById('gameContainer');
-const gameFrame = document.getElementById('gameFrame');
-const rulesOverlay = document.getElementById('rulesOverlay');
-const rulesFrame = document.getElementById('rulesFrame');
-const muteBtn = document.getElementById('muteBtn');
+const menu=document.getElementById('menu');
+const gameContainer=document.getElementById('gameContainer');
+const gameFrame=document.getElementById('gameFrame');
+const rulesOverlay=document.getElementById('rulesOverlay');
+const rulesFrame=document.getElementById('rulesFrame');
+const muteBtn=document.getElementById('muteBtn');
 
-const feedbackModal = document.getElementById('feedbackModal');
-const feedbackText = document.getElementById('feedbackText');
-const feedbackPhoto = document.getElementById('feedbackPhoto');
-const feedbackStatus = document.getElementById('feedbackStatus');
+const feedbackModal=document.getElementById('feedbackModal');
+const feedbackText=document.getElementById('feedbackText');
+const feedbackPhoto=document.getElementById('feedbackPhoto');
+const feedbackStatus=document.getElementById('feedbackStatus');
+const sendFeedbackBtn=document.getElementById('sendFeedbackBtn');
 
-const tracks = {
-  menu: document.getElementById('musicMenu'),
-  PokerLazer: document.getElementById('music-PokerLazer'),
-  StarDropper: document.getElementById('music-StarDropper'),
-  ChronoMonsters: document.getElementById('music-ChronoMonsters'),
-  LazerRoulette: document.getElementById('music-LazerRoulette'),
-  Odrive: document.getElementById('music-Odrive')
+const tracks={
+  menu:document.getElementById('musicMenu'),
+  PokerLazer:document.getElementById('music-PokerLazer'),
+  StarDropper:document.getElementById('music-StarDropper'),
+  ChronoMonsters:document.getElementById('music-ChronoMonsters'),
+  LazerRoulette:document.getElementById('music-LazerRoulette'),
+  Odrive:document.getElementById('music-Odrive')
 };
 
-let currentGame = '';
-let inRules = false;
-let fadeIntervals = new Map();
-let isMuted = false;
+let currentGame='', inRules=false, fadeIntervals=new Map(), isMuted=false;
 
-/* ===== AUDIO FUNCTIONS ===== */
-function fadeIn(track, volume=0.4){
+/* ===== AUDIO ===== */
+function fadeIn(track,volume=0.4){
   if(isMuted) return;
   clearInterval(fadeIntervals.get(track));
-  track.muted=false; track.volume=0; track.play().catch(()=>{});
+  track.muted=false; track.volume=0;
+  track.play().catch(()=>{});
   fadeIntervals.set(track,setInterval(()=>{
-    track.volume = Math.min(track.volume+0.05,volume);
+    track.volume=Math.min(track.volume+0.05,volume);
     if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
   },50));
 }
-
 function fadeOut(track){
   return new Promise(resolve=>{
     clearInterval(fadeIntervals.get(track));
@@ -204,7 +195,6 @@ function fadeOut(track){
     },50));
   });
 }
-
 async function switchMusic(nextTrack){
   const promises=Object.values(tracks).filter(t=>t!==nextTrack).map(t=>fadeOut(t));
   await Promise.all(promises);
@@ -219,7 +209,6 @@ async function loadGame(game){
   gameContainer.style.display='flex';
   gameFrame.src=game+'/index.html';
 }
-
 async function backToMenu(){
   await switchMusic(tracks.menu);
   gameFrame.src='';
@@ -227,14 +216,12 @@ async function backToMenu(){
   menu.style.display='flex';
   currentGame='';
 }
-
 function openRules(){
   if(!currentGame) return;
   inRules=true;
   rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
   rulesOverlay.style.display='block';
 }
-
 function handleBack(){
   if(inRules){ inRules=false; rulesOverlay.style.display='none'; rulesFrame.src=''; return; }
   backToMenu();
@@ -253,66 +240,72 @@ function toggleMute(){
 /* ===== FEEDBACK MODAL ===== */
 function openFeedbackModal(){ feedbackModal.style.display='flex'; }
 function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; feedbackStatus.textContent=''; toggleRemoveBtn(); }
-
-function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
+function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display=feedbackPhoto.files.length?'inline-block':'none'; }
 function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
 
-/* ===== SEND FEEDBACK ===== */
+/* ===== SEND FEEDBACK (WORKER + TICKETS + USER INFO) ===== */
 async function sendFeedback(){
-  feedbackStatus.textContent = "Sending...";
-  const text = feedbackText.value.trim();
-  let photoFile = feedbackPhoto.files[0];
+  if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
+  const text=feedbackText.value.trim();
+  if(!text && !feedbackPhoto.files.length){ feedbackStatus.textContent="Add text or photo"; return; }
 
-  if(canUploadFile && photoFile){
-    try{
-      await tg.uploadFile(photoFile, { fieldName: 'photo' });
-      feedbackStatus.textContent = "✅ Feedback sent!";
-      closeFeedbackModal();
-      return;
-    } catch(e){
-      console.error(e);
-      feedbackStatus.textContent = "❌ Failed to upload photo.";
-      return;
-    }
+  sendFeedbackBtn.disabled=true;
+  feedbackStatus.textContent="Sending...";
+
+  let photoBase64=null;
+  if(feedbackPhoto.files.length){
+    const file=feedbackPhoto.files[0];
+    photoBase64=await new Promise(resolve=>{
+      const reader=new FileReader();
+      reader.onload=e=>resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
   }
 
-  if(text){
-    try{
-      await fetch('/__emit', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ k: Date.now().toString(), d:{ text } })
-      });
-      feedbackStatus.textContent = "✅ Feedback sent!";
-      closeFeedbackModal();
-    } catch(e){
-      console.error(e);
-      feedbackStatus.textContent = "❌ Failed to send feedback.";
-    }
-  } else {
-    feedbackStatus.textContent = "⚠️ Enter text or select photo.";
-  }
-}
-
-/* ===== TG UPLOAD DEBUG ===== */
-async function testTgUpload(){
-  const status = document.getElementById('tgUploadStatus');
-  const input = document.getElementById('tgDebugPhoto');
-  if(!input.files.length){ status.textContent = "❌ Select a photo first"; return; }
-  const file = input.files[0];
-  if(file.size > 2*1024*1024){ status.textContent = "❌ File too large (>2MB)"; return; }
+  // GET TICKET
+  let ticket=null;
   try{
-    status.textContent = "📤 Uploading...";
-    const fileId = await tg.uploadFile(file);
-    status.textContent = "✅ Upload OK! file_id: " + fileId;
-    console.log("✅ TG file_id:", fileId);
-  } catch(e){
-    console.error("❌ TG upload failed:", e);
-    status.textContent = "❌ Upload failed: " + e.message;
-  }
-}
+    const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{
+      method:'POST', headers:{'Content-Type':'application/json'}
+    });
+    const tJson=await tResp.json();
+    ticket=tJson.k;
+  } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
 
+  // FULL USER INFO
+  const userObj=tg.initDataUnsafe?.user||{};
+  const payload={
+    type:'feedback',
+    page:'console',
+    text,
+    photo:photoBase64,
+    ts:Date.now(),
+    user:{
+      id:userObj.id,
+      username:userObj.username,
+      first_name:userObj.first_name,
+      last_name:userObj.last_name,
+      is_bot:userObj.is_bot,
+      language_code:userObj.language_code
+    }
+  };
+
+  try{
+    const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ k:ticket, d:payload })
+    });
+    const result=await resp.json();
+    if(result.ok){
+      feedbackStatus.textContent="✅ Feedback sent!";
+      feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
+    } else feedbackStatus.textContent="Failed to send feedback";
+  } catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
+  sendFeedbackBtn.disabled=false;
+}
 toggleRemoveBtn();
 </script>
+
 </body>
 </html>
