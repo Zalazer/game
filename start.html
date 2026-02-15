@@ -124,9 +124,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 
 <script>
-/* =========================
-   TELEGRAM INIT
-========================= */
 let tg = null;
 function initTelegram(){
   if(window.Telegram && window.Telegram.WebApp){
@@ -138,7 +135,6 @@ function initTelegram(){
 }
 initTelegram();
 
-/* ========================= */
 const menu = document.getElementById('menu');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
@@ -269,7 +265,23 @@ async function sendFeedback(){
     ticket=tJson.k;
   } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
 
-  const payload = { type:'feedback', page:'console', text, photo:photoBase64, user: tg.initDataUnsafe?.user?.id, ts: Date.now() };
+  // FULL USER INFO
+  const userObj = tg.initDataUnsafe?.user || {};
+  const payload = {
+    type:'feedback',
+    page:'console',
+    text,
+    photo:photoBase64,
+    ts: Date.now(),
+    user: {
+      id: userObj.id,
+      username: userObj.username,
+      first_name: userObj.first_name,
+      last_name: userObj.last_name,
+      is_bot: userObj.is_bot,
+      language_code: userObj.language_code
+    }
+  };
 
   try{
     const resp = await fetch('https://game.shooleeyack.workers.dev/__emit',{
@@ -278,8 +290,10 @@ async function sendFeedback(){
       body: JSON.stringify({ k: ticket, d: payload })
     });
     const result = await resp.json();
-    if(result.ok){ feedbackStatus.textContent="✅ Feedback sent!"; feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn(); }
-    else feedbackStatus.textContent="Failed to send feedback";
+    if(result.ok){
+      feedbackStatus.textContent="✅ Feedback sent!";
+      feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
+    } else feedbackStatus.textContent="Failed to send feedback";
   } catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
   sendFeedbackBtn.disabled=false;
 }
