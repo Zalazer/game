@@ -44,6 +44,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 #feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
 #feedbackPhotoWrapper { display:flex; align-items:center; width:80%; margin-bottom:12px; }
 #feedbackPhotoWrapper input { flex:1; }
+#feedbackPhotoWrapper .photo-hint { font-size:12px; opacity:0.7; margin-left:8px; }
 #removePhotoBtn {
   margin-left:8px; cursor:pointer; background:#550000; color:#fff;
   border:none; border-radius:4px; padding:4px 8px;
@@ -55,11 +56,6 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 #feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
 
 .doc-signature { display:none; opacity:0.15; }
-
-/* ===== TG UPLOAD DEBUG ===== */
-#tgUploadDebug { margin-top:12px; text-align:center; display:none; }
-#tgUploadDebug button { padding:6px 16px; border:none; border-radius:4px; background:#444; color:#ffd36a; cursor:pointer; }
-#tgUploadDebug #tgUploadStatus { margin-top:6px; font-size:14px; color:#ffd36a; }
 </style>
 </head>
 
@@ -109,16 +105,9 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
   <div id="feedbackPhotoWrapper">
     <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
+    <span class="photo-hint" id="photoHint"></span>
     <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
   </div>
-
-  <!-- ===== TG UPLOAD DEBUG ===== -->
-  <div id="tgUploadDebug">
-    <input type="file" id="tgDebugPhoto" accept="image/*" />
-    <button onclick="testTgUpload()">Test Upload</button>
-    <div id="tgUploadStatus"></div>
-  </div>
-
   <div class="feedback-buttons">
     <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
     <button onclick="closeFeedbackModal()">Cancel ❌</button>
@@ -138,6 +127,7 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 
 <script>
 let tg = null;
+let canUploadFile = false;
 
 function initTelegram(){
   if(window.Telegram && window.Telegram.WebApp){
@@ -145,14 +135,29 @@ function initTelegram(){
     tg.ready();
     tg.expand();
     console.log("Telegram WebApp detected");
-    // показать блок теста TG upload только внутри WebApp
-    document.getElementById('tgUploadDebug').style.display = 'block';
+
+    // Проверяем доступность uploadFile
+    canUploadFile = typeof tg.uploadFile === 'function';
+    const hint = document.getElementById('photoHint');
+    const photoInput = document.getElementById('feedbackPhoto');
+
+    if(!canUploadFile){
+      hint.textContent = "Your Telegram version doesn't support WebApp upload. You can send photo directly in chat with bot.";
+      photoInput.disabled = true;
+    } else {
+      hint.textContent = "Photo upload available (max 2MB).";
+      photoInput.disabled = false;
+    }
+
   } else {
     console.log("Telegram WebApp NOT detected");
+    document.getElementById('photoHint').textContent = "WebApp not detected. Upload not available.";
+    document.getElementById('feedbackPhoto').disabled = true;
   }
 }
 initTelegram();
 
+// ==== Существующий код игры, аудио и модал не трогаем ====
 const menu = document.getElementById('menu');
 const gameContainer = document.getElementById('gameContainer');
 const gameFrame = document.getElementById('gameFrame');
@@ -253,116 +258,6 @@ function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.
 
 function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
 function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
-
-/* ===== SEND FEEDBACK - PHOTO_FILE_ID ===== */
-async function sendFeedback(){
-  if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
-  const text = feedbackText.value.trim();
-  if(!text && !feedbackPhoto.files.length){ feedbackStatus.textContent="Add text or photo"; return; }
-
-  sendFeedbackBtn.disabled=true;
-  feedbackStatus.textContent="Sending...";
-
-  let photoFileId = null;
-  if(feedbackPhoto.files.length){
-    const file = feedbackPhoto.files[0];
-    if(file.size > 2*1024*1024){ 
-      feedbackStatus.textContent="❌ Photo too large (max 2MB)"; 
-      sendFeedbackBtn.disabled=false; return;
-    }
-    
-    try {
-      feedbackStatus.textContent="📤 Uploading photo...";
-      photoFileId = await tg.WebApp.uploadFile(file);
-      console.log("✅ TG file_id получен:", photoFileId);
-    } catch(e){
-      console.error("❌ TG upload failed:", e);
-      feedbackStatus.textContent="❌ Failed to upload photo: " + e.message; 
-      sendFeedbackBtn.disabled=false; return;
-    }
-  }
-
-  // GET ONE-TIME KEY
-  let ticket=null;
-  try{
-    feedbackStatus.textContent="🔑 Getting ticket...";
-    const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket',{
-      method:'POST', headers:{'Content-Type':'application/json'}
-    });
-    const tJson = await tResp.json();
-    ticket=tJson.k;
-  } catch(e){ 
-    feedbackStatus.textContent="❌ Cannot get ticket from server"; 
-    sendFeedbackBtn.disabled=false; return; 
-  }
-
-  const userObj = tg.initDataUnsafe?.user || {};
-  const payload = {
-    type:'feedback',
-    page:'console',
-    text,
-    photo_file_id: photoFileId,
-    ts: Date.now(),
-    user: {
-      id: userObj.id,
-      username: userObj.username,
-      first_name: userObj.first_name,
-      last_name: userObj.last_name,
-      is_bot: userObj.is_bot,
-      language_code: userObj.language_code
-    }
-  };
-
-  try{
-    feedbackStatus.textContent="📨 Sending to bot...";
-    const resp = await fetch('https://game.shooleeyack.workers.dev/__emit',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ k: ticket, d: payload })
-    });
-    const result = await resp.json();
-    if(result.ok){
-      feedbackStatus.textContent="✅ Feedback sent successfully!";
-      setTimeout(() => {
-        feedbackText.value=''; 
-        feedbackPhoto.value=''; 
-        toggleRemoveBtn();
-        closeFeedbackModal();
-      }, 1500);
-    } else {
-      feedbackStatus.textContent="❌ Server error: " + (result.error || 'unknown');
-    }
-  } catch(e){ 
-    feedbackStatus.textContent="❌ Network error: "+e.message; 
-  }
-  sendFeedbackBtn.disabled=false;
-}
-
-/* ===== TG UPLOAD DEBUG FUNCTION ===== */
-async function testTgUpload(){
-  const status = document.getElementById('tgUploadStatus');
-  status.textContent = "";
-  const input = document.getElementById('tgDebugPhoto');
-  if(!input.files.length){
-    status.textContent = "❌ Select a photo first";
-    return;
-  }
-  const file = input.files[0];
-  if(file.size > 2*1024*1024){
-    status.textContent = "❌ File too large (>2MB)";
-    return;
-  }
-
-  try{
-    status.textContent = "📤 Uploading...";
-    const fileId = await tg.WebApp.uploadFile(file);
-    status.textContent = "✅ Upload OK! file_id: " + fileId;
-    console.log("✅ TG file_id:", fileId);
-  } catch(e){
-    console.error("❌ TG upload failed:", e);
-    status.textContent = "❌ Upload failed: " + e.message;
-  }
-}
 
 toggleRemoveBtn();
 </script>
