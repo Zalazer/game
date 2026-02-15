@@ -4,120 +4,92 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game Console</title>
-
-<!-- ✅ TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
 <style>
-* { box-sizing: border-box; }
-html, body {
-  margin:0; padding:0; width:100%; height:100%;
-  font-family:Arial,sans-serif;
-  background:#0b0b0b; color:#eaeaea;
-  overflow:hidden;
-}
-
-#menu { display:flex; flex-direction:column; justify-content:space-between; height:100%; padding:20px 0; }
-#menuContent { display:flex; flex-direction:column; align-items:center; }
-h1 { font-size:28px; margin-bottom:24px; text-align:center; }
-.btn { width:260px; padding:14px; margin:8px; font-size:18px; border:none; border-radius:10px; background:#1c1c1c; color:#fff; cursor:pointer; }
-.btn:hover { background:#2c2c2c; }
-
-#gameContainer { display:none; flex-direction:column; width:100%; height:100%; position:relative; }
-#topBar { width:100%; background:rgba(17,17,17,0.98); padding:10px; display:flex; justify-content:space-between; align-items:center; z-index:10; }
-.topBtn { font-size:15px; padding:8px 14px; border-radius:8px; background:#222; border:none; color:#fff; cursor:pointer; }
-
-#gameFrameWrapper { flex:1; position:relative; overflow:hidden; background:#000; }
-iframe#gameFrame { border:none; width:100%; height:100%; }
-
-#rulesOverlay { position:absolute; inset:0; background:rgba(0,0,0,0.96); z-index:20; display:none; }
-#rulesFrame { width:100%; height:100%; border:none; }
-
-hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
-.rules-footer { width:100%; text-align:center; font-size:12px; opacity:0.85; padding:8px 0 12px 0; background:rgba(11,11,11,0.95); }
-.rules-copyright { line-height:1.5; margin-bottom:6px; }
-.rules-contact-btn { background:#151515; color:#ffd36a; border:1px solid #333; padding:6px 16px; cursor:pointer; font-size:12px; border-radius:4px; }
-.rules-contact-btn:hover { background:#1e1e1e; border-color:#ffd36a; }
-.rules-note { margin-top:6px; font-size:11px; opacity:0.5; }
-
-#feedbackModal { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.95); z-index:30; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
-#feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
-#feedbackPhotoWrapper { display:flex; flex-direction:column; align-items:flex-start; width:80%; margin-bottom:12px; }
-#feedbackPhotoWrapper input { width:100%; margin-bottom:4px; }
-#photoHint { font-size:12px; opacity:0.7; margin-top:2px; }
-#removePhotoBtn {
-  margin-top:4px; cursor:pointer; background:#550000; color:#fff;
-  border:none; border-radius:4px; padding:4px 8px;
-  display:none;
-}
-#feedbackModal .feedback-buttons { display:flex; justify-content:space-between; width:80%; margin-top:8px; }
-#feedbackModal .feedback-buttons button { flex:1; margin:0 4px; padding:10px 0; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
-#feedbackModal .feedback-buttons button:hover { background:#2c2c2c; }
-#feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
-
-.doc-signature { display:none; opacity:0.15; }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#0b0b0b;color:#eaeaea;overflow:hidden;}
+#menu{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:20px 0;}
+#menuContent{display:flex;flex-direction:column;align-items:center;}
+h1{font-size:28px;margin-bottom:24px;text-align:center;}
+.btn{width:260px;padding:14px;margin:8px;font-size:18px;border:none;border-radius:10px;background:#1c1c1c;color:#fff;cursor:pointer;}
+.btn:hover{background:#2c2c2c;}
+#gameContainer{display:none;flex-direction:column;width:100%;height:100%;position:relative;}
+#topBar{width:100%;background:rgba(17,17,17,0.98);padding:10px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
+.topBtn{font-size:15px;padding:8px 14px;border-radius:8px;background:#222;border:none;color:#fff;cursor:pointer;}
+#gameFrameWrapper{flex:1;position:relative;overflow:hidden;background:#000;}
+iframe#gameFrame{border:none;width:100%;height:100%;}
+#rulesOverlay{position:absolute;inset:0;background:rgba(0,0,0,0.96);z-index:20;display:none;}
+#rulesFrame{width:100%;height:100%;border:none;}
+#feedbackModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.95);z-index:30;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+#feedbackModal textarea{width:80%;height:100px;margin-bottom:12px;padding:8px;border-radius:6px;border:none;resize:none;font-size:14px;}
+#feedbackPhotoWrapper{display:flex;align-items:center;width:80%;margin-bottom:12px;}
+#feedbackPhotoWrapper input{flex:1;}
+#removePhotoBtn{margin-left:8px;cursor:pointer;background:#550000;color:#fff;border:none;border-radius:4px;padding:4px 8px;}
+#feedbackModal .feedback-buttons{display:flex;justify-content:space-between;width:80%;margin-top:8px;}
+#feedbackModal .feedback-buttons button{flex:1;margin:0 4px;padding:10px 0;font-size:16px;border:none;border-radius:6px;cursor:pointer;background:#1c1c1c;color:#fff;}
+#feedbackModal .feedback-buttons button:hover{background:#2c2c2c;}
+#feedbackStatus{margin-top:6px;font-size:14px;color:#ffd36a;text-align:center;}
+.doc-signature{display:none;opacity:0.15;}
+.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
+.rules-footer{width:100%;text-align:center;font-size:12px;opacity:0.85;padding:8px 0 12px 0;background:rgba(11,11,11,0.95);}
+.rules-copyright{line-height:1.5;margin-bottom:6px;}
+.rules-contact-btn{background:#151515;color:#ffd36a;border:1px solid #333;padding:6px 16px;cursor:pointer;font-size:12px;border-radius:4px;}
+.rules-contact-btn:hover{background:#1e1e1e;border-color:#ffd36a;}
+.rules-note{margin-top:6px;font-size:11px;opacity:0.5;}
+#sendPhotoHint{margin-top:6px;font-size:12px;opacity:0.7;color:#ffd36a;text-align:center;display:none;}
 </style>
 </head>
-
 <body>
 
-<!-- ===== MENU ===== -->
 <div id="menu">
-  <div id="menuContent">
-    <h1>🎮 Game Console</h1>
-    <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
-    <button class="btn" onclick="loadGame('StarDropper')">⭐ StarDropper</button>
-    <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
-    <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
-    <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
-  </div>
-
-  <div>
-    <hr class="rules-footer-sep">
-    <div class="rules-footer">
-      <div class="rules-copyright">
-        © 2026 <strong>ZALAZER</strong><br>
-        All code and content are protected by copyright law.<br>
-        All rights reserved.
-      </div>
-      <button class="rules-contact-btn" onclick="openFeedbackModal()">Send Feedback / Screenshot</button>
-      <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
-    </div>
-  </div>
+<div id="menuContent">
+<h1>🎮 Game Console</h1>
+<button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
+<button class="btn" onclick="loadGame('StarDropper')">⭐ StarDropper</button>
+<button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
+<button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
+<button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
+</div>
+<div>
+<hr class="rules-footer-sep">
+<div class="rules-footer">
+<div class="rules-copyright">
+© 2026 <strong>ZALAZER</strong><br>
+All code and content are protected by copyright law.<br>
+All rights reserved.
+</div>
+<button class="rules-contact-btn" onclick="openFeedbackModal()">Send Feedback / Screenshot</button>
+<div id="sendPhotoHint">If photo fails, send it directly in chat with bot.</div>
+<div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
+</div>
+</div>
 </div>
 
-<!-- ===== GAME ===== -->
 <div id="gameContainer">
-  <div id="topBar">
-    <button class="topBtn" onclick="handleBack()">← Back</button>
-    <button class="topBtn" onclick="openRules()">Game Rules</button>
-    <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
-  </div>
-
-  <div id="gameFrameWrapper">
-    <iframe id="gameFrame"></iframe>
-    <div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
-  </div>
+<div id="topBar">
+<button class="topBtn" onclick="handleBack()">← Back</button>
+<button class="topBtn" onclick="openRules()">Game Rules</button>
+<button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
+</div>
+<div id="gameFrameWrapper">
+<iframe id="gameFrame"></iframe>
+<div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
+</div>
 </div>
 
-<!-- ===== FEEDBACK MODAL ===== -->
 <div id="feedbackModal">
-  <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
-  <div id="feedbackPhotoWrapper">
-    <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
-    <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖ Remove</button>
-    <span id="photoHint"></span>
-  </div>
-  <div class="feedback-buttons">
-    <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
-    <button onclick="closeFeedbackModal()">Cancel ❌</button>
-  </div>
-  <div id="feedbackStatus"></div>
+<textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
+<div id="feedbackPhotoWrapper">
+<input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
+<button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
+</div>
+<div class="feedback-buttons">
+<button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
+<button onclick="closeFeedbackModal()">Cancel ❌</button>
+</div>
+<div id="feedbackStatus"></div>
 </div>
 
-<div class="doc-signature">© 2026 ZALAZER · Game Console</div>
-
-<!-- ===== AUDIO ===== -->
 <audio id="musicMenu" src="music-menu.mp3" loop></audio>
 <audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
@@ -126,177 +98,93 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 
 <script>
-let tg = null;
-let canUploadFile = false;
+let tg=null, canUploadFile=false;
+const sendPhotoHint=document.getElementById('sendPhotoHint');
 
 function initTelegram(){
-  if(window.Telegram && window.Telegram.WebApp){
-    tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    console.log("Telegram WebApp detected");
-
-    canUploadFile = typeof tg.uploadFile === 'function';
-    const hint = document.getElementById('photoHint');
-    const photoInput = document.getElementById('feedbackPhoto');
-
-    if(!canUploadFile){
-      hint.textContent = "⚠️ Your Telegram version is old. Upload directly to the bot in chat — we'll get the file automatically!";
-      photoInput.disabled = true;
-    } else {
-      hint.textContent = "Photo upload available (max 2MB).";
-      photoInput.disabled = false;
-    }
-
-  } else {
-    document.getElementById('photoHint').textContent = "WebApp not detected. Upload not available.";
-    document.getElementById('feedbackPhoto').disabled = true;
-  }
+if(window.Telegram && window.Telegram.WebApp){
+tg=window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+canUploadFile=typeof tg.uploadFile==='function';
+sendPhotoHint.style.display=canUploadFile?'none':'block';
+console.log("Telegram detected. uploadFile:",canUploadFile);
+}else console.log("Telegram NOT detected");
 }
 initTelegram();
 
-/* ===== GAME & AUDIO LOGIC (как у тебя было) ===== */
-const menu = document.getElementById('menu');
-const gameContainer = document.getElementById('gameContainer');
-const gameFrame = document.getElementById('gameFrame');
-const rulesOverlay = document.getElementById('rulesOverlay');
-const rulesFrame = document.getElementById('rulesFrame');
-const muteBtn = document.getElementById('muteBtn');
+/* ===== GAME & AUDIO ===== */
+const menu=document.getElementById('menu');
+const gameContainer=document.getElementById('gameContainer');
+const gameFrame=document.getElementById('gameFrame');
+const rulesOverlay=document.getElementById('rulesOverlay');
+const rulesFrame=document.getElementById('rulesFrame');
+const muteBtn=document.getElementById('muteBtn');
 
-const feedbackModal = document.getElementById('feedbackModal');
-const feedbackText = document.getElementById('feedbackText');
-const feedbackPhoto = document.getElementById('feedbackPhoto');
-const feedbackStatus = document.getElementById('feedbackStatus');
+const feedbackModal=document.getElementById('feedbackModal');
+const feedbackText=document.getElementById('feedbackText');
+const feedbackPhoto=document.getElementById('feedbackPhoto');
+const feedbackStatus=document.getElementById('feedbackStatus');
+const sendFeedbackBtn=document.getElementById('sendFeedbackBtn');
 
-const tracks = {
-  menu: document.getElementById('musicMenu'),
-  PokerLazer: document.getElementById('music-PokerLazer'),
-  StarDropper: document.getElementById('music-StarDropper'),
-  ChronoMonsters: document.getElementById('music-ChronoMonsters'),
-  LazerRoulette: document.getElementById('music-LazerRoulette'),
-  Odrive: document.getElementById('music-Odrive')
+const tracks={
+menu:document.getElementById('musicMenu'),
+PokerLazer:document.getElementById('music-PokerLazer'),
+StarDropper:document.getElementById('music-StarDropper'),
+ChronoMonsters:document.getElementById('music-ChronoMonsters'),
+LazerRoulette:document.getElementById('music-LazerRoulette'),
+Odrive:document.getElementById('music-Odrive')
 };
 
-let currentGame = '';
-let inRules = false;
-let fadeIntervals = new Map();
-let isMuted = false;
+let currentGame='', inRules=false, fadeIntervals=new Map(), isMuted=false;
 
-/* ===== AUDIO ===== */
-function fadeIn(track, volume=0.4){
-  if(isMuted) return;
-  clearInterval(fadeIntervals.get(track));
-  track.muted=false; track.volume=0; track.play().catch(()=>{});
-  fadeIntervals.set(track,setInterval(()=>{
-    track.volume = Math.min(track.volume+0.05,volume);
-    if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
-  },50));
-}
+function fadeIn(track,vol=0.4){if(isMuted)return;clearInterval(fadeIntervals.get(track));track.muted=false;track.volume=0;track.play().catch(()=>{});fadeIntervals.set(track,setInterval(()=>{track.volume=Math.min(track.volume+0.05,vol);if(track.volume>=vol)clearInterval(fadeIntervals.get(track));},50));}
+function fadeOut(track){return new Promise(res=>{clearInterval(fadeIntervals.get(track));fadeIntervals.set(track,setInterval(()=>{track.volume=Math.max(track.volume-0.05,0);if(track.volume<=0){track.pause();clearInterval(fadeIntervals.get(track));res();}},50));});}
+async function switchMusic(nextTrack){const promises=Object.values(tracks).filter(t=>t!==nextTrack).map(t=>fadeOut(t));await Promise.all(promises);fadeIn(nextTrack);}
+async function loadGame(game){currentGame=game;inRules=false;await switchMusic(tracks[game]);menu.style.display='none';gameContainer.style.display='flex';gameFrame.src=game+'/index.html';}
+async function backToMenu(){await switchMusic(tracks.menu);gameFrame.src='';gameContainer.style.display='none';menu.style.display='flex';currentGame='';}
+function openRules(){if(!currentGame)return;inRules=true;rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';rulesOverlay.style.display='block';}
+function handleBack(){if(inRules){inRules=false;rulesOverlay.style.display='none';rulesFrame.src='';return;}backToMenu();}
+function toggleMute(){isMuted=!isMuted;Object.values(tracks).forEach(t=>{t.muted=isMuted;if(isMuted)t.pause();else{if(currentGame)fadeIn(tracks[currentGame]);else fadeIn(tracks.menu);}});muteBtn.textContent=isMuted?"🔇":"🔊";}
 
-function fadeOut(track){
-  return new Promise(resolve=>{
-    clearInterval(fadeIntervals.get(track));
-    fadeIntervals.set(track,setInterval(()=>{
-      track.volume=Math.max(track.volume-0.05,0);
-      if(track.volume<=0){ track.pause(); clearInterval(fadeIntervals.get(track)); resolve(); }
-    },50));
-  });
-}
+/* ===== FEEDBACK ===== */
+function openFeedbackModal(){feedbackModal.style.display='flex'}
+function closeFeedbackModal(){feedbackModal.style.display='none';feedbackText.value='';feedbackPhoto.value='';feedbackStatus.textContent='';toggleRemoveBtn();}
+function toggleRemoveBtn(){document.getElementById('removePhotoBtn').style.display=feedbackPhoto.files.length?'inline-block':'none';}
+function removeFeedbackPhoto(){feedbackPhoto.value='';toggleRemoveBtn();feedbackStatus.textContent='';}
+async function fileToBase64(file){return new Promise(res=>{const reader=new FileReader();reader.onload=e=>res(e.target.result);reader.readAsDataURL(file);});}
 
-async function switchMusic(nextTrack){
-  const promises=Object.values(tracks).filter(t=>t!==nextTrack).map(t=>fadeOut(t));
-  await Promise.all(promises);
-  fadeIn(nextTrack);
-}
-
-/* ===== GAME FLOW ===== */
-async function loadGame(game){
-  currentGame=game; inRules=false;
-  await switchMusic(tracks[game]);
-  menu.style.display='none';
-  gameContainer.style.display='flex';
-  gameFrame.src=game+'/index.html';
-}
-
-async function backToMenu(){
-  await switchMusic(tracks.menu);
-  gameFrame.src='';
-  gameContainer.style.display='none';
-  menu.style.display='flex';
-  currentGame='';
-}
-
-function openRules(){
-  if(!currentGame) return;
-  inRules=true;
-  rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
-  rulesOverlay.style.display='block';
-}
-
-function handleBack(){
-  if(inRules){ inRules=false; rulesOverlay.style.display='none'; rulesFrame.src=''; return; }
-  backToMenu();
-}
-
-/* ===== MUTE ===== */
-function toggleMute(){
-  isMuted=!isMuted;
-  Object.values(tracks).forEach(t=>{
-    t.muted=isMuted;
-    if(isMuted) t.pause(); else { if(currentGame) fadeIn(tracks[currentGame]); else fadeIn(tracks.menu); }
-  });
-  muteBtn.textContent=isMuted?"🔇":"🔊";
-}
-
-/* ===== FEEDBACK MODAL ===== */
-function openFeedbackModal(){ feedbackModal.style.display='flex'; }
-function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; feedbackStatus.textContent=''; toggleRemoveBtn(); }
-
-function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
-function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
-
-/* ===== SEND FEEDBACK ===== */
 async function sendFeedback(){
-  feedbackStatus.textContent = "Sending...";
-
-  const text = feedbackText.value.trim();
-  let photoFile = feedbackPhoto.files[0];
-
-  // Если WebApp upload доступен
-  if(canUploadFile && photoFile){
-    try{
-      await tg.uploadFile(photoFile, { fieldName: 'photo' });
-      feedbackStatus.textContent = "✅ Feedback sent!";
-      closeFeedbackModal();
-      return;
-    } catch(e){
-      console.error(e);
-      feedbackStatus.textContent = "❌ Failed to upload photo.";
-      return;
-    }
-  }
-
-  // Для старых версий / без файла
-  if(text){
-    try{
-      await fetch('/__emit', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ k: Date.now().toString(), d:{ text } })
-      });
-      feedbackStatus.textContent = "✅ Feedback sent!";
-      closeFeedbackModal();
-    } catch(e){
-      console.error(e);
-      feedbackStatus.textContent = "❌ Failed to send feedback.";
-    }
-  } else {
-    feedbackStatus.textContent = "⚠️ Enter text or select photo.";
-  }
+if(!tg){feedbackStatus.textContent="Works only inside Telegram";return;}
+const text=feedbackText.value.trim();
+const file=feedbackPhoto.files[0];
+if(!text && !file){feedbackStatus.textContent="Add text or photo";return;}
+sendFeedbackBtn.disabled=true;
+feedbackStatus.textContent="Sending...";
+let photoBase64=null;
+if(file){
+if(canUploadFile){
+try{await tg.uploadFile(file,{fieldName:"photo"});}catch(e){photoBase64=await fileToBase64(file);}
+}else{photoBase64=await fileToBase64(file);}
 }
-
+let ticket=null;
+try{
+const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{method:'POST',headers:{'Content-Type':'application/json'}});
+const tJson=await tResp.json();
+ticket=tJson.k;
+}catch(e){feedbackStatus.textContent="Server error (ticket)";sendFeedbackBtn.disabled=false;return;}
+const userObj=tg.initDataUnsafe?.user||{};
+const payload={type:'feedback',page:'console',text,photo:photoBase64,ts:Date.now(),user:{id:userObj.id,username:userObj.username,first_name:userObj.first_name,last_name:userObj.last_name,is_bot:userObj.is_bot,language_code:userObj.language_code}};
+try{
+const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({k:ticket,d:payload})});
+const result=await resp.json();
+if(result.ok){feedbackText.value='';feedbackPhoto.value='';toggleRemoveBtn();feedbackStatus.textContent=(!canUploadFile && file)?"✅ Text sent. Send photo in chat if missing":"✅ Feedback sent!";}
+else feedbackStatus.textContent="Send failed";
+}catch(e){feedbackStatus.textContent="Error: "+e.message;}
+sendFeedbackBtn.disabled=false;
+}
 toggleRemoveBtn();
 </script>
-
+<div class="doc-signature">© 2026 ZALAZER · Game Console</div>
 </body>
 </html>
