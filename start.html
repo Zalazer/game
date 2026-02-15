@@ -108,6 +108,8 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
   </div>
   <div class="feedback-buttons">
     <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
+    <!-- ===== DEBUG BUTTON ===== -->
+    <button id="debugUploadBtn" onclick="debugUpload()">Debug Upload 🐛</button>
     <button onclick="closeFeedbackModal()">Cancel ❌</button>
   </div>
   <div id="feedbackStatus"></div>
@@ -247,7 +249,6 @@ async function sendFeedback(){
 
   let photoFileId = null;
   
-  // ✅ ВАРИАНТЫ 2-3: Загрузка в Telegram (file_id, 2MB max)
   if(feedbackPhoto.files.length){
     const file = feedbackPhoto.files[0];
     if(file.size > 2*1024*1024){ 
@@ -257,7 +258,7 @@ async function sendFeedback(){
     
     try {
       feedbackStatus.textContent="📤 Uploading photo...";
-      photoFileId = await tg.WebApp.uploadFile(file);  // ✅ TG file_id
+      photoFileId = await tg.WebApp.uploadFile(file);
       console.log("✅ TG file_id получен:", photoFileId);
     } catch(e){
       console.error("❌ TG upload failed:", e);
@@ -266,7 +267,6 @@ async function sendFeedback(){
     }
   }
 
-  // GET ONE-TIME KEY
   let ticket=null;
   try{
     feedbackStatus.textContent="🔑 Getting ticket...";
@@ -280,13 +280,12 @@ async function sendFeedback(){
     sendFeedbackBtn.disabled=false; return; 
   }
 
-  // ✅ FULL PAYLOAD с photo_file_id (размер ~100 байт!)
   const userObj = tg.initDataUnsafe?.user || {};
   const payload = {
     type:'feedback',
     page:'console',
     text,
-    photo_file_id: photoFileId,  // ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ!
+    photo_file_id: photoFileId,
     ts: Date.now(),
     user: {
       id: userObj.id,
@@ -321,6 +320,45 @@ async function sendFeedback(){
     feedbackStatus.textContent="❌ Network error: "+e.message; 
   }
   sendFeedbackBtn.disabled=false;
+}
+
+/* ===== DEBUG UTILS ===== */
+async function debugUpload(fileInputId = 'feedbackPhoto') {
+  const fileInput = document.getElementById(fileInputId);
+  const file = fileInput.files[0];
+  
+  console.log("=== TG UPLOAD DEBUG ===");
+  
+  if(!window.Telegram || !window.Telegram.WebApp){
+    console.warn("❌ Telegram WebApp НЕ обнаружен");
+    alert("Telegram WebApp не доступен!");
+    return;
+  }
+  
+  if(!window.Telegram.WebApp.uploadFile){
+    console.warn("❌ TG WebApp uploadFile API НЕ доступен");
+    alert("TG uploadFile API не доступен!");
+    return;
+  }
+  
+  if(!file){
+    console.warn("⚠️ Нет выбранного файла для загрузки");
+    alert("Выберите файл для загрузки!");
+    return;
+  }
+  
+  console.log("Файл для загрузки:", file.name, "Размер (Б):", file.size, "Тип:", file.type);
+  
+  try {
+    const start = performance.now();
+    const fileId = await Telegram.WebApp.uploadFile(file);
+    const end = performance.now();
+    console.log(`✅ Успешно загружен! file_id: ${fileId} (Время: ${(end-start).toFixed(2)}ms)`);
+    alert("TG uploadFile прошёл успешно! Проверь консоль для file_id.");
+  } catch(e){
+    console.error("❌ Ошибка при uploadFile:", e);
+    alert("Ошибка при uploadFile! Проверь консоль.");
+  }
 }
 
 toggleRemoveBtn();
