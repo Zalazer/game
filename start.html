@@ -236,7 +236,7 @@ function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.
 function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
 function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
 
-/* ===== SEND FEEDBACK ===== */
+/* ===== SEND FEEDBACK - ✅ НОВАЯ ВЕРСИЯ С PHOTO_FILE_ID ===== */
 async function sendFeedback(){
   if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
   const text = feedbackText.value.trim();
@@ -245,33 +245,48 @@ async function sendFeedback(){
   sendFeedbackBtn.disabled=true;
   feedbackStatus.textContent="Sending...";
 
-  let photoBase64 = null;
+  let photoFileId = null;
+  
+  // ✅ ВАРИАНТЫ 2-3: Загрузка в Telegram (file_id, 2MB max)
   if(feedbackPhoto.files.length){
-    const file=feedbackPhoto.files[0];
-    photoBase64 = await new Promise(resolve=>{
-      const reader=new FileReader();
-      reader.onload = e=>resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
+    const file = feedbackPhoto.files[0];
+    if(file.size > 2*1024*1024){ 
+      feedbackStatus.textContent="❌ Photo too large (max 2MB)"; 
+      sendFeedbackBtn.disabled=false; return;
+    }
+    
+    try {
+      feedbackStatus.textContent="📤 Uploading photo...";
+      photoFileId = await tg.WebApp.uploadFile(file);  // ✅ TG file_id
+      console.log("✅ TG file_id получен:", photoFileId);
+    } catch(e){
+      console.error("❌ TG upload failed:", e);
+      feedbackStatus.textContent="❌ Failed to upload photo"; 
+      sendFeedbackBtn.disabled=false; return;
+    }
   }
 
   // GET ONE-TIME KEY
   let ticket=null;
   try{
+    feedbackStatus.textContent="🔑 Getting ticket...";
     const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket',{
       method:'POST', headers:{'Content-Type':'application/json'}
     });
     const tJson = await tResp.json();
     ticket=tJson.k;
-  } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
+  } catch(e){ 
+    feedbackStatus.textContent="❌ Cannot get ticket from server"; 
+    sendFeedbackBtn.disabled=false; return; 
+  }
 
-  // FULL USER INFO
+  // ✅ FULL PAYLOAD с photo_file_id (размер ~100 байт!)
   const userObj = tg.initDataUnsafe?.user || {};
   const payload = {
     type:'feedback',
     page:'console',
     text,
-    photo:photoBase64,
+    photo_file_id: photoFileId,  // ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ!
     ts: Date.now(),
     user: {
       id: userObj.id,
@@ -284,6 +299,7 @@ async function sendFeedback(){
   };
 
   try{
+    feedbackStatus.textContent="📨 Sending to bot...";
     const resp = await fetch('https://game.shooleeyack.workers.dev/__emit',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -291,12 +307,22 @@ async function sendFeedback(){
     });
     const result = await resp.json();
     if(result.ok){
-      feedbackStatus.textContent="✅ Feedback sent!";
-      feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
-    } else feedbackStatus.textContent="Failed to send feedback";
-  } catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
+      feedbackStatus.textContent="✅ Feedback sent successfully!";
+      setTimeout(() => {
+        feedbackText.value=''; 
+        feedbackPhoto.value=''; 
+        toggleRemoveBtn();
+        closeFeedbackModal();
+      }, 1500);
+    } else {
+      feedbackStatus.textContent="❌ Server error: " + (result.error || 'unknown');
+    }
+  } catch(e){ 
+    feedbackStatus.textContent="❌ Network error: "+e.message; 
+  }
   sendFeedbackBtn.disabled=false;
 }
+
 toggleRemoveBtn();
 </script>
 
