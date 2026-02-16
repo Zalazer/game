@@ -13,130 +13,84 @@ Unauthorized reproduction or modification is prohibited.
 
 <meta name="generator" content="ZALAZER rules engine v1">
 
-
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-
 body {
     margin: 0;
-    padding: 10px 20px 40px 20px; /* верх 20, правый 20, низ 40, левый 20 */
+    padding: 10px 20px 40px 20px;
     background: #0b0b0b;
     color: #eaeaea;
     font-family: Arial, sans-serif;
     line-height: 1.6;
 }
 
-    h1 {
-        text-align: center;
-        margin-bottom: 30px;
-    }
+h1 { text-align: center; margin-bottom: 30px; }
+h2 { margin-top: 40px; border-bottom: 1px solid #333; padding-bottom: 6px; color: #ffd36a; }
+h3 { margin-top: 24px; color: #9fd6ff; }
+p { margin: 10px 0; }
+ul { margin: 10px 0 20px 20px; }
+li { margin-bottom: 8px; }
 
-    h2 {
-        margin-top: 40px;
-        border-bottom: 1px solid #333;
-        padding-bottom: 6px;
-        color: #ffd36a;
-    }
+.entity { font-weight: bold; }
+.blue { color: #5dbbff; }
+.red { color: #ff6b6b; }
+.gold { color: #ffd36a; }
+.white { color: #dddddd; }
 
-    h3 {
-        margin-top: 24px;
-        color: #9fd6ff;
-    }
-
-    p {
-        margin: 10px 0;
-    }
-
-    ul {
-        margin: 10px 0 20px 20px;
-    }
-
-    li {
-        margin-bottom: 8px;
-    }
-
-    .entity {
-        font-weight: bold;
-    }
-
-    .blue { color: #5dbbff; }
-    .red { color: #ff6b6b; }
-    .gold { color: #ffd36a; }
-    .white { color: #dddddd; }
-
-    .note {
-        background: #151515;
-        border-left: 4px solid #ffd36a;
-        padding: 12px;
-        margin: 20px 0;
-    }
-
-/* ===== game title ===== */
-.game-title {
-    text-align: center;
-    margin-bottom: 30px;
-    line-height: 1.3;
-}
-
-.game-subtitle {
-    display: block;
-    font-size: 0.65em;
-    font-weight: normal;
-    opacity: 0.7;
-    margin-top: 6px;
-}
-
-/* ===== footer ===== */
-.rules-footer-sep {
-    margin-top: 50px;
-    border: 0;
-    border-top: 1px solid #333;
-}
-
-.rules-footer {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-.rules-copyright {
-    line-height: 1.5;
-    margin-bottom: 16px;
-}
-
-.rules-contact-btn {
+.note {
     background: #151515;
-    color: #ffd36a;
-    border: 1px solid #333;
-    padding: 8px 18px;
-    cursor: pointer;
-    font-size: 12px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    border-left: 4px solid #ffd36a;
+    padding: 12px;
+    margin: 20px 0;
 }
 
-.rules-contact-btn:hover {
-    background: #1e1e1e;
-    border-color: #ffd36a;
+.game-title { text-align: center; margin-bottom: 30px; line-height: 1.3; }
+.game-subtitle { display: block; font-size: 0.65em; font-weight: normal; opacity: 0.7; margin-top: 6px; }
+
+.rules-footer-sep { margin-top: 50px; border: 0; border-top: 1px solid #333; }
+.rules-footer { margin-top: 20px; text-align: center; font-size: 12px; opacity: 0.7; }
+.rules-copyright { line-height: 1.5; margin-bottom: 16px; }
+.rules-contact-btn { background: #151515; color: #ffd36a; border: 1px solid #333; padding: 8px 18px; cursor: pointer; font-size: 12px; border-radius: 4px; transition: all 0.2s ease; }
+.rules-contact-btn:hover { background: #1e1e1e; border-color: #ffd36a; }
+.rules-note { margin-top: 10px; font-size: 11px; opacity: 0.5; }
+.doc-signature { display: none; opacity: 0.15; }
+
+/* FEEDBACK MODAL */
+#feedbackModal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.95);
+  z-index:999;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
 }
 
-.rules-note {
-    margin-top: 10px;
-    font-size: 11px;
-    opacity: 0.5;
+#feedbackModal textarea {
+  width:80%;
+  height:100px;
+  margin-bottom:12px;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  resize:none;
+  font-size:14px;
 }
 
-/* hidden ownership marker */
-.doc-signature {
-    display: none;
-    opacity: 0.15;
-}
-
-
+#feedbackPhotoWrapper { display:flex; align-items:center; width:80%; margin-bottom:6px; }
+#feedbackPhotoWrapper input { flex:1; }
+#removePhotoBtn { margin-left:8px; cursor:pointer; background:#550000; color:#fff; border:none; border-radius:4px; padding:4px 8px; display:inline-block; }
+#oldVersionWarning { width:80%; font-size:12px; color:#ffcc33; margin-bottom:6px; text-align:center; display:none; }
+.feedback-buttons { display:flex; justify-content:space-between; width:80%; margin-top:8px; }
+.feedback-buttons button { flex:1; margin:0 4px; padding:10px 0; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
+.feedback-buttons button:hover { background:#2c2c2c; }
+#feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
 </style>
 </head>
-
 <body>
 
 <div class="doc-signature">
@@ -147,7 +101,6 @@ body {
     🧠 ChronoMonsters<br>
     <span class="game-subtitle">Game Rules</span>
 </h1>
-
 
 <!-- ENGLISH -->
 <h2>🇬🇧 English</h2>
@@ -164,21 +117,16 @@ Be careful — stronger enemies can block your path!
     <li><span class="entity blue">Player</span> — blue square.<br>
         Starting speed = 5, power = 1.<br>
         Moves until all speed points are used.</li>
-
     <li><span class="entity blue">Bots</span> — blue squares.<br>
         Starting speed = 5, power = 1.<br>
         Bots move only after the player spends all speed.</li>
-
     <li>If your power ≥ bot power — you defeat it and gain <strong>+2 speed</strong>.</li>
     <li>If bot power is higher — the path is blocked.</li>
-
     <li><span class="entity red">Monsters</span> — red squares.<br>
         Power = 1.<br>
         Defeating them grants <strong>+1 speed</strong>.</li>
-
     <li><span class="entity gold">Chests</span> — gold squares.<br>
         Collecting a chest grants <strong>+1 power</strong>.</li>
-
     <li><span class="entity white">White numbered squares</span> — traces of previous moves.<br>
         These cells are blocked.</li>
 </ul>
@@ -233,20 +181,16 @@ Diagonal movement is forbidden. You can move only up, down, left, or right.
 <h3>Що є на карті</h3>
 <ul>
     <li><span class="entity blue">Гравець</span> — блакитний квадрат.<br>
-        Початкова швидкість = 5, сила = 1.</li>
-
+        Початкова швидкість = 5, сила = 1.<br>
+        Ходить до вичерпання всіх очок швидкості.</li>
     <li><span class="entity blue">Боти</span> — сині квадрати.<br>
         Ходять після того, як гравець витратив усю швидкість.</li>
-
     <li>Якщо твоя сила ≥ сили бота — ти перемагаєш і отримуєш <strong>+2 швидкості</strong>.</li>
     <li>Якщо бот сильніший — прохід заблоковано.</li>
-
     <li><span class="entity red">Монстри</span> — червоні квадрати.<br>
         За перемогу отримуєш <strong>+1 швидкості</strong>.</li>
-
     <li><span class="entity gold">Скрині</span> — золоті квадрати.<br>
         Дає <strong>+1 сили</strong>.</li>
-
     <li><span class="entity white">Білі клітини з цифрами</span> — сліди рухів, ходити туди не можна.</li>
 </ul>
 
@@ -276,6 +220,15 @@ Diagonal movement is forbidden. You can move only up, down, left, or right.
     <li><strong>Нічия</strong> — об’єкти не можуть з’явитися.</li>
 </ul>
 
+<h3>Стратегія перемоги</h3>
+<ul>
+    <li>Спершу збирай скрині для збільшення сили.</li>
+    <li>Атакуй слабких ботів (+2 швидкості) та монстрів (+1 швидкості).</li>
+    <li>Розумно керуй своєю швидкістю.</li>
+    <li>Не стій поруч із сильними ворогами — вони блокують шляхи.</li>
+    <li>Плануй кожен раунд, щоб залишитися останнім живим.</li>
+</ul>
+
 <!-- RUSSIAN -->
 <h2>🇷🇺 По-русски</h2>
 
@@ -289,20 +242,16 @@ Diagonal movement is forbidden. You can move only up, down, left, or right.
 <h3>Объекты на карте</h3>
 <ul>
     <li><span class="entity blue">Игрок</span> — голубой квадрат.<br>
-        Начальная скорость = 5, сила = 1.</li>
-
+        Начальная скорость = 5, сила = 1.<br>
+        Ходит до полного расхода скорости.</li>
     <li><span class="entity blue">Боты</span> — синие квадраты.<br>
         Ходят после полного расхода скорости игроком.</li>
-
     <li>Если твоя сила ≥ силы бота — победа и <strong>+2 скорости</strong>.</li>
     <li>Если бот сильнее — путь заблокирован.</li>
-
     <li><span class="entity red">Монстры</span> — красные квадраты.<br>
         Победа даёт <strong>+1 скорости</strong>.</li>
-
     <li><span class="entity gold">Сундуки</span> — золотые квадраты.<br>
         Даёт <strong>+1 силы</strong>.</li>
-
     <li><span class="entity white">Белые клетки с числами</span> — следы ходов, туда ходить нельзя.</li>
 </ul>
 
@@ -325,103 +274,143 @@ Diagonal movement is forbidden. You can move only up, down, left, or right.
     <li>Если нет свободных клеток — ничья.</li>
 </ul>
 
+<h3>Победа и поражение</h3>
+<ul>
+    <li><strong>Победа</strong> — все боты уничтожены.</li>
+    <li><strong>Поражение</strong> — игрок убит.</li>
+    <li><strong>Ничья</strong> — объекты не могут появиться.</li>
+</ul>
+
 <h3>Стратегия победы</h3>
 <ul>
     <li>Сначала собирай сундуки.</li>
     <li>Атакуй слабых ботов и монстров.</li>
     <li>Грамотно управляй скоростью.</li>
-    <li>Не стой рядом с сильными врагами.</li>
-    <li>Планируй каждый раунд.</li>
+    <li>Не стой рядом с сильными врагами — они могут блокировать пути.</li>
+    <li>Планируй каждый раунд, чтобы остаться последним выжившим.</li>
 </ul>
 
-
-
+<!-- ===== FOOTER ===== -->
 <hr class="rules-footer-sep">
-
 <div class="rules-footer">
-    <div class="rules-copyright">
-        © 2026 <strong>ZALAZER</strong><br>
-        ChronoMonsters and its source code are protected by copyright law.<br>
-        All rights reserved.
-    </div>
-
-    <button class="rules-contact-btn" onclick="sendFeedback()">
-        Contact / Feedback
-    </button>
-
-    <div class="rules-note">
-        Feedback can include text and screenshot. No reply guaranteed.
-    </div>
+  <div class="rules-copyright">
+    © 2026 <strong>ZALAZER</strong><br>
+    All code and content are protected by copyright law.<br>
+    All rights reserved.
+  </div>
+    <button class="rules-contact-btn" onclick="openFeedbackModal()">Send Feedback / Screenshot</button>
+    <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
 </div>
 
-
+<!-- FEEDBACK MODAL -->
+<div id="feedbackModal">
+  <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
+  <div id="feedbackPhotoWrapper">
+    <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
+    <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
+  </div>
+  <div id="oldVersionWarning">⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.</div>
+  <div class="feedback-buttons">
+    <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
+    <button onclick="closeFeedbackModal()">Cancel ❌</button>
+  </div>
+  <div id="feedbackStatus"></div>
+</div>
 
 <script>
-/*
-© 2026 ZALAZER
-ChronoMonsters rules logic layer.
-Internal use only.
-*/
+let tg=null, canUploadFile=false;
 
-const __docSignature = {
-    product: "ChronoMonsters",
-    type: "rules",
-    revision: "1.0",
-    year: 2026
-};
-
-const tg = window.Telegram?.WebApp;
-
-async function sendFeedback() {
-    if (!tg) {
-        alert("Feedback works only inside Telegram WebApp");
-        return;
-    }
-
-    const text = prompt("Please enter your feedback:");
-    if (!text) return;
-
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = "image/*";
-
-    fileInput.onchange = async () => {
-        let screenshot = null;
-        if (fileInput.files.length > 0) {
-            screenshot = await fileToBase64(fileInput.files[0]);
-        }
-
-        const payload = {
-            type: "feedback",
-            game: "ChronoMonsters",
-            page: "rules",
-            text,
-            screenshot,
-            platform: tg.platform,
-            lang: tg.initDataUnsafe?.user?.language_code,
-            user: tg.initDataUnsafe?.user?.id,
-            ts: Date.now()
-        };
-
-        tg.sendData(JSON.stringify(payload));
-        alert("Thank you! Your feedback has been sent ✅");
-    };
-
-    fileInput.click();
+function initTelegram(){
+  if(window.Telegram?.WebApp){
+    tg=window.Telegram.WebApp;
+    tg.ready(); tg.expand();
+    canUploadFile=typeof tg.uploadFile==='function';
+    const photoInput=document.getElementById('feedbackPhoto');
+    const warning=document.getElementById('oldVersionWarning');
+    photoInput.disabled=!canUploadFile;
+    warning.style.display=canUploadFile?'none':'block';
+  }else{
+    const photoInput=document.getElementById('feedbackPhoto');
+    const warning=document.getElementById('oldVersionWarning');
+    photoInput.disabled=true;
+    warning.textContent="WebApp not detected. Upload not available.";
+    warning.style.display='block';
+  }
 }
+initTelegram();
 
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+const feedbackModal=document.getElementById('feedbackModal');
+const feedbackText=document.getElementById('feedbackText');
+const feedbackPhoto=document.getElementById('feedbackPhoto');
+const feedbackStatus=document.getElementById('feedbackStatus');
+const sendFeedbackBtn=document.getElementById('sendFeedbackBtn');
+
+function openFeedbackModal(){ feedbackModal.style.display='flex'; }
+function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; feedbackStatus.textContent=''; toggleRemoveBtn(); }
+function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display=feedbackPhoto.files.length?'inline-block':'none'; }
+function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
+
+async function sendFeedback(){
+  if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
+  const text=feedbackText.value.trim();
+  if(!text && !feedbackPhoto.files.length){ feedbackStatus.textContent="Add text or photo"; return; }
+  sendFeedbackBtn.disabled=true; feedbackStatus.textContent="Sending...";
+  let photoBase64=null;
+  if(feedbackPhoto.files.length){
+    const file=feedbackPhoto.files[0];
+    photoBase64=await new Promise(resolve=>{
+      const reader=new FileReader();
+      reader.onload=e=>resolve(e.target.result);
+      reader.readAsDataURL(file);
     });
+  }
+
+
+
+  let ticket=null;
+  try{
+    const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{ method:'POST', headers:{'Content-Type':'application/json'} });
+    const tJson=await tResp.json();
+    ticket=tJson.k;
+  }catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
+
+  const userObj=tg.initDataUnsafe?.user || {};
+  const payload={
+    type:'feedback',
+    page:'ChronoMonsters-rules',
+    text,
+    photo:photoBase64,
+    ts:Date.now(),
+    user:{
+      id:userObj.id,
+      username:userObj.username,
+      first_name:userObj.first_name,
+      last_name:userObj.last_name,
+      is_bot:userObj.is_bot,
+      language_code:userObj.language_code
+    }
+  };
+
+  try{
+    const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({k:ticket,d:payload})
+    });
+    const result=await resp.json();
+    if(result.ok){
+      feedbackStatus.textContent="✅ Feedback sent!";
+      feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
+    }else feedbackStatus.textContent="Failed to send feedback";
+  }catch(e){
+    console.error(e);
+    feedbackStatus.textContent="❌ Error sending feedback";
+  } finally {
+    sendFeedbackBtn.disabled=false;
+  }
 }
 </script>
 
-
-
-
 </body>
 </html>
+
