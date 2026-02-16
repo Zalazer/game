@@ -2,12 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta
-  name="viewport"
-  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PokerLazer – Game Rules</title>
-
 
 <!--
 © 2026 ZALAZER
@@ -17,71 +13,25 @@ Unauthorized reproduction or modification is prohibited.
 
 <meta name="generator" content="ZALAZER rules engine v1">
 
-
-
-
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-/* ==== GLOBAL ==== */
-html, body {
+body {
     margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
+    padding: 20px;
     background: #0b0b0b;
     color: #eaeaea;
     font-family: Arial, sans-serif;
     line-height: 1.6;
-    overflow-y: auto;
-    touch-action: manipulation;
 }
 
-/* ==== TOUCH SHIELD CANVAS ==== */
-#touchShield {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    background: transparent;
-    z-index: 0;
-    touch-action: none;
-}
-
-/* ==== CONTENT ==== */
-#content {
-    position: relative;
-    z-index: 1;
-    padding: 10px 20px 40px 20px; /* верх 20, правый 20, низ 40, левый 20 */
-}
-
-h1 {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-h2 {
-    margin-top: 40px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 6px;
-    color: #ffd36a;
-}
-
-h3 {
-    margin-top: 24px;
-    color: #9fd6ff;
-}
-
-p {
-    margin: 10px 0;
-}
-
-ul {
-    margin: 10px 0 20px 20px;
-}
-
-li {
-    margin-bottom: 8px;
-}
+h1 { text-align: center; margin-bottom: 30px; }
+h2 { margin-top: 40px; border-bottom: 1px solid #333; padding-bottom: 6px; color: #ffd36a; }
+h3 { margin-top: 24px; color: #9fd6ff; }
+p { margin: 10px 0; }
+ul { margin: 10px 0 20px 20px; }
+li { margin-bottom: 8px; }
 
 .note {
     background: #151515;
@@ -90,33 +40,34 @@ li {
     margin: 20px 0;
 }
 
-.rules-footer-sep {
-    margin-top: 50px;
+/* ===== FOOTER ===== */
+hr.rules-footer-sep {
+    margin: 40px 0 10px 0;
     border: 0;
     border-top: 1px solid #333;
 }
 
 .rules-footer {
-    margin-top: 20px;
+    width: 100%;
     text-align: center;
     font-size: 12px;
-    opacity: 0.7;
+    opacity: 0.85;
+    padding: 8px 0 12px 0;
 }
 
 .rules-copyright {
     line-height: 1.5;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
 }
 
 .rules-contact-btn {
     background: #151515;
     color: #ffd36a;
     border: 1px solid #333;
-    padding: 8px 18px;
+    padding: 6px 16px;
     cursor: pointer;
     font-size: 12px;
     border-radius: 4px;
-    transition: all 0.2s ease;
 }
 
 .rules-contact-btn:hover {
@@ -125,9 +76,94 @@ li {
 }
 
 .rules-note {
-    margin-top: 10px;
+    margin-top: 6px;
     font-size: 11px;
     opacity: 0.5;
+}
+
+/* ===== FEEDBACK MODAL ===== */
+#feedbackModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#feedbackModal textarea {
+    width: 80%;
+    height: 100px;
+    margin-bottom: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    resize: none;
+    font-size: 14px;
+}
+
+#feedbackPhotoWrapper {
+    display: flex;
+    align-items: center;
+    width: 80%;
+    margin-bottom: 6px;
+}
+
+#feedbackPhotoWrapper input {
+    flex: 1;
+}
+
+#removePhotoBtn {
+    margin-left: 8px;
+    cursor: pointer;
+    background: #550000;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    display: none;
+}
+
+#oldVersionWarning {
+    width: 80%;
+    font-size: 12px;
+    color: #ffcc33;
+    margin-bottom: 6px;
+    text-align: center;
+    display: none;
+}
+
+.feedback-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 80%;
+    margin-top: 8px;
+}
+
+.feedback-buttons button {
+    flex: 1;
+    margin: 0 4px;
+    padding: 10px 0;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #1c1c1c;
+    color: #fff;
+}
+
+.feedback-buttons button:hover {
+    background: #2c2c2c;
+}
+
+#feedbackStatus {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #ffd36a;
+    text-align: center;
 }
 
 .game-title {
@@ -154,189 +190,306 @@ li {
 
 <body>
 
-<!-- CANVAS ЯКОРЬ ДЛЯ TOUCH -->
-<canvas id="touchShield"></canvas>
-
-<!-- ОСНОВНОЙ КОНТЕНТ -->
 <div id="content">
 
-  <!-- скрытый копирайт -->
-  <div class="doc-signature">
-      © 2026 ZALAZER · PokerLazer · Rules Document
-  </div>
+<div class="doc-signature">
+    © 2026 ZALAZER · PokerLazer · Rules Document
+</div>
 
-  <h1 class="game-title">
-      ♠️ PokerLazer<br>
-      <span class="game-subtitle">Game Rules</span>
-  </h1>
+<h1 class="game-title">
+    ♠️ PokerLazer<br>
+    <span class="game-subtitle">Game Rules</span>
+</h1>
 
-  <!-- ENGLISH -->
-  <h2>🇬🇧 English</h2>
-  <h3>Goal of the Game</h3>
-  <p>
-  PokerLazer simulates a Texas Hold’em game with <strong>9 players</strong>.
-  Your goal is to win chips by making the best hand at showdown or by forcing opponents to fold.
-  </p>
+<!-- ENGLISH -->
+<h2>🇬🇧 English</h2>
 
-  <h3>How the Game Works</h3>
-  <ul>
-      <li>You are one of 9 players at the table.</li>
-      <li>Each player receives <strong>2 hole cards</strong>.</li>
-      <li>Gameplay proceeds in rounds:</li>
-      <ul>
-          <li><strong>Pre-flop:</strong> Hole cards only</li>
-          <li><strong>Flop:</strong> 3 community cards</li>
-          <li><strong>Turn:</strong> 4th community card</li>
-          <li><strong>River:</strong> 5th community card</li>
-      </ul>
-      <li>The best 5-card hand wins.</li>
-  </ul>
+<h3>Goal of the Game</h3>
+<p>
+PokerLazer simulates a Texas Hold’em game with <strong>9 players</strong>.
+Your goal is to win chips by making the best hand at showdown or by forcing opponents to fold.
+</p>
 
-  <div class="note">
-  Each hand simulates a real 9-player Texas Hold’em table.
-  </div>
+<h3>How the Game Works</h3>
+<ul>
+    <li>You are one of 9 players at the table.</li>
+    <li>Each player receives <strong>2 hole cards</strong>.</li>
+    <li>
+        Gameplay proceeds in rounds with betting and card reveals:
+        <ul>
+            <li><strong>Pre-flop:</strong> Each player has their hole cards only.</li>
+            <li><strong>Flop:</strong> 3 community cards are revealed.</li>
+            <li><strong>Turn:</strong> 1 more community card is revealed.</li>
+            <li><strong>River:</strong> Final community card is revealed.</li>
+        </ul>
+    </li>
+    <li>You can bet, call, raise, or fold in each round.</li>
+    <li>The winner is determined by the best 5-card poker hand using any combination of your hole cards and community cards.</li>
+</ul>
 
-  <!-- UKRAINIAN -->
-  <h2>🇺🇦 Українською</h2>
+<h3>Strategy Tips</h3>
+<ul>
+    <li>Observe opponents’ moves carefully.</li>
+    <li>Use folds to avoid losing too many chips.</li>
+    <li>Play stronger hands aggressively, weaker hands cautiously.</li>
+    <li>Remember: timing of bets is as important as the cards themselves.</li>
+</ul>
 
-  <h3>Мета гри</h3>
-  <p>
-  PokerLazer імітує гру Texas Hold’em для <strong>9 гравців</strong>.
-  Мета — створити найкращу комбінацію карт або змусити суперників скинути карти.
-  </p>
+<div class="note">
+Each hand is a simulation of a real 9-player table. Community cards are revealed step by step, just like in live Texas Hold’em.
+</div>
 
-  <h3>Як грати</h3>
-  <ul>
-      <li>Кожен гравець отримує 2 карти.</li>
-      <li>Відкриття спільних карт відбувається поетапно.</li>
-      <li>Перемагає найсильніша комбінація.</li>
-  </ul>
+<!-- UKRAINIAN -->
+<h2>🇺🇦 Українською</h2>
 
-  <div class="note">
-  Кожна роздача — симуляція реального покерного столу.
-  </div>
+<h3>Мета гри</h3>
+<p>
+PokerLazer імітує гру в Texas Hold’em для <strong>9 гравців</strong>.
+Мета — вигравати фішки, створюючи найкращу комбінацію карт або змушуючи суперників скинути карти.
+</p>
 
-  <!-- RUSSIAN -->
-  <h2>🇷🇺 По-русски</h2>
+<h3>Як грати</h3>
+<ul>
+    <li>Ви один з 9 гравців за столом.</li>
+    <li>Кожному гравцеві роздаються <strong>2 карти на руку</strong>.</li>
+    <li>
+        Гра йде раундами:
+        <ul>
+            <li><strong>Pre-flop:</strong> На руках тільки карти гравця.</li>
+            <li><strong>Flop:</strong> Відкриваються 3 спільні карти.</li>
+            <li><strong>Turn:</strong> Відкривається ще одна спільна карта.</li>
+            <li><strong>River:</strong> Відкривається остання спільна карта.</li>
+        </ul>
+    </li>
+    <li>У кожному раунді можна ставити, коллити, рейзити або скидати карти.</li>
+    <li>Переможець визначається найкращою 5-картою комбінацією із власних і спільних карт.</li>
+</ul>
 
-  <h3>Цель игры</h3>
-  <p>
-  PokerLazer имитирует Texas Hold’em для <strong>9 игроков</strong>.
-  Цель — собрать лучшую комбинацию или заставить соперников сбросить карты.
-  </p>
+<h3>Поради зі стратегії</h3>
+<ul>
+    <li>Спостерігайте за суперниками.</li>
+    <li>Скидання карт допомагає не втратити багато фішок.</li>
+    <li>Сильні комбінації грайте агресивно, слабкі — обережно.</li>
+    <li>Час ставки важливий так само, як і карти.</li>
+</ul>
 
-  <h3>Как играть</h3>
-  <ul>
-      <li>2 карты каждому игроку.</li>
-      <li>5 общих карт открываются поэтапно.</li>
-      <li>Побеждает лучшая комбинация.</li>
-  </ul>
+<div class="note">
+Кожна роздача — симуляція реальної 9-гравцевої гри.
+</div>
 
-  <div class="note">
-  Полная симуляция настоящей игры в Texas Hold’em.
-  </div>
+<!-- RUSSIAN -->
+<h2>🇷🇺 По-русски</h2>
 
-  <hr class="rules-footer-sep">
+<h3>Цель игры</h3>
+<p>
+PokerLazer имитирует игру Texas Hold’em для <strong>9 игроков</strong>.
+Цель — выигрывать фишки.
+</p>
 
-  <div class="rules-footer">
-      <div class="rules-copyright">
-          © 2026 <strong>ZALAZER</strong><br>
-          PokerLazer and its source code are protected by copyright law.<br>
-          All rights reserved.
-      </div>
+<h3>Как играть</h3>
+<ul>
+    <li>Вы один из 9 игроков за столом.</li>
+    <li>Каждому раздаются <strong>2 карты на руку</strong>.</li>
+    <li>
+        Игра проходит раундами:
+        <ul>
+            <li><strong>Pre-flop:</strong> Только ваши карты.</li>
+            <li><strong>Flop:</strong> 3 общие карты.</li>
+            <li><strong>Turn:</strong> Ещё 1 карта.</li>
+            <li><strong>River:</strong> Последняя карта.</li>
+        </ul>
+    </li>
+    <li>Можно ставить, коллировать, рейзить или сбрасывать карты.</li>
+    <li>Победитель определяется по лучшей комбинации.</li>
+</ul>
 
-      <button class="rules-contact-btn" onclick="sendFeedback()">
-          Contact / Feedback
-      </button>
+<h3>Советы по стратегии</h3>
+<ul>
+    <li>Следите за действиями соперников.</li>
+    <li>Сильные руки играйте агрессивно.</li>
+    <li>Слабые — осторожно.</li>
+</ul>
 
-      <div class="rules-note">
-          Feedback can include text and screenshot. No reply guaranteed.
-      </div>
-  </div>
+<div class="note">
+Каждая раздача — симуляция реального стола.
+</div>
+
+</div> <!-- ✅ закрытие content -->
+
+
+<!-- FOOTER -->
+<hr class="rules-footer-sep">
+
+<div class="rules-footer">
+    <div class="rules-copyright">
+        © 2026 <strong>ZALAZER</strong><br>
+        All code and content are protected by copyright law.<br>
+        All rights reserved.
+    </div>
+
+    <button class="rules-contact-btn" onclick="openFeedbackModal()">
+        Send Feedback / Screenshot
+    </button>
+
+    <div class="rules-note">
+        Feedback can include text and screenshot. No reply guaranteed.
+    </div>
+</div>
+
+
+<!-- FEEDBACK MODAL -->
+<div id="feedbackModal">
+
+<textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
+
+<div id="feedbackPhotoWrapper">
+    <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
+    <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
+</div>
+
+<div id="oldVersionWarning">
+⚠️ Your Telegram version is old. Upload photo directly in chat.
+</div>
+
+<div class="feedback-buttons">
+    <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
+    <button onclick="closeFeedbackModal()">Cancel ❌</button>
+</div>
+
+<div id="feedbackStatus"></div>
 
 </div>
 
-<script>
-/* ==== HARD BLOCK ZOOM & GESTURES ==== */
-['gesturestart','gesturechange','gestureend'].forEach(evt => {
-    document.addEventListener(evt, e => e.preventDefault(), { passive:false });
-});
-
-const shield = document.getElementById('touchShield');
-['touchstart','touchmove','touchend'].forEach(evt => {
-    shield.addEventListener(evt, e => {
-        if (e.touches && e.touches.length > 1) {
-            e.preventDefault();
-        }
-    }, { passive:false });
-});
-</script>
 
 <script>
-/*
-© 2026 ZALAZER
-PokerLazer rules logic layer.
-Internal use only.
-*/
+let tg = null;
 
-const __docSignature = {
-    product: "PokerLazer",
-    type: "rules",
-    revision: "1.0",
-    year: 2026
-};
+function initTelegram() {
+    if (window.Telegram && window.Telegram.WebApp) {
+        tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+    }
+}
+initTelegram();
 
-const tg = window.Telegram?.WebApp;
+
+const feedbackModal = document.getElementById('feedbackModal');
+const feedbackText = document.getElementById('feedbackText');
+const feedbackPhoto = document.getElementById('feedbackPhoto');
+const feedbackStatus = document.getElementById('feedbackStatus');
+const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
+
+function openFeedbackModal() {
+    feedbackModal.style.display = 'flex';
+}
+
+function closeFeedbackModal() {
+    feedbackModal.style.display = 'none';
+    feedbackText.value = '';
+    feedbackPhoto.value = '';
+    feedbackStatus.textContent = '';
+    toggleRemoveBtn();
+}
+
+function toggleRemoveBtn() {
+    document.getElementById('removePhotoBtn').style.display =
+        feedbackPhoto.files.length ? 'inline-block' : 'none';
+}
+
+function removeFeedbackPhoto() {
+    feedbackPhoto.value = '';
+    toggleRemoveBtn();
+}
+
 
 async function sendFeedback() {
-    if(!tg) {
-        alert("Feedback works only inside Telegram WebApp");
+
+    if (!tg) {
+        feedbackStatus.textContent = "Works only inside Telegram";
         return;
     }
 
-    const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
-    if(!feedbackText) return;
+    const text = feedbackText.value.trim();
 
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.onchange = async () => {
-        let fileData = null;
-        if(fileInput.files.length > 0) {
-            fileData = await fileToBase64(fileInput.files[0]);
+    if (!text && !feedbackPhoto.files.length) {
+        feedbackStatus.textContent = "Add text or photo";
+        return;
+    }
+
+    sendFeedbackBtn.disabled = true;
+    feedbackStatus.textContent = "Sending...";
+
+    let photoBase64 = null;
+
+    if (feedbackPhoto.files.length) {
+        const file = feedbackPhoto.files[0];
+
+        photoBase64 = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    let ticket = null;
+
+    try {
+
+        const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const tJson = await tResp.json();
+        ticket = tJson.k;
+
+    } catch (e) {
+        feedbackStatus.textContent = "Ticket error";
+        sendFeedbackBtn.disabled = false;
+        return;
+    }
+
+
+    const userObj = tg.initDataUnsafe?.user || {};
+
+    const payload = {
+        type: 'feedback',
+        page: 'PokerLazer-rules',
+        text,
+        photo: photoBase64,
+        ts: Date.now(),
+        user: userObj
+    };
+
+
+    try {
+
+        const resp = await fetch('https://game.shooleeyack.workers.dev/__emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ k: ticket, d: payload })
+        });
+
+        const result = await resp.json();
+
+        if (result.ok) {
+
+            feedbackStatus.textContent = "✅ Feedback sent!";
+
+            setTimeout(() => {
+                closeFeedbackModal();
+            }, 800);
+
+        } else {
+            feedbackStatus.textContent = "Send failed";
         }
 
-        const payload = {
-            type: 'feedback',
-            game: 'PokerLazer',
-            page: 'rules',
-            text: feedbackText,
-            screenshot: fileData,
-            platform: tg.platform,
-            lang: tg.initDataUnsafe?.user?.language_code,
-            user: tg.initDataUnsafe?.user?.id,
-            ts: Date.now()
-        };
+    } catch (e) {
+        feedbackStatus.textContent = "Error: " + e.message;
+    }
 
-        tg.sendData(JSON.stringify(payload));
-        alert("Thank you! Your feedback has been sent ✅");
-    };
-    fileInput.click();
-}
-
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-if (tg) {
-    console.log("Telegram WebApp доступен ✅");
-} else {
-    console.log("Telegram WebApp НЕ доступен ❌");
+    sendFeedbackBtn.disabled = false;
 }
 </script>
 
