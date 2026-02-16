@@ -13,10 +13,13 @@ Unauthorized reproduction or modification is prohibited.
 
 <meta name="generator" content="ZALAZER rules engine v1">
 
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 body {
     margin: 0;
-    padding: 10px 20px 40px 20px;
+    padding: 20px;
     background: #0b0b0b;
     color: #eaeaea;
     font-family: Arial, sans-serif;
@@ -30,20 +33,25 @@ p { margin: 10px 0; }
 ul { margin: 10px 0 20px 20px; }
 li { margin-bottom: 8px; }
 
-.note { background: #151515; border-left: 4px solid #ffd36a; padding: 12px; margin: 20px 0; }
+.note {
+    background: #151515;
+    border-left: 4px solid #ffd36a;
+    padding: 12px;
+    margin: 20px 0;
+}
 
-.rules-footer-sep { margin-top:50px; border:0; border-top:1px solid #333; }
-.rules-footer { margin-top:20px; text-align:center; font-size:12px; opacity:0.7; }
-.rules-copyright { line-height:1.5; margin-bottom:16px; }
-.rules-contact-btn { background:#151515; color:#ffd36a; border:1px solid #333; padding:8px 18px; cursor:pointer; font-size:12px; border-radius:4px; transition:0.2s; }
+/* ===== FOOTER ===== */
+hr.rules-footer-sep { margin:40px 0 10px 0; border:0; border-top:1px solid #333; }
+.rules-footer { width:100%; text-align:center; font-size:12px; opacity:0.85; padding:8px 0 12px 0; }
+.rules-copyright { line-height:1.5; margin-bottom:6px; }
+.rules-contact-btn {
+    background:#151515; color:#ffd36a; border:1px solid #333;
+    padding:6px 16px; cursor:pointer; font-size:12px; border-radius:4px;
+}
 .rules-contact-btn:hover { background:#1e1e1e; border-color:#ffd36a; }
-.rules-note { margin-top:10px; font-size:11px; opacity:0.5; }
+.rules-note { margin-top:6px; font-size:11px; opacity:0.5; }
 
-.game-title { text-align:center; margin-bottom:30px; line-height:1.3; }
-.game-subtitle { display:block; font-size:0.65em; font-weight:normal; opacity:0.7; margin-top:6px; }
-.doc-signature { display:none; opacity:0.15; }
-
-/* FEEDBACK MODAL */
+/* ===== FEEDBACK MODAL ===== */
 #feedbackModal {
   display:none;
   position:fixed;
@@ -55,48 +63,137 @@ li { margin-bottom: 8px; }
   justify-content:center;
   padding:20px;
 }
-#feedbackModal textarea { width:80%; height:100px; margin-bottom:12px; padding:8px; border-radius:6px; border:none; resize:none; font-size:14px; }
-#feedbackPhotoWrapper { display:flex; align-items:center; width:80%; margin-bottom:6px; }
+
+#feedbackModal textarea {
+  width:80%;
+  height:100px;
+  margin-bottom:12px;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  resize:none;
+  font-size:14px;
+}
+
+#feedbackPhotoWrapper {
+  display:flex;
+  align-items:center;
+  width:80%;
+  margin-bottom:6px;
+}
+
 #feedbackPhotoWrapper input { flex:1; }
-#removePhotoBtn { margin-left:8px; cursor:pointer; background:#550000; color:#fff; border:none; border-radius:4px; padding:4px 8px; display:inline-block; }
-#oldVersionWarning { width:80%; font-size:12px; color:#ffcc33; margin-bottom:6px; text-align:center; display:none; }
-.feedback-buttons { display:flex; justify-content:space-between; width:80%; margin-top:8px; }
-.feedback-buttons button { flex:1; margin:0 4px; padding:10px 0; font-size:16px; border:none; border-radius:6px; cursor:pointer; background:#1c1c1c; color:#fff; }
+
+#removePhotoBtn {
+  margin-left:8px;
+  cursor:pointer;
+  background:#550000;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  padding:4px 8px;
+  display:inline-block;
+}
+
+#oldVersionWarning {
+  width:80%;
+  font-size:12px;
+  color:#ffcc33;
+  margin-bottom:6px;
+  text-align:center;
+  display:none;
+}
+
+.feedback-buttons {
+  display:flex;
+  justify-content:space-between;
+  width:80%;
+  margin-top:8px;
+}
+
+.feedback-buttons button {
+  flex:1;
+  margin:0 4px;
+  padding:10px 0;
+  font-size:16px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#1c1c1c;
+  color:#fff;
+}
+
 .feedback-buttons button:hover { background:#2c2c2c; }
-#feedbackStatus { margin-top:6px; font-size:14px; color:#ffd36a; text-align:center; }
+
+#feedbackStatus {
+  margin-top:6px;
+  font-size:14px;
+  color:#ffd36a;
+  text-align:center;
+}
+
+.game-title {
+    text-align: center;
+    margin-bottom: 30px;
+    line-height: 1.3;
+}
+
+.game-subtitle {
+    display: block;
+    font-size: 0.65em;
+    font-weight: normal;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+/* hidden ownership marker */
+.doc-signature {
+    display: none;
+    opacity: 0.15;
+}
 </style>
 </head>
+
 <body>
 
-<div class="doc-signature">© 2026 ZALAZER · StarDropper · Rules Document</div>
+<div id="content">
 
-<h1 class="game-title">
-    ⭐ StarDropper<br>
-    <span class="game-subtitle">Game Rules</span>
-</h1>
+  <div class="doc-signature">
+      © 2026 ZALAZER · StarDropper · Rules Document
+  </div>
+
+  <h1 class="game-title">
+      ⭐ StarDropper<br>
+      <span class="game-subtitle">Game Rules</span>
+  </h1>
 
 <!-- ENGLISH -->
 <h2>🇬🇧 English</h2>
 <h3>Goal of the Game</h3>
 <p>
-Shoot from the bottom of the screen to destroy incoming blue balls.  
+Shoot from the bottom to destroy incoming blue balls.  
 Avoid collisions and prevent missing more than 5 balls per round. Each round lasts <strong>1 minute</strong>.  
-As new rounds begin, the difficulty gradually increases.
+As rounds progress, difficulty gradually increases.
 </p>
+
 <h3>How to Play</h3>
 <ul>
-<li>Move your ship left and right along the bottom.</li>
-<li>Press the fire button or spacebar to shoot upward.</li>
-<li>Destroy the blue balls before they reach your ship.</li>
-<li>You cannot let more than 5 balls pass in a single round — otherwise, you lose the round.</li>
+    <li>Move your ship left and right along the bottom.</li>
+    <li>Press the fire button or spacebar to shoot upward.</li>
+    <li>Destroy the blue balls before they reach your ship.</li>
+    <li>Do not miss more than 5 balls per round — otherwise you lose the round.</li>
 </ul>
+
 <h3>Rounds</h3>
 <ul>
-<li>Each round lasts 1 minute.</li>
-<li>With each new round, balls may move faster or appear more frequently.</li>
-<li>Your goal is to survive as long as possible and achieve a high score.</li>
+    <li>Each round lasts 1 minute.</li>
+    <li>With each new round, balls may move faster or appear more frequently.</li>
+    <li>Survive as long as possible and achieve a high score.</li>
 </ul>
-<div class="note">Stay focused! Avoid collisions and try to hit every ball.</div>
+
+<div class="note">
+Stay focused! Avoid collisions and try to hit every ball.
+</div>
 
 <!-- UKRAINIAN -->
 <h2>🇺🇦 Українською</h2>
@@ -106,20 +203,25 @@ As new rounds begin, the difficulty gradually increases.
 Уникайте зіткнень і не пропускайте більше 5 куль за раунд. Кожен раунд триває <strong>1 хвилину</strong>.  
 З кожним новим раундом складність збільшується.
 </p>
+
 <h3>Як грати</h3>
 <ul>
-<li>Рухайте свій корабель вліво та вправо внизу екрану.</li>
-<li>Натискайте кнопку пострілу або пробіл, щоб стріляти вгору.</li>
-<li>Знищуйте сині кулі, перш ніж вони досягнуть корабля.</li>
-<li>Не пропускайте більше 5 куль за один раунд — інакше програєте раунд.</li>
+    <li>Рухайте корабель вліво та вправо внизу екрану.</li>
+    <li>Натискайте кнопку пострілу або пробіл, щоб стріляти вгору.</li>
+    <li>Знищуйте сині кулі, перш ніж вони досягнуть корабля.</li>
+    <li>Не пропускайте більше 5 куль за один раунд — інакше програєте раунд.</li>
 </ul>
+
 <h3>Раунди</h3>
 <ul>
-<li>Кожен раунд триває 1 хвилину.</li>
-<li>З новими раундами кулі рухаються швидше або з’являються частіше.</li>
-<li>Мета — вижити якомога довше та набрати високий рахунок.</li>
+    <li>Кожен раунд триває 1 хвилину.</li>
+    <li>З новими раундами кулі рухаються швидше або з’являються частіше.</li>
+    <li>Мета — вижити якомога довше та набрати високий рахунок.</li>
 </ul>
-<div class="note">Будьте уважні! Уникайте зіткнень і намагайтеся влучити в кожну кулю.</div>
+
+<div class="note">
+Будьте уважні! Уникайте зіткнень і намагайтеся влучити в кожну кулю.
+</div>
 
 <!-- RUSSIAN -->
 <h2>🇷🇺 По-русски</h2>
@@ -129,35 +231,41 @@ As new rounds begin, the difficulty gradually increases.
 Избегайте столкновений и не пропускайте более 5 шариков за раунд. Каждый раунд длится <strong>1 минуту</strong>.  
 С каждым новым раундом сложность увеличивается.
 </p>
+
 <h3>Как играть</h3>
 <ul>
-<li>Двигайте корабль влево и вправо внизу экрана.</li>
-<li>Нажимайте кнопку стрельбы или пробел для выстрела вверх.</li>
-<li>Уничтожайте синие шарики до того, как они достигнут корабля.</li>
-<li>Не пропускайте более 5 шариков за один раунд — иначе проигрыш.</li>
+    <li>Двигайте корабль влево и вправо внизу экрана.</li>
+    <li>Нажимайте кнопку стрельбы или пробел для выстрела вверх.</li>
+    <li>Уничтожайте синие шарики до того, как они достигнут корабля.</li>
+    <li>Не пропускайте более 5 шариков за один раунд — иначе проигрыш.</li>
 </ul>
+
 <h3>Раунды</h3>
 <ul>
-<li>Каждый раунд длится 1 минуту.</li>
-<li>С каждым новым раундом шарики движутся быстрее или появляются чаще.</li>
-<li>Цель — выжить как можно дольше и набрать высокий счёт.</li>
+    <li>Каждый раунд длится 1 минуту.</li>
+    <li>С каждым новым раундом шарики движутся быстрее или появляются чаще.</li>
+    <li>Цель — выжить как можно дольше и набрать высокий счёт.</li>
 </ul>
-<div class="note">Сосредоточьтесь! Избегайте столкновений и старайтесь поразить каждый шарик.</div>
 
-<!-- FOOTER -->
+<div class="note">
+Сосредоточьтесь! Избегайте столкновений и старайтесь поразить каждый шарик.
+</div>
+
+</div>
+
+<!-- ===== FOOTER ===== -->
 <hr class="rules-footer-sep">
 <div class="rules-footer">
   <div class="rules-copyright">
     © 2026 <strong>ZALAZER</strong><br>
-    StarDropper and its source code are protected by copyright law.<br>
+    All code and content are protected by copyright law.<br>
     All rights reserved.
   </div>
-
   <button class="rules-contact-btn" onclick="openFeedbackModal()">Send Feedback / Screenshot</button>
   <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
 </div>
 
-<!-- FEEDBACK MODAL -->
+<!-- ===== FEEDBACK MODAL ===== -->
 <div id="feedbackModal">
   <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
   <div id="feedbackPhotoWrapper">
@@ -263,7 +371,7 @@ async function sendFeedback(){
     if(result.ok){
       feedbackStatus.textContent="✅ Feedback sent!";
       feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
-      // модалка не закрывается автоматически
+      // ❌ Модалка теперь не закрывается автоматически
     }else feedbackStatus.textContent="Failed to send feedback";
   }catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
 
