@@ -16,6 +16,9 @@ Unauthorized reproduction or modification is prohibited.
 
 <meta name="generator" content="ZALAZER rules engine v1">
 
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 html, body {
     margin: 0;
@@ -35,6 +38,7 @@ html, body {
     inset: 0;
     z-index: 0;
     touch-action: none;
+    pointer-events: none; /* ✅ FIX */
 }
 
 /* CONTENT */
@@ -76,17 +80,9 @@ h3 {
     color: #9fd6ff;
 }
 
-p {
-    margin: 10px 0;
-}
-
-ul {
-    margin: 10px 0 20px 20px;
-}
-
-li {
-    margin-bottom: 8px;
-}
+p { margin: 10px 0; }
+ul { margin: 10px 0 20px 20px; }
+li { margin-bottom: 8px; }
 
 .note {
     background: #151515;
@@ -116,15 +112,7 @@ td {
     background-color: #151515;
 }
 
-
-/* hidden ownership marker */
-.doc-signature {
-    display: none;
-    opacity: 0.15;
-}
-
-
-
+/* FOOTER */
 .rules-footer-sep {
     margin-top: 50px;
     border: 0;
@@ -165,16 +153,94 @@ td {
     opacity: 0.5;
 }
 
+/* ===== FEEDBACK MODAL ===== */
+#feedbackModal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.95);
+  z-index:999;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+#feedbackModal textarea {
+  width:80%;
+  height:100px;
+  margin-bottom:12px;
+  padding:8px;
+  border-radius:6px;
+  border:none;
+  resize:none;
+  font-size:14px;
+}
+
+#feedbackPhotoWrapper {
+  display:flex;
+  align-items:center;
+  width:80%;
+  margin-bottom:6px;
+}
+
+#feedbackPhotoWrapper input { flex:1; }
+
+#removePhotoBtn {
+  margin-left:8px;
+  cursor:pointer;
+  background:#550000;
+  color:#fff;
+  border:none;
+  border-radius:4px;
+  padding:4px 8px;
+  display:inline-block;
+}
+
+#oldVersionWarning {
+  width:80%;
+  font-size:12px;
+  color:#ffcc33;
+  margin-bottom:6px;
+  text-align:center;
+  display:none;
+}
+
+.feedback-buttons {
+  display:flex;
+  justify-content:space-between;
+  width:80%;
+  margin-top:8px;
+}
+
+.feedback-buttons button {
+  flex:1;
+  margin:0 4px;
+  padding:10px 0;
+  font-size:16px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#1c1c1c;
+  color:#fff;
+}
+
+.feedback-buttons button:hover { background:#2c2c2c; }
+
+#feedbackStatus {
+  margin-top:6px;
+  font-size:14px;
+  color:#ffd36a;
+  text-align:center;
+}
 </style>
 </head>
-
 
 <script>
 function go(id){
     document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
 }
 </script>
-
 
 <body>
 
@@ -194,27 +260,19 @@ function go(id){
 <!-- ENGLISH -->
 <h2 id="en">🇬🇧 English</h2>
 
-
-
-
-
-
-
 <h3>Objective</h3>
-  <p>
-  LazerRoulette simulates a European Roulette wheel. Your goal is to place bets and win chips by predicting where the ball will land.
-  </p>
+<p>
+LazerRoulette simulates a European Roulette wheel. Your goal is to place bets and win chips by predicting where the ball will land.
+</p>
 
-  <h3>Gameplay & Bets</h3>
-  <ul>
-      <li>European Roulette has numbers <strong>0–36</strong>.</li>
-      <li>The wheel contains <strong>18 red</strong>, <strong>18 black</strong>, and <strong>1 green (0)</strong>.</li>
-      <li>You can place bets on individual numbers, splits, streets, corners, six lines, dozens, columns, colors, odd/even, or halves (1–18 / 19–36).</li>
-      <li>Spin the wheel. The ball will land in one numbered pocket.</li>
-      <li>Payouts depend on the type of bet:</li>
-  </ul>
-
-  
+<h3>Gameplay & Bets</h3>
+<ul>
+<li>European Roulette has numbers <strong>0–36</strong>.</li>
+<li>The wheel contains <strong>18 red</strong>, <strong>18 black</strong>, and <strong>1 green (0)</strong>.</li>
+<li>You can place bets on individual numbers, splits, streets, corners, six lines, dozens, columns, colors, odd/even, or halves (1–18 / 19–36).</li>
+<li>Spin the wheel. The ball will land in one numbered pocket.</li>
+<li>Payouts depend on the type of bet:</li>
+</ul>
 
 <h3>Inside Bets</h3>
 <table>
@@ -237,7 +295,6 @@ function go(id){
 <tr><td>Columns</td><td>2:1</td><td>Horizontal row of numbers</td></tr>
 </table>
 
-
 <div class="note">
 <strong>Randomness Analysis:</strong> JavaScript Math.random(), angular normalization, Monte Carlo simulation
 </div>
@@ -252,26 +309,22 @@ All numbers ~270 ±3
 <tr><td>19</td><td>280</td><td>270</td><td>+3.7%</td></tr>
 </table>
 
-
-
-
 <!-- UKRAINIAN -->
 <h2 id="ua">🇺🇦 Українською</h2>
 
+<h3>Мета гри</h3>
+<p>
+LazerRoulette імітує європейське колесо рулетки. Мета — робити ставки та вигравати фішки, передбачаючи, куди впаде кулька.
+</p>
 
-  <h3>Мета гри</h3>
-  <p>
-  LazerRoulette імітує європейське колесо рулетки. Мета — робити ставки та вигравати фішки, передбачаючи, куди впаде кулька.
-  </p>
-
-  <h3>Як грати & Ставки</h3>
-  <ul>
-      <li>Європейська рулетка має числа <strong>0–36</strong>.</li>
-      <li>На колесі <strong>18 червоних</strong>, <strong>18 чорних</strong> та <strong>1 зелений (0)</strong>.</li>
-      <li>Ставки можна робити на окремі числа, спліти, стріти, квадрати, лінії шести, дюжини, колонки, кольори, пар/непар або половини поля (1–18 / 19–36).</li>
-      <li>Запускайте колесо. Кулька впаде в одну з комірок.</li>
-      <li>Виплата залежить від типу ставки:</li>
-  </ul>
+<h3>Як грати & Ставки</h3>
+<ul>
+<li>Європейська рулетка має числа <strong>0–36</strong>.</li>
+<li>На колесі <strong>18 червоних</strong>, <strong>18 чорних</strong> та <strong>1 зелений (0)</strong>.</li>
+<li>Ставки можна робити на окремі числа, спліти, стріти, квадрати, лінії шести, дюжини, колонки, кольори, пар/непар або половини поля (1–18 / 19–36).</li>
+<li>Запускайте колесо. Кулька впаде в одну з комірок.</li>
+<li>Виплата залежить від типу ставки:</li>
+</ul>
 
 <h3>Внутрішні ставки</h3>
 <table>
@@ -308,26 +361,22 @@ All numbers ~270 ±3
 <tr><td>19</td><td>280</td><td>270</td><td>+3.7%</td></tr>
 </table>
 
-
-
-
-
 <!-- RUSSIAN -->
 <h2 id="ru">🇷🇺 По-русски</h2>
 
 <h3>Цель игры</h3>
-  <p>
-  LazerRoulette имитирует европейское колесо рулетки. Цель — делать ставки и выигрывать фишки, предсказывая, куда упадёт шарик.
-  </p>
+<p>
+LazerRoulette имитирует европейское колесо рулетки. Цель — делать ставки и выигрывать фишки, предсказывая, куда упадёт шарик.
+</p>
 
-  <h3>Как играть & Ставки</h3>
-  <ul>
-      <li>Европейская рулетка содержит числа <strong>0–36</strong>.</li>
-      <li>На колесе <strong>18 красных</strong>, <strong>18 чёрных</strong> и <strong>1 зелёный (0)</strong>.</li>
-      <li>Ставки делаются на отдельные числа, сплиты, стриты, квадраты, линии шести, дюжины, колонки, цвета, чёт/нечёт, половины поля (1–18 / 19–36).</li>
-      <li>Запускайте колесо. Шарик попадёт в одну из ячеек.</li>
-      <li>Выплаты зависят от типа ставки:</li>
-  </ul>
+<h3>Как играть & Ставки</h3>
+<ul>
+<li>Европейская рулетка содержит числа <strong>0–36</strong>.</li>
+<li>На колесе <strong>18 красных</strong>, <strong>18 чёрных</strong> и <strong>1 зелёный (0)</strong>.</li>
+<li>Ставки делаются на отдельные числа, сплиты, стриты, квадраты, линии шести, дюжины, колонки, цвета, чёт/нечёт, половины поля (1–18 / 19–36).</li>
+<li>Запускайте колесо. Шарик попадёт в одну из ячеек.</li>
+<li>Выплаты зависят от типа ставки:</li>
+</ul>
 
 <h3>Внутренние ставки</h3>
 <table>
@@ -350,8 +399,6 @@ All numbers ~270 ±3
 <tr><td>Колонки</td><td>2:1</td><td>Горизонтальный ряд чисел</td></tr>
 </table>
 
-
-
 <div class="note">
 <strong>Анализ случайности:</strong> JavaScript Math.random(), угловая нормализация, симуляция Монте Карло
 </div>
@@ -367,93 +414,207 @@ All numbers ~270 ±3
 </table>
 
 
+<hr class="rules-footer-sep">
 
-  <hr class="rules-footer-sep">
-
-  <div class="rules-footer">
-      <div class="rules-copyright">
-          © 2026 <strong>ZALAZER</strong><br>
-          LazerRoulette and its source code are protected by copyright law.<br>
-          All rights reserved.
-      </div>
-
-      <button class="rules-contact-btn" onclick="sendFeedback()">
-          Contact / Feedback
-      </button>
-
-      <div class="rules-note">
-          Feedback can include text and screenshot. No reply guaranteed.
-      </div>
+<div class="rules-footer">
+  <div class="rules-copyright">
+    © 2026 <strong>ZALAZER</strong><br>
+    All code and content are protected by copyright law.<br>
+    All rights reserved.
   </div>
+  <button class="rules-contact-btn" onclick="openFeedbackModal()">Send Feedback / Screenshot</button>
+  <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
+</div>
 
+</div> <!-- ✅ ONLY ONE CLOSING DIV -->
+
+<!-- FEEDBACK MODAL -->
+<div id="feedbackModal">
+<textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
+
+<div id="feedbackPhotoWrapper">
+<input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
+<button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
+</div>
+
+<div id="oldVersionWarning">
+⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.
+</div>
+
+<div class="feedback-buttons">
+<button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
+<button onclick="closeFeedbackModal()">Cancel ❌</button>
+</div>
+
+<div id="feedbackStatus"></div>
 </div>
 
 <script>
 ['gesturestart','gesturechange','gestureend'].forEach(evt => {
-    document.addEventListener(evt, e => e.preventDefault(), { passive:false });
+document.addEventListener(evt, e => e.preventDefault(), { passive:false });
 });
 
 const shield = document.getElementById('touchShield');
 ['touchstart','touchmove','touchend'].forEach(evt => {
-    shield.addEventListener(evt, e => {
-        if (e.touches && e.touches.length > 1) {
-            e.preventDefault();
-        }
-    }, { passive:false });
+shield.addEventListener(evt, e => {
+if (e.touches && e.touches.length > 1) {
+e.preventDefault();
+}
+}, { passive:false });
 });
 
-const tg = window.Telegram?.WebApp;
+/* TELEGRAM INIT */
+let tg = null;
+let canUploadFile = false;
 
-async function sendFeedback() {
-    if(!tg) {
-        alert("Feedback works only inside Telegram WebApp");
-        return;
-    }
+function initTelegram() {
 
-    const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
-    if(!feedbackText) return;
+if(window.Telegram && window.Telegram.WebApp){
 
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    fileInput.onchange = async () => {
-        let fileData = null;
-        if(fileInput.files.length > 0) {
-            fileData = await fileToBase64(fileInput.files[0]);
-        }
+tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
 
-        const payload = {
-            type: 'feedback',
-            game: 'LazerRoulette',
-            page: 'rules',
-            text: feedbackText,
-            screenshot: fileData,
-            platform: tg.platform,
-            lang: tg.initDataUnsafe?.user?.language_code,
-            user: tg.initDataUnsafe?.user?.id,
-            ts: Date.now()
-        };
+canUploadFile = typeof tg.uploadFile === 'function';
 
-        tg.sendData(JSON.stringify(payload));
-        alert("Thank you! Your feedback has been sent ✅");
-    };
-    fileInput.click();
+const photoInput = document.getElementById('feedbackPhoto');
+const warning = document.getElementById('oldVersionWarning');
+
+if(!canUploadFile){
+photoInput.disabled = true;
+warning.style.display = 'block';
+}else{
+photoInput.disabled = false;
+warning.style.display = 'none';
 }
 
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
+}else{
+
+const photoInput = document.getElementById('feedbackPhoto');
+const warning = document.getElementById('oldVersionWarning');
+
+photoInput.disabled = true;
+warning.textContent = "WebApp not detected. Upload not available.";
+warning.style.display = 'block';
+
+}
 }
 
-if (tg) {
-    console.log("Telegram WebApp доступен ✅");
-} else {
-    console.log("Telegram WebApp НЕ доступен ❌");
+/* ✅ INIT AFTER DOM READY */
+document.addEventListener("DOMContentLoaded", initTelegram);
+
+
+/* MODAL */
+const feedbackModal = document.getElementById('feedbackModal');
+const feedbackText = document.getElementById('feedbackText');
+const feedbackPhoto = document.getElementById('feedbackPhoto');
+const feedbackStatus = document.getElementById('feedbackStatus');
+const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
+
+function openFeedbackModal(){ feedbackModal.style.display='flex'; }
+function closeFeedbackModal(){
+feedbackModal.style.display='none';
+feedbackText.value='';
+feedbackPhoto.value='';
+feedbackStatus.textContent='';
+toggleRemoveBtn();
 }
+function toggleRemoveBtn(){
+document.getElementById('removePhotoBtn').style.display =
+feedbackPhoto.files.length?'inline-block':'none';
+}
+function removeFeedbackPhoto(){
+feedbackPhoto.value='';
+toggleRemoveBtn();
+feedbackStatus.textContent='';
+}
+
+/* SEND */
+async function sendFeedback(){
+
+if(!tg){
+feedbackStatus.textContent="Feedback works only inside Telegram WebApp";
+return;
+}
+
+const text = feedbackText.value.trim();
+
+if(!text && !feedbackPhoto.files.length){
+feedbackStatus.textContent="Add text or photo";
+return;
+}
+
+sendFeedbackBtn.disabled=true;
+feedbackStatus.textContent="Sending...";
+
+let photoBase64=null;
+
+if(feedbackPhoto.files.length){
+const file=feedbackPhoto.files[0];
+photoBase64=await new Promise(resolve=>{
+const reader=new FileReader();
+reader.onload=e=>resolve(e.target.result);
+reader.readAsDataURL(file);
+});
+}
+
+let ticket=null;
+
+try{
+const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{
+method:'POST',
+headers:{'Content-Type':'application/json'}
+});
+const tJson=await tResp.json();
+ticket=tJson.k;
+}catch(e){
+feedbackStatus.textContent="Cannot get ticket from server";
+sendFeedbackBtn.disabled=false;
+return;
+}
+
+const userObj=tg.initDataUnsafe?.user || {};
+
+const payload={
+type:'feedback',
+page:'LazerRoulette-rules',
+text,
+photo:photoBase64,
+ts:Date.now(),
+user:{
+id:userObj.id || null,
+username:userObj.username || null,
+first_name:userObj.first_name || null,
+last_name:userObj.last_name || null,
+language_code:userObj.language_code || null
+}
+};
+
+try{
+const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({k:ticket,d:payload})
+});
+const result=await resp.json();
+
+if(result.ok){
+feedbackStatus.textContent="✅ Feedback sent!";
+feedbackText.value='';
+feedbackPhoto.value='';
+toggleRemoveBtn();
+}else{
+feedbackStatus.textContent="Failed to send feedback";
+}
+
+}catch(e){
+feedbackStatus.textContent="Error sending feedback: "+e.message;
+}
+
+sendFeedbackBtn.disabled=false;
+}
+
+toggleRemoveBtn();
 </script>
 
 </body>
