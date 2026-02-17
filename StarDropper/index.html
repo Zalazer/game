@@ -62,10 +62,13 @@ async function authTelegram(){
                 tgUser = tg.initDataUnsafe?.user || null;
 
                 if(tgUser){
-                    playerNick =
-                        (tgUser.username ||
-                        tgUser.first_name?.slice(0,12) ||
-                        String(tgUser.id));
+                    if(tgUser.username){
+                        playerNick = tgUser.username.replace(/^@/, '').slice(0,12);
+                    } else if(tgUser.first_name){
+                        playerNick = tgUser.first_name.slice(0,12);
+                    } else {
+                        playerNick = String(tgUser.id);
+                    }
                 }
             }
         }
@@ -159,7 +162,6 @@ async function sendScoreToServer(entry){
 }
 
 function saveToLeaderboard(entry){
-    // локальный рейтинг
     let board=JSON.parse(localStorage.getItem('stardropper_leaderboard'))||[];
     board.unshift(entry);
     board.sort((a,b)=>b.score-a.score);
@@ -170,18 +172,12 @@ function saveToLeaderboard(entry){
     localScores=board;
     lastGameResult=entry;
 
-    // отправка на сервер и мгновенный пуш в глобальный рейтинг
     sendScoreToServer(entry);
     pushGlobalScore(entry.nick, entry.score, entry.round, entry.accuracy);
 }
 
 function pushGlobalScore(nick,score,round,accuracy){
-    globalScores.push({
-        nick,
-        score,
-        rounds:round,
-        accuracy
-    });
+    globalScores.push({ nick, score, rounds:round, accuracy });
     globalScores.sort((a,b)=>b.score-a.score);
     if(globalScores.length>LEADERBOARD_MAX) globalScores.length=LEADERBOARD_MAX;
 }
@@ -220,50 +216,10 @@ let gameState='playing', gameOverReason='';
 let timerAlpha=0, timerTargetAlpha=0, lastSecond=ROUND_TIME;
 const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
 
-function playLaser(){
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.type='sawtooth';
-    o.frequency.setValueAtTime(900,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(300,audioCtx.currentTime+0.2);
-    g.gain.setValueAtTime(0.002,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0005,audioCtx.currentTime+0.2);
-    o.connect(g).connect(audioCtx.destination);
-    o.start();
-    o.stop(audioCtx.currentTime+0.2);
-}
-
-function playHit(){
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.type='sine';
-    o.frequency.setValueAtTime(140,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(60,audioCtx.currentTime+0.3);
-    g.gain.setValueAtTime(0.8,audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
-    o.connect(g).connect(audioCtx.destination);
-    o.start();
-    o.stop(audioCtx.currentTime+0.3);
-}
-
-function beep(freq,dur,type='sine',vol=0.1){
-    const o=audioCtx.createOscillator();
-    const g=audioCtx.createGain();
-    o.type=type;
-    o.frequency.setValueAtTime(freq,audioCtx.currentTime);
-    g.gain.setValueAtTime(vol,audioCtx.currentTime);
-    o.connect(g).connect(audioCtx.destination);
-    o.start();
-    o.stop(audioCtx.currentTime+dur);
-    o.onended=()=>{o.disconnect();g.disconnect();};
-}
-
-const sfx={
-    shot:playLaser,
-    hit:playHit,
-    death:()=>beep(80,0.5,'triangle',0.15),
-    tick:()=>beep(600,0.04,'sine',0.05)
-};
+function playLaser(){ const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='sawtooth'; o.frequency.setValueAtTime(900,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(300,audioCtx.currentTime+0.2); g.gain.setValueAtTime(0.002,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.0005,audioCtx.currentTime+0.2); o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.2); }
+function playHit(){ const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type='sine'; o.frequency.setValueAtTime(140,audioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(60,audioCtx.currentTime+0.3); g.gain.setValueAtTime(0.8,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3); o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.3); }
+function beep(freq,dur,type='sine',vol=0.1){ const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); o.type=type; o.frequency.setValueAtTime(freq,audioCtx.currentTime); g.gain.setValueAtTime(vol,audioCtx.currentTime); o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); o.onended=()=>{o.disconnect();g.disconnect();}; }
+const sfx={ shot:playLaser, hit:playHit, death:()=>beep(80,0.5,'triangle',0.15), tick:()=>beep(600,0.04,'sine',0.05) };
 
 canvas.addEventListener('pointerdown', e=>{
     if(gameState!=='playing'||ammo<=0) return;
@@ -281,79 +237,46 @@ canvas.addEventListener('pointermove', e=>{
 
 function update(dt){
     if(gameState!=='playing') return;
-
     timeLeft-=dt;
     if(timeLeft<=0){ timeLeft=0; endRound(); }
-
     const sec=Math.ceil(timeLeft);
     if(sec!==lastSecond){ lastSecond=sec; timerTargetAlpha=0.35; if(sec<=5&&sfx.tick)sfx.tick(); }
-
     timerAlpha+=(timerTargetAlpha-timerAlpha)*5*dt;
     timerTargetAlpha*=Math.exp(-dt*4);
-
     bullets=bullets.filter(b=>{ b.y-=b.speed; return b.y>0; });
-
     balls=balls.filter(ball=>{
         ball.y+=ball.speed;
-        if(ball.y+ball.r>=cannon.y &&
-           ball.x>cannon.x-cannon.width/2 &&
-           ball.x<cannon.x+cannon.width/2){
-            gameOverReason='Collided';
-            gameOver();
-            return false;
+        if(ball.y+ball.r>=cannon.y && ball.x>cannon.x-cannon.width/2 && ball.x<cannon.x+cannon.width/2){
+            gameOverReason='Collided'; gameOver(); return false;
         }
-        if(ball.y>GAME_HEIGHT+20){
-            missed++;
-            if(missed>=MAX_MISSED){
-                gameOverReason='Missed 5';
-                gameOver();
-            }
-            return false;
-        }
+        if(ball.y>GAME_HEIGHT+20){ missed++; if(missed>=MAX_MISSED){ gameOverReason='Missed 5'; gameOver(); } return false; }
         return true;
     });
-
     for(let i=balls.length-1;i>=0;i--){
         for(let j=bullets.length-1;j>=0;j--){
-            const dx=balls[i].x-bullets[j].x;
-            const dy=balls[i].y-bullets[j].y;
+            const dx=balls[i].x-bullets[j].x; const dy=balls[i].y-bullets[j].y;
             if(Math.hypot(dx,dy)<balls[i].r+bullets[j].r){
                 bullets.splice(j,1); hits++; totalHits++; ammo+=10;
-                flashes.push({ x:balls[i].x, y:balls[i].y, r:balls[i].r, alpha:1 });
-                playHit(); balls.splice(i,1); break;
+                flashes.push({ x:balls[i].x, y:balls[i].y, r:balls[i].r, alpha:1 }); playHit(); balls.splice(i,1); break;
             }
         }
     }
-
     flashes.forEach(f=>f.alpha*=Math.exp(-dt*6));
     flashes=flashes.filter(f=>f.alpha>0);
-
     const difficulty=1+(round-1)*0.1;
-    if(Math.random()<0.025*difficulty)
-        balls.push({ x:Math.random()*GAME_WIDTH, y:-20, r:14, speed:(2+Math.random()*2)*difficulty });
+    if(Math.random()<0.025*difficulty) balls.push({ x:Math.random()*GAME_WIDTH, y:-20, r:14, speed:(2+Math.random()*2)*difficulty });
 }
 
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    if(missed>=4 && gameState==='playing'){
-        const pulse=0.15+Math.sin(Date.now()/120)*0.05;
-        ctx.fillStyle=`rgba(255,0,0,${pulse})`;
-        ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-    }
-
-    ctx.fillStyle='#fff';
-    ctx.fillRect(sx(cannon.x-cannon.width/2), sy(cannon.y), sx(cannon.width), sy(cannon.height));
-
-    ctx.fillStyle='red';
-    bullets.forEach(b=>{ ctx.beginPath(); ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,Math.PI*2); ctx.fill(); });
-
+    if(missed>=4 && gameState==='playing'){ const pulse=0.15+Math.sin(Date.now()/120)*0.05; ctx.fillStyle=`rgba(255,0,0,${pulse})`; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight); }
+    ctx.fillStyle='#fff'; ctx.fillRect(sx(cannon.x-cannon.width/2), sy(cannon.y), sx(cannon.width), sy(cannon.height));
+    ctx.fillStyle='red'; bullets.forEach(b=>{ ctx.beginPath(); ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,Math.PI*2); ctx.fill(); });
     balls.forEach(ball=>{ ctx.beginPath(); ctx.arc(sx(ball.x),sy(ball.y),sx(ball.r),0,Math.PI*2); ctx.fillStyle='dodgerblue'; ctx.fill(); });
-
     flashes.forEach(f=>{ ctx.beginPath(); ctx.arc(sx(f.x),sy(f.y),sx(f.r),0,Math.PI*2); ctx.fillStyle=`rgba(255,150,150,${f.alpha})`; ctx.fill(); });
 
     // HUD
-    const hudY=35;
+    const hudY=0; // убран верхний отступ
     ctx.font='14px Arial'; ctx.fillStyle='#fff'; ctx.textAlign='left';
     ctx.fillText(`Round ${round}`,10,20+hudY);
     ctx.fillText(`Missed: ${missed}/${MAX_MISSED}`,10,38+hudY);
@@ -378,25 +301,19 @@ function draw(){
     if(gameState==='final') drawFinalLeaderboard();
 }
 
-function drawFinalLeaderboard(){
+function drawFinalLeaderboard(){ /* остальной код без изменений */ 
     ctx.fillStyle='rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-
     ctx.textAlign='left'; ctx.font='36px Arial'; ctx.fillStyle='red';
     ctx.fillText('Game Over',30,80);
-
     mainBtn.style.display='block';
     mainBtn.style.top='50px';
     mainBtn.style.left='220px';
-
     let y=120;
     ctx.textAlign='center'; ctx.font='bold 22px Arial'; ctx.fillStyle='yellow';
-    ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y);
-    y+=25;
+    ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y); y+=25;
     ctx.font='18px Arial';
-    ctx.fillText('Pos | Nick | Score | Rounds | Acc',canvas.clientWidth/2,y);
-    y+=20;
-
+    ctx.fillText('Pos | Nick | Score | Rounds | Acc',canvas.clientWidth/2,y); y+=20;
     for(let i=0;i<LEADERBOARD_MAX;i++){
         let e=globalScores[i]||{ nick:'—', score:0, rounds:0, accuracy:0 };
         let color='#ccc';
@@ -408,12 +325,8 @@ function drawFinalLeaderboard(){
         ctx.fillText(`${i+1}. ${e.nick} | ${e.score} | ${e.rounds} | ${e.accuracy}%`, canvas.clientWidth/2,y);
         y+=22;
     }
-
-    y+=15;
-    ctx.fillStyle='yellow'; ctx.font='bold 22px Arial';
-    ctx.fillText(`(${playerNick}) Top 10`,canvas.clientWidth/2,y);
-    y+=25;
-    ctx.font='16px Arial';
+    y+=15; ctx.fillStyle='yellow'; ctx.font='bold 22px Arial';
+    ctx.fillText(`(${playerNick}) Top 10`,canvas.clientWidth/2,y); y+=25; ctx.font='16px Arial';
     for(let i=0;i<LEADERBOARD_MAX;i++){
         let e=localScores[i]||{ score:0, round:0, accuracy:0 };
         let color='#ccc';
@@ -425,53 +338,24 @@ function drawFinalLeaderboard(){
         ctx.fillText(`Score: ${e.score} | Round: ${e.round} | Acc: ${e.accuracy}%`, canvas.clientWidth/2,y);
         y+=22;
     }
-
-    y+=15;
-    ctx.fillStyle='white'; ctx.font='bold 18px Arial';
-    ctx.fillText('Last Game Results',canvas.clientWidth/2,y);
-    y+=25; ctx.font='16px Arial';
+    y+=15; ctx.fillStyle='white'; ctx.font='bold 18px Arial';
+    ctx.fillText('Last Game Results',canvas.clientWidth/2,y); y+=25; ctx.font='16px Arial';
     if(lastGameResult){
-        ctx.fillText(`Score: ${lastGameResult.score} | Round: ${lastGameResult.round} | Accuracy: ${lastGameResult.accuracy}%`,canvas.clientWidth/2,y);
-        y+=20;
+        ctx.fillText(`Score: ${lastGameResult.score} | Round: ${lastGameResult.round} | Accuracy: ${lastGameResult.accuracy}%`,canvas.clientWidth/2,y); y+=20;
         ctx.fillText(`Shots: ${lastGameResult.totalShots} | Hits: ${lastGameResult.totalHits} | Missed: ${lastGameResult.missed} | Ammo left: ${lastGameResult.ammo}`,canvas.clientWidth/2,y);
     }else{
         ctx.fillText('No game played yet',canvas.clientWidth/2,y);
     }
 }
 
-function endRound(){
-    gameState='roundEnd';
-    mainBtn.textContent='Start next round';
-    mainBtn.style.display='block';
-    mainBtn.style.top='135px';
-    mainBtn.style.right='10px';
-}
-
+function endRound(){ gameState='roundEnd'; mainBtn.textContent='Start next round'; mainBtn.style.display='block'; mainBtn.style.top='135px'; mainBtn.style.right='10px'; }
 function gameOver(){
-    gameState='final';
-    bestRound=Math.max(bestRound,round);
-
+    gameState='final'; bestRound=Math.max(bestRound,round);
     const acc=totalShots>0?Math.round((totalHits/totalShots)*100):0;
     const sc=Math.round((ammo+totalHits)*(acc/100)*round);
-
-    saveToLeaderboard({
-        nick:playerNick,
-        score:sc,
-        round,
-        accuracy:acc,
-        totalShots,
-        totalHits,
-        missed,
-        ammo
-    });
-
-    mainBtn.textContent='Restart';
-    mainBtn.style.display='block';
-    mainBtn.style.top='50px';
-    mainBtn.style.left='220px';
-    mainBtn.style.right='30px';
+    saveToLeaderboard({ nick:playerNick, score:sc, round, accuracy:acc, totalShots, totalHits, missed, ammo });
+    mainBtn.textContent='Restart'; mainBtn.style.display='block'; mainBtn.style.top='50px'; mainBtn.style.left='220px'; mainBtn.style.right='30px';
 }
-
 
 mainBtn.onclick=()=>{
     mainBtn.style.display='none';
