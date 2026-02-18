@@ -140,6 +140,10 @@ function pushGlobalScore(nick, score, round, accuracy){
     if(globalScores.length > LEADERBOARD_MAX) globalScores.length = LEADERBOARD_MAX;
 }
 
+
+
+
+
 async function sendScoreToServer(entry){
     if(!SERVER_OK || !tgUser?.id) return;
 
@@ -147,7 +151,7 @@ async function sendScoreToServer(entry){
         const t = await fetch('/__ticket',{method:'POST'});
         const ticket = await t.json();
 
-        await fetch('/__emit',{
+        const res = await fetch('/__emit',{
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({
@@ -168,11 +172,25 @@ async function sendScoreToServer(entry){
             })
         });
 
+        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: добавляем в глобальный лидерборд ТОЛЬКО после успешной отправки
+        if(res.ok){
+            pushGlobalScore(playerNick, entry.score, entry.round, entry.accuracy);
+        }
+
     }catch(e){
         console.log("send score fail",e);
         SERVER_OK = false;
     }
 }
+
+
+
+
+
+
+
+
+
 
 function saveToLeaderboard(entry){
     // Личный топ
@@ -185,8 +203,8 @@ function saveToLeaderboard(entry){
     localScores = board;
     lastGameResult = entry;
 
-    // Глобальный топ: добавляем результат игрока локально сразу
-    pushGlobalScore(playerNick, entry.score, entry.round, entry.accuracy);
+    // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: НЕ добавляем локально в глобальный лидерборд!
+    // Теперь это делает sendScoreToServer() только после успешной отправки на сервер
 
     // Отправка на сервер (асинхронно)
     sendScoreToServer(entry);
