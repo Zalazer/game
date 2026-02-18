@@ -10,7 +10,12 @@
 
 <style>
 * { box-sizing: border-box; }
-html, body { margin:0; padding:0; width:100%; height:100%; font-family:Arial,sans-serif; background:#0b0b0b; color:#eaeaea; overflow:hidden; }
+html, body {
+  margin:0; padding:0; width:100%; height:100%;
+  font-family:Arial,sans-serif;
+  background:#0b0b0b; color:#eaeaea;
+  overflow:hidden;
+}
 
 #menu { display:flex; flex-direction:column; justify-content:space-between; height:100%; padding:20px 0; }
 #menuContent { display:flex; flex-direction:column; align-items:center; }
@@ -23,7 +28,7 @@ h1 { font-size:28px; margin-bottom:24px; text-align:center; }
 .topBtn { font-size:15px; padding:8px 14px; border-radius:8px; background:#222; border:none; color:#fff; cursor:pointer; }
 
 #gameFrameWrapper { flex:1; position:relative; overflow:hidden; background:#000; }
-iframe#gameFrame { border:none; width:100%; height:100%; display:block; }
+iframe#gameFrame { border:none; width:100%; height:100%; }
 
 #rulesOverlay { position:absolute; inset:0; background:rgba(0,0,0,0.96); z-index:20; display:none; }
 #rulesFrame { width:100%; height:100%; border:none; }
@@ -126,11 +131,20 @@ function initTelegram() {
     tg = window.Telegram.WebApp;
     tg.ready();
     tg.expand();
+    console.log("Telegram WebApp detected");
+
     canUploadFile = typeof tg.uploadFile === 'function';
+
     const photoInput = document.getElementById('feedbackPhoto');
     const warning = document.getElementById('oldVersionWarning');
-    if(!canUploadFile){ photoInput.disabled = true; warning.style.display='block'; } 
-    else { photoInput.disabled = false; warning.style.display='none'; }
+
+    if(!canUploadFile){
+      photoInput.disabled = true;
+      warning.style.display = 'block';
+    } else {
+      photoInput.disabled = false;
+      warning.style.display = 'none';
+    }
   } else {
     document.getElementById('feedbackPhoto').disabled = true;
     document.getElementById('oldVersionWarning').textContent = "WebApp not detected. Upload not available.";
@@ -195,26 +209,31 @@ async function switchMusic(nextTrack){
   fadeIn(nextTrack);
 }
 
-/* ===== GAME FLOW (ANDROID/IOS FRIENDLY) ===== */
+/* ===== GAME FLOW ===== */
 async function loadGame(game){
-  currentGame=game; inRules=false;
+  currentGame = game;
+  inRules = false;
+
   await switchMusic(tracks[game]);
   menu.style.display='none';
   gameContainer.style.display='flex';
 
-  // Используем абсолютный путь для надежной загрузки
-  const gamePath = '/' + game + '/index.html';
-  gameFrame.src = '';
-  setTimeout(()=>{ 
-    gameFrame.src = gamePath; 
-  }, 50);
+  try {
+    const resp = await fetch(`${game}/index.html`);
+    if(!resp.ok) throw new Error("Failed to fetch game");
+    const html = await resp.text();
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
 
-  // fallback на случай, если iframe не отобразился
-  setTimeout(()=>{
-    if(!gameFrame.contentWindow || gameFrame.contentWindow.length===0){
-      gameFrame.contentDocument.body.innerHTML = "<div style='color:#fff; text-align:center; margin-top:50px;'>Failed to load game. Try refreshing.</div>";
-    }
-  }, 1500);
+    gameFrame.src = url;
+
+    // На iOS иногда нужно дать чуть времени на отрисовку
+    setTimeout(()=>{ gameFrame.style.display='block'; }, 50);
+
+  } catch(e) {
+    gameFrame.src='';
+    alert("⚠️ Failed to load game: " + e.message);
+  }
 }
 
 async function backToMenu(){
@@ -228,7 +247,7 @@ async function backToMenu(){
 function openRules(){
   if(!currentGame) return;
   inRules=true;
-  rulesFrame.src='/' + currentGame + '/' + currentGame + '-rules.html';
+  rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
   rulesOverlay.style.display='block';
 }
 
@@ -289,7 +308,14 @@ async function sendFeedback(){
     text,
     photo:photoBase64,
     ts: Date.now(),
-    user: { id:userObj.id, username:userObj.username, first_name:userObj.first_name, last_name:userObj.last_name, is_bot:userObj.is_bot, language_code:userObj.language_code }
+    user: {
+      id: userObj.id,
+      username: userObj.username,
+      first_name: userObj.first_name,
+      last_name: userObj.last_name,
+      is_bot: userObj.is_bot,
+      language_code: userObj.language_code
+    }
   };
 
   try{
@@ -299,8 +325,10 @@ async function sendFeedback(){
       body: JSON.stringify({ k: ticket, d: payload })
     });
     const result = await resp.json();
-    if(result.ok){ feedbackStatus.textContent="✅ Feedback sent!"; feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn(); } 
-    else feedbackStatus.textContent="Failed to send feedback";
+    if(result.ok){
+      feedbackStatus.textContent="✅ Feedback sent!";
+      feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
+    } else feedbackStatus.textContent="Failed to send feedback";
   } catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
   sendFeedbackBtn.disabled=false;
 }
