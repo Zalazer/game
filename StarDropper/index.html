@@ -90,8 +90,20 @@ let localScores=[], globalScores=[], lastGameResult=null;
 let lastGameScore=null;
 const LEADERBOARD_MAX=10;
 
-
-
+// ФИКС: заменяет Player/пустые ники на реальные данные из Telegram
+function fixPlayerNickInLeaderboard(){
+    let realNick = 'Player';
+    if(tgUser){
+        if(tgUser.username) realNick = tgUser.username.replace(/^@/, '').slice(0,12);
+        else if(tgUser.first_name) realNick = tgUser.first_name.slice(0,12);
+        else realNick = String(tgUser.id).slice(-8);
+    }
+    
+    globalScores = globalScores.map(entry => ({
+        ...entry,
+        nick: (entry.nick === 'Player' || !entry.nick) ? realNick : entry.nick
+    }));
+}
 
 async function loadGlobalLeaderboard(){
     try{
@@ -103,16 +115,12 @@ async function loadGlobalLeaderboard(){
         const data = await r.json();
 
         if(data?.globalTop && Array.isArray(data.globalTop)){
-            globalScores = data.globalTop.map(e=>{
-                // ИСПРАВЛЕНИЕ: всегда используем playerNick для текущего пользователя
-                const isCurrentUser = e.userId == tgUser?.id;
-                return {
-                    nick: isCurrentUser ? playerNick : (e.nick ? e.nick.replace(/^@/, '').slice(0,12) : (e.userId || 'Player')),
-                    score: e.score || 0,
-                    rounds: e.round || 0,
-                    accuracy: e.accuracy || 0
-                };
-            });
+            globalScores = data.globalTop.map(e=>({
+                nick: e.nick ? e.nick.replace(/^@/, '').slice(0,12) : (e.userId || 'Player'),
+                score: e.score || 0,
+                rounds: e.round || 0,
+                accuracy: e.accuracy || 0
+            }));
         }
 
         if(data?.userTop && Array.isArray(data.userTop)){
@@ -127,22 +135,10 @@ async function loadGlobalLeaderboard(){
         console.log("KV leaders load fail",e);
         SERVER_OK = false;
     }
+    
+    // ФИКС: заменяем Player на TG ник после загрузки
+    fixPlayerNickInLeaderboard();
 }
-
-
-
-
-
-
-function pushGlobalScore(nick, score, round, accuracy){
-    globalScores.push({ nick: nick.replace(/^@/, ''), score, rounds: round, accuracy });
-    globalScores.sort((a,b) => b.score - a.score);
-    if(globalScores.length > LEADERBOARD_MAX) globalScores.length = LEADERBOARD_MAX;
-}
-
-
-
-
 
 async function sendScoreToServer(entry){
     if(!SERVER_OK || !tgUser?.id) return;
@@ -172,8 +168,9 @@ async function sendScoreToServer(entry){
             })
         });
 
-        // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: добавляем в глобальный лидерборд ТОЛЬКО после успешной отправки
+        // ФИКС: добавляем в глобальный лидерборд ТОЛЬКО после успешной отправки + фиксим ники
         if(res.ok){
+            fixPlayerNickInLeaderboard();
             pushGlobalScore(playerNick, entry.score, entry.round, entry.accuracy);
         }
 
@@ -182,15 +179,6 @@ async function sendScoreToServer(entry){
         SERVER_OK = false;
     }
 }
-
-
-
-
-
-
-
-
-
 
 function saveToLeaderboard(entry){
     // Личный топ
@@ -203,11 +191,14 @@ function saveToLeaderboard(entry){
     localScores = board;
     lastGameResult = entry;
 
-    // КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: НЕ добавляем локально в глобальный лидерборд!
-    // Теперь это делает sendScoreToServer() только после успешной отправки на сервер
-
-    // Отправка на сервер (асинхронно)
+    // Отправка на сервер (асинхронно) - глобальный лидерборд обновится там
     sendScoreToServer(entry);
+}
+
+function pushGlobalScore(nick, score, round, accuracy){
+    globalScores.push({ nick: nick.replace(/^@/, ''), score, rounds: round, accuracy });
+    globalScores.sort((a,b) => b.score - a.score);
+    if(globalScores.length > LEADERBOARD_MAX) globalScores.length = LEADERBOARD_MAX;
 }
 
 /* =============================
@@ -390,8 +381,6 @@ function drawFinalLeaderboard(){
 
 function endRound(){ gameState='roundEnd'; mainBtn.textContent='Start next round'; mainBtn.style.display='block'; mainBtn.style.top='135px'; mainBtn.style.right='10px'; }
 
-
-
 function gameOver(){
     gameState='final'; bestRound=Math.max(bestRound,round);
     const acc=totalShots>0?Math.round((totalHits/totalShots)*100):0;
@@ -440,6 +429,7 @@ function loop(now){
     await loadGlobalLeaderboard();
     loop(performance.now());
 })();
+
 </script>
 </body>
 </html>
