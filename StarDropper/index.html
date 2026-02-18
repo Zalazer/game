@@ -40,7 +40,6 @@ button:hover {
 <button id="mainBtn">Restart</button>
 
 <script>
-
 /* =============================
    TELEGRAM + SERVER
 ============================= */
@@ -54,7 +53,7 @@ async function authTelegram(){
         if(window.Telegram?.WebApp){
             const tg = window.Telegram.WebApp;
             tg.expand();
-            tg.disableVerticalSwipes();
+            tg.disableVerticalSwipes?.();
 
             if(tg.initData){
                 await fetch('/__auth',{
@@ -95,7 +94,7 @@ async function loadGlobalLeaderboard(){
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', 'StarDropper');
         if(tgUser?.id) url.searchParams.set('user', String(tgUser.id));
-        
+
         const r = await fetch(url);
         const data = await r.json();
 
@@ -151,12 +150,8 @@ async function sendScoreToServer(entry){
         });
 
         if(res.ok){
-            pushGlobalScore(
-                playerNick,
-                entry.score,
-                entry.round,
-                entry.accuracy
-            );
+            // Добавляем результат в глобальный топ как отдельную запись
+            pushGlobalScore(playerNick, entry.score, entry.round, entry.accuracy);
         }
 
     }catch(e){
@@ -166,23 +161,24 @@ async function sendScoreToServer(entry){
 }
 
 function saveToLeaderboard(entry){
-    let board=JSON.parse(localStorage.getItem('stardropper_leaderboard'))||[];
+    let board = JSON.parse(localStorage.getItem('stardropper_leaderboard')) || [];
     board.unshift(entry);
-    board.sort((a,b)=>b.score-a.score);
-    if(board.length>LEADERBOARD_MAX) board.length=LEADERBOARD_MAX;
+    board.sort((a,b)=>b.score - a.score);
+    if(board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
     localStorage.setItem('stardropper_leaderboard', JSON.stringify(board));
 
-    lastGameScore=entry.score;
-    localScores=board;
-    lastGameResult=entry;
+    lastGameScore = entry.score;
+    localScores = board;
+    lastGameResult = entry;
 
     sendScoreToServer(entry);
 }
 
-function pushGlobalScore(nick,score,round,accuracy){
-    globalScores.push({ nick: nick.replace(/^@/, ''), score, rounds:round, accuracy });
-    globalScores.sort((a,b)=>b.score-a.score);
-    if(globalScores.length>LEADERBOARD_MAX) globalScores.length=LEADERBOARD_MAX;
+function pushGlobalScore(nick, score, round, accuracy){
+    nick = nick.replace(/^@/, '');
+    globalScores.push({ nick, score, rounds: round, accuracy });
+    globalScores.sort((a,b)=>b.score - a.score);
+    if(globalScores.length > LEADERBOARD_MAX) globalScores.length = LEADERBOARD_MAX;
 }
 
 /* =============================
@@ -203,8 +199,7 @@ function resizeCanvas(){
 
     if(w===lastW && h===lastH) return;
 
-    lastW=w;
-    lastH=h;
+    lastW=w; lastH=h;
 
     canvas.width=w*dpr;
     canvas.height=h*dpr;
@@ -318,12 +313,16 @@ function draw(){
 function drawFinalLeaderboard(){
     ctx.fillStyle='rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+
     ctx.textAlign='left'; ctx.font='36px Arial'; ctx.fillStyle='red';
     ctx.fillText('Game Over',30,40);
+
     mainBtn.style.display='block';
     mainBtn.style.top='10px';
     mainBtn.style.left='220px';
+
     let y=80;
+
     ctx.textAlign='center'; ctx.font='bold 22px Arial'; ctx.fillStyle='yellow';
     ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y); y+=25;
     ctx.font='18px Arial';
@@ -335,9 +334,7 @@ function drawFinalLeaderboard(){
         if(i===0) color='gold';
         if(i===1) color='silver';
         if(i===2) color='peru';
-
         if(e.score===lastGameScore && e.nick===playerNick) color='#00ff99';
-
         ctx.fillStyle=color;
         ctx.fillText(`${i+1}. ${e.nick} | ${e.score} | ${e.rounds} | ${e.accuracy}%`, canvas.clientWidth/2,y);
         y+=22;
