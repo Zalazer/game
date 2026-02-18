@@ -90,6 +90,9 @@ let localScores=[], globalScores=[], lastGameResult=null;
 let lastGameScore=null;
 const LEADERBOARD_MAX=10;
 
+
+
+
 async function loadGlobalLeaderboard(){
     try{
         const url = new URL('/__leaders', window.location.origin);
@@ -100,12 +103,16 @@ async function loadGlobalLeaderboard(){
         const data = await r.json();
 
         if(data?.globalTop && Array.isArray(data.globalTop)){
-            globalScores = data.globalTop.map(e=>({
-                nick: e.nick ? e.nick.replace(/^@/, '').slice(0,12) : (e.userId || 'Player'),
-                score: e.score || 0,
-                rounds: e.round || 0,
-                accuracy: e.accuracy || 0
-            }));
+            globalScores = data.globalTop.map(e=>{
+                // ИСПРАВЛЕНИЕ: всегда используем playerNick для текущего пользователя
+                const isCurrentUser = e.userId == tgUser?.id;
+                return {
+                    nick: isCurrentUser ? playerNick : (e.nick ? e.nick.replace(/^@/, '').slice(0,12) : (e.userId || 'Player')),
+                    score: e.score || 0,
+                    rounds: e.round || 0,
+                    accuracy: e.accuracy || 0
+                };
+            });
         }
 
         if(data?.userTop && Array.isArray(data.userTop)){
@@ -121,6 +128,11 @@ async function loadGlobalLeaderboard(){
         SERVER_OK = false;
     }
 }
+
+
+
+
+
 
 function pushGlobalScore(nick, score, round, accuracy){
     globalScores.push({ nick: nick.replace(/^@/, ''), score, rounds: round, accuracy });
