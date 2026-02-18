@@ -211,29 +211,11 @@ async function switchMusic(nextTrack){
 
 /* ===== GAME FLOW ===== */
 async function loadGame(game){
-  currentGame = game;
-  inRules = false;
-
+  currentGame=game; inRules=false;
   await switchMusic(tracks[game]);
   menu.style.display='none';
   gameContainer.style.display='flex';
-
-  try {
-    const resp = await fetch(`${game}/index.html`);
-    if(!resp.ok) throw new Error("Failed to fetch game");
-    const html = await resp.text();
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-
-    gameFrame.src = url;
-
-    // На iOS иногда нужно дать чуть времени на отрисовку
-    setTimeout(()=>{ gameFrame.style.display='block'; }, 50);
-
-  } catch(e) {
-    gameFrame.src='';
-    alert("⚠️ Failed to load game: " + e.message);
-  }
+  gameFrame.src=game+'/index.html';
 }
 
 async function backToMenu(){
@@ -292,6 +274,7 @@ async function sendFeedback(){
     });
   }
 
+  // GET ONE-TIME KEY
   let ticket=null;
   try{
     const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket',{
@@ -301,6 +284,7 @@ async function sendFeedback(){
     ticket=tJson.k;
   } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
 
+  // FULL USER INFO
   const userObj = tg.initDataUnsafe?.user || {};
   const payload = {
     type:'feedback',
