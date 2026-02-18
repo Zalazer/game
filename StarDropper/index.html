@@ -40,6 +40,7 @@ button:hover {
 <button id="mainBtn">Restart</button>
 
 <script>
+
 /* =============================
    TELEGRAM + SERVER
 ============================= */
@@ -94,7 +95,7 @@ async function loadGlobalLeaderboard(){
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', 'StarDropper');
         if(tgUser?.id) url.searchParams.set('user', String(tgUser.id));
-
+        
         const r = await fetch(url);
         const data = await r.json();
 
@@ -121,6 +122,12 @@ async function loadGlobalLeaderboard(){
     }
 }
 
+function pushGlobalScore(nick, score, round, accuracy){
+    globalScores.push({ nick: nick.replace(/^@/, ''), score, rounds: round, accuracy });
+    globalScores.sort((a,b) => b.score - a.score);
+    if(globalScores.length > LEADERBOARD_MAX) globalScores.length = LEADERBOARD_MAX;
+}
+
 async function sendScoreToServer(entry){
     if(!SERVER_OK || !tgUser?.id) return;
 
@@ -128,7 +135,7 @@ async function sendScoreToServer(entry){
         const t = await fetch('/__ticket',{method:'POST'});
         const ticket = await t.json();
 
-        const res = await fetch('/__emit',{
+        await fetch('/__emit',{
             method:'POST',
             headers:{'Content-Type':'application/json'},
             body:JSON.stringify({
@@ -149,11 +156,6 @@ async function sendScoreToServer(entry){
             })
         });
 
-        if(res.ok){
-            // Добавляем результат в глобальный топ как отдельную запись
-            pushGlobalScore(playerNick, entry.score, entry.round, entry.accuracy);
-        }
-
     }catch(e){
         console.log("send score fail",e);
         SERVER_OK = false;
@@ -161,24 +163,21 @@ async function sendScoreToServer(entry){
 }
 
 function saveToLeaderboard(entry){
+    // Личный топ
     let board = JSON.parse(localStorage.getItem('stardropper_leaderboard')) || [];
     board.unshift(entry);
-    board.sort((a,b)=>b.score - a.score);
+    board.sort((a,b) => b.score - a.score);
     if(board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
     localStorage.setItem('stardropper_leaderboard', JSON.stringify(board));
-
     lastGameScore = entry.score;
     localScores = board;
     lastGameResult = entry;
 
-    sendScoreToServer(entry);
-}
+    // Глобальный топ: добавляем результат игрока локально сразу
+    pushGlobalScore(playerNick, entry.score, entry.round, entry.accuracy);
 
-function pushGlobalScore(nick, score, round, accuracy){
-    nick = nick.replace(/^@/, '');
-    globalScores.push({ nick, score, rounds: round, accuracy });
-    globalScores.sort((a,b)=>b.score - a.score);
-    if(globalScores.length > LEADERBOARD_MAX) globalScores.length = LEADERBOARD_MAX;
+    // Отправка на сервер (асинхронно)
+    sendScoreToServer(entry);
 }
 
 /* =============================
@@ -196,11 +195,8 @@ function resizeCanvas(){
     const dpr=window.devicePixelRatio||1;
     const w=window.innerWidth;
     const h=window.innerHeight;
-
     if(w===lastW && h===lastH) return;
-
     lastW=w; lastH=h;
-
     canvas.width=w*dpr;
     canvas.height=h*dpr;
     canvas.style.width=w+'px';
@@ -313,16 +309,12 @@ function draw(){
 function drawFinalLeaderboard(){
     ctx.fillStyle='rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-
     ctx.textAlign='left'; ctx.font='36px Arial'; ctx.fillStyle='red';
     ctx.fillText('Game Over',30,40);
-
     mainBtn.style.display='block';
     mainBtn.style.top='10px';
     mainBtn.style.left='220px';
-
     let y=80;
-
     ctx.textAlign='center'; ctx.font='bold 22px Arial'; ctx.fillStyle='yellow';
     ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y); y+=25;
     ctx.font='18px Arial';
@@ -367,6 +359,8 @@ function drawFinalLeaderboard(){
 }
 
 function endRound(){ gameState='roundEnd'; mainBtn.textContent='Start next round'; mainBtn.style.display='block'; mainBtn.style.top='135px'; mainBtn.style.right='10px'; }
+
+
 
 function gameOver(){
     gameState='final'; bestRound=Math.max(bestRound,round);
