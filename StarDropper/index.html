@@ -6,7 +6,6 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>StarDropper</title>
 
-<!-- TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
@@ -53,8 +52,9 @@ async function authTelegram(){
     try{
         if(window.Telegram?.WebApp){
             const tg = window.Telegram.WebApp;
+
             tg.expand();
-            tg.disableVerticalSwipes();
+            if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
             if(tg.initData){
                 await fetch('/__auth',{
@@ -194,25 +194,14 @@ const ctx = canvas.getContext('2d');
 const mainBtn = document.getElementById('mainBtn');
 mainBtn.style.display='none';
 
-let lastW=0,lastH=0;
-
 function resizeCanvas(){
     const dpr=window.devicePixelRatio||1;
-    const w=window.innerWidth;
-    const h=window.innerHeight;
-
-    if(w===lastW && h===lastH) return;
-
-    lastW=w;
-    lastH=h;
-
-    canvas.width=w*dpr;
-    canvas.height=h*dpr;
-    canvas.style.width=w+'px';
-    canvas.style.height=h+'px';
+    canvas.width=window.innerWidth*dpr;
+    canvas.height=window.innerHeight*dpr;
+    canvas.style.width=window.innerWidth+'px';
+    canvas.style.height=window.innerHeight+'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
 }
-
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
@@ -251,169 +240,198 @@ canvas.addEventListener('pointermove', e=>{
 
 function update(dt){
     if(gameState!=='playing') return;
+
     timeLeft-=dt;
     if(timeLeft<=0){ timeLeft=0; endRound(); }
+
     const sec=Math.ceil(timeLeft);
     if(sec!==lastSecond){ lastSecond=sec; timerTargetAlpha=0.35; if(sec<=5&&sfx.tick)sfx.tick(); }
+
     timerAlpha+=(timerTargetAlpha-timerAlpha)*5*dt;
     timerTargetAlpha*=Math.exp(-dt*4);
+
     bullets=bullets.filter(b=>{ b.y-=b.speed; return b.y>0; });
+
     balls=balls.filter(ball=>{
         ball.y+=ball.speed;
+
         if(ball.y+ball.r>=cannon.y && ball.x>cannon.x-cannon.width/2 && ball.x<cannon.x+cannon.width/2){
             gameOverReason='Collided'; gameOver(); return false;
         }
-        if(ball.y>GAME_HEIGHT+20){ missed++; if(missed>=MAX_MISSED){ gameOverReason='Missed 5'; gameOver(); } return false; }
+
+        if(ball.y>GAME_HEIGHT+20){
+            missed++;
+            if(missed>=MAX_MISSED){ gameOverReason='Missed 5'; gameOver(); }
+            return false;
+        }
+
         return true;
     });
+
     for(let i=balls.length-1;i>=0;i--){
         for(let j=bullets.length-1;j>=0;j--){
-            const dx=balls[i].x-bullets[j].x; const dy=balls[i].y-bullets[j].y;
+            const dx=balls[i].x-bullets[j].x;
+            const dy=balls[i].y-bullets[j].y;
+
             if(Math.hypot(dx,dy)<balls[i].r+bullets[j].r){
-                bullets.splice(j,1); hits++; totalHits++; ammo+=10;
-                flashes.push({ x:balls[i].x, y:balls[i].y, r:balls[i].r, alpha:1 }); playHit(); balls.splice(i,1); break;
+                bullets.splice(j,1);
+                hits++; totalHits++; ammo+=10;
+                flashes.push({ x:balls[i].x, y:balls[i].y, r:balls[i].r, alpha:1 });
+                playHit();
+                balls.splice(i,1);
+                break;
             }
         }
     }
+
     flashes.forEach(f=>f.alpha*=Math.exp(-dt*6));
     flashes=flashes.filter(f=>f.alpha>0);
+
     const difficulty=1+(round-1)*0.1;
-    if(Math.random()<0.025*difficulty) balls.push({ x:Math.random()*GAME_WIDTH, y:-20, r:14, speed:(2+Math.random()*2)*difficulty });
+    if(Math.random()<0.025*difficulty){
+        balls.push({
+            x:Math.random()*GAME_WIDTH,
+            y:-20,
+            r:14,
+            speed:(2+Math.random()*2)*difficulty
+        });
+    }
 }
 
 function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    if(missed>=4 && gameState==='playing'){ const pulse=0.15+Math.sin(Date.now()/120)*0.05; ctx.fillStyle=`rgba(255,0,0,${pulse})`; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight); }
-    ctx.fillStyle='#fff'; ctx.fillRect(sx(cannon.x-cannon.width/2), sy(cannon.y), sx(cannon.width), sy(cannon.height));
-    ctx.fillStyle='red'; bullets.forEach(b=>{ ctx.beginPath(); ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,Math.PI*2); ctx.fill(); });
-    balls.forEach(ball=>{ ctx.beginPath(); ctx.arc(sx(ball.x),sy(ball.y),sx(ball.r),0,Math.PI*2); ctx.fillStyle='dodgerblue'; ctx.fill(); });
-    flashes.forEach(f=>{ ctx.beginPath(); ctx.arc(sx(f.x),sy(f.y),sx(f.r),0,Math.PI*2); ctx.fillStyle=`rgba(255,150,150,${f.alpha})`; ctx.fill(); });
 
-    const hudY=35;
-    ctx.font='14px Arial'; ctx.fillStyle='#fff'; ctx.textAlign='left';
-    ctx.fillText(`Round ${round}`,10,20+hudY);
-    ctx.fillText(`Missed: ${missed}/${MAX_MISSED}`,10,38+hudY);
-    ctx.fillText(`Shots: ${shots}`,10,56+hudY);
-    ctx.fillText(`Hits: ${hits}`,10,74+hudY);
-    ctx.fillText(`Ammo: ${ammo}`,10,92+hudY);
-    ctx.fillText(`Total shots: ${totalShots}`,10,110+hudY);
-    ctx.fillText(`Total hits: ${totalHits}`,10,128+hudY);
-    const accuracy=totalShots>0?Math.round((totalHits/totalShots)*100):0;
-    ctx.fillText(`Accuracy: ${accuracy}%`,10,146+hudY);
-    const score=Math.round((ammo+totalHits)*(accuracy/100)*round);
-    ctx.fillText(`Total score: ${score}`,10,164+hudY);
+    if(missed>=4 && gameState==='playing'){
+        const pulse=0.15+Math.sin(Date.now()/120)*0.05;
+        ctx.fillStyle=`rgba(255,0,0,${pulse})`;
+        ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+    }
 
-    ctx.save();
-    ctx.globalAlpha=timerAlpha;
-    ctx.fillStyle='rgba(255,255,255,1)';
-    ctx.font='bold 200px Arial';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText(Math.ceil(timeLeft), canvas.clientWidth/2, canvas.clientHeight/2);
-    ctx.restore();
+    ctx.fillStyle='#fff';
+    ctx.fillRect(sx(cannon.x-cannon.width/2), sy(cannon.y), sx(cannon.width), sy(cannon.height));
+
+    ctx.fillStyle='red';
+    bullets.forEach(b=>{
+        ctx.beginPath();
+        ctx.arc(sx(b.x),sy(b.y),sx(b.r),0,Math.PI*2);
+        ctx.fill();
+    });
+
+    balls.forEach(ball=>{
+        ctx.beginPath();
+        ctx.arc(sx(ball.x),sy(ball.y),sx(ball.r),0,Math.PI*2);
+        ctx.fillStyle='dodgerblue';
+        ctx.fill();
+    });
+
+    flashes.forEach(f=>{
+        ctx.beginPath();
+        ctx.arc(sx(f.x),sy(f.y),sx(f.r),0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,150,150,${f.alpha})`;
+        ctx.fill();
+    });
 
     if(gameState==='final') drawFinalLeaderboard();
 }
 
 function drawFinalLeaderboard(){
+
     ctx.fillStyle='rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
-    ctx.textAlign='left'; ctx.font='36px Arial'; ctx.fillStyle='red';
+
+    ctx.textAlign='left';
+    ctx.font='36px Arial';
+    ctx.fillStyle='red';
     ctx.fillText('Game Over',30,40);
+
     mainBtn.style.display='block';
     mainBtn.style.top='10px';
     mainBtn.style.left='220px';
+
     let y=80;
-    ctx.textAlign='center'; ctx.font='bold 22px Arial'; ctx.fillStyle='yellow';
-    ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y); y+=25;
-    ctx.font='18px Arial';
-    ctx.fillText('Pos | Nick | Score | Rounds | Acc',canvas.clientWidth/2,y); y+=20;
+
+    ctx.textAlign='center';
+    ctx.font='bold 22px Arial';
+    ctx.fillStyle='yellow';
+    ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y);
+    y+=30;
+
+    let highlighted=false;
 
     for(let i=0;i<LEADERBOARD_MAX;i++){
+
         let e=globalScores[i]||{ nick:'—', score:0, rounds:0, accuracy:0 };
+
         let color='#ccc';
         if(i===0) color='gold';
         if(i===1) color='silver';
         if(i===2) color='peru';
 
-        if(e.score===lastGameScore && e.nick===playerNick) color='#00ff99';
+        if(!highlighted && e.score===lastGameScore){
+            color='#00ff99';
+            highlighted=true;
+        }
 
         ctx.fillStyle=color;
-        ctx.fillText(`${i+1}. ${e.nick} | ${e.score} | ${e.rounds} | ${e.accuracy}%`, canvas.clientWidth/2,y);
-        y+=22;
-    }
+        ctx.font='18px Arial';
+        ctx.fillText(
+            `${i+1}. ${e.nick} | ${e.score} | ${e.rounds} | ${e.accuracy}%`,
+            canvas.clientWidth/2,
+            y
+        );
 
-    y+=15; ctx.fillStyle='yellow'; ctx.font='bold 22px Arial';
-    ctx.fillText(`${playerNick} Top 10`,canvas.clientWidth/2,y); y+=25; ctx.font='16px Arial';
-
-    for(let i=0;i<LEADERBOARD_MAX;i++){
-        let e=localScores[i]||{ score:0, round:0, accuracy:0 };
-        let color='#ccc';
-        if(i===0) color='gold';
-        if(i===1) color='silver';
-        if(i===2) color='peru';
-        if(e.score===lastGameScore) color='#00ff99';
-        ctx.fillStyle=color;
-        ctx.fillText(`Score: ${e.score} | Round: ${e.round} | Acc: ${e.accuracy}%`, canvas.clientWidth/2,y);
-        y+=22;
-    }
-
-    y+=15; ctx.fillStyle='white'; ctx.font='bold 18px Arial';
-    ctx.fillText('Last Game Results',canvas.clientWidth/2,y); y+=25; ctx.font='16px Arial';
-
-    if(lastGameResult){
-        ctx.fillText(`Score: ${lastGameResult.score} | Round: ${lastGameResult.round} | Accuracy: ${lastGameResult.accuracy}%`,canvas.clientWidth/2,y); y+=20;
-        ctx.fillText(`Shots: ${lastGameResult.totalShots} | Hits: ${lastGameResult.totalHits} | Missed: ${lastGameResult.missed} | Ammo left: ${lastGameResult.ammo}`,canvas.clientWidth/2,y);
-    }else{
-        ctx.fillText('No game played yet',canvas.clientWidth/2,y);
+        y+=24;
     }
 }
 
-function endRound(){ gameState='roundEnd'; mainBtn.textContent='Start next round'; mainBtn.style.display='block'; mainBtn.style.top='135px'; mainBtn.style.right='10px'; }
+function endRound(){
+    gameState='roundEnd';
+    mainBtn.textContent='Start next round';
+    mainBtn.style.display='block';
+}
 
 function gameOver(){
-    gameState='final'; bestRound=Math.max(bestRound,round);
-    const acc=totalShots>0?Math.round((totalHits/totalShots)*100):0;
+
+    gameState='final';
+
+    const acc=totalShots>0
+        ?Math.round((totalHits/totalShots)*100)
+        :0;
+
     const sc=Math.round((ammo+totalHits)*(acc/100)*round);
 
-    saveToLeaderboard({ nick:playerNick, score:sc, round, accuracy:acc, totalShots, totalHits, missed, ammo });
+    saveToLeaderboard({
+        nick:playerNick,
+        score:sc,
+        round,
+        accuracy:acc,
+        totalShots,
+        totalHits,
+        missed,
+        ammo
+    });
 
     mainBtn.textContent='Restart';
     mainBtn.style.display='block';
-    mainBtn.style.top='50px';
-    mainBtn.style.left='220px';
-    mainBtn.style.right='30px';
 }
 
-mainBtn.onclick=()=>{
-    mainBtn.style.display='none';
-
-    if(gameState==='roundEnd'){
-        round++;
-        timeLeft=ROUND_TIME;
-        shots=hits=missed=0;
-        bullets=balls=flashes=[];
-        gameState='playing';
-    }else{
-        round=1;
-        ammo=1000;
-        shots=hits=missed=0;
-        totalShots=totalHits=0;
-        timeLeft=ROUND_TIME;
-        bullets=balls=flashes=[];
-        gameState='playing';
-    }
-};
+mainBtn.onclick=()=>location.reload();
 
 function loop(now){
-    const dt=Math.min((now-lastTime)/1000,0.033);
+
+    let dt=(now-lastTime)/1000;
     lastTime=now;
+
+    if(dt>0.033) dt=0.033;
+
     update(dt);
     draw();
+
     requestAnimationFrame(loop);
 }
 
 /* INIT */
+
 (async()=>{
     await authTelegram();
     await loadGlobalLeaderboard();
