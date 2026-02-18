@@ -9,7 +9,6 @@
 <!-- TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-      
 <style>
 html, body { margin:0; padding:0; overflow:hidden; background:#000; }
 canvas { display:block; background:#000; touch-action:none; user-select:none; }
@@ -55,6 +54,7 @@ async function authTelegram(){
         if(window.Telegram?.WebApp){
             const tg = window.Telegram.WebApp;
             tg.expand();
+            tg.disableVerticalSwipes();
 
             if(tg.initData){
                 await fetch('/__auth',{
@@ -177,7 +177,6 @@ function saveToLeaderboard(entry){
     lastGameResult=entry;
 
     sendScoreToServer(entry);
-    pushGlobalScore(entry.nick, entry.score, entry.round, entry.accuracy);
 }
 
 function pushGlobalScore(nick,score,round,accuracy){
@@ -195,14 +194,25 @@ const ctx = canvas.getContext('2d');
 const mainBtn = document.getElementById('mainBtn');
 mainBtn.style.display='none';
 
+let lastW=0,lastH=0;
+
 function resizeCanvas(){
     const dpr=window.devicePixelRatio||1;
-    canvas.width=window.innerWidth*dpr;
-    canvas.height=window.innerHeight*dpr;
-    canvas.style.width=window.innerWidth+'px';
-    canvas.style.height=window.innerHeight+'px';
+    const w=window.innerWidth;
+    const h=window.innerHeight;
+
+    if(w===lastW && h===lastH) return;
+
+    lastW=w;
+    lastH=h;
+
+    canvas.width=w*dpr;
+    canvas.height=h*dpr;
+    canvas.style.width=w+'px';
+    canvas.style.height=h+'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
 }
+
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
@@ -279,8 +289,7 @@ function draw(){
     balls.forEach(ball=>{ ctx.beginPath(); ctx.arc(sx(ball.x),sy(ball.y),sx(ball.r),0,Math.PI*2); ctx.fillStyle='dodgerblue'; ctx.fill(); });
     flashes.forEach(f=>{ ctx.beginPath(); ctx.arc(sx(f.x),sy(f.y),sx(f.r),0,Math.PI*2); ctx.fillStyle=`rgba(255,150,150,${f.alpha})`; ctx.fill(); });
 
-    // HUD
-    const hudY=35; // убран верхний отступ
+    const hudY=35;
     ctx.font='14px Arial'; ctx.fillStyle='#fff'; ctx.textAlign='left';
     ctx.fillText(`Round ${round}`,10,20+hudY);
     ctx.fillText(`Missed: ${missed}/${MAX_MISSED}`,10,38+hudY);
@@ -306,7 +315,7 @@ function draw(){
     if(gameState==='final') drawFinalLeaderboard();
 }
 
-function drawFinalLeaderboard(){ /* остальной код без изменений */ 
+function drawFinalLeaderboard(){
     ctx.fillStyle='rgba(0,0,0,0.5)';
     ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
     ctx.textAlign='left'; ctx.font='36px Arial'; ctx.fillStyle='red';
@@ -319,19 +328,24 @@ function drawFinalLeaderboard(){ /* остальной код без измен�
     ctx.fillText('Global Leaderboard',canvas.clientWidth/2,y); y+=25;
     ctx.font='18px Arial';
     ctx.fillText('Pos | Nick | Score | Rounds | Acc',canvas.clientWidth/2,y); y+=20;
+
     for(let i=0;i<LEADERBOARD_MAX;i++){
         let e=globalScores[i]||{ nick:'—', score:0, rounds:0, accuracy:0 };
         let color='#ccc';
         if(i===0) color='gold';
         if(i===1) color='silver';
         if(i===2) color='peru';
-        if(e.score===lastGameScore) color='#00ff99';
+
+        if(e.score===lastGameScore && e.nick===playerNick) color='#00ff99';
+
         ctx.fillStyle=color;
         ctx.fillText(`${i+1}. ${e.nick} | ${e.score} | ${e.rounds} | ${e.accuracy}%`, canvas.clientWidth/2,y);
         y+=22;
     }
+
     y+=15; ctx.fillStyle='yellow'; ctx.font='bold 22px Arial';
     ctx.fillText(`${playerNick} Top 10`,canvas.clientWidth/2,y); y+=25; ctx.font='16px Arial';
+
     for(let i=0;i<LEADERBOARD_MAX;i++){
         let e=localScores[i]||{ score:0, round:0, accuracy:0 };
         let color='#ccc';
@@ -343,8 +357,10 @@ function drawFinalLeaderboard(){ /* остальной код без измен�
         ctx.fillText(`Score: ${e.score} | Round: ${e.round} | Acc: ${e.accuracy}%`, canvas.clientWidth/2,y);
         y+=22;
     }
+
     y+=15; ctx.fillStyle='white'; ctx.font='bold 18px Arial';
     ctx.fillText('Last Game Results',canvas.clientWidth/2,y); y+=25; ctx.font='16px Arial';
+
     if(lastGameResult){
         ctx.fillText(`Score: ${lastGameResult.score} | Round: ${lastGameResult.round} | Accuracy: ${lastGameResult.accuracy}%`,canvas.clientWidth/2,y); y+=20;
         ctx.fillText(`Shots: ${lastGameResult.totalShots} | Hits: ${lastGameResult.totalHits} | Missed: ${lastGameResult.missed} | Ammo left: ${lastGameResult.ammo}`,canvas.clientWidth/2,y);
@@ -354,12 +370,19 @@ function drawFinalLeaderboard(){ /* остальной код без измен�
 }
 
 function endRound(){ gameState='roundEnd'; mainBtn.textContent='Start next round'; mainBtn.style.display='block'; mainBtn.style.top='135px'; mainBtn.style.right='10px'; }
+
 function gameOver(){
     gameState='final'; bestRound=Math.max(bestRound,round);
     const acc=totalShots>0?Math.round((totalHits/totalShots)*100):0;
     const sc=Math.round((ammo+totalHits)*(acc/100)*round);
+
     saveToLeaderboard({ nick:playerNick, score:sc, round, accuracy:acc, totalShots, totalHits, missed, ammo });
-    mainBtn.textContent='Restart'; mainBtn.style.display='block'; mainBtn.style.top='50px'; mainBtn.style.left='220px'; mainBtn.style.right='30px';
+
+    mainBtn.textContent='Restart';
+    mainBtn.style.display='block';
+    mainBtn.style.top='50px';
+    mainBtn.style.left='220px';
+    mainBtn.style.right='30px';
 }
 
 mainBtn.onclick=()=>{
@@ -383,7 +406,7 @@ mainBtn.onclick=()=>{
 };
 
 function loop(now){
-    const dt=(now-lastTime)/1000;
+    const dt=Math.min((now-lastTime)/1000,0.033);
     lastTime=now;
     update(dt);
     draw();
