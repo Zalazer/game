@@ -125,33 +125,47 @@ hr.rules-footer-sep { margin:0; border:0; border-top:1px solid #333; }
 <script>
 let tg = null;
 let canUploadFile = false;
+let audioUnlocked = false;
+let gameLoadTimeout = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  initTelegram();
+  toggleRemoveBtn();
+});
 
 function initTelegram() {
-  if(window.Telegram && window.Telegram.WebApp){
-    tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    console.log("Telegram WebApp detected");
+  try {
+    if (window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      console.log("Telegram WebApp detected");
 
-    canUploadFile = typeof tg.uploadFile === 'function';
+      canUploadFile = typeof tg.uploadFile === 'function';
 
-    const photoInput = document.getElementById('feedbackPhoto');
-    const warning = document.getElementById('oldVersionWarning');
+      const photoInput = document.getElementById('feedbackPhoto');
+      const warning = document.getElementById('oldVersionWarning');
 
-    if(!canUploadFile){
-      photoInput.disabled = true;
-      warning.style.display = 'block';
+      if (!canUploadFile) {
+        photoInput.disabled = true;
+        warning.style.display = 'block';
+      } else {
+        photoInput.disabled = false;
+        warning.style.display = 'none';
+      }
     } else {
-      photoInput.disabled = false;
-      warning.style.display = 'none';
+      const photoInput = document.getElementById('feedbackPhoto');
+      const warning = document.getElementById('oldVersionWarning');
+      if (photoInput && warning) {
+        photoInput.disabled = true;
+        warning.textContent = "WebApp not detected. Upload not available.";
+        warning.style.display = 'block';
+      }
     }
-  } else {
-    document.getElementById('feedbackPhoto').disabled = true;
-    document.getElementById('oldVersionWarning').textContent = "WebApp not detected. Upload not available.";
-    document.getElementById('oldVersionWarning').style.display='block';
+  } catch (e) {
+    console.log('Telegram init error', e);
   }
 }
-initTelegram();
 
 /* ===== GAME & AUDIO LOGIC ===== */
 const menu = document.getElementById('menu');
@@ -182,141 +196,232 @@ let fadeIntervals = new Map();
 let isMuted = false;
 
 /* ===== AUDIO ===== */
-function fadeIn(track, volume=0.4){
-  if(isMuted) return;
-  clearInterval(fadeIntervals.get(track));
-  track.muted=false; track.volume=0;
-  track.play().catch(()=>{});
-  fadeIntervals.set(track,setInterval(()=>{
-    track.volume = Math.min(track.volume+0.05,volume);
-    if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
-  },50));
-}
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
 
-function fadeOut(track){
-  return new Promise(resolve=>{
-    clearInterval(fadeIntervals.get(track));
-    fadeIntervals.set(track,setInterval(()=>{
-      track.volume=Math.max(track.volume-0.05,0);
-      if(track.volume<=0){ track.pause(); clearInterval(fadeIntervals.get(track)); resolve(); }
-    },50));
+  // Один «тихий» play, чтобы iOS дал разрешение
+  Object.values(tracks).forEach(t => {
+    if (t) {
+      t.muted = true;
+      t.play().catch(()=>{});
+      setTimeout(() => { 
+        t.pause(); 
+        t.currentTime = 0; 
+      }, 100);
+    }
   });
 }
 
-async function switchMusic(nextTrack){
-  const promises=Object.values(tracks).filter(t=>t!==nextTrack).map(t=>fadeOut(t));
+function fadeIn(track, volume = 0.4) {
+  if (isMuted || !track) return;
+  const prevId = fadeIntervals.get(track);
+  if (prevId) clearInterval(prevId);
+
+  track.muted = false;
+  track.volume = 0;
+  track.play().catch(()=>{});
+
+  const id = setInterval(() => {
+    track.volume = Math.min(track.volume + 0.05, volume);
+    if (track.volume >= volume) {
+      clearInterval(id);
+      fadeIntervals.delete(track);
+    }
+  }, 50);
+  fadeIntervals.set(track, id);
+}
+
+function fadeOut(track) {
+  return new Promise(resolve => {
+    if (!track) { resolve(); return; }
+
+    const prevId = fadeIntervals.get(track);
+    if (prevId) clearInterval(prevId);
+
+    const id = setInterval(() => {
+      track.volume = Math.max(track.volume - 0.05, 0);
+      if (track.volume <= 0) {
+        track.pause();
+        clearInterval(id);
+        fadeIntervals.delete(track);
+        resolve();
+      }
+    }, 50);
+    fadeIntervals.set(track, id);
+  });
+}
+
+async function switchMusic(nextTrack) {
+  const promises = Object.values(tracks)
+    .filter(t => t !== nextTrack)
+    .map(t => fadeOut(t));
   await Promise.all(promises);
   fadeIn(nextTrack);
 }
 
 /* ===== GAME FLOW ===== */
-async function loadGame(game){
-  currentGame=game; inRules=false;
+async function loadGame(game) {
+  unlockAudio();
+  currentGame = game; 
+  inRules = false;
+
+  if (gameLoadTimeout) clearTimeout(gameLoadTimeout);
+  gameFrame.src = 'about:blank';
+
+  menu.style.display = 'none';
+  gameContainer.style.display = 'flex';
+
   await switchMusic(tracks[game]);
-  menu.style.display='none';
-  gameContainer.style.display='flex';
-  gameFrame.src=game+'/index.html';
+
+  gameLoadTimeout = setTimeout(() => {
+    gameFrame.src = game + '/index.html';
+  }, 50);
 }
 
-async function backToMenu(){
+async function backToMenu() {
+  if (gameLoadTimeout) clearTimeout(gameLoadTimeout);
   await switchMusic(tracks.menu);
-  gameFrame.src='';
-  gameContainer.style.display='none';
-  menu.style.display='flex';
-  currentGame='';
+  gameFrame.src = 'about:blank';
+  gameContainer.style.display = 'none';
+  menu.style.display = 'flex';
+  currentGame = '';
 }
 
-function openRules(){
-  if(!currentGame) return;
-  inRules=true;
-  rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
-  rulesOverlay.style.display='block';
+function openRules() {
+  if (!currentGame) return;
+  inRules = true;
+  rulesFrame.src = currentGame + '/' + currentGame + '-rules.html';
+  rulesOverlay.style.display = 'block';
 }
 
-function handleBack(){
-  if(inRules){ inRules=false; rulesOverlay.style.display='none'; rulesFrame.src=''; return; }
+function handleBack() {
+  if (inRules) { 
+    inRules = false; 
+    rulesOverlay.style.display = 'none'; 
+    rulesFrame.src = ''; 
+    return; 
+  }
   backToMenu();
 }
 
 /* ===== MUTE ===== */
-function toggleMute(){
-  isMuted=!isMuted;
-  Object.values(tracks).forEach(t=>{
-    t.muted=isMuted;
-    if(isMuted) t.pause(); else { if(currentGame) fadeIn(tracks[currentGame]); else fadeIn(tracks.menu); }
+function toggleMute() {
+  isMuted = !isMuted;
+  Object.values(tracks).forEach(t => {
+    if (t) {
+      t.muted = isMuted;
+      if (isMuted) {
+        t.pause();
+      } else {
+        if (currentGame) fadeIn(tracks[currentGame]); 
+        else fadeIn(tracks.menu); 
+      }
+    }
   });
-  muteBtn.textContent=isMuted?"🔇":"🔊";
+  muteBtn.textContent = isMuted ? "🔇" : "🔊";
 }
 
 /* ===== FEEDBACK MODAL ===== */
-function openFeedbackModal(){ feedbackModal.style.display='flex'; }
-function closeFeedbackModal(){ feedbackModal.style.display='none'; feedbackText.value=''; feedbackPhoto.value=''; feedbackStatus.textContent=''; toggleRemoveBtn(); }
+function openFeedbackModal() { feedbackModal.style.display = 'flex'; }
+function closeFeedbackModal() { 
+  feedbackModal.style.display = 'none'; 
+  feedbackText.value = ''; 
+  feedbackPhoto.value = ''; 
+  feedbackStatus.textContent = ''; 
+  toggleRemoveBtn(); 
+}
 
-function toggleRemoveBtn(){ document.getElementById('removePhotoBtn').style.display = feedbackPhoto.files.length ? 'inline-block':'none'; }
-function removeFeedbackPhoto(){ feedbackPhoto.value=''; toggleRemoveBtn(); feedbackStatus.textContent=''; }
+function toggleRemoveBtn() { 
+  const removeBtn = document.getElementById('removePhotoBtn');
+  if (removeBtn) {
+    removeBtn.style.display = feedbackPhoto.files.length ? 'inline-block' : 'none'; 
+  }
+}
+function removeFeedbackPhoto() { 
+  feedbackPhoto.value = ''; 
+  toggleRemoveBtn(); 
+  feedbackStatus.textContent = ''; 
+}
 
 /* ===== SEND FEEDBACK ===== */
-async function sendFeedback(){
-  if(!tg){ feedbackStatus.textContent="Feedback works only inside Telegram WebApp"; return; }
+async function sendFeedback() {
+  if (!tg) { 
+    feedbackStatus.textContent = "Feedback works only inside Telegram WebApp"; 
+    return; 
+  }
   const text = feedbackText.value.trim();
-  if(!text && !feedbackPhoto.files.length){ feedbackStatus.textContent="Add text or photo"; return; }
+  if (!text && !feedbackPhoto.files.length) { 
+    feedbackStatus.textContent = "Add text or photo"; 
+    return; 
+  }
 
-  sendFeedbackBtn.disabled=true;
-  feedbackStatus.textContent="Sending...";
+  sendFeedbackBtn.disabled = true;
+  feedbackStatus.textContent = "Sending...";
 
   let photoBase64 = null;
-  if(feedbackPhoto.files.length){
-    const file=feedbackPhoto.files[0];
-    photoBase64 = await new Promise(resolve=>{
-      const reader=new FileReader();
-      reader.onload = e=>resolve(e.target.result);
+  if (feedbackPhoto.files.length) {
+    const file = feedbackPhoto.files[0];
+    photoBase64 = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
       reader.readAsDataURL(file);
     });
   }
 
   // GET ONE-TIME KEY
-  let ticket=null;
-  try{
-    const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket',{
-      method:'POST', headers:{'Content-Type':'application/json'}
+  let ticket = null;
+  try {
+    const tResp = await fetch('https://game.shooleeyack.workers.dev/__ticket', {
+      method: 'POST', 
+      headers: {'Content-Type': 'application/json'}
     });
     const tJson = await tResp.json();
-    ticket=tJson.k;
-  } catch(e){ feedbackStatus.textContent="Cannot get ticket from server"; sendFeedbackBtn.disabled=false; return; }
+    ticket = tJson.k;
+  } catch (e) { 
+    feedbackStatus.textContent = "Cannot get ticket from server"; 
+    sendFeedbackBtn.disabled = false; 
+    return; 
+  }
 
   // FULL USER INFO
-  const userObj = tg.initDataUnsafe?.user || {};
-  const payload = {
-    type:'feedback',
-    page:'console',
-    text,
-    photo:photoBase64,
-    ts: Date.now(),
-    user: {
-      id: userObj.id,
-      username: userObj.username,
-      first_name: userObj.first_name,
-      last_name: userObj.last_name,
-      is_bot: userObj.is_bot,
-      language_code: userObj.language_code
-    }
-  };
+  try {
+    const userObj = tg.initDataUnsafe?.user || {};
+    const payload = {
+      type: 'feedback',
+      page: 'console',
+      text,
+      photo: photoBase64,
+      ts: Date.now(),
+      user: {
+        id: userObj.id,
+        username: userObj.username,
+        first_name: userObj.first_name,
+        last_name: userObj.last_name,
+        is_bot: userObj.is_bot,
+        language_code: userObj.language_code
+      }
+    };
 
-  try{
-    const resp = await fetch('https://game.shooleeyack.workers.dev/__emit',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+    const resp = await fetch('https://game.shooleeyack.workers.dev/__emit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ k: ticket, d: payload })
     });
     const result = await resp.json();
-    if(result.ok){
-      feedbackStatus.textContent="✅ Feedback sent!";
-      feedbackText.value=''; feedbackPhoto.value=''; toggleRemoveBtn();
-    } else feedbackStatus.textContent="Failed to send feedback";
-  } catch(e){ feedbackStatus.textContent="Error sending feedback: "+e.message; }
-  sendFeedbackBtn.disabled=false;
+    if (result.ok) {
+      feedbackStatus.textContent = "✅ Feedback sent!";
+      feedbackText.value = ''; 
+      feedbackPhoto.value = ''; 
+      toggleRemoveBtn();
+    } else {
+      feedbackStatus.textContent = "Failed to send feedback";
+    }
+  } catch (e) { 
+    feedbackStatus.textContent = "Error sending feedback: " + e.message; 
+  }
+  sendFeedbackBtn.disabled = false;
 }
-toggleRemoveBtn();
 </script>
 
 </body>
