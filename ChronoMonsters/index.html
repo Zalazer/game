@@ -55,9 +55,6 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 }
 
 
-
-
-
 #overlay {
   position: fixed;
   top: 50%;
@@ -67,29 +64,57 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
   font-family: monospace;
   display: none;
   z-index: 100; /* поверх всего */
+
+  /* Новые параметры для ширины */
+  width: 90%;           /* занимает 90% ширины экрана */
+  max-width: 800px;     /* не слишком широкое на больших экранах */
+  padding: 20px;        /* внутренние отступы */
+  box-sizing: border-box; /* чтобы padding не увеличивал ширину */
 }
 
+
+
 #overlay #msg {
-  display: inline-block;
-  padding: 20px 40px;
+  display: block;                 /* чтобы занимало всю ширину */
+  width: 100%;                     /* на всю ширину экрана */
+  max-width: none;                 /* без ограничения */
+  padding: 20px 0;                 /* вертикальные отступы, горизонтальные минимальные */
   border-radius: 18px;
-  background: rgba(0,0,0,0.85); /* тёмный полупрозрачный фон */
-  color: white; /* по умолчанию */
+  background: rgba(0,0,0,0.85);   /* тёмный полупрозрачный фон */
+  color: white;
   font-size: 20px;
   font-weight: bold;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  box-shadow: 0 0 25px rgba(0,0,0,0.7);
+  text-align: center;              /* текст по центру */
 }
+
+
 
 #overlay button {
   margin-top: 20px;
-  padding: 10px 20px;
+  padding: 12px 30px;
   font-size: 20px;
-  background: #222;
+  font-weight: bold;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  background: linear-gradient(145deg, #444, #222); /* градиент для объёма */
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5); /* тень для объёма */
+  transition: all 0.2s ease;
 }
+
+#overlay button:hover {
+  background: linear-gradient(145deg, #555, #333);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 18px rgba(0,0,0,0.6);
+}
+
+#overlay button:active {
+  transform: translateY(0px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
 
 
 </style>
@@ -101,9 +126,52 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 <canvas id="game"></canvas>
 
 <script>
+
+
 /* ==================== КОНСТАНТЫ ==================== */
-const MAP = 20, TILE = 40;
-const BOTS = 5, MONSTERS = 20, CHESTS = 20;
+
+const BASE_MAP = 15;     // стартовая карта 15x15
+const TILE = 40;
+
+const BASE_BOTS = 3;     // округлённо
+const BASE_MONSTERS = 11;
+const BASE_CHESTS = 11;
+
+let level = 1;
+let MAP = BASE_MAP;
+let BOTS = BASE_BOTS;
+let MONSTERS = BASE_MONSTERS;
+let CHESTS = BASE_CHESTS;
+
+/* ==================== ПОДСЧЁТ ОЧКОВ ==================== */
+let totalScore = 0;                // суммарные очки за все левелы
+let botsKilledThisLevel = 0;       // обновляется в процессе игры
+let monstersKilledThisLevel = 0;   // обновляется в процессе игры
+let chestsCollectedThisLevel = 0;  // только для статистики в логе
+
+function calculateScore(){
+return player.power * 10
++ botsKilledThisLevel * 150
++ monstersKilledThisLevel * 10
++ deadZones.length * 5;  // белые клетки учитываем
+// сундуки сюда не добавляем — они уже включены в player.power
+}
+
+
+/* ==================== ОБНОВЛЕНИЕ SCORE В ПРОЦЕССЕ ИГРЫ ==================== */
+function updateScoreFX() {
+    // вычисляем текущий уровень очков
+    let currentLevelScore = calculateScore() || 0;
+
+    // плавное обновление уровня очков
+    statFX.levelScore += (currentLevelScore - statFX.levelScore) * 0.2;
+
+    // плавное обновление общего счёта
+    statFX.totalScore += (totalScore - statFX.totalScore) * 0.2;
+}
+
+
+
 
 /* ==================== CANVAS ==================== */
 const canvas = document.getElementById("game");
@@ -129,29 +197,53 @@ let logCounter = 0;
 let player = {x:0,y:0,power:1,speed:5,movesLeft:5,color:"cyan",id:"player"};
 let bots=[], monsters=[], chests=[], flashes=[], deadZones=[];
 
+
+
 /* ==================== ЛОГ С НУМЕРАЦИЕЙ ==================== */
+
+function colorizeGameText(text){
+
+    return text.replace(/(<[^>]+>|[^<]+)/g, (part) => {
+
+        // если это HTML тег — не трогаем
+        if(part.startsWith("<")) return part;
+
+        // иначе красим слова
+        return part.replace(/\b(\w+)\b/g, (match) => {
+
+            let color = "#39ff14"; // базовый цвет
+            const lower = match.toLowerCase();
+
+            if(lower.includes("player")) color = "cyan";
+            else if(lower.includes("chest")) color = "yellow";
+            else if(lower.includes("monster")) color = "red";
+            else if(lower.includes("bot")) color = "blue";
+
+            return `<span style="color:${color}; font-weight:bold">${match}</span>`;
+        });
+
+    });
+}
+
+
 function log(t){
+
     logCounter++;
 
-    // раскраска ключевых слов по игровым цветам
-    const coloredText = t.replace(/\b(\w+)\b/g, (match) => {
-        let color = "#39ff14";  // остальной текст ярко-зелёный
-        const lower = match.toLowerCase();
-        if(lower.includes("player")) color = "cyan";
-        else if(lower.includes("chest")) color = "yellow";
-        else if(lower.includes("monster")) color = "red";
-        else if(lower.includes("bot")) color = "blue";
-        return `<span style="color:${color}; font-weight:bold">${match}</span>`;
-    });
+    const coloredText = colorizeGameText(t);
 
-    logBox.innerHTML = `${logCounter}. ${coloredText}<br>` + logBox.innerHTML;
+    logBox.innerHTML =
+        `${logCounter}. ${coloredText}<br>` + logBox.innerHTML;
 
     // обрезаем лог до последних 50 строк
     const lines = logBox.innerHTML.split("<br>");
-    if(lines.length > 50) logBox.innerHTML = lines.slice(0,50).join("<br>");
+    if(lines.length > 50)
+        logBox.innerHTML = lines.slice(0,50).join("<br>");
 
-    logBox.scrollTop = 0; // всегда скроллим вверх, чтобы последние события были сверху
+    logBox.scrollTop = 0; // последние события сверху
 }
+
+
 
 
 /* ==================== ПОМОЩЬ ==================== */
@@ -195,35 +287,120 @@ function playLoseSound(){
 
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 function endGame(text){
+
     if(gameOver) return;
     gameOver = true;
 
-    // вытащим последние подробности из лога, если они есть
-    let lastEntry = "(no last event)";
-    const lines = logBox.innerHTML.split("<br>");
-    for(let i = lines.length - 1; i >= 0; i--){
-        const line = lines[i].trim();
-        if(line){ 
-          // Правильный regex для удаления номера строки
-        lastEntry = line.replace(/^\d+\.\s*/,"");
-        break;
-        }
-    }
+    // подсчет очков текущего уровня 
+    const levelScore = calculateScore();
+    totalScore += levelScore; // суммируем с предыдущими уровнями 
 
-    // пишем финальное резюме с указанием последнего события
-   // log(`=== ${text} | last event: ${lastEntry} ===`);
+    // === ФИНАЛЬНЫЙ ЛОГ УРОВНЯ ===
+    log(
+`=== Level ${level} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
+Level score: ${levelScore} | Total score: ${totalScore}`
+    );
 
+    // Настройка цвета и звука + кнопки
     if(text.startsWith("Game Over")){
         msgDiv.style.color = "red";
         playLoseSound();
+
+        restartBtn.innerText = "Restart Game";
+        restartBtn.onclick = () => {
+            overlay.style.display = "none";
+
+            // Сброс всех счетчиков и переменных
+            totalScore = 0;
+            level = 1;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+
+            // Сброс игрока
+            player.power = 1;
+            player.speed = 5;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
+
+            // Сброс ботов
+            bots.forEach(b => b.alive = true);
+
+            // Запуск первого уровня
+            startNextLevel();
+
+            gameOver = false;
+        };
+
+        // Текст построчно с увеличенным заголовком
+        msgDiv.innerHTML = `
+            <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">Game Over</div>
+            <div>Power: ${player.power}</div>
+            <div>Speed: ${player.speed}</div>
+            <div>Killed by: ${text.split(', killed by ')[1] || 'unknown'}</div>
+            <div>Bots killed: ${botsKilledThisLevel}</div>
+            <div>Monsters killed: ${monstersKilledThisLevel}</div>
+            <div>Chests collected: ${chestsCollectedThisLevel}</div>
+            <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
+            <div style="font-weight:bold;">Total score: ${totalScore}</div>
+        `;
+
     } else if(text.startsWith("You Win")){
         msgDiv.style.color = "yellow";
         playWinSound();
+
+        restartBtn.innerText = "Next Level";
+        restartBtn.onclick = () => {
+            overlay.style.display = "none";
+
+            // Увеличиваем уровень перед стартом
+            level++;
+
+            // Сброс счетчиков текущего уровня
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+
+            // Сброс игрока и ботов
+            player.movesLeft = player.speed;
+            bots.forEach(b => b.alive = true);
+
+            // Запуск следующего уровня
+            startNextLevel();
+
+            gameOver = false;
+        };
+
+        // Текст построчно с увеличенным заголовком
+        msgDiv.innerHTML = `
+            <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">You Win</div>
+            <div>Power: ${player.power}</div>
+            <div>Speed: ${player.speed}</div>
+            <div>Bots killed: ${botsKilledThisLevel}</div>
+            <div>Monsters killed: ${monstersKilledThisLevel}</div>
+            <div>Chests collected: ${chestsCollectedThisLevel}</div>
+            <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
+            <div style="font-weight:bold;">Total score: ${totalScore}</div>
+        `;
+
     } else {
         msgDiv.style.color = "white";
+
+        // Общий текст построчно
+        msgDiv.innerHTML = `
+            ${text}<br>
+            Level: ${level}<br>
+            Power: ${player.power}<br>
+            Speed: ${player.speed}<br>
+            Bots killed: ${botsKilledThisLevel}<br>
+            Monsters killed: ${monstersKilledThisLevel}<br>
+            Chests collected: ${chestsCollectedThisLevel}<br>
+            Level score: ${levelScore}<br>
+            Total score: ${totalScore}
+        `;
     }
 
-    msgDiv.innerText = text;
     overlay.style.display = "block";
 }
 
@@ -299,6 +476,38 @@ function handleTrapAtRoundStart(character) {
     };
     character.dead = true;
 }
+
+
+
+/* ==================== NEXT LEVEL ==================== */
+function startNextLevel(){
+
+    // Размер карты: стартовая 15x15, +5 клеток по каждой оси на каждом новом уровне
+    const baseMapSize = 15;
+    const mapGrowth = 5;
+    MAP = baseMapSize + (level - 1) * mapGrowth; // уровень должен быть установлен заранее
+
+    // Плотность объектов фиксируем относительно карты 20x20
+    const densityMapSize = 20; 
+    const baseBots = 5;
+    const baseMonsters = 20;
+    const baseChests = 20;
+
+    const scaleFactor = (MAP * MAP) / (densityMapSize * densityMapSize);
+
+    BOTS = Math.max(1, Math.round(baseBots * scaleFactor));
+    MONSTERS = Math.max(1, Math.round(baseMonsters * scaleFactor));
+    CHESTS = Math.max(1, Math.round(baseChests * scaleFactor));
+
+    console.log(`Level ${level}: MAP=${MAP}x${MAP}, BOTS=${BOTS}, MONSTERS=${MONSTERS}, CHESTS=${CHESTS}`);
+
+    // Сброс игрока и ботов
+    player.movesLeft = player.speed;
+    bots.forEach(b => b.alive = true);
+
+    spawn(); // старый проверенный метод размещения объектов
+}
+
 
 
 
@@ -660,8 +869,14 @@ function collect(e){
 
     // Сундуки
     chests = chests.filter(c=>{
-        if(c.x===e.x && c.y===e.y){
+        if(c.x === e.x && c.y === e.y){
             e.power += c.power;
+
+            // считаем только для игрока
+            if(e === player){
+                chestsCollectedThisLevel++;
+            }
+
             log(`${e.id || 'entity'} collected chest +${c.power} (power:${e.power} speed:${e.speed})`);
             flash(c.x,c.y,"yellow");
             deadZones.push({x:c.x,y:c.y,number:c.power});
@@ -673,16 +888,24 @@ function collect(e){
 
     // Монстры
     monsters = monsters.filter(m=>{
-        if(m.x===e.x && m.y===e.y){
+        if(m.x === e.x && m.y === e.y){
             if(e.power >= m.power){
                 e.speed += 1;
+
+                // считаем только для игрока
+                if(e === player){
+                    monstersKilledThisLevel++;
+                }
+
                 log(`${e.id || 'entity'} killed monster (power:${e.power} speed:${e.speed})`);
                 flash(m.x,m.y,"red");
                 deadZones.push({x:m.x,y:m.y,number:m.power});
                 playMonsterSound();
                 return false;
+
             } else {
-                deadZones.push({x:m.x,y:m.y,number:m.power}); // непроходимая клетка
+                // непроходимая клетка
+                deadZones.push({x:m.x,y:m.y,number:m.power});
             }
         }
         return true;
@@ -692,15 +915,21 @@ function collect(e){
     if(e !== player && player.x === e.x && player.y === e.y && e.power >= player.power && !gameOver){
         log(`player killed by ${e.id} (power:${e.power} >= ${player.power})`);
         endGame(`Game Over with ${player.power} power and ${player.speed} speed, killed by ${e.id}`);
-        return; // прекращаем дальнейшую обработку
+        return;
     }
 
     // Боты
     bots.forEach(b=>{
-        if(b!==e && b.alive && b.x===e.x && b.y===e.y){
+        if(b !== e && b.alive && b.x === e.x && b.y === e.y){
             if(e.power >= b.power){
                 b.alive = false;
                 e.speed += 2;
+
+                // считаем только если игрок убил
+                if(e === player){
+                    botsKilledThisLevel++;
+                }
+
                 log(`${e.id || 'entity'} killed ${b.id} (power:${e.power} speed:${e.speed})`);
                 flash(b.x,b.y,"blue");
                 deadZones.push({x:b.x,y:b.y,number:b.power});
@@ -709,9 +938,8 @@ function collect(e){
         }
     });
 
-    // Проверка поражения игрока (для игрока собирает сундуки/убивает монстров/ботов)
+    // Проверка победы игрока
     if(e === player){
-        // если все боты убиты — победа
         if(bots.every(b=>!b.alive) && !gameOver){
             endGame(`You Win with ${player.power} power and ${player.speed} speed!`);
         }
@@ -719,57 +947,163 @@ function collect(e){
 }
 
 
+
+
+
+/* ==================== ПОДГОТОВКА К СЛЕДУЮЩЕМУ УРОВНЮ ==================== */
+restartBtn.addEventListener("click", () => {
+    // Скрываем overlay
+    overlay.style.display = "none";
+
+    // Сброс счетчиков текущего уровня
+    botsKilledThisLevel = 0;
+    monstersKilledThisLevel = 0;
+    chestsCollectedThisLevel = 0;
+
+    // Сброс игрока и ботов (если нужно)
+    player.movesLeft = player.speed; // или другой механизм обновления
+    bots.forEach(b => b.alive = true);
+
+    // Запуск следующего уровня
+    startNextLevel();
+});
+
+
+
+
 /* ==================== BOT MOVE ==================== */
 function botStep(b){
+
     if(!b.alive || gameOver) return;
 
     b.movesLeft = b.speed;
+
     while(b.movesLeft > 0 && !gameOver){
 
-        // ==== Определяем цели ====
-        let targets = [];
-        targets.push(...chests);
-        targets.push(...monsters.filter(m => m.power <= b.power));
-        targets.push(...bots.filter(o => o !== b && o.alive && o.power < b.power));
-        if(player.power < b.power) targets.push(player);
+        let bestTarget = null;
+        let bestValue = -Infinity;
+
+        const entities = [];
+
+        chests.forEach(c=>entities.push({type:"chest",obj:c}));
+        monsters.forEach(m=>entities.push({type:"monster",obj:m}));
+        bots.forEach(o=>{
+            if(o!==b && o.alive) entities.push({type:"bot",obj:o});
+        });
+        entities.push({type:"player",obj:player});
+
+        function dangerAt(x,y){
+
+            let danger = 0;
+
+            bots.forEach(o=>{
+                if(o===b || !o.alive) return;
+                const d = Math.abs(o.x-x)+Math.abs(o.y-y);
+                if(d<=2 && o.power > b.power){
+                    danger += (o.power - b.power) * 20;
+                }
+            });
+
+            if(player !== b){
+                const d = Math.abs(player.x-x)+Math.abs(player.y-y);
+                if(d<=2 && player.power > b.power){
+                    danger += (player.power - b.power) * 25;
+                }
+            }
+
+            return danger;
+        }
+
+        function trapRisk(x,y){
+            if(isImmediateDeadEnd({x,y,power:b.power})) return 200;
+            return 0;
+        }
+
+        entities.forEach(e=>{
+
+            const t = e.obj;
+
+            if(e.type==="monster" && t.power > b.power) return;
+            if(e.type==="bot" && t.power >= b.power) return;
+            if(e.type==="player" && player.power >= b.power) return;
+
+            const dist = Math.abs(b.x-t.x)+Math.abs(b.y-t.y);
+            if(dist===0) return;
+
+            let reward = 0;
+
+            if(e.type==="chest") reward = 40 + t.power*12;
+            if(e.type==="monster") reward = 70 + t.power*18;
+            if(e.type==="bot") reward = 160 + t.power*25;
+            if(e.type==="player") reward = 300 + player.power*35;
+
+            const path = bfsPath(b, b.x, b.y, t.x, t.y);
+            if(!path || path.length===0) return;
+
+            const next = path[0];
+
+            let value =
+                reward
+                - dist*15
+                - dangerAt(next.x,next.y)
+                - trapRisk(next.x,next.y);
+
+            // агрессия если бот сильный
+            if(b.power > player.power * 1.3 && e.type==="player"){
+                value += 200;
+            }
+
+            // охота на лидера
+            let strongest = Math.max(
+                player.power,
+                ...bots.filter(o=>o.alive).map(o=>o.power)
+            );
+
+            if(t.power === strongest){
+                value += 120;
+            }
+
+            if(value > bestValue){
+                bestValue = value;
+                bestTarget = {target:t,step:next};
+            }
+        });
 
         let step = null;
 
-        if(targets.length > 0){
-            // Есть цели — идем к ближайшей
-            targets.sort((a,c)=> (Math.abs(b.x-a.x)+Math.abs(b.y-a.y)) - (Math.abs(b.x-c.x)+Math.abs(b.y-c.y)));
-            let t = targets[0];
-            let path = bfsPath(b, b.x, b.y, t.x, t.y);
-            if(path && path.length > 0) step = path[0];
-        } 
+        if(bestTarget){
+            step = bestTarget.step;
+        }
 
-        // ===== Если целей нет или путь заблокирован, проверяем соседние клетки =====
+        // fallback движение
         if(!step){
+
             const dirs = [
                 {x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
             ];
+
+            dirs.sort(()=>Math.random()-0.5);
+
             for(let d of dirs){
                 let nx = b.x + d.x;
                 let ny = b.y + d.y;
-                if(!isBlockedFor(b, nx, ny)){
+                if(!isBlockedFor(b,nx,ny)){
                     step = {x:nx,y:ny};
-                    break; // первый доступный выход
+                    break;
                 }
             }
         }
 
-        // Если нет шагов — реально застрял, выходим
         if(!step) break;
 
-        // Делаем ход
-        b.x = step.x; 
+        b.x = step.x;
         b.y = step.y;
         b.movesLeft--;
 
         collect(b);
+
         if(!b.alive) break;
 
-        // Проверка тупика в текущем раунде
         if(isImmediateDeadEnd(b)){
             b.movesLeft = 0;
             break;
@@ -779,15 +1113,127 @@ function botStep(b){
 
 
 
+
 /* ==================== ПРОВЕРКА ЛОВУШЕК И ТУПИКОВ ПЕРЕД ХОДОМ БОТОВ ==================== */
+/* ==================== ПРОВЕРКА ЗАМКНУТОЙ ОБЛАСТИ В НАЧАЛЕ ХОДА ==================== */
+function resolveAreaTrap(entity){
+
+    if(gameOver) return;
+    if(entity.dead || entity.alive === false) return;
+
+    const visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
+    const q = [{x:entity.x, y:entity.y}];
+    visited[entity.x][entity.y] = true;
+
+    let perimeterWhites = [];
+    let foundDestroyableTarget = false;
+
+    while(q.length){
+
+        const cur = q.shift();
+
+        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+
+        for(const d of dirs){
+
+            const nx = cur.x + d[0];
+            const ny = cur.y + d[1];
+
+            // граница карты = белая клетка силы 0
+            if(nx < 0 || ny < 0 || nx >= MAP || ny >= MAP){
+                continue;
+            }
+
+            // белая клетка
+            const dz = deadZones.find(z => z.x === nx && z.y === ny);
+            if(dz){
+                perimeterWhites.push(dz);
+                continue;
+            }
+
+            // проверяем уничтожаемые цели
+            const monster = monsters.find(m=>m.x===nx && m.y===ny);
+            if(monster && monster.power <= entity.power){
+                foundDestroyableTarget = true;
+            }
+
+            const chest = chests.find(c=>c.x===nx && c.y===ny);
+            if(chest){
+                foundDestroyableTarget = true;
+            }
+
+            const bot = bots.find(b=>b.alive && b.x===nx && b.y===ny);
+            if(bot && bot !== entity && bot.power <= entity.power){
+                foundDestroyableTarget = true;
+            }
+
+            if(player !== entity && player.x===nx && player.y===ny && player.power <= entity.power){
+                foundDestroyableTarget = true;
+            }
+
+            // проходимая клетка — расширяем BFS
+            if(!visited[nx][ny] && !isBlockedFor(entity, nx, ny)){
+                visited[nx][ny] = true;
+                q.push({x:nx, y:ny});
+            }
+        }
+    }
+
+    // если есть цель — НЕ ловушка
+    if(foundDestroyableTarget) return;
+
+    if(perimeterWhites.length === 0) return;
+
+    // выбираем белую клетку максимальной силы
+    let maxWhite = perimeterWhites.reduce((a,b)=> b.number > a.number ? b : a);
+
+    const damage = maxWhite.number;
+    const prevPower = entity.power;
+
+    entity.power -= damage;
+
+    log(`${entity.id || 'entity'} trapped in area: -${damage} power (${prevPower}→${entity.power})`);
+
+    // смерть
+    if(entity.power <= 0){
+
+        deadZones.push({
+            x: entity.x,
+            y: entity.y,
+            number: prevPower
+        });
+
+        if(entity === player){
+            endGame(`Game Over: trapped with ${prevPower} power`);
+        }else{
+            entity.alive = false;
+            flash(entity.x, entity.y, "red");
+        }
+
+        return;
+    }
+
+    // удаляем белую клетку
+    const idx = deadZones.indexOf(maxWhite);
+    if(idx !== -1) deadZones.splice(idx,1);
+
+    flash(maxWhite.x, maxWhite.y, "white");
+}
+
+
+/* ==================== ПРОВЕРКА ЛОВУШЕК ПЕРЕД ХОДАМИ ==================== */
 function checkTrapsAndStucks(){
-    resolveTrapAtRoundStart(player);
+
+    resolveAreaTrap(player);
 
     bots.forEach(b=>{
         if(!b.alive) return;
-        resolveTrapAtRoundStart(b);
+        resolveAreaTrap(b);
     });
 }
+
+
+
 
 
 function endPlayerTurn(){
@@ -1041,158 +1487,175 @@ function glowStyleLabel(cls) {
 
 
 
-
-
 /* ==================== DRAW ==================== */
 function draw() {
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.setTransform(scale,0,0,scale,camX,camY);
+    // Сброс трансформации и очистка канваса
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(scale, 0, 0, scale, camX, camY);
 
+    // Обновляем statFX для отображения
     updateStatFX();
 
-    // ===== СЕТКА ПОЛЯ: минималистичная отрисовка вместо фонового квадрата =====
-    for(let x=0;x<MAP;x++){
-        for(let y=0;y<MAP;y++){
-            ctx.strokeStyle="#333";
-            ctx.strokeRect(x*TILE, y*TILE, TILE, TILE);
+    // ===== СЕТКА ПОЛЯ =====
+    for (let x = 0; x < MAP; x++) {
+        for (let y = 0; y < MAP; y++) {
+            ctx.strokeStyle = "#333";
+            ctx.strokeRect(x * TILE, y * TILE, TILE, TILE);
         }
     }
 
-    bfsReachable(player).forEach(c=>{
+    // Подсветка достижимых клеток игрока
+    bfsReachable(player).forEach(c => {
         ctx.fillStyle = "rgba(255,255,255,0.08)";
-        roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
+        roundRect(c.x * TILE, c.y * TILE, TILE, TILE, 6, true);
     });
 
+    // Подсветка достижимых клеток ботов
+    bots.filter(b => b.alive).forEach(b => {
+        const savedMoves = b.movesLeft;
+        b.movesLeft = b.speed;
 
+        bfsReachable(b).forEach(c => {
+            ctx.fillStyle = "rgba(80,80,200,0.10)";
+            roundRect(c.x * TILE, c.y * TILE, TILE, TILE, 6, true);
+        });
 
-  bots.filter(b=>b.alive).forEach(b=>{
-    // временно подменяем movesLeft для корректной визуализации
-    const savedMoves = b.movesLeft;
-    b.movesLeft = b.speed;
-
-    bfsReachable(b).forEach(c=>{
-        ctx.fillStyle = "rgba(80,80,200,0.10)";
-        roundRect(c.x*TILE, c.y*TILE, TILE, TILE, 6, true);
+        b.movesLeft = savedMoves;
     });
 
-    // возвращаем реальное значение
-    b.movesLeft = savedMoves;
-});
+    // === Вспомогательные функции для рисования ===
+    function roundRect(x, y, w, h, r, fill = true) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        if (fill) ctx.fill(); else ctx.stroke();
+    }
 
+    function lightenColor(color, percent) {
+        const f = parseInt(color.slice(1), 16),
+            t = 255,
+            R = f >> 16,
+            G = (f >> 8) & 0x00FF,
+            B = f & 0x0000FF;
+        return "#" + (0x1000000 + ((Math.round((t - R) * percent) + R) * 0x10000 + (Math.round((t - G) * percent) + G) * 0x100 + (Math.round((t - B) * percent) + B))).toString(16).slice(1);
+    }
 
+    function darkenColor(color, percent) {
+        const f = parseInt(color.slice(1), 16),
+            t = 0,
+            R = f >> 16,
+            G = (f >> 8) & 0x00FF,
+            B = f & 0x0000FF;
+        return "#" + (0x1000000 + ((Math.round((t - R) * percent) + R) * 0x10000 + (Math.round((t - G) * percent) + G) * 0x100 + (Math.round((t - B) * percent) + B))).toString(16).slice(1);
+    }
 
-
-    function drawCandy(x, y, size, baseColor, softCenter=false, noGradient=false){
-        if(noGradient){ ctx.fillStyle = baseColor; }
-        else{
-            let grad;
-            if(softCenter){
-                grad = ctx.createLinearGradient(x, y, x, y+size);
+    function drawCandy(x, y, size, baseColor, softCenter = false, noGradient = false) {
+        if (noGradient) { ctx.fillStyle = baseColor; }
+        else {
+            let grad = ctx.createLinearGradient(x, y, x, y + size);
+            if (softCenter) {
                 grad.addColorStop(0, lightenColor(baseColor, 0.15));
                 grad.addColorStop(0.5, darkenColor(baseColor, 0.05));
                 grad.addColorStop(1, lightenColor(baseColor, 0.15));
-                ctx.fillStyle = grad;
             } else {
-                grad = ctx.createLinearGradient(x, y, x, y+size);
                 grad.addColorStop(0, lightenColor(baseColor, 0.4));
                 grad.addColorStop(0.5, baseColor);
                 grad.addColorStop(1, darkenColor(baseColor, 0.2));
-                ctx.fillStyle = grad;
             }
+            ctx.fillStyle = grad;
         }
-        roundRect(x, y, size, size, size/4, true);
-        const shine = ctx.createLinearGradient(x, y, x, y + size/3);
+        roundRect(x, y, size, size, size / 4, true);
+
+        const shine = ctx.createLinearGradient(x, y, x, y + size / 3);
         shine.addColorStop(0, "rgba(255,255,255,0.2)");
         shine.addColorStop(1, "rgba(255,255,255,0)");
-        roundRect(x, y, size, size/3, size/4, true);
-        const cellX = Math.floor(x/TILE);
-        const cellY = Math.floor(y/TILE);
-        if(deadZones.some(d=>d.x===cellX && d.y===cellY)){
+        roundRect(x, y, size, size / 3, size / 4, true);
+
+        const cellX = Math.floor(x / TILE);
+        const cellY = Math.floor(y / TILE);
+        if (deadZones.some(d => d.x === cellX && d.y === cellY)) {
             ctx.strokeStyle = "white";
             ctx.lineWidth = 2;
-            roundRect(x, y, size, size, size/4, false);
+            roundRect(x, y, size, size, size / 4, false);
         }
     }
 
-    function roundRect(x, y, w, h, r, fill=true){
-        ctx.beginPath();
-        ctx.moveTo(x+r, y);
-        ctx.lineTo(x+w-r, y);
-        ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-        ctx.lineTo(x+w, y+h-r);
-        ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-        ctx.lineTo(x+r, y+h);
-        ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-        ctx.lineTo(x, y+r);
-        ctx.quadraticCurveTo(x, y, x+r, y);
-        ctx.closePath();
-        if(fill) ctx.fill(); else ctx.stroke();
-    }
-
-    function lightenColor(color, percent){
-        const f=parseInt(color.slice(1),16),t=255,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
-        return "#"+(0x1000000+((Math.round((t-R)*percent)+R)*0x10000+(Math.round((t-G)*percent)+G)*0x100+(Math.round((t-B)*percent)+B))).toString(16).slice(1);
-    }
-
-    function darkenColor(color, percent){
-        const f=parseInt(color.slice(1),16),t=0,R=f>>16,G=f>>8&0x00FF,B=f&0x0000FF;
-        return "#"+(0x1000000+((Math.round((t-R)*percent)+R)*0x10000+(Math.round((t-G)*percent)+G)*0x100+(Math.round((t-B)*percent)+B))).toString(16).slice(1);
-    }
-
-    deadZones.forEach(d=>{
-        drawCandy(d.x*TILE+4, d.y*TILE+4, TILE-8, "#ffffff");
+    // ===== РИСУЕМ ОБЪЕКТЫ =====
+    deadZones.forEach(d => {
+        drawCandy(d.x * TILE + 4, d.y * TILE + 4, TILE - 8, "#ffffff");
         ctx.fillStyle = "#000";
-        ctx.fillText(d.number, d.x*TILE+12, d.y*TILE+28);
+        ctx.fillText(d.number, d.x * TILE + 12, d.y * TILE + 28);
     });
 
-    chests.forEach(c=>{
-        drawCandy(c.x*TILE+8, c.y*TILE+8, 28, "#f5c542");
+    chests.forEach(c => {
+        drawCandy(c.x * TILE + 8, c.y * TILE + 8, 28, "#f5c542");
         ctx.fillStyle = "#000";
-        ctx.fillText(c.power, c.x*TILE+14, c.y*TILE+30);
+        ctx.fillText(c.power, c.x * TILE + 14, c.y * TILE + 30);
     });
 
-    monsters.forEach(m=>{
-        drawCandy(m.x*TILE+6, m.y*TILE+6, 32, "#e53935");
+    monsters.forEach(m => {
+        drawCandy(m.x * TILE + 6, m.y * TILE + 6, 32, "#e53935");
         ctx.fillStyle = "white";
-        ctx.fillText(m.power, m.x*TILE+12, m.y*TILE+30);
+        ctx.fillText(m.power, m.x * TILE + 12, m.y * TILE + 30);
     });
 
-    bots.forEach(b=>{
-        if(!b.alive) return;
-        let soft=false,color=b.color;
-        if(color==="blue"){ color="#1e90ff"; soft=true; }
-        drawCandy(b.x*TILE+6,b.y*TILE+6,32,color,soft);
+    bots.forEach(b => {
+        if (!b.alive) return;
+        let soft = false, color = b.color;
+        if (color === "blue") { color = "#1e90ff"; soft = true; }
+        drawCandy(b.x * TILE + 6, b.y * TILE + 6, 32, color, soft);
         ctx.fillStyle = "white";
-        ctx.fillText(b.power,b.x*TILE+12,b.y*TILE+30);
+        ctx.fillText(b.power, b.x * TILE + 12, b.y * TILE + 30);
     });
 
-    drawCandy(player.x*TILE+5,player.y*TILE+5,34,"#00ced1",false);
-    ctx.fillStyle="white";
-    ctx.fillText(player.power,player.x*TILE+12,player.y*TILE+30);
+    drawCandy(player.x * TILE + 5, player.y * TILE + 5, 34, "#00ced1", false);
+    ctx.fillStyle = "white";
+    ctx.fillText(player.power, player.x * TILE + 12, player.y * TILE + 30);
 
-    flashes.forEach(f=>{
-        ctx.fillStyle=`rgba(255,255,255,${f.alpha})`;
-        roundRect(f.x*TILE+4,f.y*TILE+4,TILE-8,TILE-8,6,true);
-        f.alpha-=0.05;
+    // ===== FLASHES =====
+    flashes.forEach(f => {
+        ctx.fillStyle = `rgba(255,255,255,${f.alpha})`;
+        roundRect(f.x * TILE + 4, f.y * TILE + 4, TILE - 8, TILE - 8, 6, true);
+        f.alpha -= 0.05;
     });
-    flashes = flashes.filter(f=>f.alpha>0);
+    flashes = flashes.filter(f => f.alpha > 0);
 
-    document.getElementById("info").innerHTML=
-`<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+    // ===== ОБНОВЛЯЕМ INFO БЛОК СЧЕТЧИКА =====
+    let currentLevelScore = typeof levelScore !== "undefined" ? levelScore : 0;
+    let currentTotalScore = typeof totalScore !== "undefined" ? totalScore : 0;
+
+    // ===== Обновляем свечением цифры очков =====
+    if (!statFX.levelScore) statFX.levelScore = 0;
+    if (!statFX.totalScore) statFX.totalScore = 0;
+
+    // Легкое сглаживание свечения
+    statFX.levelScore += (currentLevelScore - statFX.levelScore) * 0.1;
+    statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
+
+    document.getElementById("info").innerHTML = `
+<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
 <span class="lbl monster" style="${glowStyleLabel('monster')}">Monsters</span><span class="val" style="${glowStyleNumber(statFX.monsters)}">${monsters.length}</span>
-<span class="lbl bot" style="${glowStyleLabel('bot')}">Bots</span><span class="val" style="${glowStyleNumber(statFX.bots)}">${bots.filter(b=>b.alive).length}</span><br>
+<span class="lbl bot" style="${glowStyleLabel('bot')}">Bots</span><span class="val" style="${glowStyleNumber(statFX.bots)}">${bots.filter(b => b.alive).length}</span><br>
 <span class="lbl round" style="${glowStyleLabel('round')}">Round</span><span class="val" style="${glowStyleNumber(statFX.roundNumber)}">${roundNumber}</span>
-<span class="lbl blocked" style="${glowStyleLabel('blocked')}">Blocked cells</span><span class="val" style="${glowStyleNumber(statFX.blockedCells)}">${deadZones.length}</span>`;
+<span class="lbl blocked" style="${glowStyleLabel('blocked')}">Blocked cells</span><span class="val" style="${glowStyleNumber(statFX.blockedCells)}">${deadZones.length}</span><br>
+<span class="lbl score" style="${glowStyleLabel('round')}">Level ${level} Score</span><span class="val" style="${glowStyleNumber(statFX.levelScore)}">${Math.round(statFX.levelScore)}</span>
+<span class="lbl score" style="${glowStyleLabel('round')}">Total Score</span><span class="val" style="${glowStyleNumber(statFX.totalScore)}">${Math.round(statFX.totalScore)}</span>`;
 
+    // ===== Декрементируем эффект свечения для остальных значений =====
     decrementGlow();
 }
-
-
-
 
 
 
