@@ -151,6 +151,7 @@ async function authTelegram(){
     try{
         if(window.Telegram?.WebApp){
             const tg = window.Telegram.WebApp;
+
             tg.expand();
             tg.disableVerticalSwipes();
 
@@ -181,6 +182,40 @@ async function authTelegram(){
 }
 
 /* =============================
+   TELEGRAM BACK BUTTON CONTROL
+============================= */
+function setupTelegramBackButton(){
+
+    if(!window.Telegram?.WebApp) return;
+
+    const tg = window.Telegram.WebApp;
+
+    tg.BackButton.show();
+
+    tg.BackButton.onClick(()=>{
+
+        const modal = document.getElementById('leaderboardModal');
+
+        // если открыт leaderboard → закрываем
+        if(modal && modal.style.display === 'flex'){
+            modal.style.display = 'none';
+            return;
+        }
+
+        // если открыт overlay game over → закрываем
+        if(typeof overlay !== 'undefined' && overlay?.style?.display === 'block'){
+            overlay.style.display = 'none';
+            return;
+        }
+
+        // подтверждение выхода
+        if(confirm("Exit game? Progress will be lost.")){
+            tg.close();
+        }
+    });
+}
+
+/* =============================
    LEADERBOARDS (SERVER ONLY)
 ============================= */
 let localScores = [];
@@ -188,8 +223,12 @@ let globalScores = [];
 let lastGameScore = null;
 
 async function loadGlobalLeaderboard(){
+
+    if(!SERVER_OK) return;
+
     try{
         const url = new URL('/__leaders', window.location.origin);
+
         url.searchParams.set('game', GAME_ID);
 
         if(tgUser?.id){
@@ -220,6 +259,7 @@ async function loadGlobalLeaderboard(){
    SEND SCORE
 ============================= */
 async function sendScoreToServer(score, level){
+
     if(!SERVER_OK || !tgUser?.id) return;
 
     try{
@@ -252,6 +292,7 @@ async function sendScoreToServer(score, level){
    SAVE RESULT
 ============================= */
 async function saveToLeaderboard(score, level){
+
     lastGameScore = score;
 
     await sendScoreToServer(score, level);
@@ -261,22 +302,22 @@ async function saveToLeaderboard(score, level){
 /* =============================
    RENDER
 ============================= */
-function renderLeaderboard() {
+function renderLeaderboard(){
 
     let html = `<h2>Global Top</h2>`;
 
-    for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+    for(let i=0;i<LEADERBOARD_MAX;i++){
+        let e = globalScores[i] || { nick:'—', score:0, level:0 };
         let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
+        html += `<div style="color:${color}">${i+1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
 
-    for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = localScores[i] || { score: 0, level: 0 };
+    for(let i=0;i<LEADERBOARD_MAX;i++){
+        let e = localScores[i] || { score:0, level:0 };
         let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
+        html += `<div style="color:${color}">${i+1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `
@@ -288,11 +329,11 @@ function renderLeaderboard() {
 
     document.getElementById('leaderContent').innerHTML = html;
 
-    document.getElementById('leaderReturnBtn').onclick = () => {
+    document.getElementById('leaderReturnBtn').onclick = ()=>{
         document.getElementById('leaderboardModal').style.display = 'none';
     };
 
-    document.getElementById('leaderRestartBtn').onclick = () => {
+    document.getElementById('leaderRestartBtn').onclick = ()=>{
 
         document.getElementById('leaderboardModal').style.display = 'none';
 
@@ -308,7 +349,7 @@ function renderLeaderboard() {
         player.x = 0;
         player.y = 0;
 
-        bots.forEach(b => b.alive = true);
+        bots.forEach(b=>b.alive = true);
 
         startNextLevel();
         gameOver = false;
@@ -318,25 +359,25 @@ function renderLeaderboard() {
 /* =============================
    INIT BUTTONS
 ============================= */
-const leaderBtn = document.getElementById('leaderBtn');
-const modal = document.getElementById('leaderboardModal');
+document.addEventListener('DOMContentLoaded', async ()=>{
 
-leaderBtn.onclick = async ()=>{
-    await loadGlobalLeaderboard();
-    renderLeaderboard();
-    modal.style.display = 'flex';
-};
+    await authTelegram();
+    setupTelegramBackButton();
 
-modal.onclick = (e)=>{
-    if(e.target === modal) modal.style.display = 'none';
-};
+    const leaderBtn = document.getElementById('leaderBtn');
+    const modal = document.getElementById('leaderboardModal');
 
+    leaderBtn.onclick = async ()=>{
+        await loadGlobalLeaderboard();
+        renderLeaderboard();
+        modal.style.display = 'flex';
+    };
 
-/* =============================
-   AUTO AUTH
-============================= */
-authTelegram();
+    modal.onclick = (e)=>{
+        if(e.target === modal) modal.style.display = 'none';
+    };
 
+});
 
 
 
