@@ -146,6 +146,7 @@ let tgUser = null;
 let playerNick = 'Player';
 let SERVER_OK = true;
 
+// Авторизация Telegram
 async function authTelegram() {
     try {
         if (window.Telegram?.WebApp) {
@@ -180,20 +181,24 @@ async function authTelegram() {
 }
 
 /* =============================
-   LEADERBOARDS
+   LEADERBOARDS (серверные)
 ============================= */
-let localScores = [];
 let globalScores = [];
+let userScores = [];
 let lastGameScore = null;
+let lastGameLevel = null;
 
-async function loadGlobalLeaderboard() {
+// загружаем глобальный и личный топ с сервера
+async function loadLeaderboard() {
+    if (!SERVER_OK) return;
+
     try {
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', GAME_ID);
         if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
 
-        const r = await fetch(url);
-        const data = await r.json();
+        const resp = await fetch(url);
+        const data = await resp.json();
 
         if (data?.globalTop) {
             globalScores = data.globalTop.map(e => ({
@@ -204,23 +209,25 @@ async function loadGlobalLeaderboard() {
         }
 
         if (data?.userTop) {
-            localScores = data.userTop.map(e => ({
+            userScores = data.userTop.map(e => ({
                 score: e.score || 0,
                 level: e.level || 0
             }));
         }
-
     } catch (e) {
-        console.log("leaders load fail", e);
+        console.log("Failed to load leaderboard", e);
         SERVER_OK = false;
     }
 }
 
-async function sendScoreToServer(score, level) {
+// отправка очков на сервер
+async function sendScore(score, level) {
     if (!SERVER_OK || !tgUser?.id) return;
+
     try {
         const t = await fetch('/__ticket', { method: 'POST' });
         const ticket = await t.json();
+
         await fetch('/__emit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -231,47 +238,35 @@ async function sendScoreToServer(score, level) {
                     game: GAME_ID,
                     user: { id: String(tgUser.id) },
                     nick: playerNick,
-                    score: score,
-                    level: level
+                    score,
+                    level
                 }
             })
         });
     } catch (e) {
-        console.log("send score fail", e);
+        console.log("Failed to send score", e);
         SERVER_OK = false;
     }
-}
-
-function saveToLeaderboard(score, level) {
-    // локальный leaderboard
-    let board = JSON.parse(localStorage.getItem(GAME_ID + '_leaderboard')) || [];
-    board.unshift({ nick: playerNick, score, level });
-    board.sort((a, b) => b.score - a.score);
-    if (board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
-    localStorage.setItem(GAME_ID + '_leaderboard', JSON.stringify(board));
-
-    localScores = board;
-    lastGameScore = score;
-
-    // отправка на сервер
-    sendScoreToServer(score, level);
 }
 
 /* =============================
    LEADERBOARD UI
 ============================= */
-function renderLeaderboard() {
+async function renderLeaderboard() {
+    // всегда загружаем свежие данные перед показом
+    await loadLeaderboard();
+
     let html = `<h2>Global Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        let color = (e.score === lastGameScore && e.nick === playerNick) ? '#00ff99' : '#ccc';
+        const e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+        const color = (e.score === lastGameScore && e.level === lastGameLevel && e.nick === playerNick) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = localScores[i] || { nick: playerNick, score: 0, level: 0 };
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        const e = userScores[i] || { score: 0, level: 0 };
+        const color = (e.score === lastGameScore && e.level === lastGameLevel) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
@@ -320,6 +315,17 @@ leaderBtn.onclick = () => {
 modal.onclick = (e) => {
     if (e.target === modal) modal.style.display = 'none';
 };
+
+/* =============================
+   SAVE SCORE AND REFRESH
+============================= */
+async function saveScoreAndRefresh(score, level) {
+    lastGameScore = score;
+    lastGameLevel = level;
+
+    await sendScore(score, level);
+    await renderLeaderboard();
+}
 
 
 
@@ -506,8 +512,10 @@ function playLoseSound(){
 
 
 
+
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
-function endGame(text) {
+async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
 
@@ -562,8 +570,8 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
-    // Сохраняем результат в локальный и глобальный лидерборд
-    saveToLeaderboard(totalScore, currentLevel);
+    // Сохраняем очки и обновляем серверный лидерборд
+    await saveScoreAndRefresh(totalScore, currentLevel);
 
     // Подключаем обработчик кнопки Restart/Next
     restartBtn.onclick = () => {
