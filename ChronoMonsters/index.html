@@ -165,7 +165,7 @@ async function authTelegram() {
 
                 if (tgUser) {
                     if (tgUser.username) {
-                        playerNick = tgUser.username.replace(/^@/, '').slice(0, 12);
+                        playerNick = tgUser.username.replace(/^@/, '');
                     } else if (tgUser.first_name) {
                         playerNick = tgUser.first_name.slice(0, 12);
                     } else {
@@ -181,20 +181,22 @@ async function authTelegram() {
 }
 
 /* =============================
-   LEADERBOARDS (серверные)
+   LEADERBOARDS (серверные) - УНИВЕРСАЛЬНЫЙ ТОП
 ============================= */
 let globalScores = [];
 let userScores = [];
 let lastGameScore = null;
 let lastGameLevel = null;
+let lastGameBots = 0;
 
-// загружаем глобальный и личный топ с сервера
+// Загружаем глобальный и личный топ с сервера
 async function loadLeaderboard() {
     if (!SERVER_OK) return;
 
     try {
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', GAME_ID);
+        url.searchParams.set('sort', 'score');  // ← СВОЯ сортировка для ChronoMonsters!
         if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
 
         const resp = await fetch(url);
@@ -203,15 +205,19 @@ async function loadLeaderboard() {
         if (data?.globalTop) {
             globalScores = data.globalTop.map(e => ({
                 nick: e.nick || 'Player',
-                score: e.score || 0,
-                level: e.level || 0
+                score: e.score || 0,      // levelScore
+                level: e.level || 0,
+                bots: e.bots || 0,        // ← ТВОИ боты!
+                monsters: e.monsters || 0,
+                chests: e.chests || 0
             }));
         }
 
         if (data?.userTop) {
             userScores = data.userTop.map(e => ({
                 score: e.score || 0,
-                level: e.level || 0
+                level: e.level || 0,
+                bots: e.bots || 0
             }));
         }
     } catch (e) {
@@ -220,8 +226,8 @@ async function loadLeaderboard() {
     }
 }
 
-// отправка очков на сервер
-async function sendScore(score, level) {
+// Универсальная отправка ВСЕХ полей ChronoMonsters
+async function sendScore(scoreObj) {
     if (!SERVER_OK || !tgUser?.id) return;
 
     try {
@@ -238,8 +244,15 @@ async function sendScore(score, level) {
                     game: GAME_ID,
                     user: { id: String(tgUser.id) },
                     nick: playerNick,
-                    score,
-                    level
+                    // ← ВСЕ поля ChronoMonsters для топа:
+                    score: scoreObj.score || 0,           // основной для сортировки!
+                    totalScore: scoreObj.totalScore || 0,
+                    level: scoreObj.level || 0,
+                    bots: scoreObj.bots || 0,
+                    monsters: scoreObj.monsters || 0,
+                    chests: scoreObj.chests || 0,
+                    power: scoreObj.power || 0,
+                    speed: scoreObj.speed || 0
                 }
             })
         });
@@ -250,81 +263,92 @@ async function sendScore(score, level) {
 }
 
 /* =============================
-   LEADERBOARD UI
+   LEADERBOARD UI - ПОКАЗЫВАЕМ ТВОИ МЕТРИКИ
 ============================= */
 async function renderLeaderboard() {
-    // всегда загружаем свежие данные перед показом
-    await loadLeaderboard();
+    await loadLeaderboard();  // свежие данные
 
-    let html = `<h2>Global Top</h2>`;
+    let html = `<h2 style="color:cyan; text-align:center;">🌟 Global Top 🌟</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        const e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        const color = (e.score === lastGameScore && e.level === lastGameLevel && e.nick === playerNick) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
+        const e = globalScores[i] || { nick: '—', score: 0, level: 0, bots: 0 };
+        const isYours = (e.score === lastGameScore && e.level === lastGameLevel && e.bots === lastGameBots && e.nick === playerNick);
+        const color = isYours ? '#00ff99' : (i < 3 ? '#ffd700' : '#ccc');
+        html += `<div style="color:${color}; padding:4px 0; font-weight:${isYours ? 'bold' : 'normal'}">
+            ${i + 1}. ${e.nick} — ${e.score} pts (Lv${e.level}, ${e.bots} bots)
+        </div>`;
     }
 
-    html += `<h2 style="margin-top:15px;">Your Top</h2>`;
+    html += `<h2 style="color:yellow; text-align:center; margin-top:20px;">📊 Your Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        const e = userScores[i] || { score: 0, level: 0 };
-        const color = (e.score === lastGameScore && e.level === lastGameLevel) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
+        const e = userScores[i] || { score: 0, level: 0, bots: 0 };
+        const isYours = (e.score === lastGameScore && e.level === lastGameLevel && e.bots === lastGameBots);
+        const color = isYours ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">
+            ${i + 1}. ${e.score} pts (Lv${e.level}, ${e.bots} bots)
+        </div>`;
     }
 
     html += `
-        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
-            <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
-            <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
+        <div style="margin-top:25px; display:flex; flex-direction:column; gap:12px; text-align:center;">
+            <button id="leaderReturnBtn" style="padding:12px 24px; font-size:18px; border-radius:8px; cursor:pointer; 
+                background:linear-gradient(145deg,#555,#333); color:white; border:none; font-weight:bold;">
+                Return
+            </button>
+            <button id="leaderRestartBtn" style="padding:12px 24px; font-size:18px; border-radius:8px; cursor:pointer; 
+                background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none; font-weight:bold;">
+                Restart Game
+            </button>
         </div>
     `;
 
     document.getElementById('leaderContent').innerHTML = html;
+    document.getElementById('leaderboardModal').style.display = 'flex';
 
+    // Кнопки
     document.getElementById('leaderReturnBtn').onclick = () => {
         document.getElementById('leaderboardModal').style.display = 'none';
     };
-
     document.getElementById('leaderRestartBtn').onclick = () => {
         document.getElementById('leaderboardModal').style.display = 'none';
-
-        // полный сброс игры
-        totalScore = 0;
-        level = 1;
-        botsKilledThisLevel = 0;
-        monstersKilledThisLevel = 0;
-        chestsCollectedThisLevel = 0;
-
-        player.power = 1;
-        player.speed = 5;
-        player.movesLeft = player.speed;
-        player.x = 0;
-        player.y = 0;
-
-        bots.forEach(b => b.alive = true);
-        startNextLevel();
-        gameOver = false;
+        restartGame();
     };
 }
 
-// кнопки открытия лидерборда
-const leaderBtn = document.getElementById('leaderBtn');
-const modal = document.getElementById('leaderboardModal');
-leaderBtn.onclick = () => {
-    renderLeaderboard();
-    modal.style.display = 'flex';
-};
-modal.onclick = (e) => {
-    if (e.target === modal) modal.style.display = 'none';
-};
+// кнопки лидерборда
+document.addEventListener('DOMContentLoaded', () => {
+    const leaderBtn = document.getElementById('leaderBtn');
+    const modal = document.getElementById('leaderboardModal');
+    leaderBtn.onclick = renderLeaderboard;
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+});
 
 /* =============================
-   SAVE SCORE AND REFRESH
+   SAVE & REFRESH - УНИВЕРСАЛЬНЫЙ
 ============================= */
-async function saveScoreAndRefresh(score, level) {
-    lastGameScore = score;
-    lastGameLevel = level;
+async function saveScoreAndRefresh(scoreObj) {
+    lastGameScore = scoreObj.score;
+    lastGameLevel = scoreObj.level;
+    lastGameBots = scoreObj.bots;
 
-    await sendScore(score, level);
-    await renderLeaderboard();
+    await sendScore(scoreObj);
+    await loadLeaderboard();  // обновить UI
+}
+
+// Функция полного рестарта (используй в кнопках)
+function restartGame() {
+    totalScore = 0;
+    level = 1;
+    botsKilledThisLevel = 0;
+    monstersKilledThisLevel = 0;
+    chestsCollectedThisLevel = 0;
+    player.power = 1;
+    player.speed = 5;
+    player.movesLeft = player.speed;
+    player.x = 0;
+    player.y = 0;
+    bots.forEach(b => b.alive = true);
+    startNextLevel();
+    gameOver = false;
 }
 
 
@@ -513,14 +537,13 @@ function playLoseSound(){
 
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
 
-    const levelScore = calculateScore();
-    const currentLevel = level || 1; // гарантируем наличие уровня
+    const levelScore = calculateScore();  // ← это основной score для топа!
+    const currentLevel = level || 1;
 
     // === ФИНАЛЬНЫЙ ЛОГ УРОВНЯ ===
     log(
@@ -570,34 +593,29 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
-    // Сохраняем очки и обновляем серверный лидерборд
-    await saveScoreAndRefresh(totalScore, currentLevel);
+    // ✅ Сохраняем ВСЕ поля ChronoMonsters в лидерборд!
+    await saveScoreAndRefresh({
+        score: levelScore,                    // ← основной для топа (calculateScore())
+        totalScore: totalScore,               // сумма уровней
+        level: currentLevel,                  // номер уровня
+        bots: botsKilledThisLevel,            // твои боты
+        monsters: monstersKilledThisLevel,    // монстры
+        chests: chestsCollectedThisLevel,     // сундуки
+        power: player.power,                  // сила
+        speed: player.speed                   // скорость
+    });
 
     // Подключаем обработчик кнопки Restart/Next
     restartBtn.onclick = () => {
         overlay.style.display = "none";
 
         if (text.startsWith("Game Over")) {
-            totalScore = 0;
-            level = 1;
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-
-            player.power = 1;
-            player.speed = 5;
-            player.movesLeft = player.speed;
-            player.x = 0;
-            player.y = 0;
-
-            bots.forEach(b => b.alive = true);
-            startNextLevel();
+            restartGame();  // ← используем универсальную функцию
         } else if (text.startsWith("You Win")) {
             level++;
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
-
             player.movesLeft = player.speed;
             bots.forEach(b => b.alive = true);
             startNextLevel();
@@ -606,7 +624,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         gameOver = false;
     };
 }
-
 
 
 
