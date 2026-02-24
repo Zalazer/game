@@ -4,56 +4,22 @@
 <meta charset="UTF-8">
 <title>ChronoMonsters - Turn Strategy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
 html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 #info{position:fixed;top:0px;left:6px;font-family:monospace;font-size:18px;color:#0f0;background:rgba(0,0,0,0.65);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.3;}
 #log{position:fixed;bottom:6px;left:6px;right:6px;max-height:14%;overflow:auto;font-family:monospace;font-size:14px;color:#39ff14;background:rgba(0,0,0,0.7);padding:6px;}
-
-#info .val{
-    color:#fff;
-    // background:rgba(255,255,255,0.15);
-    padding:0px 0px;
-    border-radius:0px;
-    font-weight:bold;
-}
-
-
-
-#info .lbl{
-    font-weight:bold;
-    margin-right:4px;
-}
-
-/* игрок — ровно как на карте */
-#info .player{
-    color: cyan;
-}
-
-/* сундуки */
-#info .chest{
-    color: yellow;
-}
-
-/* монстры */
-#info .monster{
-    color: red;
-}
-
-/* боты */
-#info .bot{
-    color: blue;
-}
-
-/* заблокированные клетки (белые) */
-#info .blocked{
-    color: white;
-}
-
-/* раунд — оставляем системный зелёный */
-#info .round{
-    color: #0f0;
-}
-
+#info .val{color:#fff;padding:0px 0px;border-radius:0px;font-weight:bold;}
+#info .lbl{font-weight:bold;margin-right:4px;}
+#info .player{color: cyan;}
+#info .chest{color: yellow;}
+#info .monster{color: red;}
+#info .bot{color: blue;}
+#info .blocked{color: white;}
+#info .round{color: #0f0;}
 
 #overlay {
   position: fixed;
@@ -63,32 +29,24 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
   text-align: center;
   font-family: monospace;
   display: none;
-  z-index: 100; /* поверх всего */
-
-  /* Новые параметры для ширины */
-  width: 90%;           /* занимает 90% ширины экрана */
-  max-width: 800px;     /* не слишком широкое на больших экранах */
-  padding: 20px;        /* внутренние отступы */
-  box-sizing: border-box; /* чтобы padding не увеличивал ширину */
+  z-index: 100;
+  width: 90%;
+  max-width: 800px;
+  padding: 20px;
+  box-sizing: border-box;
 }
-
-
-
 #overlay #msg {
-  display: block;                 /* чтобы занимало всю ширину */
-  width: 100%;                     /* на всю ширину экрана */
-  max-width: none;                 /* без ограничения */
-  padding: 20px 0;                 /* вертикальные отступы, горизонтальные минимальные */
+  display: block;
+  width: 100%;
+  padding: 20px 0;
   border-radius: 18px;
-  background: rgba(0,0,0,0.85);   /* тёмный полупрозрачный фон */
+  background: rgba(0,0,0,0.85);
   color: white;
   font-size: 20px;
   font-weight: bold;
   box-shadow: 0 0 25px rgba(0,0,0,0.7);
-  text-align: center;              /* текст по центру */
+  text-align: center;
 }
-
-
 #overlay button {
   margin-top: 20px;
   padding: 12px 30px;
@@ -98,35 +56,271 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
   border: none;
   border-radius: 8px;
   cursor: pointer;
-
   background: linear-gradient(145deg, #ff4b4b, #b30000);
   box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-
   transition: all 0.2s ease;
 }
+#overlay button:hover { background: linear-gradient(145deg, #555, #333); transform: translateY(-2px); box-shadow: 0 7px 18px rgba(0,0,0,0.6);}
+#overlay button:active { transform: translateY(0px); box-shadow: 0 4px 12px rgba(0,0,0,0.5);}
 
-#overlay button:hover {
-  background: linear-gradient(145deg, #555, #333);
-  transform: translateY(-2px);
-  box-shadow: 0 7px 18px rgba(0,0,0,0.6);
+/* Смещаем кнопку вниз справа, чтобы не перекрывала info */
+#leaderBtn{
+  position: fixed;
+  top: 110px; /* вместо top:50px */
+  right: 20px;
+  padding: 10px 26px;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(145deg, #ff4444, #990000);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  z-index: 200;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-#overlay button:active {
-  transform: translateY(0px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+/* При необходимости можно плавно скрывать/показывать */
+#leaderBtn.hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
 }
 
 
-
+#leaderboardModal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.8);
+  z-index:199;
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+#leaderContent{
+  background:#111;
+  padding:20px;
+  border-radius:10px;
+  color:white;
+  width:90%;
+  max-width:400px;
+}
 </style>
 </head>
 <body>
+
 <div id="info"></div>
 <div id="log"></div>
-<div id="overlay"><div id="msg"></div><button id="restartBtn">Press to start new game</button></div>
 <canvas id="game"></canvas>
 
+<div id="overlay">
+  <div id="msg"></div>
+  <button id="restartBtn">Press to start new game</button>
+</div>
+
+<button id="leaderBtn">Leaders</button>
+<div id="leaderboardModal">
+  <div id="leaderContent"></div>
+</div>
+
+
+
+
+
+
 <script>
+
+/* =============================
+   GAME CONSTANTS
+============================= */
+const GAME_ID = 'ChronoMonsters';
+const LEADERBOARD_MAX = 10;
+
+/* =============================
+   TELEGRAM AUTH
+============================= */
+let tgUser = null;
+let playerNick = 'Player';
+let SERVER_OK = true;
+
+async function authTelegram(){
+    try{
+        if(window.Telegram?.WebApp){
+            const tg = window.Telegram.WebApp;
+            tg.expand();
+            tg.disableVerticalSwipes();
+
+            if(tg.initData){
+                await fetch('/__auth',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({initData:tg.initData})
+                });
+
+                tgUser = tg.initDataUnsafe?.user || null;
+
+                if(tgUser){
+                    if(tgUser.username){
+                        playerNick = tgUser.username.replace(/^@/, '').slice(0,12);
+                    }else if(tgUser.first_name){
+                        playerNick = tgUser.first_name.slice(0,12);
+                    }else{
+                        playerNick = String(tgUser.id);
+                    }
+                }
+            }
+        }
+    }catch(e){
+        console.log("TG auth failed", e);
+        SERVER_OK = false;
+    }
+}
+
+/* =============================
+   LEADERBOARDS
+============================= */
+let localScores = [];
+let globalScores = [];
+let lastGameScore = null;
+
+async function loadGlobalLeaderboard(){
+    try{
+        const url = new URL('/__leaders', window.location.origin);
+        url.searchParams.set('game', GAME_ID);
+        if(tgUser?.id){
+            url.searchParams.set('user', String(tgUser.id));
+        }
+
+        const r = await fetch(url);
+        const data = await r.json();
+
+        if(data?.globalTop){
+            globalScores = data.globalTop.map(e => ({
+                nick: e.nick || 'Player',
+                score: e.score || 0,
+                level: e.level || 0
+            }));
+        }
+
+        if(data?.userTop){
+            localScores = data.userTop.map(e => ({
+                score: e.score || 0,
+                level: e.level || 0
+            }));
+        }
+
+    }catch(e){
+        console.log("leaders load fail", e);
+        SERVER_OK = false;
+    }
+}
+
+async function sendScoreToServer(score, level){
+    if(!SERVER_OK || !tgUser?.id) return;
+    try{
+        const t = await fetch('/__ticket', { method:'POST' });
+        const ticket = await t.json();
+        await fetch('/__emit', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                k: ticket.k,
+                d: {
+                    type: 'score',
+                    game: GAME_ID,
+                    user: { id: String(tgUser.id) },
+                    nick: playerNick,
+                    score: score,
+                    level: level
+                }
+            })
+        });
+    }catch(e){
+        console.log("send score fail", e);
+        SERVER_OK = false;
+    }
+}
+
+function saveToLeaderboard(score, level){
+    // localStorage leaderboard
+    let board = JSON.parse(localStorage.getItem(GAME_ID + '_leaderboard')) || [];
+    board.unshift({ score, level });
+    board.sort((a,b) => b.score - a.score);
+    if(board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
+    localStorage.setItem(GAME_ID + '_leaderboard', JSON.stringify(board));
+    localScores = board;
+    lastGameScore = score;
+    sendScoreToServer(score, level);
+}
+
+/* =============================
+   LEADERBOARD UI
+============================= */
+function renderLeaderboard() {
+    let html = `<h2>Global Top</h2>`;
+    for (let i = 0; i < LEADERBOARD_MAX; i++) {
+        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i+1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
+    }
+
+    html += `<h2 style="margin-top:15px;">Your Top</h2>`;
+    for (let i = 0; i < LEADERBOARD_MAX; i++) {
+        let e = localScores[i] || { score: 0, level: 0 };
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i+1}. ${e.score} (Lv ${e.level})</div>`;
+    }
+
+    html += `
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
+            <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
+            <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
+        </div>
+    `;
+
+    document.getElementById('leaderContent').innerHTML = html;
+
+    document.getElementById('leaderReturnBtn').onclick = () => {
+        document.getElementById('leaderboardModal').style.display = 'none';
+    };
+
+    document.getElementById('leaderRestartBtn').onclick = () => {
+        document.getElementById('leaderboardModal').style.display = 'none';
+
+        // Сброс игры
+        totalScore = 0;
+        level = 1;
+        botsKilledThisLevel = 0;
+        monstersKilledThisLevel = 0;
+        chestsCollectedThisLevel = 0;
+
+        player.power = 1;
+        player.speed = 5;
+        player.movesLeft = player.speed;
+        player.x = 0;
+        player.y = 0;
+
+        bots.forEach(b => b.alive = true);
+        startNextLevel();
+        gameOver = false;
+    };
+}
+
+// кнопки
+const leaderBtn = document.getElementById('leaderBtn');
+const modal = document.getElementById('leaderboardModal');
+leaderBtn.onclick = () => {
+    renderLeaderboard();
+    modal.style.display = 'flex';
+};
+modal.onclick = (e) => {
+    if(e.target === modal) modal.style.display = 'none';
+};
+
 
 
 /* ==================== КОНСТАНТЫ ==================== */
@@ -308,123 +502,103 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-/* ==================== КОНЕЦ ИГРЫ ==================== */
-function endGame(text){
 
-    if(gameOver) return;
+
+
+/* ==================== КОНЕЦ ИГРЫ ==================== */
+function endGame(text) {
+    if (gameOver) return;
     gameOver = true;
 
-    // подсчет очков текущего уровня 
     const levelScore = calculateScore();
 
     // === ФИНАЛЬНЫЙ ЛОГ УРОВНЯ ===
     log(
-`=== Level ${level} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
+        `=== Level ${level} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
-    // Настройка цвета и звука + кнопки
-    if(text.startsWith("Game Over")){
+    overlay.style.display = "block";
+
+    let title = '';
+    if (text.startsWith("Game Over")) {
+        title = "Game Over";
         msgDiv.style.color = "red";
         playLoseSound();
-
         restartBtn.innerText = "Restart Game";
-        restartBtn.onclick = () => {
-            overlay.style.display = "none";
+    } else if (text.startsWith("You Win")) {
+        title = "You Win";
+        msgDiv.style.color = "yellow";
+        playWinSound();
+        restartBtn.innerText = "Next Level";
+    } else {
+        title = "Notice";
+        msgDiv.style.color = "white";
+        restartBtn.innerText = "Continue";
+    }
 
-            // Сброс всех счетчиков и переменных
+    // Создаём контейнер для кнопок
+    const btnContainer = document.createElement("div");
+    btnContainer.style.marginTop = "20px";
+    btnContainer.style.display = "flex";
+    btnContainer.style.flexDirection = "column";
+    btnContainer.style.gap = "10px";
+
+    // Всегда добавляем кнопку restart
+    btnContainer.appendChild(restartBtn);
+
+
+
+    // Текст overlay
+    msgDiv.innerHTML = `
+        <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
+        <div>Level: ${level}</div>
+        <div>Power: ${player.power}</div>
+        <div>Speed: ${player.speed}</div>
+        <div>Bots killed: ${botsKilledThisLevel}</div>
+        <div>Monsters killed: ${monstersKilledThisLevel}</div>
+        <div>Chests collected: ${chestsCollectedThisLevel}</div>
+        <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
+        <div style="font-weight:bold;">Total score: ${totalScore}</div>
+    `;
+
+    msgDiv.appendChild(btnContainer);
+
+    // Подключаем обработчик Restart
+    restartBtn.onclick = () => {
+        overlay.style.display = "none";
+
+        if (text.startsWith("Game Over")) {
+            saveToLeaderboard(totalScore);
             totalScore = 0;
             level = 1;
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
 
-            // Сброс игрока
             player.power = 1;
             player.speed = 5;
             player.movesLeft = player.speed;
             player.x = 0;
             player.y = 0;
 
-            // Сброс ботов
             bots.forEach(b => b.alive = true);
-
-            // Запуск первого уровня
             startNextLevel();
-
-            gameOver = false;
-        };
-
-        // Текст построчно с увеличенным заголовком
-        msgDiv.innerHTML = `
-            <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">Game Over</div>
-            <div>Power: ${player.power}</div>
-            <div>Speed: ${player.speed}</div>
-            <div>Killed by: ${text.split(', killed by ')[1] || 'unknown'}</div>
-            <div>Bots killed: ${botsKilledThisLevel}</div>
-            <div>Monsters killed: ${monstersKilledThisLevel}</div>
-            <div>Chests collected: ${chestsCollectedThisLevel}</div>
-            <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
-            <div style="font-weight:bold;">Total score: ${totalScore}</div>
-        `;
-
-    } else if(text.startsWith("You Win")){
-        msgDiv.style.color = "yellow";
-        playWinSound();
-
-        restartBtn.innerText = "Next Level";
-        restartBtn.onclick = () => {
-            overlay.style.display = "none";
-
-            // Увеличиваем уровень перед стартом
+        } else if (text.startsWith("You Win")) {
             level++;
-
-            // Сброс счетчиков текущего уровня
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
 
-            // Сброс игрока и ботов
             player.movesLeft = player.speed;
             bots.forEach(b => b.alive = true);
-
-            // Запуск следующего уровня
             startNextLevel();
+        }
 
-            gameOver = false;
-        };
-
-        // Текст построчно с увеличенным заголовком
-        msgDiv.innerHTML = `
-            <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">You Win</div>
-            <div>Power: ${player.power}</div>
-            <div>Speed: ${player.speed}</div>
-            <div>Bots killed: ${botsKilledThisLevel}</div>
-            <div>Monsters killed: ${monstersKilledThisLevel}</div>
-            <div>Chests collected: ${chestsCollectedThisLevel}</div>
-            <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
-            <div style="font-weight:bold;">Total score: ${totalScore}</div>
-        `;
-
-    } else {
-        msgDiv.style.color = "white";
-
-        // Общий текст построчно
-        msgDiv.innerHTML = `
-            ${text}<br>
-            Level: ${level}<br>
-            Power: ${player.power}<br>
-            Speed: ${player.speed}<br>
-            Bots killed: ${botsKilledThisLevel}<br>
-            Monsters killed: ${monstersKilledThisLevel}<br>
-            Chests collected: ${chestsCollectedThisLevel}<br>
-            Level score: ${levelScore}<br>
-            Total score: ${totalScore}
-        `;
-    }
-
-    overlay.style.display = "block";
+        gameOver = false;
+    };
 }
+
 
 
 
