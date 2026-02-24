@@ -133,6 +133,7 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 
 
 <script>
+
 /* =============================
    GAME CONSTANTS
 ============================= */
@@ -146,210 +147,198 @@ let tgUser = null;
 let playerNick = 'Player';
 let SERVER_OK = true;
 
-// Авторизация Telegram
-async function authTelegram() {
-    try {
-        if (window.Telegram?.WebApp) {
+async function authTelegram(){
+    try{
+        if(window.Telegram?.WebApp){
             const tg = window.Telegram.WebApp;
             tg.expand();
             tg.disableVerticalSwipes();
 
-            if (tg.initData) {
-                await fetch('/__auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initData: tg.initData })
+            if(tg.initData){
+                await fetch('/__auth',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({initData:tg.initData})
                 });
 
                 tgUser = tg.initDataUnsafe?.user || null;
 
-                if (tgUser) {
-                    if (tgUser.username) {
-                        playerNick = tgUser.username.replace(/^@/, '');
-                    } else if (tgUser.first_name) {
-                        playerNick = tgUser.first_name.slice(0, 12);
-                    } else {
+                if(tgUser){
+                    if(tgUser.username){
+                        playerNick = tgUser.username.replace(/^@/, '').slice(0,12);
+                    }else if(tgUser.first_name){
+                        playerNick = tgUser.first_name.slice(0,12);
+                    }else{
                         playerNick = String(tgUser.id);
                     }
                 }
             }
         }
-    } catch (e) {
-        console.log("TG auth failed", e);
+    }catch(e){
+        console.log("TG auth failed",e);
         SERVER_OK = false;
     }
 }
 
 /* =============================
-   LEADERBOARDS (серверные) - УНИВЕРСАЛЬНЫЙ ТОП
+   LEADERBOARDS (SERVER ONLY)
 ============================= */
+let localScores = [];
 let globalScores = [];
-let userScores = [];
 let lastGameScore = null;
-let lastGameLevel = null;
-let lastGameBots = 0;
 
-// Загружаем глобальный и личный топ с сервера
-async function loadLeaderboard() {
-    if (!SERVER_OK) return;
-
-    try {
+async function loadGlobalLeaderboard(){
+    try{
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', GAME_ID);
-        url.searchParams.set('sort', 'score');  // ← СВОЯ сортировка для ChronoMonsters!
-        if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
 
-        const resp = await fetch(url);
-        const data = await resp.json();
-
-        if (data?.globalTop) {
-            globalScores = data.globalTop.map(e => ({
-                nick: e.nick || 'Player',
-                score: e.score || 0,      // levelScore
-                level: e.level || 0,
-                bots: e.bots || 0,        // ← ТВОИ боты!
-                monsters: e.monsters || 0,
-                chests: e.chests || 0
-            }));
+        if(tgUser?.id){
+            url.searchParams.set('user', String(tgUser.id));
         }
 
-        if (data?.userTop) {
-            userScores = data.userTop.map(e => ({
-                score: e.score || 0,
-                level: e.level || 0,
-                bots: e.bots || 0
-            }));
-        }
-    } catch (e) {
-        console.log("Failed to load leaderboard", e);
+        const r = await fetch(url);
+        const data = await r.json();
+
+        globalScores = (data?.globalTop || []).map(e=>({
+            nick: e.nick || 'Player',
+            score: Number(e.score || 0),
+            level: Number(e.level || 0)
+        }));
+
+        localScores = (data?.userTop || []).map(e=>({
+            score: Number(e.score || 0),
+            level: Number(e.level || 0)
+        }));
+
+    }catch(e){
+        console.log("leaders load fail",e);
         SERVER_OK = false;
     }
 }
 
-// Универсальная отправка ВСЕХ полей ChronoMonsters
-async function sendScore(scoreObj) {
-    if (!SERVER_OK || !tgUser?.id) return;
+/* =============================
+   SEND SCORE
+============================= */
+async function sendScoreToServer(score, level){
+    if(!SERVER_OK || !tgUser?.id) return;
 
-    try {
-        const t = await fetch('/__ticket', { method: 'POST' });
+    try{
+        const t = await fetch('/__ticket',{method:'POST'});
         const ticket = await t.json();
 
-        await fetch('/__emit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        await fetch('/__emit',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
                 k: ticket.k,
-                d: {
+                d:{
                     type: 'score',
                     game: GAME_ID,
                     user: { id: String(tgUser.id) },
                     nick: playerNick,
-                    // ← ВСЕ поля ChronoMonsters для топа:
-                    score: scoreObj.score || 0,           // основной для сортировки!
-                    totalScore: scoreObj.totalScore || 0,
-                    level: scoreObj.level || 0,
-                    bots: scoreObj.bots || 0,
-                    monsters: scoreObj.monsters || 0,
-                    chests: scoreObj.chests || 0,
-                    power: scoreObj.power || 0,
-                    speed: scoreObj.speed || 0
+                    score: Number(score || 0),
+                    level: Number(level || 0)
                 }
             })
         });
-    } catch (e) {
-        console.log("Failed to send score", e);
+
+    }catch(e){
+        console.log("send score fail",e);
         SERVER_OK = false;
     }
 }
 
 /* =============================
-   LEADERBOARD UI - ПОКАЗЫВАЕМ ТВОИ МЕТРИКИ
+   SAVE RESULT
 ============================= */
-async function renderLeaderboard() {
-    await loadLeaderboard();  // свежие данные
+async function saveToLeaderboard(score, level){
+    lastGameScore = score;
 
-    let html = `<h2 style="color:cyan; text-align:center;">🌟 Global Top 🌟</h2>`;
+    await sendScoreToServer(score, level);
+    await loadGlobalLeaderboard();
+}
+
+/* =============================
+   RENDER
+============================= */
+function renderLeaderboard() {
+
+    let html = `<h2>Global Top</h2>`;
+
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        const e = globalScores[i] || { nick: '—', score: 0, level: 0, bots: 0 };
-        const isYours = (e.score === lastGameScore && e.level === lastGameLevel && e.bots === lastGameBots && e.nick === playerNick);
-        const color = isYours ? '#00ff99' : (i < 3 ? '#ffd700' : '#ccc');
-        html += `<div style="color:${color}; padding:4px 0; font-weight:${isYours ? 'bold' : 'normal'}">
-            ${i + 1}. ${e.nick} — ${e.score} pts (Lv${e.level}, ${e.bots} bots)
-        </div>`;
+        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
-    html += `<h2 style="color:yellow; text-align:center; margin-top:20px;">📊 Your Top</h2>`;
+    html += `<h2 style="margin-top:15px;">Your Top</h2>`;
+
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        const e = userScores[i] || { score: 0, level: 0, bots: 0 };
-        const isYours = (e.score === lastGameScore && e.level === lastGameLevel && e.bots === lastGameBots);
-        const color = isYours ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">
-            ${i + 1}. ${e.score} pts (Lv${e.level}, ${e.bots} bots)
-        </div>`;
+        let e = localScores[i] || { score: 0, level: 0 };
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `
-        <div style="margin-top:25px; display:flex; flex-direction:column; gap:12px; text-align:center;">
-            <button id="leaderReturnBtn" style="padding:12px 24px; font-size:18px; border-radius:8px; cursor:pointer; 
-                background:linear-gradient(145deg,#555,#333); color:white; border:none; font-weight:bold;">
-                Return
-            </button>
-            <button id="leaderRestartBtn" style="padding:12px 24px; font-size:18px; border-radius:8px; cursor:pointer; 
-                background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none; font-weight:bold;">
-                Restart Game
-            </button>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
+            <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
+            <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
         </div>
     `;
 
     document.getElementById('leaderContent').innerHTML = html;
-    document.getElementById('leaderboardModal').style.display = 'flex';
 
-    // Кнопки
     document.getElementById('leaderReturnBtn').onclick = () => {
         document.getElementById('leaderboardModal').style.display = 'none';
     };
+
     document.getElementById('leaderRestartBtn').onclick = () => {
+
         document.getElementById('leaderboardModal').style.display = 'none';
-        restartGame();
+
+        totalScore = 0;
+        level = 1;
+        botsKilledThisLevel = 0;
+        monstersKilledThisLevel = 0;
+        chestsCollectedThisLevel = 0;
+
+        player.power = 1;
+        player.speed = 5;
+        player.movesLeft = player.speed;
+        player.x = 0;
+        player.y = 0;
+
+        bots.forEach(b => b.alive = true);
+
+        startNextLevel();
+        gameOver = false;
     };
 }
 
-// кнопки лидерборда
-document.addEventListener('DOMContentLoaded', () => {
-    const leaderBtn = document.getElementById('leaderBtn');
-    const modal = document.getElementById('leaderboardModal');
-    leaderBtn.onclick = renderLeaderboard;
-    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
-});
+/* =============================
+   INIT BUTTONS
+============================= */
+const leaderBtn = document.getElementById('leaderBtn');
+const modal = document.getElementById('leaderboardModal');
+
+leaderBtn.onclick = async ()=>{
+    await loadGlobalLeaderboard();
+    renderLeaderboard();
+    modal.style.display = 'flex';
+};
+
+modal.onclick = (e)=>{
+    if(e.target === modal) modal.style.display = 'none';
+};
+
 
 /* =============================
-   SAVE & REFRESH - УНИВЕРСАЛЬНЫЙ
+   AUTO AUTH
 ============================= */
-async function saveScoreAndRefresh(scoreObj) {
-    lastGameScore = scoreObj.score;
-    lastGameLevel = scoreObj.level;
-    lastGameBots = scoreObj.bots;
+authTelegram();
 
-    await sendScore(scoreObj);
-    await loadLeaderboard();  // обновить UI
-}
 
-// Функция полного рестарта (используй в кнопках)
-function restartGame() {
-    totalScore = 0;
-    level = 1;
-    botsKilledThisLevel = 0;
-    monstersKilledThisLevel = 0;
-    chestsCollectedThisLevel = 0;
-    player.power = 1;
-    player.speed = 5;
-    player.movesLeft = player.speed;
-    player.x = 0;
-    player.y = 0;
-    bots.forEach(b => b.alive = true);
-    startNextLevel();
-    gameOver = false;
-}
+
 
 
 
@@ -536,16 +525,14 @@ function playLoseSound(){
 
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
 
-    const levelScore = calculateScore();  // ← это основной score для топа!
+    const levelScore = calculateScore();
     const currentLevel = level || 1;
 
-    // === ФИНАЛЬНЫЙ ЛОГ УРОВНЯ ===
     log(
         `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
 Level score: ${levelScore} | Total score: ${totalScore}`
@@ -570,7 +557,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         restartBtn.innerText = "Continue";
     }
 
-    // Создаём контейнер для кнопок
     const btnContainer = document.createElement("div");
     btnContainer.style.marginTop = "20px";
     btnContainer.style.display = "flex";
@@ -578,7 +564,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     btnContainer.style.gap = "10px";
     btnContainer.appendChild(restartBtn);
 
-    // Текст overlay
     msgDiv.innerHTML = `
         <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
         <div>Nick: ${playerNick || "—"}</div>
@@ -591,26 +576,17 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
+
     msgDiv.appendChild(btnContainer);
 
-    // ✅ Сохраняем ВСЕ поля ChronoMonsters в лидерборд!
-    await saveScoreAndRefresh({
-        score: levelScore,                    // ← основной для топа (calculateScore())
-        totalScore: totalScore,               // сумма уровней
-        level: currentLevel,                  // номер уровня
-        bots: botsKilledThisLevel,            // твои боты
-        monsters: monstersKilledThisLevel,    // монстры
-        chests: chestsCollectedThisLevel,     // сундуки
-        power: player.power,                  // сила
-        speed: player.speed                   // скорость
-    });
+    // ✅ Сохраняем результат на сервер
+    await saveToLeaderboard(levelScore, currentLevel);
 
-    // Подключаем обработчик кнопки Restart/Next
     restartBtn.onclick = () => {
         overlay.style.display = "none";
 
         if (text.startsWith("Game Over")) {
-            restartGame();  // ← используем универсальную функцию
+            restartGame();
         } else if (text.startsWith("You Win")) {
             level++;
             botsKilledThisLevel = 0;
