@@ -133,7 +133,6 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 
 
 <script>
-
 /* =============================
    GAME CONSTANTS
 ============================= */
@@ -147,34 +146,34 @@ let tgUser = null;
 let playerNick = 'Player';
 let SERVER_OK = true;
 
-async function authTelegram(){
-    try{
-        if(window.Telegram?.WebApp){
+async function authTelegram() {
+    try {
+        if (window.Telegram?.WebApp) {
             const tg = window.Telegram.WebApp;
             tg.expand();
             tg.disableVerticalSwipes();
 
-            if(tg.initData){
-                await fetch('/__auth',{
-                    method:'POST',
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({initData:tg.initData})
+            if (tg.initData) {
+                await fetch('/__auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: tg.initData })
                 });
 
                 tgUser = tg.initDataUnsafe?.user || null;
 
-                if(tgUser){
-                    if(tgUser.username){
-                        playerNick = tgUser.username.replace(/^@/, '').slice(0,12);
-                    }else if(tgUser.first_name){
-                        playerNick = tgUser.first_name.slice(0,12);
-                    }else{
+                if (tgUser) {
+                    if (tgUser.username) {
+                        playerNick = tgUser.username.replace(/^@/, '').slice(0, 12);
+                    } else if (tgUser.first_name) {
+                        playerNick = tgUser.first_name.slice(0, 12);
+                    } else {
                         playerNick = String(tgUser.id);
                     }
                 }
             }
         }
-    }catch(e){
+    } catch (e) {
         console.log("TG auth failed", e);
         SERVER_OK = false;
     }
@@ -187,18 +186,16 @@ let localScores = [];
 let globalScores = [];
 let lastGameScore = null;
 
-async function loadGlobalLeaderboard(){
-    try{
+async function loadGlobalLeaderboard() {
+    try {
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', GAME_ID);
-        if(tgUser?.id){
-            url.searchParams.set('user', String(tgUser.id));
-        }
+        if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
         const data = await r.json();
 
-        if(data?.globalTop){
+        if (data?.globalTop) {
             globalScores = data.globalTop.map(e => ({
                 nick: e.nick || 'Player',
                 score: e.score || 0,
@@ -206,27 +203,27 @@ async function loadGlobalLeaderboard(){
             }));
         }
 
-        if(data?.userTop){
+        if (data?.userTop) {
             localScores = data.userTop.map(e => ({
                 score: e.score || 0,
                 level: e.level || 0
             }));
         }
 
-    }catch(e){
+    } catch (e) {
         console.log("leaders load fail", e);
         SERVER_OK = false;
     }
 }
 
-async function sendScoreToServer(score, level){
-    if(!SERVER_OK || !tgUser?.id) return;
-    try{
-        const t = await fetch('/__ticket', { method:'POST' });
+async function sendScoreToServer(score, level) {
+    if (!SERVER_OK || !tgUser?.id) return;
+    try {
+        const t = await fetch('/__ticket', { method: 'POST' });
         const ticket = await t.json();
         await fetch('/__emit', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 k: ticket.k,
                 d: {
@@ -239,21 +236,24 @@ async function sendScoreToServer(score, level){
                 }
             })
         });
-    }catch(e){
+    } catch (e) {
         console.log("send score fail", e);
         SERVER_OK = false;
     }
 }
 
-function saveToLeaderboard(score, level){
-    // localStorage leaderboard
+function saveToLeaderboard(score, level) {
+    // локальный leaderboard
     let board = JSON.parse(localStorage.getItem(GAME_ID + '_leaderboard')) || [];
-    board.unshift({ score, level });
-    board.sort((a,b) => b.score - a.score);
-    if(board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
+    board.unshift({ nick: playerNick, score, level });
+    board.sort((a, b) => b.score - a.score);
+    if (board.length > LEADERBOARD_MAX) board.length = LEADERBOARD_MAX;
     localStorage.setItem(GAME_ID + '_leaderboard', JSON.stringify(board));
+
     localScores = board;
     lastGameScore = score;
+
+    // отправка на сервер
     sendScoreToServer(score, level);
 }
 
@@ -264,15 +264,15 @@ function renderLeaderboard() {
     let html = `<h2>Global Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
         let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i+1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
+        let color = (e.score === lastGameScore && e.nick === playerNick) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = localScores[i] || { score: 0, level: 0 };
+        let e = localScores[i] || { nick: playerNick, score: 0, level: 0 };
         let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i+1}. ${e.score} (Lv ${e.level})</div>`;
+        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `
@@ -291,7 +291,7 @@ function renderLeaderboard() {
     document.getElementById('leaderRestartBtn').onclick = () => {
         document.getElementById('leaderboardModal').style.display = 'none';
 
-        // Сброс игры
+        // полный сброс игры
         totalScore = 0;
         level = 1;
         botsKilledThisLevel = 0;
@@ -310,7 +310,7 @@ function renderLeaderboard() {
     };
 }
 
-// кнопки
+// кнопки открытия лидерборда
 const leaderBtn = document.getElementById('leaderBtn');
 const modal = document.getElementById('leaderboardModal');
 leaderBtn.onclick = () => {
@@ -318,8 +318,10 @@ leaderBtn.onclick = () => {
     modal.style.display = 'flex';
 };
 modal.onclick = (e) => {
-    if(e.target === modal) modal.style.display = 'none';
+    if (e.target === modal) modal.style.display = 'none';
 };
+
+
 
 
 
@@ -504,17 +506,17 @@ function playLoseSound(){
 
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 function endGame(text) {
     if (gameOver) return;
     gameOver = true;
 
     const levelScore = calculateScore();
+    const currentLevel = level || 1; // гарантируем наличие уровня
 
     // === ФИНАЛЬНЫЙ ЛОГ УРОВНЯ ===
     log(
-        `=== Level ${level} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
+        `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
@@ -543,16 +545,13 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     btnContainer.style.display = "flex";
     btnContainer.style.flexDirection = "column";
     btnContainer.style.gap = "10px";
-
-    // Всегда добавляем кнопку restart
     btnContainer.appendChild(restartBtn);
-
-
 
     // Текст overlay
     msgDiv.innerHTML = `
         <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
-        <div>Level: ${level}</div>
+        <div>Nick: ${playerNick || "—"}</div>
+        <div>Level: ${currentLevel}</div>
         <div>Power: ${player.power}</div>
         <div>Speed: ${player.speed}</div>
         <div>Bots killed: ${botsKilledThisLevel}</div>
@@ -561,15 +560,16 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
-
     msgDiv.appendChild(btnContainer);
 
-    // Подключаем обработчик Restart
+    // Сохраняем результат в локальный и глобальный лидерборд
+    saveToLeaderboard(totalScore, currentLevel);
+
+    // Подключаем обработчик кнопки Restart/Next
     restartBtn.onclick = () => {
         overlay.style.display = "none";
 
         if (text.startsWith("Game Over")) {
-            saveToLeaderboard(totalScore);
             totalScore = 0;
             level = 1;
             botsKilledThisLevel = 0;
