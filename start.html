@@ -17,7 +17,7 @@
 <style>
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#0b0b0b;color:#eaeaea;overflow:hidden;position:fixed;touch-action:manipulation;}
-#menu{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:20px 0;background:#0b0b0b;}
+#menu{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:20px 0;}
 #menuContent{display:flex;flex-direction:column;align-items:center;}
 h1{font-size:28px;margin-bottom:24px;text-align:center;}
 .btn{width:260px;padding:14px;margin:8px;font-size:18px;border:none;border-radius:10px;background:#1c1c1c;color:#fff;cursor:pointer;}
@@ -31,6 +31,7 @@ iframe#gameFrame{border:none;width:100%;height:100%;display:block;transform:tran
 #rulesFrame{width:100%;height:100%;border:none;}
 hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 .rules-footer{width:100%;text-align:center;font-size:12px;opacity:0.85;padding:8px 0 12px 0;background:rgba(11,11,11,0.95);}
+.rules-copyright{line-height:1.5;margin-bottom:6px;}
 .rules-contact-btn{background:#151515;color:#ffd36a;border:1px solid #333;padding:6px 16px;cursor:pointer;font-size:12px;border-radius:4px;}
 .rules-contact-btn:hover{background:#1e1e1e;border-color:#ffd36a;}
 .rules-note{margin-top:6px;font-size:11px;opacity:0.5;}
@@ -137,23 +138,28 @@ tg=window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 canUploadFile=typeof tg.uploadFile==='function';
-const photoInput=document.getElementById('feedbackPhoto');
-const warning=document.getElementById('oldVersionWarning');
-photoInput.disabled=!canUploadFile;
-warning.style.display=canUploadFile?'none':'block';
+const photoInput = document.getElementById('feedbackPhoto');
+const warning = document.getElementById('oldVersionWarning');
+if(!canUploadFile){
+photoInput.disabled=true;
+warning.style.display='block';
+}else{ photoInput.disabled=false; warning.style.display='none'; }
 }else{
 document.getElementById('feedbackPhoto').disabled=true;
-document.getElementById('oldVersionWarning').style.display='block';
 document.getElementById('oldVersionWarning').textContent="WebApp not detected. Upload not available.";
+document.getElementById('oldVersionWarning').style.display='block';
 }
 }
 initTelegram();
 
-/* AUDIO UNLOCK */
+/* ===== AUDIO UNLOCK iOS ===== */
 document.body.addEventListener('touchstart',()=>{
-document.querySelectorAll('audio').forEach(a=>{a.play().then(()=>a.pause()).catch(()=>{});});
+document.querySelectorAll('audio').forEach(a=>{
+a.play().then(()=>a.pause()).catch(()=>{});
+});
 },{once:true});
 
+/* ===== DOM ===== */
 const menu=document.getElementById('menu');
 const gameContainer=document.getElementById('gameContainer');
 const gameFrame=document.getElementById('gameFrame');
@@ -182,12 +188,27 @@ if(isMuted) return;
 clearInterval(fadeIntervals.get(track));
 track.volume=0;
 track.play().catch(()=>{});
-fadeIntervals.set(track,setInterval(()=>{track.volume=Math.min(track.volume+0.05,volume);if(track.volume>=volume)clearInterval(fadeIntervals.get(track));},50));
+fadeIntervals.set(track,setInterval(()=>{
+track.volume=Math.min(track.volume+0.05,volume);
+if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
+},50));
 }
-function fadeOut(track){return new Promise(res=>{clearInterval(fadeIntervals.get(track));fadeIntervals.set(track,setInterval(()=>{track.volume=Math.max(track.volume-0.05,0);if(track.volume<=0){track.pause();clearInterval(fadeIntervals.get(track));res();}},50));});}
-async function switchMusic(next){await Promise.all(Object.values(tracks).filter(t=>t!==next).map(t=>fadeOut(t)));fadeIn(next);}
+function fadeOut(track){
+return new Promise(res=>{
+clearInterval(fadeIntervals.get(track));
+fadeIntervals.set(track,setInterval(()=>{
+track.volume=Math.max(track.volume-0.05,0);
+if(track.volume<=0){track.pause();clearInterval(fadeIntervals.get(track));res();}
+},50));
+});
+}
+async function switchMusic(next){
+const p=Object.values(tracks).filter(t=>t!==next).map(t=>fadeOut(t));
+await Promise.all(p);
+fadeIn(next);
+}
 
-/* GAME FLOW */
+/* ===== GAME FLOW ===== */
 async function loadGame(game){
 currentGame=game; inRules=false;
 menu.style.display='none';
@@ -212,17 +233,45 @@ if(modal && modal.style.display==='flex'){modal.style.display='none';return;}
 const overlay=win?.document?.getElementById('overlay');
 if(overlay && overlay.style.display==='block'){overlay.style.display='none';return;}
 }catch(e){}
-if(inRules){inRules=false;rulesOverlay.style.display='none';rulesFrame.src='';return;}
+if(inRules){
+inRules=false;
+rulesOverlay.style.display='none';
+rulesFrame.src='';
+return;
+}
 exitConfirm.style.display='flex';
 }
-function confirmExit(ok){exitConfirm.style.display='none';if(ok) backToMenu();}
-async function backToMenu(){await switchMusic(tracks.menu);gameFrame.src='';gameContainer.style.display='none';menu.style.display='flex';currentGame='';}
+function confirmExit(ok){
+exitConfirm.style.display='none';
+if(ok){ backToMenu(); }
+}
+
+async function backToMenu(){
+await switchMusic(tracks.menu);
+gameFrame.src='';
+gameContainer.style.display='none';
+menu.style.display='flex';
+currentGame='';
+}
 
 /* RULES */
-function openRules(){if(!currentGame)return;inRules=true;rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';rulesOverlay.style.display='block';}
+function openRules(){
+if(!currentGame) return;
+inRules=true;
+rulesFrame.src=currentGame+'/'+currentGame+'-rules.html';
+rulesOverlay.style.display='block';
+}
 
 /* MUTE */
-function toggleMute(){isMuted=!isMuted;Object.values(tracks).forEach(t=>{t.muted=isMuted;if(isMuted)t.pause();});if(!isMuted){if(currentGame)fadeIn(tracks[currentGame]);else fadeIn(tracks.menu);}muteBtn.textContent=isMuted?"🔇":"🔊";}
+function toggleMute(){
+isMuted=!isMuted;
+Object.values(tracks).forEach(t=>{
+t.muted=isMuted;
+if(isMuted) t.pause();
+});
+if(!isMuted){if(currentGame) fadeIn(tracks[currentGame]);else fadeIn(tracks.menu);}
+muteBtn.textContent=isMuted?"🔇":"🔊";
+}
 
 /* FEEDBACK */
 const feedbackModal=document.getElementById('feedbackModal');
@@ -236,11 +285,12 @@ function closeFeedbackModal(){feedbackModal.style.display='none';feedbackText.va
 function toggleRemoveBtn(){document.getElementById('removePhotoBtn').style.display=feedbackPhoto.files.length?'inline-block':'none';}
 function removeFeedbackPhoto(){feedbackPhoto.value='';toggleRemoveBtn();feedbackStatus.textContent='';}
 
+/* SEND FEEDBACK */
 async function sendFeedback(){
 if(!tg){feedbackStatus.textContent="Works only inside Telegram";return;}
 const text=feedbackText.value.trim();
 if(!text && !feedbackPhoto.files.length){feedbackStatus.textContent="Add text or photo";return;}
-sendFeedbackBtn.disabled=true;feedbackStatus.textContent="Sending...";
+sendFeedbackBtn.disabled=true; feedbackStatus.textContent="Sending...";
 let photoBase64=null;
 if(feedbackPhoto.files.length){
 const file=feedbackPhoto.files[0];
@@ -249,20 +299,22 @@ photoBase64=await new Promise(resolve=>{const reader=new FileReader();reader.onl
 let ticket=null;
 try{
 const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{method:'POST',headers:{'Content-Type':'application/json'}});
-ticket=(await tResp.json()).k;
+const tJson=await tResp.json();
+ticket=tJson.k;
 }catch(e){feedbackStatus.textContent="Ticket error";sendFeedbackBtn.disabled=false;return;}
 const userObj=tg.initDataUnsafe?.user || {};
 const payload={type:'feedback',page:'console',text,photo:photoBase64,ts:Date.now(),user:userObj};
 try{
-const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({k:ticket,d:payload})});
+const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({k:ticket,d:payload})});
 const result=await resp.json();
 if(result.ok){feedbackStatus.textContent="✅ Sent!";feedbackText.value='';feedbackPhoto.value='';toggleRemoveBtn();}
-else feedbackStatus.textContent="Failed";
+else{feedbackStatus.textContent="Failed";}
 }catch(e){feedbackStatus.textContent="Error: "+e.message;}
 sendFeedbackBtn.disabled=false;
 }
 
 toggleRemoveBtn();
 </script>
+
 </body>
 </html>
