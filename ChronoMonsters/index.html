@@ -143,33 +143,55 @@ let BOTS = BASE_BOTS;
 let MONSTERS = BASE_MONSTERS;
 let CHESTS = BASE_CHESTS;
 
+
 /* ==================== ПОДСЧЁТ ОЧКОВ ==================== */
-let totalScore = 0;                // суммарные очки за все левелы
-let botsKilledThisLevel = 0;       // обновляется в процессе игры
-let monstersKilledThisLevel = 0;   // обновляется в процессе игры
-let chestsCollectedThisLevel = 0;  // только для статистики в логе
 
+let totalScore = 0;          // сумма завершённых уровней
+let levelScore = 0;          // текущий счёт уровня (live)
+
+let botsKilledThisLevel = 0;
+let monstersKilledThisLevel = 0;
+let chestsCollectedThisLevel = 0;
+
+
+/* ==================== ФОРМУЛА ОЧКОВ ==================== */
 function calculateScore(){
-return player.power * 10
-+ botsKilledThisLevel * 150
-+ monstersKilledThisLevel * 10
-+ deadZones.length * 5;  // белые клетки учитываем
-// сундуки сюда не добавляем — они уже включены в player.power
+
+    return (
+        player.power * 10 +
+        botsKilledThisLevel * 150 +
+        monstersKilledThisLevel * 10 +
+        deadZones.length * 5
+    );
+
 }
 
 
-/* ==================== ОБНОВЛЕНИЕ SCORE В ПРОЦЕССЕ ИГРЫ ==================== */
+/* ==================== ОБНОВЛЕНИЕ SCORE (вызывать после шага игрока) ==================== */
+function updateScore(){
+
+    // считаем новый уровень
+    let newLevelScore = calculateScore();
+
+    // разница (сколько добавилось с прошлого шага)
+    let delta = newLevelScore - levelScore;
+
+    // обновляем level
+    levelScore = newLevelScore;
+
+    // сразу добавляем в total
+    totalScore += delta;
+
+}
+
+
+/* ==================== ПЛАВНОЕ ОБНОВЛЕНИЕ UI ==================== */
 function updateScoreFX() {
-    // вычисляем текущий уровень очков
-    let currentLevelScore = calculateScore() || 0;
 
-    // плавное обновление уровня очков
-    statFX.levelScore += (currentLevelScore - statFX.levelScore) * 0.2;
-
-    // плавное обновление общего счёта
+    statFX.levelScore += (levelScore - statFX.levelScore) * 0.2;
     statFX.totalScore += (totalScore - statFX.totalScore) * 0.2;
-}
 
+}
 
 
 
@@ -293,7 +315,6 @@ function endGame(text){
 
     // подсчет очков текущего уровня 
     const levelScore = calculateScore();
-    totalScore += levelScore; // суммируем с предыдущими уровнями 
 
     // === ФИНАЛЬНЫЙ ЛОГ УРОВНЯ ===
     log(
@@ -478,9 +499,16 @@ function handleTrapAtRoundStart(character) {
 }
 
 
-
 /* ==================== NEXT LEVEL ==================== */
 function startNextLevel(){
+
+    /* ===== SCORE RESET FOR NEW LEVEL ===== */
+    levelScore = 0;
+
+    botsKilledThisLevel = 0;
+    monstersKilledThisLevel = 0;
+    chestsCollectedThisLevel = 0;
+
 
     // Размер карты: стартовая 15x15, +5 клеток по каждой оси на каждом новом уровне
     const baseMapSize = 15;
@@ -507,7 +535,6 @@ function startNextLevel(){
 
     spawn(); // старый проверенный метод размещения объектов
 }
-
 
 
 
@@ -862,91 +889,163 @@ function applyPenalty(entity, penaltyType) {
     }
 }
 
-
 /* ==================== COLLECT ==================== */
 function collect(e){
+
     if(gameOver) return;
 
-    // Сундуки
+    let playerDidSomething = false;
+
+
+    /* ---------- СУНДУКИ ---------- */
     chests = chests.filter(c=>{
+
         if(c.x === e.x && c.y === e.y){
+
             e.power += c.power;
 
-            // считаем только для игрока
             if(e === player){
                 chestsCollectedThisLevel++;
+                playerDidSomething = true;
             }
 
             log(`${e.id || 'entity'} collected chest +${c.power} (power:${e.power} speed:${e.speed})`);
             flash(c.x,c.y,"yellow");
-            deadZones.push({x:c.x,y:c.y,number:c.power});
+
+            deadZones.push({
+                x:c.x,
+                y:c.y,
+                number:c.power
+            });
+
             playChestSound();
+
             return false;
         }
+
         return true;
     });
 
-    // Монстры
+
+
+    /* ---------- МОНСТРЫ ---------- */
     monsters = monsters.filter(m=>{
+
         if(m.x === e.x && m.y === e.y){
+
             if(e.power >= m.power){
+
                 e.speed += 1;
 
-                // считаем только для игрока
                 if(e === player){
                     monstersKilledThisLevel++;
+                    playerDidSomething = true;
                 }
 
                 log(`${e.id || 'entity'} killed monster (power:${e.power} speed:${e.speed})`);
                 flash(m.x,m.y,"red");
-                deadZones.push({x:m.x,y:m.y,number:m.power});
+
+                deadZones.push({
+                    x:m.x,
+                    y:m.y,
+                    number:m.power
+                });
+
                 playMonsterSound();
+
                 return false;
 
             } else {
+
                 // непроходимая клетка
-                deadZones.push({x:m.x,y:m.y,number:m.power});
+                deadZones.push({
+                    x:m.x,
+                    y:m.y,
+                    number:m.power
+                });
+
             }
         }
+
         return true;
     });
 
-    // Игрок может быть убит ботом или другим entity
-    if(e !== player && player.x === e.x && player.y === e.y && e.power >= player.power && !gameOver){
+
+
+    /* ---------- УБИЙСТВО ИГРОКА ---------- */
+    if(
+        e !== player &&
+        player.x === e.x &&
+        player.y === e.y &&
+        e.power >= player.power &&
+        !gameOver
+    ){
+
         log(`player killed by ${e.id} (power:${e.power} >= ${player.power})`);
+
         endGame(`Game Over with ${player.power} power and ${player.speed} speed, killed by ${e.id}`);
+
         return;
     }
 
-    // Боты
+
+
+    /* ---------- БОТЫ ---------- */
     bots.forEach(b=>{
-        if(b !== e && b.alive && b.x === e.x && b.y === e.y){
+
+        if(
+            b !== e &&
+            b.alive &&
+            b.x === e.x &&
+            b.y === e.y
+        ){
+
             if(e.power >= b.power){
+
                 b.alive = false;
                 e.speed += 2;
 
-                // считаем только если игрок убил
                 if(e === player){
                     botsKilledThisLevel++;
+                    playerDidSomething = true;
                 }
 
                 log(`${e.id || 'entity'} killed ${b.id} (power:${e.power} speed:${e.speed})`);
                 flash(b.x,b.y,"blue");
-                deadZones.push({x:b.x,y:b.y,number:b.power});
+
+                deadZones.push({
+                    x:b.x,
+                    y:b.y,
+                    number:b.power
+                });
+
                 playBotSound();
+
             }
         }
     });
 
-    // Проверка победы игрока
+
+
+    /* ---------- ОБНОВЛЕНИЕ SCORE ---------- */
     if(e === player){
+        // даже если просто походил — очки могли измениться (deadZones, power и т.д.)
+        updateScore();
+    }
+
+
+
+    /* ---------- ПРОВЕРКА ПОБЕДЫ ---------- */
+    if(e === player){
+
         if(bots.every(b=>!b.alive) && !gameOver){
+
             endGame(`You Win with ${player.power} power and ${player.speed} speed!`);
+
         }
     }
+
 }
-
-
 
 
 
@@ -1651,7 +1750,7 @@ function draw() {
 <span class="lbl round" style="${glowStyleLabel('round')}">Round</span><span class="val" style="${glowStyleNumber(statFX.roundNumber)}">${roundNumber}</span>
 <span class="lbl blocked" style="${glowStyleLabel('blocked')}">Blocked cells</span><span class="val" style="${glowStyleNumber(statFX.blockedCells)}">${deadZones.length}</span><br>
 <span class="lbl score" style="${glowStyleLabel('round')}">Level ${level} Score</span><span class="val" style="${glowStyleNumber(statFX.levelScore)}">${Math.round(statFX.levelScore)}</span>
-<span class="lbl score" style="${glowStyleLabel('round')}">Total Score</span><span class="val" style="${glowStyleNumber(statFX.totalScore)}">${Math.round(statFX.totalScore)}</span>`;
+<span class="lbl score" style="${glowStyleLabel('round')}">Total</span><span class="val" style="${glowStyleNumber(statFX.totalScore)}">${Math.round(statFX.totalScore)}</span>`;
 
     // ===== Декрементируем эффект свечения для остальных значений =====
     decrementGlow();
