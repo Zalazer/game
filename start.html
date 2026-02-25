@@ -300,13 +300,30 @@ exitConfirm.style.display='none';
 if(ok) backToMenu();
 }
 
+
 async function backToMenu(){
+
 await switchMusic(tracks.menu);
-gameFrame.src='';
+
+/* 🔥 iOS FIX */
+gameFrame.style.display='none';
+gameFrame.src='about:blank';
+
+/* forced reflow */
+void gameFrame.offsetHeight;
+
 gameContainer.style.display='none';
+
+/* двойной repaint для WebKit */
+requestAnimationFrame(()=>{
+requestAnimationFrame(()=>{
 menu.style.display='flex';
+});
+});
+
 currentGame='';
 }
+
 
 /* RULES */
 function openRules(){
