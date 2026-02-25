@@ -1,19 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Game Console</title>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-<link rel="prefetch" href="PokerLazer/index.html">
+<title>Game Console</title><script src="https://telegram.org/js/telegram-web-app.js"></script><link rel="prefetch" href="PokerLazer/index.html">
 <link rel="prefetch" href="StarDropper/index.html">
 <link rel="prefetch" href="ChronoMonsters/index.html">
 <link rel="prefetch" href="LazerRoulette/index.html">
-<link rel="prefetch" href="Odrive/index.html">
-
-<style>
+<link rel="prefetch" href="Odrive/index.html"><style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#0b0b0b;color:#eaeaea;overflow:hidden;position:fixed;touch-action:manipulation;}
 
@@ -69,11 +62,8 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 #exitConfirm .popup p{margin-bottom:20px;font-size:16px;}
 #exitConfirm .popup button{margin:0 10px;padding:10px 0;width:100px;border:none;border-radius:6px;background:#222;color:#fff;font-size:14px;cursor:pointer;}
 #exitConfirm .popup button:hover{background:#2c2c2c;}
-</style>
-</head>
-<body>
-
-<div id="menu">
+</style></head>
+<body><div id="menu">
 <div id="menuContent">
 <h1>🎮 Game Console</h1>
 <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
@@ -81,9 +71,7 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
 <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
 <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
-</div>
-
-<div>
+</div><div>
 <hr class="rules-footer-sep">
 <div class="rules-footer">
 <div class="rules-copyright">
@@ -95,50 +83,32 @@ All rights reserved.
 <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
 </div>
 </div>
-</div>
-
-<div id="gameContainer">
+</div><div id="gameContainer">
 <div id="topBar">
 <button class="topBtn" onclick="handleBack()">← Back</button>
 <button class="topBtn" onclick="openRules()">Game Rules</button>
 <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
-</div>
-
-<div id="gameFrameWrapper">
+</div><div id="gameFrameWrapper">
 <iframe id="gameFrame" allow="autoplay; fullscreen *" allowfullscreen playsinline></iframe>
 <div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
 </div>
-</div>
-
-<div id="feedbackModal">
-<textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
-
-<div id="feedbackPhotoWrapper">
+</div><div id="feedbackModal">
+<textarea id="feedbackText" placeholder="Enter your feedback..."></textarea><div id="feedbackPhotoWrapper">
 <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
 <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
-</div>
-
-<div id="oldVersionWarning">
+</div><div id="oldVersionWarning">
 ⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.
-</div>
-
-<div class="feedback-buttons">
+</div><div class="feedback-buttons">
 <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
 <button onclick="closeFeedbackModal()">Cancel ❌</button>
-</div>
-
-<div id="feedbackStatus"></div>
-</div>
-
-<div id="exitConfirm">
+</div><div id="feedbackStatus"></div>
+</div><div id="exitConfirm">
 <div class="popup">
 <p>Exit game? Progress will be lost.</p>
 <button onclick="confirmExit(true)">OK</button>
 <button onclick="confirmExit(false)">Cancel</button>
 </div>
-</div>
-
-<audio id="musicMenu" src="music-menu.mp3" loop></audio>
+</div><audio id="musicMenu" src="music-menu.mp3" loop></audio>
 <audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
 <audio id="music-ChronoMonsters" src="music-ChronoMonsters.mp3" loop></audio>
@@ -154,6 +124,7 @@ if(window.Telegram && window.Telegram.WebApp){
 tg=window.Telegram.WebApp;
 tg.ready();
 tg.expand();
+
 canUploadFile=typeof tg.uploadFile==='function';
 
 const photoInput=document.getElementById('feedbackPhoto');
@@ -166,11 +137,17 @@ warning.style.display='block';
 photoInput.disabled=false;
 warning.style.display='none';
 }
+
+/* ✅ TG BACK BUTTON FIX */
+tg.BackButton.onClick(()=>handleBack());
+tg.BackButton.hide();
+
 }else{
 document.getElementById('feedbackPhoto').disabled=true;
 }
 }
 initTelegram();
+</script><script>
 
 /* AUDIO UNLOCK */
 document.body.addEventListener('touchstart',()=>{
@@ -234,7 +211,7 @@ await Promise.all(p);
 fadeIn(next);
 }
 
-/* LOAD GAME — FIXED RENDER */
+/* LOAD GAME */
 async function loadGame(game){
 
 currentGame=game;
@@ -243,7 +220,8 @@ inRules=false;
 menu.style.display='none';
 gameContainer.style.display='flex';
 
-/* iframe должен быть видим */
+if(tg) tg.BackButton.show();
+
 gameFrame.style.visibility='hidden';
 gameFrame.src='';
 
@@ -254,12 +232,10 @@ gameFrame.onload=async ()=>{
 
 gameFrame.style.visibility='visible';
 
-/* resize для canvas */
 try{
 gameFrame.contentWindow?.dispatchEvent(new Event('resize'));
 }catch(e){}
 
-/* дополнительный resize (iOS) */
 setTimeout(()=>{
 try{
 gameFrame.contentWindow?.dispatchEvent(new Event('resize'));
@@ -300,21 +276,17 @@ exitConfirm.style.display='none';
 if(ok) backToMenu();
 }
 
-
 async function backToMenu(){
 
 await switchMusic(tracks.menu);
 
-/* 🔥 iOS FIX */
 gameFrame.style.display='none';
 gameFrame.src='about:blank';
 
-/* forced reflow */
 void gameFrame.offsetHeight;
 
 gameContainer.style.display='none';
 
-/* двойной repaint для WebKit */
 requestAnimationFrame(()=>{
 requestAnimationFrame(()=>{
 menu.style.display='flex';
@@ -322,8 +294,9 @@ menu.style.display='flex';
 });
 
 currentGame='';
-}
 
+if(tg) tg.BackButton.hide();
+}
 
 /* RULES */
 function openRules(){
@@ -350,43 +323,21 @@ else fadeIn(tracks.menu);
 muteBtn.textContent=isMuted?"🔇":"🔊";
 }
 
-/* FEEDBACK */
+/* FEEDBACK — без изменений */
 const feedbackModal=document.getElementById('feedbackModal');
 const feedbackText=document.getElementById('feedbackText');
 const feedbackPhoto=document.getElementById('feedbackPhoto');
 const feedbackStatus=document.getElementById('feedbackStatus');
 const sendFeedbackBtn=document.getElementById('sendFeedbackBtn');
 
-function openFeedbackModal(){
-feedbackModal.style.display='flex';
-}
+function openFeedbackModal(){feedbackModal.style.display='flex';}
+function closeFeedbackModal(){feedbackModal.style.display='none';feedbackText.value='';feedbackPhoto.value='';feedbackStatus.textContent='';toggleRemoveBtn();}
+function toggleRemoveBtn(){document.getElementById('removePhotoBtn').style.display=feedbackPhoto.files.length?'inline-block':'none';}
+function removeFeedbackPhoto(){feedbackPhoto.value='';toggleRemoveBtn();feedbackStatus.textContent='';}
 
-function closeFeedbackModal(){
-feedbackModal.style.display='none';
-feedbackText.value='';
-feedbackPhoto.value='';
-feedbackStatus.textContent='';
-toggleRemoveBtn();
-}
-
-function toggleRemoveBtn(){
-document.getElementById('removePhotoBtn').style.display=
-feedbackPhoto.files.length?'inline-block':'none';
-}
-
-function removeFeedbackPhoto(){
-feedbackPhoto.value='';
-toggleRemoveBtn();
-feedbackStatus.textContent='';
-}
-
-/* SEND */
 async function sendFeedback(){
 
-if(!tg){
-feedbackStatus.textContent="Works only inside Telegram";
-return;
-}
+if(!tg){feedbackStatus.textContent="Works only inside Telegram";return;}
 
 const text=feedbackText.value.trim();
 
@@ -401,22 +352,29 @@ feedbackStatus.textContent="Sending...";
 let photoBase64=null;
 
 if(feedbackPhoto.files.length){
+
 const file=feedbackPhoto.files[0];
-photoBase64=await new Promise(resolve=>{
+
+if(file.size > 2_000_000){
+feedbackStatus.textContent="Photo too large (max 2MB)";
+sendFeedbackBtn.disabled=false;
+return;
+}
+
+photoBase64 = await new Promise(resolve=>{
 const reader=new FileReader();
 reader.onload=e=>resolve(e.target.result);
 reader.readAsDataURL(file);
 });
+
 }
 
 let ticket=null;
 
 try{
-const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{
-method:'POST',
-headers:{'Content-Type':'application/json'}
-});
+const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{method:'POST'});
 const tJson=await tResp.json();
+if(!tJson.k) throw new Error("No ticket");
 ticket=tJson.k;
 }catch(e){
 feedbackStatus.textContent="Ticket error";
@@ -424,7 +382,7 @@ sendFeedbackBtn.disabled=false;
 return;
 }
 
-const userObj=tg.initDataUnsafe?.user || {};
+const userObj = tg.initDataUnsafe?.user || null;
 
 const payload={
 type:'feedback',
@@ -436,32 +394,36 @@ user:userObj
 };
 
 try{
-const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{
+
+const resp=await fetch(
+'https://game.shooleeyack.workers.dev/__emit',
+{
 method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({k:ticket,d:payload})
-});
+}
+);
 
 const result=await resp.json();
 
-if(result.ok){
+if(result && result.ok===true){
 feedbackStatus.textContent="✅ Sent!";
 feedbackText.value='';
 feedbackPhoto.value='';
 toggleRemoveBtn();
 }else{
-feedbackStatus.textContent="Failed";
+console.error(result);
+feedbackStatus.textContent="Server rejected";
 }
 
 }catch(e){
-feedbackStatus.textContent="Error: "+e.message;
+console.error(e);
+feedbackStatus.textContent="Network error";
 }
 
 sendFeedbackBtn.disabled=false;
 }
 
 toggleRemoveBtn();
-</script>
-
-</body>
+</script></body>
 </html>
