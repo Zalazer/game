@@ -7,7 +7,6 @@
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- PREFETCH GAMES -->
 <link rel="prefetch" href="PokerLazer/index.html">
 <link rel="prefetch" href="StarDropper/index.html">
 <link rel="prefetch" href="ChronoMonsters/index.html">
@@ -15,39 +14,56 @@
 <link rel="prefetch" href="Odrive/index.html">
 
 <style>
-* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#0b0b0b;color:#eaeaea;overflow:hidden;position:fixed;touch-action:manipulation;}
+
 #menu{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:20px 0;}
 #menuContent{display:flex;flex-direction:column;align-items:center;}
 h1{font-size:28px;margin-bottom:24px;text-align:center;}
 .btn{width:260px;padding:14px;margin:8px;font-size:18px;border:none;border-radius:10px;background:#1c1c1c;color:#fff;cursor:pointer;}
 .btn:hover{background:#2c2c2c;}
+
 #gameContainer{display:none;flex-direction:column;width:100%;height:100%;position:relative;transform:translateZ(0);}
 #topBar{width:100%;background:rgba(17,17,17,0.98);padding:10px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
 .topBtn{font-size:15px;padding:8px 14px;border-radius:8px;background:#222;border:none;color:#fff;cursor:pointer;}
+
 #gameFrameWrapper{flex:1;position:relative;overflow:hidden;background:#000;}
-iframe#gameFrame{border:none;width:100%;height:100%;display:block;transform:translateZ(0);}
+
+iframe#gameFrame{
+border:none;
+width:100%;
+height:100%;
+display:block;
+transform:translateZ(0);
+contain:strict;
+}
+
 #rulesOverlay{position:absolute;inset:0;background:rgba(0,0,0,0.96);z-index:20;display:none;}
 #rulesFrame{width:100%;height:100%;border:none;}
+
 hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 .rules-footer{width:100%;text-align:center;font-size:12px;opacity:0.85;padding:8px 0 12px 0;background:rgba(11,11,11,0.95);}
 .rules-copyright{line-height:1.5;margin-bottom:6px;}
 .rules-contact-btn{background:#151515;color:#ffd36a;border:1px solid #333;padding:6px 16px;cursor:pointer;font-size:12px;border-radius:4px;}
 .rules-contact-btn:hover{background:#1e1e1e;border-color:#ffd36a;}
 .rules-note{margin-top:6px;font-size:11px;opacity:0.5;}
+
 #feedbackModal{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.95);z-index:30;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
 #feedbackModal textarea{width:80%;height:100px;margin-bottom:12px;padding:8px;border-radius:6px;border:none;resize:none;font-size:14px;}
+
 #feedbackPhotoWrapper{display:flex;align-items:center;width:80%;margin-bottom:6px;}
 #feedbackPhotoWrapper input{flex:1;}
+
 #removePhotoBtn{margin-left:8px;cursor:pointer;background:#550000;color:#fff;border:none;border-radius:4px;padding:4px 8px;display:inline-block;}
+
 #oldVersionWarning{width:80%;font-size:12px;color:#ffcc33;margin-bottom:6px;text-align:center;display:none;}
+
 #feedbackModal .feedback-buttons{display:flex;justify-content:space-between;width:80%;margin-top:8px;}
 #feedbackModal .feedback-buttons button{flex:1;margin:0 4px;padding:10px 0;font-size:16px;border:none;border-radius:6px;cursor:pointer;background:#1c1c1c;color:#fff;}
 #feedbackModal .feedback-buttons button:hover{background:#2c2c2c;}
-#feedbackStatus{margin-top:6px;font-size:14px;color:#ffd36a;text-align:center;}
-.doc-signature{display:none;opacity:0.15;}
 
-/* ===== EXIT POPUP ===== */
+#feedbackStatus{margin-top:6px;font-size:14px;color:#ffd36a;text-align:center;}
+
 #exitConfirm{position:absolute;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:50;}
 #exitConfirm .popup{background:#1c1c1c;color:#fff;padding:20px;border-radius:12px;width:80%;max-width:320px;text-align:center;}
 #exitConfirm .popup p{margin-bottom:20px;font-size:16px;}
@@ -57,7 +73,6 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 </head>
 <body>
 
-<!-- MENU -->
 <div id="menu">
 <div id="menuContent">
 <h1>🎮 Game Console</h1>
@@ -67,6 +82,7 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
 <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
 </div>
+
 <div>
 <hr class="rules-footer-sep">
 <div class="rules-footer">
@@ -81,35 +97,39 @@ All rights reserved.
 </div>
 </div>
 
-<!-- GAME -->
 <div id="gameContainer">
 <div id="topBar">
 <button class="topBtn" onclick="handleBack()">← Back</button>
 <button class="topBtn" onclick="openRules()">Game Rules</button>
 <button class="topBtn" id="muteBtn" onclick="toggleMute()">🔊</button>
 </div>
+
 <div id="gameFrameWrapper">
 <iframe id="gameFrame" allow="autoplay; fullscreen *" allowfullscreen playsinline></iframe>
 <div id="rulesOverlay"><iframe id="rulesFrame"></iframe></div>
 </div>
 </div>
 
-<!-- FEEDBACK -->
 <div id="feedbackModal">
 <textarea id="feedbackText" placeholder="Enter your feedback..."></textarea>
+
 <div id="feedbackPhotoWrapper">
 <input type="file" id="feedbackPhoto" accept="image/*" onchange="toggleRemoveBtn()" />
 <button id="removePhotoBtn" onclick="removeFeedbackPhoto()">✖</button>
 </div>
-<div id="oldVersionWarning">⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.</div>
+
+<div id="oldVersionWarning">
+⚠️ Your Telegram version is old. Upload photo directly in chat — the bot will get it automatically.
+</div>
+
 <div class="feedback-buttons">
 <button id="sendFeedbackBtn" onclick="sendFeedback()">Send ✅</button>
 <button onclick="closeFeedbackModal()">Cancel ❌</button>
 </div>
+
 <div id="feedbackStatus"></div>
 </div>
 
-<!-- EXIT CONFIRM -->
 <div id="exitConfirm">
 <div class="popup">
 <p>Exit game? Progress will be lost.</p>
@@ -118,9 +138,6 @@ All rights reserved.
 </div>
 </div>
 
-<div class="doc-signature">© 2026 ZALAZER · Game Console</div>
-
-<!-- AUDIO -->
 <audio id="musicMenu" src="music-menu.mp3" loop></audio>
 <audio id="music-PokerLazer" src="music-PokerLazer.mp3" loop></audio>
 <audio id="music-StarDropper" src="music-StarDropper.mp3" loop></audio>
@@ -138,28 +155,31 @@ tg=window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 canUploadFile=typeof tg.uploadFile==='function';
-const photoInput = document.getElementById('feedbackPhoto');
-const warning = document.getElementById('oldVersionWarning');
+
+const photoInput=document.getElementById('feedbackPhoto');
+const warning=document.getElementById('oldVersionWarning');
+
 if(!canUploadFile){
 photoInput.disabled=true;
 warning.style.display='block';
-}else{ photoInput.disabled=false; warning.style.display='none'; }
+}else{
+photoInput.disabled=false;
+warning.style.display='none';
+}
 }else{
 document.getElementById('feedbackPhoto').disabled=true;
-document.getElementById('oldVersionWarning').textContent="WebApp not detected. Upload not available.";
-document.getElementById('oldVersionWarning').style.display='block';
 }
 }
 initTelegram();
 
-/* ===== AUDIO UNLOCK iOS ===== */
+/* AUDIO UNLOCK */
 document.body.addEventListener('touchstart',()=>{
 document.querySelectorAll('audio').forEach(a=>{
 a.play().then(()=>a.pause()).catch(()=>{});
 });
 },{once:true});
 
-/* ===== DOM ===== */
+/* DOM */
 const menu=document.getElementById('menu');
 const gameContainer=document.getElementById('gameContainer');
 const gameFrame=document.getElementById('gameFrame');
@@ -193,57 +213,91 @@ track.volume=Math.min(track.volume+0.05,volume);
 if(track.volume>=volume) clearInterval(fadeIntervals.get(track));
 },50));
 }
+
 function fadeOut(track){
 return new Promise(res=>{
 clearInterval(fadeIntervals.get(track));
 fadeIntervals.set(track,setInterval(()=>{
 track.volume=Math.max(track.volume-0.05,0);
-if(track.volume<=0){track.pause();clearInterval(fadeIntervals.get(track));res();}
+if(track.volume<=0){
+track.pause();
+clearInterval(fadeIntervals.get(track));
+res();
+}
 },50));
 });
 }
+
 async function switchMusic(next){
 const p=Object.values(tracks).filter(t=>t!==next).map(t=>fadeOut(t));
 await Promise.all(p);
 fadeIn(next);
 }
 
-/* ===== GAME FLOW ===== */
+/* LOAD GAME — FIXED RENDER */
 async function loadGame(game){
-currentGame=game; inRules=false;
+
+currentGame=game;
+inRules=false;
+
 menu.style.display='none';
 gameContainer.style.display='flex';
-gameFrame.style.display='none';
+
+/* iframe должен быть видим */
+gameFrame.style.visibility='hidden';
 gameFrame.src='';
-await new Promise(r=>setTimeout(r,60));
+
+await new Promise(r=>requestAnimationFrame(r));
+await new Promise(r=>requestAnimationFrame(r));
+
 gameFrame.onload=async ()=>{
-gameFrame.style.display='block';
-gameFrame.getBoundingClientRect();
+
+gameFrame.style.visibility='visible';
+
+/* resize для canvas */
+try{
+gameFrame.contentWindow?.dispatchEvent(new Event('resize'));
+}catch(e){}
+
+/* дополнительный resize (iOS) */
+setTimeout(()=>{
+try{
+gameFrame.contentWindow?.dispatchEvent(new Event('resize'));
+}catch(e){}
+},120);
+
 await switchMusic(tracks[game]);
 };
+
 gameFrame.src=game+'/index.html';
 }
 
-/* BACK FLOW */
+/* BACK */
 function handleBack(){
+
 try{
 const win=gameFrame?.contentWindow;
 const modal=win?.document?.getElementById('leaderboardModal');
 if(modal && modal.style.display==='flex'){modal.style.display='none';return;}
+
 const overlay=win?.document?.getElementById('overlay');
 if(overlay && overlay.style.display==='block'){overlay.style.display='none';return;}
+
 }catch(e){}
+
 if(inRules){
 inRules=false;
 rulesOverlay.style.display='none';
 rulesFrame.src='';
 return;
 }
+
 exitConfirm.style.display='flex';
 }
+
 function confirmExit(ok){
 exitConfirm.style.display='none';
-if(ok){ backToMenu(); }
+if(ok) backToMenu();
 }
 
 async function backToMenu(){
@@ -265,11 +319,17 @@ rulesOverlay.style.display='block';
 /* MUTE */
 function toggleMute(){
 isMuted=!isMuted;
+
 Object.values(tracks).forEach(t=>{
 t.muted=isMuted;
 if(isMuted) t.pause();
 });
-if(!isMuted){if(currentGame) fadeIn(tracks[currentGame]);else fadeIn(tracks.menu);}
+
+if(!isMuted){
+if(currentGame) fadeIn(tracks[currentGame]);
+else fadeIn(tracks.menu);
+}
+
 muteBtn.textContent=isMuted?"🔇":"🔊";
 }
 
@@ -280,36 +340,106 @@ const feedbackPhoto=document.getElementById('feedbackPhoto');
 const feedbackStatus=document.getElementById('feedbackStatus');
 const sendFeedbackBtn=document.getElementById('sendFeedbackBtn');
 
-function openFeedbackModal(){feedbackModal.style.display='flex';}
-function closeFeedbackModal(){feedbackModal.style.display='none';feedbackText.value='';feedbackPhoto.value='';feedbackStatus.textContent='';toggleRemoveBtn();}
-function toggleRemoveBtn(){document.getElementById('removePhotoBtn').style.display=feedbackPhoto.files.length?'inline-block':'none';}
-function removeFeedbackPhoto(){feedbackPhoto.value='';toggleRemoveBtn();feedbackStatus.textContent='';}
+function openFeedbackModal(){
+feedbackModal.style.display='flex';
+}
 
-/* SEND FEEDBACK */
+function closeFeedbackModal(){
+feedbackModal.style.display='none';
+feedbackText.value='';
+feedbackPhoto.value='';
+feedbackStatus.textContent='';
+toggleRemoveBtn();
+}
+
+function toggleRemoveBtn(){
+document.getElementById('removePhotoBtn').style.display=
+feedbackPhoto.files.length?'inline-block':'none';
+}
+
+function removeFeedbackPhoto(){
+feedbackPhoto.value='';
+toggleRemoveBtn();
+feedbackStatus.textContent='';
+}
+
+/* SEND */
 async function sendFeedback(){
-if(!tg){feedbackStatus.textContent="Works only inside Telegram";return;}
+
+if(!tg){
+feedbackStatus.textContent="Works only inside Telegram";
+return;
+}
+
 const text=feedbackText.value.trim();
-if(!text && !feedbackPhoto.files.length){feedbackStatus.textContent="Add text or photo";return;}
-sendFeedbackBtn.disabled=true; feedbackStatus.textContent="Sending...";
+
+if(!text && !feedbackPhoto.files.length){
+feedbackStatus.textContent="Add text or photo";
+return;
+}
+
+sendFeedbackBtn.disabled=true;
+feedbackStatus.textContent="Sending...";
+
 let photoBase64=null;
+
 if(feedbackPhoto.files.length){
 const file=feedbackPhoto.files[0];
-photoBase64=await new Promise(resolve=>{const reader=new FileReader();reader.onload=e=>resolve(e.target.result);reader.readAsDataURL(file);});
+photoBase64=await new Promise(resolve=>{
+const reader=new FileReader();
+reader.onload=e=>resolve(e.target.result);
+reader.readAsDataURL(file);
+});
 }
+
 let ticket=null;
+
 try{
-const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{method:'POST',headers:{'Content-Type':'application/json'}});
+const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{
+method:'POST',
+headers:{'Content-Type':'application/json'}
+});
 const tJson=await tResp.json();
 ticket=tJson.k;
-}catch(e){feedbackStatus.textContent="Ticket error";sendFeedbackBtn.disabled=false;return;}
+}catch(e){
+feedbackStatus.textContent="Ticket error";
+sendFeedbackBtn.disabled=false;
+return;
+}
+
 const userObj=tg.initDataUnsafe?.user || {};
-const payload={type:'feedback',page:'console',text,photo:photoBase64,ts:Date.now(),user:userObj};
+
+const payload={
+type:'feedback',
+page:'console',
+text,
+photo:photoBase64,
+ts:Date.now(),
+user:userObj
+};
+
 try{
-const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({k:ticket,d:payload})});
+const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{
+method:'POST',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({k:ticket,d:payload})
+});
+
 const result=await resp.json();
-if(result.ok){feedbackStatus.textContent="✅ Sent!";feedbackText.value='';feedbackPhoto.value='';toggleRemoveBtn();}
-else{feedbackStatus.textContent="Failed";}
-}catch(e){feedbackStatus.textContent="Error: "+e.message;}
+
+if(result.ok){
+feedbackStatus.textContent="✅ Sent!";
+feedbackText.value='';
+feedbackPhoto.value='';
+toggleRemoveBtn();
+}else{
+feedbackStatus.textContent="Failed";
+}
+
+}catch(e){
+feedbackStatus.textContent="Error: "+e.message;
+}
+
 sendFeedbackBtn.disabled=false;
 }
 
