@@ -34,6 +34,7 @@ ul { margin: 10px 0 20px 20px; }
 li { margin-bottom: 8px; }
 
 .entity { font-weight: bold; }
+.azure {color: #9fd6ff;}
 .blue { color: #5dbbff; }
 .red { color: #ff6b6b; }
 .gold { color: #ffd36a; }
@@ -107,65 +108,66 @@ li { margin-bottom: 8px; }
 
 <h3>Goal of the Game</h3>
 <p>
-Stay the <strong>last survivor</strong> on the battlefield by defeating weaker bots,
-collecting chests, and fighting monsters that increase your speed.
-Be careful — stronger enemies can block your path!
+Defeat weaker bots and monsters, collect chests, and try to score as many points as possible on each level.
+After all bots are killed, the game moves to the next level, increasing the map size and the number of objects.
 </p>
 
-<h3>What’s on the Map</h3>
+<h3>Objects on the Map</h3>
 <ul>
-    <li><span class="entity blue">Player</span> — blue square.<br>
-        Starting speed = 5, power = 1.<br>
-        Moves until all speed points are used.</li>
-    <li><span class="entity blue">Bots</span> — blue squares.<br>
-        Starting speed = 5, power = 1.<br>
-        Bots move only after the player spends all speed.</li>
-    <li>If your power ≥ bot power — you defeat it and gain <strong>+2 speed</strong>.</li>
-    <li>If bot power is higher — the path is blocked.</li>
+    <li><span class="entity azure">Player</span> — azure square.<br>
+        Starting speed 5, power 1.<br>
+        At the beginning of each round you receive a number of steps equal to your accumulated speed.
+        You can move to any reachable cell, but you must spend all steps.</li>
+
+    <li><span class="entity blue">Bots</span> — blue squares with the same starting stats as the player.<br>
+        They move one by one after the player’s turn.<br>
+        If your power ≥ bot power — you kill it and gain  <strong>+2 speed</strong>.<br>
+        If the bot is stronger — the path is blocked.</li>
+
     <li><span class="entity red">Monsters</span> — red squares.<br>
-        Power = 1.<br>
-        Defeating them grants <strong>+1 speed</strong>.</li>
+        They do not move and their power increases by +1 each round.<br>
+        If your power ≥ monster power — you kill it and gain <strong>+1 speed</strong>.<br>
+        If the monster is stronger — the path is blocked.</li>
+
     <li><span class="entity gold">Chests</span> — gold squares.<br>
-        Collecting a chest grants <strong>+1 power</strong>.</li>
-    <li><span class="entity white">White numbered squares</span> — traces of previous moves.<br>
-        These cells are blocked.</li>
+        They do not move and their power increases by +1 each round.<br>
+        You can collect them without restriction, gaining power equal to the chest’s current power.</li>
+
+    <li><span class="entity white">White cells</span> — traces of eliminated objects with their power at the moment of elimination, impassable.</li>
 </ul>
 
+
 <div class="note">
-Diagonal movement is forbidden. You can move only up, down, left, or right.
+At the beginning of each new round, eliminated monsters and chests return to random free cells with power 1.
 </div>
 
 <h3>How to Play</h3>
 <ul>
-    <li>Click on cells to move.</li>
-    <li>Each move consumes speed.</li>
-    <li>While you have speed, bots wait.</li>
-    <li>When speed reaches zero, bots take their turns.</li>
+    <li>Click on cells to move. Diagonal movement is forbidden — only up, down, left, and right.</li>
+    <li>If you select a distant cell, the character will move to it along the shortest path,
+        but not necessarily through an object that could have been eliminated using manual step-by-step control.</li>
+    <li>If the last step eliminates an object, the character remains standing on the white cell until the next round,
+        protecting itself from stronger enemies.</li>
+    <li>There is no exit beyond the map.</li>
+    <li>If a character is trapped by white cells and there is no object inside to eliminate,
+        then at the start of the next round the white cell with the highest power forming the trap is removed,
+        freeing a path, and the character’s power decreases by that amount.</li>
 </ul>
 
-<h3>End of Round</h3>
+<h3>End of Level</h3>
 <ul>
-    <li>Monsters and chests increase power by +1.</li>
-    <li>New monsters and chests appear only in the amount destroyed this round.</li>
-    <li>Total number of objects always remains constant.</li>
-    <li>New objects appear only on empty cells.</li>
-    <li>If no free cells exist — the game ends in a draw.</li>
+    <li><strong>Victory</strong> — all bots are killed.</li>
+    <li><strong>Defeat</strong> — the player is killed.</li>
+    <li><strong>Draw</strong> — if there are no free cells and objects cannot spawn.</li>
 </ul>
 
-<h3>Win & Lose Conditions</h3>
+<h3>Scoring Strategy</h3>
 <ul>
-    <li><strong>Victory</strong> — all bots are defeated and the player is alive.</li>
-    <li><strong>Defeat</strong> — the player is killed by a bot.</li>
-    <li><strong>Draw</strong> — new objects cannot spawn.</li>
-</ul>
-
-<h3>Winning Strategy</h3>
-<ul>
-    <li>Collect chests first to increase power.</li>
-    <li>Attack weaker bots (+2 speed) and monsters (+1 speed).</li>
-    <li>Manage your speed carefully.</li>
-    <li>Avoid standing near strong enemies — they can block paths.</li>
-    <li>Plan each round to remain the last survivor.</li>
+    <li>Points are awarded for accumulated power.</li>
+    <li>Points are awarded for eliminated bots and monsters.</li>
+    <li>Points are awarded for the total number of white cells at the end of the level.</li>
+    <li>It can be beneficial to leave one opponent alive and collect objects,
+        but avoid falling into a large trap that may cost too much power to escape — or even kill you because of greed.</li>
 </ul>
 
 <!-- UKRAINIAN -->
@@ -173,60 +175,67 @@ Diagonal movement is forbidden. You can move only up, down, left, or right.
 
 <h3>Мета гри</h3>
 <p>
-Залишитися <strong>останнім живим</strong> на полі, перемагаючи слабших ботів,
-збираючи скрині та знищуючи монстрів, які збільшують швидкість.
-Остерігайся — сильні вороги можуть заблокувати шлях!
+Перемагати слабших ботів і монстрів, збирати скрині та намагатися набрати якомога більше очок на кожному рівні.
+Після знищення всіх ботів гра переходить на новий рівень, збільшуючи розмір мапи та кількість об’єктів.
 </p>
 
-<h3>Що є на карті</h3>
+<h3>Об’єкти на мапі</h3>
 <ul>
-    <li><span class="entity blue">Гравець</span> — блакитний квадрат.<br>
-        Початкова швидкість = 5, сила = 1.<br>
-        Ходить до вичерпання всіх очок швидкості.</li>
-    <li><span class="entity blue">Боти</span> — сині квадрати.<br>
-        Ходять після того, як гравець витратив усю швидкість.</li>
-    <li>Якщо твоя сила ≥ сили бота — ти перемагаєш і отримуєш <strong>+2 швидкості</strong>.</li>
-    <li>Якщо бот сильніший — прохід заблоковано.</li>
+    <li><span class="entity azure">Гравець</span> — блакитний квадрат.<br>
+        Початкова швидкість 5, сила 1.<br>
+        На початку кожного раунду надається кількість кроків, що дорівнює накопиченій швидкості.
+        Можна рухатися на будь-яку доступну клітину, але обов’язково витратити всі кроки.</li>
+
+    <li><span class="entity blue">Боти</span> — сині квадрати зі стартовими показниками як у гравця.<br>
+        Ходять по черзі після ходу гравця.<br>
+        Якщо твоя сила ≥ сили бота — знищення і <strong>+2 швидкості</strong>.<br>
+        Якщо бот сильніший — прохід заблоковано.</li>
+
     <li><span class="entity red">Монстри</span> — червоні квадрати.<br>
-        За перемогу отримуєш <strong>+1 швидкості</strong>.</li>
+        Стоять на місці та з кожним раундом їх сила зростає на +1.<br>
+        Якщо твоя сила ≥ сили монстра — знищення і <strong>+1 швидкості</strong>.<br>
+        Якщо монстр сильніший — прохід заблоковано.</li>
+
     <li><span class="entity gold">Скрині</span> — золоті квадрати.<br>
-        Дає <strong>+1 сили</strong>.</li>
-    <li><span class="entity white">Білі клітини з цифрами</span> — сліди рухів, ходити туди не можна.</li>
+        Стоять на місці та з кожним раундом їх сила зростає на +1.<br>
+        Можна збирати без обмежень, додаючи собі силу, що дорівнює поточній силі скрині.</li>
+
+    <li><span class="entity white">Білі клітини</span> — сліди знищених об’єктів із їх силою на момент знищення, непрохідні.</li>
 </ul>
 
+
 <div class="note">
-Рух по діагоналі заборонений — лише вгору, вниз, вліво або вправо.
+У кожному новому раунді знищені монстри та скрині повертаються на випадкові вільні клітини із силою 1.
 </div>
 
 <h3>Як грати</h3>
 <ul>
-    <li>Клікай по клітинах для руху.</li>
-    <li>Кожен хід витрачає швидкість.</li>
-    <li>Поки є швидкість — боти чекають.</li>
-    <li>Коли швидкість закінчується — ходять боти.</li>
+    <li>Клікай по клітинах для руху. Рух по діагоналі заборонений — лише вгору, вниз, вліво та вправо.</li>
+    <li>Якщо обрати віддалену клітину, персонаж піде до неї найкоротшим шляхом,
+        але не обов’язково через об’єкт, який можна було б знищити при ручному контролі.</li>
+    <li>Якщо останнім кроком знищено об’єкт, персонаж залишається стояти на білій клітині до наступного раунду,
+        захищаючи себе від сильнішого суперника.</li>
+    <li>За межі мапи виходу немає.</li>
+    <li>Якщо персонаж оточений пасткою з білих клітин і всередині немає жодного об’єкта для знищення,
+        то на початку наступного раунду буде видалена біла клітина з максимальною силою,
+        що формує пастку, відкриваючи прохід, а сила персонажа зменшиться на цю величину.</li>
 </ul>
 
-<h3>Кінець раунду</h3>
-<ul>
-    <li>Монстри та скрині збільшують силу на +1.</li>
-    <li>Нові об’єкти з’являються лише замість знищених.</li>
-    <li>Якщо немає вільних клітин — нічия.</li>
-</ul>
-
-<h3>Перемога та поразка</h3>
+<h3>Кінець рівня</h3>
 <ul>
     <li><strong>Перемога</strong> — всі боти знищені.</li>
     <li><strong>Поразка</strong> — гравця вбито.</li>
-    <li><strong>Нічия</strong> — об’єкти не можуть з’явитися.</li>
+    <li><strong>Нічия</strong> — якщо немає вільних клітин і об’єкти не можуть з’явитися.</li>
 </ul>
 
-<h3>Стратегія перемоги</h3>
+<h3>Стратегія набору очок</h3>
 <ul>
-    <li>Спершу збирай скрині для збільшення сили.</li>
-    <li>Атакуй слабких ботів (+2 швидкості) та монстрів (+1 швидкості).</li>
-    <li>Розумно керуй своєю швидкістю.</li>
-    <li>Не стій поруч із сильними ворогами — вони блокують шляхи.</li>
-    <li>Плануй кожен раунд, щоб залишитися останнім живим.</li>
+    <li>Очки нараховуються за накопичену силу.</li>
+    <li>За знищених ботів і монстрів.</li>
+    <li>За загальну кількість білих клітин на момент завершення рівня.</li>
+    <li>Вигідно залишити одного суперника та збирати об’єкти,
+        але не потрапити у велику пастку, вихід із якої може коштувати занадто багато сили
+        або навіть призвести до загибелі через жадібність.</li>
 </ul>
 
 <!-- RUSSIAN -->
@@ -234,61 +243,69 @@ Diagonal movement is forbidden. You can move only up, down, left, or right.
 
 <h3>Цель игры</h3>
 <p>
-Остаться <strong>последним выжившим</strong> на поле, побеждая слабых ботов,
-собирая сундуки и уничтожая монстров.
-Сильные враги могут перекрыть путь — будь осторожен!
+Побеждать слабых ботов и монстров, собирать сундуки и стараться набрать побольше очков на каждом уровне.
+При уничтожении всех ботов игра переходит на новый уровень увеличивая размер карты и количество объектов.
 </p>
 
 <h3>Объекты на карте</h3>
 <ul>
-    <li><span class="entity blue">Игрок</span> — голубой квадрат.<br>
-        Начальная скорость = 5, сила = 1.<br>
-        Ходит до полного расхода скорости.</li>
-    <li><span class="entity blue">Боты</span> — синие квадраты.<br>
-        Ходят после полного расхода скорости игроком.</li>
-    <li>Если твоя сила ≥ силы бота — победа и <strong>+2 скорости</strong>.</li>
-    <li>Если бот сильнее — путь заблокирован.</li>
+    <li><span class="entity azure">Игрок</span> — голубой квадрат.<br>
+        Начальная скорость 5, сила 1.<br>
+        В начале каждого раунда выдаётся количество шагов равное накопленной скорости.
+        Ходить можно на любую доступную клетку обязательно до полного расхода всех шагов.</li>
+
+    <li><span class="entity blue">Боты</span> — синие квадраты со стартовыми показателями как у игрока.<br>
+        Ходят поочередно после хода игрока.<br>
+        Если сила игрока ≥ силы бота — уничтожение и <strong>+2 к скорости</strong>.<br>
+        Если бот сильнее — путь заблокирован.</li>
+
     <li><span class="entity red">Монстры</span> — красные квадраты.<br>
-        Победа даёт <strong>+1 скорости</strong>.</li>
+        Стоят на месте и с каждым раундом их сила растет на +1.<br>
+        Если твоя сила ≥ силы монстра — уничтожение и <strong>+1 к скорости</strong>.<br>
+        Если монстр сильнее — путь заблокирован.</li>
+
     <li><span class="entity gold">Сундуки</span> — золотые квадраты.<br>
-        Даёт <strong>+1 силы</strong>.</li>
-    <li><span class="entity white">Белые клетки с числами</span> — следы ходов, туда ходить нельзя.</li>
+        Стоят на месте и с каждым раундом их сила растет на +1.<br>
+        Можно собирать без ограничений добавляя к себе силу равную текущей силе сундука.</li>
+
+    <li><span class="entity white">Белые клетки</span> — следы уничтоженных объектов с их силой на момент уничтожения, непроходимые.</li>
 </ul>
 
+
 <div class="note">
-Диагональное движение запрещено — только вверх, вниз, влево и вправо.
+В каждом новом раунде на карту возвращаются в случайные свободные клетки уничтоженные монстры и сундуки с силой 1.
 </div>
 
 <h3>Как играть</h3>
 <ul>
-    <li>Кликай по клеткам для движения.</li>
-    <li>Каждый ход расходует скорость.</li>
-    <li>Пока скорость есть — боты ждут.</li>
-    <li>Когда скорость закончилась — ходят боты.</li>
+    <li>Кликай по клеткам для движения. Диагональное движение запрещено — только вверх, вниз, влево и вправо.</li>
+    <li>Если выбрать клетку для хода вдалеке, то персонаж пройдет до нее кратчайшим путем,
+        но не обязательно через объект который можно было бы уничтожить при ручном контроле используя несколько шагов.</li>
+    <li>Если последним шагом был уничтожен объект то персонаж остаётся стоять на белой клетке до следующего раунда
+        тем самым предохраняя себя от уничтожения более сильным соперником.</li>
+    <li>За пределы карты нет выхода.</li>
+    <li>Если персонаж окружён ловушкой из белых клеток и внутри этой области нет ни одного объекта для уничтожения
+        то вначале следующего раунда будет удалена белая клетка с максимальной силой формирующая эту ловушку
+        освобождая проход, а сила персонажа уменьшится на эту величину.</li>
 </ul>
 
-<h3>Конец раунда</h3>
-<ul>
-    <li>Монстры и сундуки усиливаются на +1.</li>
-    <li>Новые объекты появляются только вместо уничтоженных.</li>
-    <li>Если нет свободных клеток — ничья.</li>
-</ul>
-
-<h3>Победа и поражение</h3>
+<h3>Конец уровня</h3>
 <ul>
     <li><strong>Победа</strong> — все боты уничтожены.</li>
     <li><strong>Поражение</strong> — игрок убит.</li>
-    <li><strong>Ничья</strong> — объекты не могут появиться.</li>
+    <li><strong>Ничья</strong> — если нет свободных клеток и объекты не могут появиться.</li>
 </ul>
 
-<h3>Стратегия победы</h3>
+<h3>Стратегия набора очков</h3>
 <ul>
-    <li>Сначала собирай сундуки.</li>
-    <li>Атакуй слабых ботов и монстров.</li>
-    <li>Грамотно управляй скоростью.</li>
-    <li>Не стой рядом с сильными врагами — они могут блокировать пути.</li>
-    <li>Планируй каждый раунд, чтобы остаться последним выжившим.</li>
+    <li>Очки начисляются за накопленную силу.</li>
+    <li>За уничтоженных ботов и монстров.</li>
+    <li>За общее количество белых клеток на момент окончания уровня.</li>
+    <li>Выгодно оставить одного противника и собирать объекты но не попасть в большую ловушку
+        на выход из которой придется потерять много силы и возможно погибнуть от жадности.</li>
 </ul>
+
+
 
 <!-- ===== FOOTER ===== -->
 <hr class="rules-footer-sep">
