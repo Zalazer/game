@@ -238,8 +238,11 @@ function setupTelegramBackButton(){
     });
 }
 
+
+
+
 /* =============================
-   LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
+   LEADERBOARDS (OPTIMIZED)
 ============================= */
 
 let localScores = [];
@@ -251,11 +254,9 @@ let selectedLevel = 'all';
    LOAD LEADERBOARD
 ============================= */
 async function loadGlobalLeaderboard(levelFilter = null) {
-
     globalScores = [];
     localScores = [];
 
-    // OFFLINE или нет TG-пользователя
     if (!tgUser?.id || !SERVER_OK) {
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
             globalScores.push({ nick: '—', score: 0, level: 0 });
@@ -269,7 +270,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
         url.searchParams.set('game', GAME_ID);
 
         if (levelFilter && levelFilter !== 'all') url.searchParams.set('level', levelFilter);
-        url.searchParams.set('user', String(tgUser.id));
+        if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
         const data = await r.json();
@@ -299,68 +300,6 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 }
 
 /* =============================
-   SEND SCORE
-============================= */
-async function sendScoreToServer(score, level) {
-    if (!SERVER_OK || !tgUser?.id) return;
-
-    try {
-        const t = await fetch('/__ticket', { method: 'POST' });
-        const ticket = await t.json();
-
-        await fetch('/__emit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                k: ticket.k,
-                d: {
-                    type: 'score',
-                    game: GAME_ID,
-                    user: { id: String(tgUser.id) },
-                    nick: playerNick,
-                    score: Number(score || 0),
-                    level: Number(level || 0)
-                }
-            })
-        });
-
-    } catch (e) {
-        console.log("send score fail", e);
-        SERVER_OK = false;
-    }
-}
-
-/* =============================
-   SEND TOTAL SCORE
-============================= */
-async function sendTotalScore(total) {
-    if (!SERVER_OK || !tgUser?.id) return;
-
-    try {
-        const t = await fetch('/__ticket', { method: 'POST' });
-        const ticket = await t.json();
-
-        await fetch('/__emit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                k: ticket.k,
-                d: {
-                    type: 'score',
-                    game: GAME_ID,
-                    total: Number(total || 0),
-                    nick: playerNick,
-                    user: { id: String(tgUser.id) }
-                }
-            })
-        });
-
-    } catch (e) {
-        console.log("send total fail", e);
-    }
-}
-
-/* =============================
    SAVE RESULT
 ============================= */
 async function saveToLeaderboard(score, level) {
@@ -371,78 +310,98 @@ async function saveToLeaderboard(score, level) {
 }
 
 /* =============================
-   RENDER LEADERBOARD
+   RENDER LEADERBOARD TABLES
+============================= */
+function updateLeaderboardTables() {
+    const globalHtml = globalScores.map((e, i) => {
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        return `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
+    }).join('');
+
+    const localHtml = localScores.map((e, i) => {
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        return `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
+    }).join('');
+
+    document.getElementById('globalLeaderboard').innerHTML = globalHtml;
+    document.getElementById('localLeaderboard').innerHTML = localHtml;
+}
+
+/* =============================
+   RENDER LEADERBOARD MODAL
 ============================= */
 function renderLeaderboard() {
+    const container = document.getElementById('leaderContent');
 
-    let html = `<div id="leaderFilterBox">
-                    <select id="levelSelect">
-                        <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>`;
+    // если первый рендер — создаем только раз фильтр и кнопки
+    if (!document.getElementById('levelSelect')) {
 
-    for (let i = 1; i <= 20; i++) {
-        html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
-    }
+        let html = `
+            <div id="leaderFilterBox">
+                <select id="levelSelect">
+                    <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>
+        `;
 
-    html += `</select></div>`;
+        for (let i = 1; i <= 20; i++) {
+            html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
+        }
 
-    html += `<h2>Global Top</h2>`;
-    for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
-    }
-
-    html += `<h2 style="margin-top:15px;">Your Top</h2>`;
-    for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = localScores[i] || { score: 0, level: 0 };
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
-    }
-
-    html += `<div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
+        html += `</select></div>
+            <h2>Global Top</h2>
+            <div id="globalLeaderboard"></div>
+            <h2 style="margin-top:15px;">Your Top</h2>
+            <div id="localLeaderboard"></div>
+            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
                 <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
                 <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
-             </div>`;
+            </div>
+        `;
 
-    document.getElementById('leaderContent').innerHTML = html;
+        container.innerHTML = html;
 
-    // Смена уровня только обновляет selectedLevel, без асинхронного fetch
-    document.getElementById('levelSelect').onchange = (e) => {
-        const v = e.target.value;
-        selectedLevel = (v === 'all') ? 'all' : Number(v);
-    };
+        // события
+        const levelSelect = document.getElementById('levelSelect');
+        levelSelect.onchange = async (e) => {
+            const v = e.target.value;
+            selectedLevel = (v === 'all') ? 'all' : Number(v);
+            await loadGlobalLeaderboard(selectedLevel);
+            updateLeaderboardTables();
+        };
 
-    document.getElementById('leaderReturnBtn').onclick = () => {
-        document.getElementById('leaderboardModal').style.display = 'none';
-    };
+        document.getElementById('leaderReturnBtn').onclick = () => {
+            document.getElementById('leaderboardModal').style.display = 'none';
+        };
 
-    document.getElementById('leaderRestartBtn').onclick = () => {
-        document.getElementById('leaderboardModal').style.display = 'none';
+        document.getElementById('leaderRestartBtn').onclick = () => {
+            document.getElementById('leaderboardModal').style.display = 'none';
 
-        totalScore = 0;
-        level = 1;
-        botsKilledThisLevel = 0;
-        monstersKilledThisLevel = 0;
-        chestsCollectedThisLevel = 0;
+            totalScore = 0;
+            level = 1;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
 
-        player.power = 1;
-        player.speed = 5;
-        player.movesLeft = player.speed;
-        player.x = 0;
-        player.y = 0;
+            player.power = 1;
+            player.speed = 5;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
 
-        bots.forEach(b => b.alive = true);
+            bots.forEach(b => b.alive = true);
 
-        startNextLevel();
-        gameOver = false;
-    };
+            startNextLevel();
+            gameOver = false;
+        };
+    }
+
+    // обновляем таблицы
+    updateLeaderboardTables();
 }
 
 /* =============================
    INIT BUTTONS
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
-
     await authTelegram();
     setupTelegramBackButton();
 
@@ -450,8 +409,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modal = document.getElementById('leaderboardModal');
 
     leaderBtn.onclick = async () => {
-        await loadGlobalLeaderboard(selectedLevel);  // подтягиваем данные по выбранному уровню
-        renderLeaderboard();                        // перерисовываем таблицу
+        await loadGlobalLeaderboard(selectedLevel);
+        renderLeaderboard();
         modal.style.display = 'flex';
     };
 
