@@ -238,7 +238,6 @@ function setupTelegramBackButton(){
     });
 }
 
-
 /* =============================
    LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE)
 ============================= */
@@ -255,6 +254,8 @@ async function loadGlobalLeaderboard(levelFilter = null) {
     globalScores = [];
     localScores = [];
 
+    const levelParam = (levelFilter === 'all' || levelFilter == null) ? null : Number(levelFilter);
+
     // OFFLINE / no server / no TG user
     if (!tgUser?.id || !SERVER_OK) {
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
@@ -268,7 +269,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', GAME_ID);
 
-        if (levelFilter && levelFilter !== 'all') url.searchParams.set('level', levelFilter);
+        if (levelParam) url.searchParams.set('level', String(levelParam));
         url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
@@ -299,80 +300,43 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 }
 
 /* =============================
-   SEND SCORE
-============================= */
-async function sendScoreToServer(score, level) {
-    if (!SERVER_OK || !tgUser?.id) return;
-
-    try {
-        const t = await fetch('/__ticket', { method: 'POST' });
-        const ticket = await t.json();
-
-        await fetch('/__emit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                k: ticket.k,
-                d: {
-                    type: 'score',
-                    game: GAME_ID,
-                    user: { id: String(tgUser.id) },
-                    nick: playerNick,
-                    score: Number(score || 0),
-                    level: Number(level || 0)
-                }
-            })
-        });
-    } catch (e) {
-        console.log("send score fail", e);
-        SERVER_OK = false;
-    }
-}
-
-/* =============================
-   SEND TOTAL SCORE
-============================= */
-async function sendTotalScore(total) {
-    if (!SERVER_OK || !tgUser?.id) return;
-
-    try {
-        const t = await fetch('/__ticket', { method: 'POST' });
-        const ticket = await t.json();
-
-        await fetch('/__emit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                k: ticket.k,
-                d: {
-                    type: 'score',
-                    game: GAME_ID,
-                    total: Number(total || 0),
-                    nick: playerNick,
-                    user: { id: String(tgUser.id) }
-                }
-            })
-        });
-    } catch (e) {
-        console.log("send total fail", e);
-    }
-}
-
-/* =============================
    SAVE RESULT
 ============================= */
-async function saveToLeaderboard(score, level) {
+async function saveToLeaderboard(score, level, isTotal = false) {
     lastGameScore = score;
 
-    if (tgUser?.id && SERVER_OK) await sendScoreToServer(score, level);
-    await loadGlobalLeaderboard(level);
+    if (tgUser?.id && SERVER_OK) {
+        try {
+            await fetch('/__emit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    k: ticketKey,
+                    d: {
+                        type: 'score',
+                        game: GAME_ID,
+                        score: score,
+                        level: level,
+                        total: isTotal,   // ← добавлено
+                        nick: playerNick,
+                        user: tgUser
+                    }
+                })
+            });
+        } catch (e) {
+            console.log("score send fail", e);
+            SERVER_OK = false;
+        }
+    }
+
+    await loadGlobalLeaderboard(selectedLevel);
 }
+
 
 /* =============================
    UPDATE / RENDER LEADERBOARD TABLES
 ============================= */
 function updateLeaderboardTables() {
-
     const modal = document.getElementById('leaderboardModal');
     if (!modal) return;
 
@@ -381,7 +345,8 @@ function updateLeaderboardTables() {
                         <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>`;
 
     for (let i = 1; i <= 20; i++) {
-        html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
+        const isSelected = (selectedLevel !== 'all' && Number(selectedLevel) === i);
+        html += `<option value="${i}" ${isSelected ? 'selected' : ''}>Level ${i}</option>`;
     }
 
     html += `</select></div>`;
@@ -422,7 +387,7 @@ function updateLeaderboardTables() {
         modal.style.display = 'none';
     };
 
-    // Кнопка Restart
+    // Кнопка Restart (без изменений)
     document.getElementById('leaderRestartBtn').onclick = () => {
         modal.style.display = 'none';
 
@@ -449,7 +414,6 @@ function updateLeaderboardTables() {
    INIT BUTTONS
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
-
     await authTelegram();
     setupTelegramBackButton();
 
@@ -457,10 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modal = document.getElementById('leaderboardModal');
 
     leaderBtn.onclick = async () => {
-        // берём актуальный выбранный уровень из select, если он уже существует
-        const levelSelect = document.getElementById('levelSelect');
-        selectedLevel = levelSelect ? (levelSelect.value === 'all' ? 'all' : Number(levelSelect.value)) : selectedLevel;
-
+        // используем уже выбранный ранее selectedLevel
         await loadGlobalLeaderboard(selectedLevel);
         updateLeaderboardTables();
         modal.style.display = 'flex';
@@ -470,7 +431,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
-
 
 
 /* ==================== КОНСТАНТЫ ==================== */
@@ -708,13 +668,13 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     msgDiv.appendChild(btnContainer);
 
-    // ✅ Сохраняем результат на сервер
-    await saveToLeaderboard(levelScore, currentLevel);
+    // Сохраняем результат уровня
+    await saveToLeaderboard(levelScore, currentLevel, false);
 
-// отправляем TOTAL SCORE только при смерти
-if (text.startsWith("Game Over")) {
-    await sendTotalScore(totalScore);
-}
+    // Сохраняем общий результат ТОЛЬКО при смерти
+    if (text.startsWith("Game Over")) {
+        await saveToLeaderboard(totalScore, 0, true);
+    }
 
     restartBtn.onclick = () => {
         overlay.style.display = "none";
