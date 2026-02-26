@@ -239,7 +239,6 @@ function setupTelegramBackButton(){
 }
 
 
-
 /* =============================
    LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
 ============================= */
@@ -287,14 +286,12 @@ async function loadGlobalLeaderboard(levelFilter = null) {
             level: Number(e.level || 0)
         }));
 
-        // Если сервер вернул меньше записей — дополняем нулями
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
 
     } catch (e) {
         console.log("leaders load fail", e);
         SERVER_OK = false;
-
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
             globalScores.push({ nick: '—', score: 0, level: 0 });
             localScores.push({ score: 0, level: 0 });
@@ -334,8 +331,9 @@ async function sendScoreToServer(score, level) {
     }
 }
 
-
-
+/* =============================
+   SEND TOTAL SCORE
+============================= */
 async function sendTotalScore(total) {
     if (!SERVER_OK || !tgUser?.id) return;
 
@@ -362,8 +360,6 @@ async function sendTotalScore(total) {
         console.log("send total fail", e);
     }
 }
-
-
 
 /* =============================
    SAVE RESULT
@@ -411,6 +407,7 @@ function renderLeaderboard() {
 
     document.getElementById('leaderContent').innerHTML = html;
 
+    // Событие смены уровня
     document.getElementById('levelSelect').onchange = async e => {
         const v = e.target.value;
         selectedLevel = (v === 'all') ? 'all' : Number(v);
@@ -454,8 +451,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
+    const levelSelect = document.getElementById('levelSelect');
 
     leaderBtn.onclick = async () => {
+        // синхронизируем selectedLevel с select, если он уже есть
+        if(levelSelect) selectedLevel = (levelSelect.value === 'all') ? 'all' : Number(levelSelect.value);
+
         await loadGlobalLeaderboard(selectedLevel);
         renderLeaderboard();
         modal.style.display = 'flex';
@@ -465,7 +466,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
-
 
 
 
