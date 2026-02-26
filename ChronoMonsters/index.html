@@ -241,8 +241,9 @@ function setupTelegramBackButton(){
 
 
 
+
 /* =============================
-   LEADERBOARDS (OPTIMIZED)
+   LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
 ============================= */
 
 let localScores = [];
@@ -257,6 +258,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
     globalScores = [];
     localScores = [];
 
+    // OFFLINE MODE / нет сервера или Telegram
     if (!tgUser?.id || !SERVER_OK) {
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
             globalScores.push({ nick: '—', score: 0, level: 0 });
@@ -270,7 +272,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
         url.searchParams.set('game', GAME_ID);
 
         if (levelFilter && levelFilter !== 'all') url.searchParams.set('level', levelFilter);
-        if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
+        url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
         const data = await r.json();
@@ -310,96 +312,89 @@ async function saveToLeaderboard(score, level) {
 }
 
 /* =============================
-   RENDER LEADERBOARD TABLES
+   RENDER TABLES (только таблицы, без повторного select)
 ============================= */
 function updateLeaderboardTables() {
-    const globalHtml = globalScores.map((e, i) => {
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        return `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
-    }).join('');
+    const container = document.getElementById('leaderTables');
+    if (!container) return;
 
-    const localHtml = localScores.map((e, i) => {
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        return `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
-    }).join('');
-
-    document.getElementById('globalLeaderboard').innerHTML = globalHtml;
-    document.getElementById('localLeaderboard').innerHTML = localHtml;
-}
-
-/* =============================
-   RENDER LEADERBOARD MODAL
-============================= */
-function renderLeaderboard() {
-    const container = document.getElementById('leaderContent');
-
-    // если первый рендер — создаем только раз фильтр и кнопки
-    if (!document.getElementById('levelSelect')) {
-
-        let html = `
-            <div id="leaderFilterBox">
-                <select id="levelSelect">
-                    <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>
-        `;
-
-        for (let i = 1; i <= 20; i++) {
-            html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
-        }
-
-        html += `</select></div>
-            <h2>Global Top</h2>
-            <div id="globalLeaderboard"></div>
-            <h2 style="margin-top:15px;">Your Top</h2>
-            <div id="localLeaderboard"></div>
-            <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
-                <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
-                <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
-            </div>
-        `;
-
-        container.innerHTML = html;
-
-        // события
-        const levelSelect = document.getElementById('levelSelect');
-        levelSelect.onchange = async (e) => {
-            const v = e.target.value;
-            selectedLevel = (v === 'all') ? 'all' : Number(v);
-            await loadGlobalLeaderboard(selectedLevel);
-            updateLeaderboardTables();
-        };
-
-        document.getElementById('leaderReturnBtn').onclick = () => {
-            document.getElementById('leaderboardModal').style.display = 'none';
-        };
-
-        document.getElementById('leaderRestartBtn').onclick = () => {
-            document.getElementById('leaderboardModal').style.display = 'none';
-
-            totalScore = 0;
-            level = 1;
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-
-            player.power = 1;
-            player.speed = 5;
-            player.movesLeft = player.speed;
-            player.x = 0;
-            player.y = 0;
-
-            bots.forEach(b => b.alive = true);
-
-            startNextLevel();
-            gameOver = false;
-        };
+    let html = `<h2>Global Top</h2>`;
+    for (let i = 0; i < LEADERBOARD_MAX; i++) {
+        const e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
-    // обновляем таблицы
-    updateLeaderboardTables();
+    html += `<h2 style="margin-top:15px;">Your Top</h2>`;
+    for (let i = 0; i < LEADERBOARD_MAX; i++) {
+        const e = localScores[i] || { score: 0, level: 0 };
+        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
+    }
+
+    container.innerHTML = html;
 }
 
 /* =============================
-   INIT BUTTONS
+   RENDER LEADERBOARD MODAL (создаём select и кнопки один раз)
+============================= */
+function renderLeaderboardModal() {
+    const modal = document.getElementById('leaderContent');
+    if (!modal) return;
+
+    modal.innerHTML = `
+        <div id="leaderFilterBox">
+            <select id="levelSelect">
+                <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>
+                ${[...Array(20)].map((_, i) => 
+                    `<option value="${i+1}" ${selectedLevel === i+1 ? 'selected' : ''}>Level ${i+1}</option>`
+                ).join('')}
+            </select>
+        </div>
+        <div id="leaderTables"></div>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
+            <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
+            <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
+        </div>
+    `;
+
+    // ===== EVENTS =====
+    const levelSelect = document.getElementById('levelSelect');
+    levelSelect.onchange = async e => {
+        const v = e.target.value;
+        selectedLevel = (v === 'all') ? 'all' : Number(v);
+        await loadGlobalLeaderboard(selectedLevel);
+        updateLeaderboardTables();
+    };
+
+    document.getElementById('leaderReturnBtn').onclick = () => {
+        document.getElementById('leaderboardModal').style.display = 'none';
+    };
+
+    document.getElementById('leaderRestartBtn').onclick = () => {
+        document.getElementById('leaderboardModal').style.display = 'none';
+
+        totalScore = 0;
+        level = 1;
+        botsKilledThisLevel = 0;
+        monstersKilledThisLevel = 0;
+        chestsCollectedThisLevel = 0;
+
+        player.power = 1;
+        player.speed = 5;
+        player.movesLeft = player.speed;
+        player.x = 0;
+        player.y = 0;
+
+        bots.forEach(b => b.alive = true);
+
+        startNextLevel();
+        gameOver = false;
+    };
+}
+
+/* =============================
+   INIT BUTTON
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
     await authTelegram();
@@ -408,9 +403,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
 
+    // создаём select и кнопки один раз
+    renderLeaderboardModal();
+
     leaderBtn.onclick = async () => {
+        // загружаем актуальные данные с сервера для выбранного уровня
         await loadGlobalLeaderboard(selectedLevel);
-        renderLeaderboard();
+        updateLeaderboardTables(); // только таблицы
         modal.style.display = 'flex';
     };
 
@@ -418,6 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
+
 
 
 
