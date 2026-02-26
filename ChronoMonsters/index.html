@@ -317,7 +317,7 @@ async function saveToLeaderboard(score, level, isTotal = false) {
                         game: GAME_ID,
                         score: score,
                         level: level,
-                        total: isTotal,   // ← добавлено
+                        total: isTotal,
                         nick: playerNick,
                         user: tgUser
                     }
@@ -329,8 +329,16 @@ async function saveToLeaderboard(score, level, isTotal = false) {
         }
     }
 
-    await loadGlobalLeaderboard(selectedLevel);
+    // ✅ КОРРЕКТНОЕ обновление таблиц
+    if (isTotal) {
+        // если это общий счёт — обновляем "all"
+        await loadGlobalLeaderboard('all');
+    } else {
+        // если это уровень — обновляем именно этот уровень
+        await loadGlobalLeaderboard(level);
+    }
 }
+
 
 
 /* =============================
