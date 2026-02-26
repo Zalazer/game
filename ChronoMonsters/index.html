@@ -238,7 +238,6 @@ function setupTelegramBackButton(){
     });
 }
 
-
 /* =============================
    LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
 ============================= */
@@ -256,7 +255,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
     globalScores = [];
     localScores = [];
 
-    // Если нет Telegram или сервер недоступен — просто нули
+    // OFFLINE или нет TG-пользователя
     if (!tgUser?.id || !SERVER_OK) {
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
             globalScores.push({ nick: '—', score: 0, level: 0 });
@@ -407,12 +406,10 @@ function renderLeaderboard() {
 
     document.getElementById('leaderContent').innerHTML = html;
 
-    // Событие смены уровня
-    document.getElementById('levelSelect').onchange = async e => {
+    // Смена уровня только обновляет selectedLevel, без асинхронного fetch
+    document.getElementById('levelSelect').onchange = (e) => {
         const v = e.target.value;
         selectedLevel = (v === 'all') ? 'all' : Number(v);
-        await loadGlobalLeaderboard(selectedLevel);
-        renderLeaderboard();
     };
 
     document.getElementById('leaderReturnBtn').onclick = () => {
@@ -451,14 +448,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
-    const levelSelect = document.getElementById('levelSelect');
 
     leaderBtn.onclick = async () => {
-        // синхронизируем selectedLevel с select, если он уже есть
-        if(levelSelect) selectedLevel = (levelSelect.value === 'all') ? 'all' : Number(levelSelect.value);
-
-        await loadGlobalLeaderboard(selectedLevel);
-        renderLeaderboard();
+        await loadGlobalLeaderboard(selectedLevel);  // подтягиваем данные по выбранному уровню
+        renderLeaderboard();                        // перерисовываем таблицу
         modal.style.display = 'flex';
     };
 
@@ -466,6 +459,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
+
 
 
 
