@@ -239,9 +239,8 @@ function setupTelegramBackButton(){
 }
 
 
-
 /* =============================
-   LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
+   LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE)
 ============================= */
 
 let localScores = [];
@@ -253,11 +252,10 @@ let selectedLevel = 'all';
    LOAD LEADERBOARD
 ============================= */
 async function loadGlobalLeaderboard(levelFilter = null) {
-
     globalScores = [];
     localScores = [];
 
-    // Если нет Telegram или сервер недоступен — показываем пустые
+    // OFFLINE / no server / no TG user
     if (!tgUser?.id || !SERVER_OK) {
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
             globalScores.push({ nick: '—', score: 0, level: 0 });
@@ -271,7 +269,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
         url.searchParams.set('game', GAME_ID);
 
         if (levelFilter && levelFilter !== 'all') url.searchParams.set('level', levelFilter);
-        if (tgUser?.id) url.searchParams.set('user', String(tgUser.id));
+        url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
         const data = await r.json();
@@ -325,7 +323,6 @@ async function sendScoreToServer(score, level) {
                 }
             })
         });
-
     } catch (e) {
         console.log("send score fail", e);
         SERVER_OK = false;
@@ -356,7 +353,6 @@ async function sendTotalScore(total) {
                 }
             })
         });
-
     } catch (e) {
         console.log("send total fail", e);
     }
@@ -373,12 +369,12 @@ async function saveToLeaderboard(score, level) {
 }
 
 /* =============================
-   RENDER LEADERBOARD
+   UPDATE / RENDER LEADERBOARD TABLES
 ============================= */
 function updateLeaderboardTables() {
 
     const modal = document.getElementById('leaderboardModal');
-    if(!modal) return;
+    if (!modal) return;
 
     let html = `<div id="leaderFilterBox">
                     <select id="levelSelect">
@@ -387,19 +383,20 @@ function updateLeaderboardTables() {
     for (let i = 1; i <= 20; i++) {
         html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
     }
+
     html += `</select></div>`;
 
     html += `<h2>Global Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        const e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        let e = localScores[i] || { score: 0, level: 0 };
-        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        const e = localScores[i] || { score: 0, level: 0 };
+        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
@@ -410,9 +407,9 @@ function updateLeaderboardTables() {
 
     document.getElementById('leaderContent').innerHTML = html;
 
-    // Назначаем события один раз
+    // Смена уровня через select
     const levelSelect = document.getElementById('levelSelect');
-    if(levelSelect){
+    if (levelSelect) {
         levelSelect.onchange = async e => {
             selectedLevel = (e.target.value === 'all') ? 'all' : Number(e.target.value);
             await loadGlobalLeaderboard(selectedLevel);
@@ -420,10 +417,12 @@ function updateLeaderboardTables() {
         };
     }
 
+    // Кнопка Return
     document.getElementById('leaderReturnBtn').onclick = () => {
         modal.style.display = 'none';
     };
 
+    // Кнопка Restart
     document.getElementById('leaderRestartBtn').onclick = () => {
         modal.style.display = 'none';
 
@@ -458,24 +457,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modal = document.getElementById('leaderboardModal');
 
     leaderBtn.onclick = async () => {
-
-        // берём уровень из select, если он уже есть
+        // берём актуальный выбранный уровень из select, если он уже существует
         const levelSelect = document.getElementById('levelSelect');
-        if(levelSelect){
-            selectedLevel = (levelSelect.value === 'all') ? 'all' : Number(levelSelect.value);
-        }
+        selectedLevel = levelSelect ? (levelSelect.value === 'all' ? 'all' : Number(levelSelect.value)) : selectedLevel;
 
         await loadGlobalLeaderboard(selectedLevel);
         updateLeaderboardTables();
         modal.style.display = 'flex';
     };
 
-    // клик по фону модалки закрывает её
     modal.onclick = e => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
-
 
 
 
