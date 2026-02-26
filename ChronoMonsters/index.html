@@ -21,6 +21,29 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 #info .blocked{color: white;}
 #info .round{color: #0f0;}
 
+
+
+#leaderFilterBox{
+    position:absolute;
+    top:50px;     /* совпадает с кнопкой */
+    right:10px;
+    width:115px;
+    padding:10px;
+    border-radius:8px;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(4px);
+    text-align:center;
+    z-index:5;
+}
+
+#leaderFilterBox select{
+    width:100%;
+    padding:6px;
+    font-size:14px;
+    border-radius:6px;
+}
+
+
 #overlay {
   position: fixed;
   top: 50%;
@@ -215,63 +238,86 @@ function setupTelegramBackButton(){
     });
 }
 
+
+
 /* =============================
-   LEADERBOARDS (SERVER ONLY)
+   LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
 ============================= */
+
 let localScores = [];
 let globalScores = [];
 let lastGameScore = null;
+let selectedLevel = 'all';
 
-async function loadGlobalLeaderboard(){
+/* =============================
+   LOAD LEADERBOARD
+============================= */
+async function loadGlobalLeaderboard(levelFilter = null) {
 
-    if(!SERVER_OK) return;
+    globalScores = [];
+    localScores = [];
 
-    try{
+    // Если нет Telegram или сервер недоступен — просто нули
+    if (!tgUser?.id || !SERVER_OK) {
+        for (let i = 0; i < LEADERBOARD_MAX; i++) {
+            globalScores.push({ nick: '—', score: 0, level: 0 });
+            localScores.push({ score: 0, level: 0 });
+        }
+        return;
+    }
+
+    try {
         const url = new URL('/__leaders', window.location.origin);
-
         url.searchParams.set('game', GAME_ID);
 
-        if(tgUser?.id){
-            url.searchParams.set('user', String(tgUser.id));
-        }
+        if (levelFilter && levelFilter !== 'all') url.searchParams.set('level', levelFilter);
+        url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
         const data = await r.json();
 
-        globalScores = (data?.globalTop || []).map(e=>({
+        globalScores = (data?.globalTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
             nick: e.nick || 'Player',
             score: Number(e.score || 0),
             level: Number(e.level || 0)
         }));
 
-        localScores = (data?.userTop || []).map(e=>({
+        localScores = (data?.userTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
             score: Number(e.score || 0),
             level: Number(e.level || 0)
         }));
 
-    }catch(e){
-        console.log("leaders load fail",e);
+        // Если сервер вернул меньше записей — дополняем нулями
+        while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
+        while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
+
+    } catch (e) {
+        console.log("leaders load fail", e);
         SERVER_OK = false;
+
+        for (let i = 0; i < LEADERBOARD_MAX; i++) {
+            globalScores.push({ nick: '—', score: 0, level: 0 });
+            localScores.push({ score: 0, level: 0 });
+        }
     }
 }
 
 /* =============================
    SEND SCORE
 ============================= */
-async function sendScoreToServer(score, level){
+async function sendScoreToServer(score, level) {
+    if (!SERVER_OK || !tgUser?.id) return;
 
-    if(!SERVER_OK || !tgUser?.id) return;
-
-    try{
-        const t = await fetch('/__ticket',{method:'POST'});
+    try {
+        const t = await fetch('/__ticket', { method: 'POST' });
         const ticket = await t.json();
 
-        await fetch('/__emit',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
+        await fetch('/__emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 k: ticket.k,
-                d:{
+                d: {
                     type: 'score',
                     game: GAME_ID,
                     user: { id: String(tgUser.id) },
@@ -282,59 +328,101 @@ async function sendScoreToServer(score, level){
             })
         });
 
-    }catch(e){
-        console.log("send score fail",e);
+    } catch (e) {
+        console.log("send score fail", e);
         SERVER_OK = false;
     }
 }
 
+
+
+async function sendTotalScore(total) {
+    if (!SERVER_OK || !tgUser?.id) return;
+
+    try {
+        const t = await fetch('/__ticket', { method: 'POST' });
+        const ticket = await t.json();
+
+        await fetch('/__emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                k: ticket.k,
+                d: {
+                    type: 'score',
+                    game: GAME_ID,
+                    total: Number(total || 0),
+                    nick: playerNick,
+                    user: { id: String(tgUser.id) }
+                }
+            })
+        });
+
+    } catch (e) {
+        console.log("send total fail", e);
+    }
+}
+
+
+
 /* =============================
    SAVE RESULT
 ============================= */
-async function saveToLeaderboard(score, level){
-
+async function saveToLeaderboard(score, level) {
     lastGameScore = score;
 
-    await sendScoreToServer(score, level);
-    await loadGlobalLeaderboard();
+    if (tgUser?.id && SERVER_OK) await sendScoreToServer(score, level);
+    await loadGlobalLeaderboard(level);
 }
 
 /* =============================
-   RENDER
+   RENDER LEADERBOARD
 ============================= */
-function renderLeaderboard(){
+function renderLeaderboard() {
 
-    let html = `<h2>Global Top</h2>`;
+    let html = `<div id="leaderFilterBox">
+                    <select id="levelSelect">
+                        <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>`;
 
-    for(let i=0;i<LEADERBOARD_MAX;i++){
-        let e = globalScores[i] || { nick:'—', score:0, level:0 };
+    for (let i = 1; i <= 20; i++) {
+        html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
+    }
+
+    html += `</select></div>`;
+
+    html += `<h2>Global Top</h2>`;
+    for (let i = 0; i < LEADERBOARD_MAX; i++) {
+        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
         let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i+1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
+        html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
-
-    for(let i=0;i<LEADERBOARD_MAX;i++){
-        let e = localScores[i] || { score:0, level:0 };
+    for (let i = 0; i < LEADERBOARD_MAX; i++) {
+        let e = localScores[i] || { score: 0, level: 0 };
         let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
-        html += `<div style="color:${color}">${i+1}. ${e.score} (Lv ${e.level})</div>`;
+        html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
-    html += `
-        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
-            <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
-            <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
-        </div>
-    `;
+    html += `<div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; text-align:center;">
+                <button id="leaderReturnBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#555,#333); color:white; border:none;">Return</button>
+                <button id="leaderRestartBtn" style="padding:10px 20px; font-size:18px; border-radius:6px; cursor:pointer; background:linear-gradient(145deg,#ff4444,#990000); color:white; border:none;">Restart Game</button>
+             </div>`;
 
     document.getElementById('leaderContent').innerHTML = html;
 
-    document.getElementById('leaderReturnBtn').onclick = ()=>{
+    document.getElementById('levelSelect').onchange = async e => {
+        const v = e.target.value;
+        selectedLevel = (v === 'all') ? 'all' : Number(v);
+        await loadGlobalLeaderboard(selectedLevel);
+        renderLeaderboard();
+    };
+
+    document.getElementById('leaderReturnBtn').onclick = () => {
         document.getElementById('leaderboardModal').style.display = 'none';
     };
 
-    document.getElementById('leaderRestartBtn').onclick = ()=>{
-
+    document.getElementById('leaderRestartBtn').onclick = () => {
         document.getElementById('leaderboardModal').style.display = 'none';
 
         totalScore = 0;
@@ -349,7 +437,7 @@ function renderLeaderboard(){
         player.x = 0;
         player.y = 0;
 
-        bots.forEach(b=>b.alive = true);
+        bots.forEach(b => b.alive = true);
 
         startNextLevel();
         gameOver = false;
@@ -359,7 +447,7 @@ function renderLeaderboard(){
 /* =============================
    INIT BUTTONS
 ============================= */
-document.addEventListener('DOMContentLoaded', async ()=>{
+document.addEventListener('DOMContentLoaded', async () => {
 
     await authTelegram();
     setupTelegramBackButton();
@@ -367,20 +455,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
 
-    leaderBtn.onclick = async ()=>{
-        await loadGlobalLeaderboard();
+    leaderBtn.onclick = async () => {
+        await loadGlobalLeaderboard(selectedLevel);
         renderLeaderboard();
         modal.style.display = 'flex';
     };
 
-    modal.onclick = (e)=>{
-        if(e.target === modal) modal.style.display = 'none';
+    modal.onclick = e => {
+        if (e.target === modal) modal.style.display = 'none';
     };
-
 });
-
-
-
 
 
 
@@ -622,6 +706,11 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     // ✅ Сохраняем результат на сервер
     await saveToLeaderboard(levelScore, currentLevel);
+
+// отправляем TOTAL SCORE только при смерти
+if (text.startsWith("Game Over")) {
+    await sendTotalScore(totalScore);
+}
 
     restartBtn.onclick = () => {
         overlay.style.display = "none";
@@ -2013,6 +2102,7 @@ function shadeColor(color, percent) {
 (function loop(){ draw(); requestAnimationFrame(loop); })();
 spawn();
 restartBtn.onclick = ()=>spawn();
+
 </script>
 </body>
 </html>
