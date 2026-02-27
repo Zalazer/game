@@ -91,15 +91,24 @@ async function authTelegram(){
 }
 
 
+
 /* =============================
-   LEADERBOARDS (REAL FIX)
+   LEADERBOARDS (SERVER ONLY)
 ============================= */
 
-let localScores = [], globalScores = [], lastGameResult = null;
+let localScores = [];
+let globalScores = [];
+
+let lastGameResult = null;
 let lastGameScore = null;
+
 const LEADERBOARD_MAX = 10;
 
-// универсальное извлечение номера раунда
+
+/* =============================
+   HELPERS
+============================= */
+
 function extractRound(e){
     return (
         e.round ??
@@ -110,7 +119,15 @@ function extractRound(e){
     ) | 0;
 }
 
+
+/* =============================
+   LOAD FROM SERVER
+============================= */
+
 async function loadGlobalLeaderboard(){
+
+    if(!SERVER_OK) return;
+
     try{
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', 'StarDropper');
@@ -119,15 +136,18 @@ async function loadGlobalLeaderboard(){
             url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetchWithTimeout(url);
+        if(!r.ok) throw new Error("leaders fetch failed");
+
         const data = await r.json();
 
-        /* ===== GLOBAL ===== */
-        if(data?.globalTop && Array.isArray(data.globalTop)){
+        /* ===== GLOBAL TOP ===== */
+        globalScores = [];
+        if(Array.isArray(data?.globalTop)){
             globalScores = data.globalTop.map(e=>{
                 const roundVal = extractRound(e);
                 return {
                     nick: e.nick
-                        ? e.nick.replace(/^@/, '').slice(0,12)
+                        ? e.nick.replace(/^@/,'').slice(0,12)
                         : (e.userId || 'Player'),
                     score: Number(e.score) || 0,
                     round: roundVal,
@@ -137,8 +157,9 @@ async function loadGlobalLeaderboard(){
             });
         }
 
-        /* ===== PERSONAL ===== */
-        if(data?.userTop && Array.isArray(data.userTop)){
+        /* ===== PERSONAL TOP ===== */
+        localScores = [];
+        if(Array.isArray(data?.userTop)){
             localScores = data.userTop.map(e=>{
                 const roundVal = extractRound(e);
                 return {
@@ -149,7 +170,7 @@ async function loadGlobalLeaderboard(){
             });
         }
 
-        // 👇 гарантируем сортировку и обрезку топов
+        /* ===== SORT & LIMIT ===== */
         globalScores.sort((a,b)=> b.score - a.score);
         if(globalScores.length > LEADERBOARD_MAX)
             globalScores.length = LEADERBOARD_MAX;
@@ -159,17 +180,25 @@ async function loadGlobalLeaderboard(){
             localScores.length = LEADERBOARD_MAX;
 
     }catch(e){
-        console.log("KV leaders load fail", e);
+        console.log("leaders load fail", e);
         SERVER_OK = false;
     }
 }
+
+
+/* =============================
+   SEND SCORE
+============================= */
 
 async function sendScoreToServer(entry){
 
     if(!SERVER_OK || !tgUser?.id) return;
 
     try{
+
         const t = await fetchWithTimeout('/__ticket',{ method:'POST' });
+        if(!t.ok) throw new Error("ticket failed");
+
         const ticket = await t.json();
 
         const res = await fetchWithTimeout('/__emit',{
@@ -194,25 +223,14 @@ async function sendScoreToServer(entry){
             })
         });
 
-        if(res.ok){
-            // 👇 сразу добавляем новый результат в глобальный топ
-            pushGlobalScore(
-                playerNick,
-                entry.score,
-                entry.round,
-                entry.accuracy
-            );
+        if(!res.ok)
+            throw new Error("emit failed");
 
-            // 👇 и персональный топ тоже обновляем локально
-            localScores.unshift({
-                score: entry.score,
-                round: entry.round,
-                accuracy: entry.accuracy
-            });
-            localScores.sort((a,b)=> b.score - a.score);
-            if(localScores.length > LEADERBOARD_MAX)
-                localScores.length = LEADERBOARD_MAX;
-        }
+        // 💡 Небольшая задержка на KV (если используешь Cloudflare KV)
+        await new Promise(r=>setTimeout(r,200));
+
+        // ✅ После подтверждения полностью перезагружаем оба топа
+        await loadGlobalLeaderboard();
 
     }catch(e){
         console.log("send score fail", e);
@@ -220,48 +238,22 @@ async function sendScoreToServer(entry){
     }
 }
 
+
+/* =============================
+   SAVE RESULT (ENTRY POINT)
+============================= */
+
 function saveToLeaderboard(entry){
-    let board =
-        JSON.parse(
-            localStorage.getItem('stardropper_leaderboard')
-        ) || [];
-
-    board.unshift(entry);
-    board.sort((a,b)=> b.score - a.score);
-
-    if(board.length > LEADERBOARD_MAX)
-        board.length = LEADERBOARD_MAX;
-
-    localStorage.setItem(
-        'stardropper_leaderboard',
-        JSON.stringify(board)
-    );
 
     lastGameScore = entry.score;
     lastGameResult = entry;
 
-    // 👇 сразу обновляем оба лидерборда
+    // Ничего не пушим вручную
+    // Ничего не сохраняем в localStorage
+    // Только отправка на сервер
+
     sendScoreToServer(entry);
-    localScores = board;
-    pushGlobalScore(entry.nick||playerNick, entry.score, entry.round, entry.accuracy);
 }
-
-function pushGlobalScore(nick, score, round, accuracy){
-    const roundVal = Number(round) || 0;
-
-    globalScores.push({
-        nick: nick.replace(/^@/, '').slice(0,12),
-        score: Number(score) || 0,
-        round: roundVal,
-        rounds: roundVal,
-        accuracy: Number(accuracy) || 0
-    });
-
-    globalScores.sort((a,b)=> b.score - a.score);
-    if(globalScores.length > LEADERBOARD_MAX)
-        globalScores.length = LEADERBOARD_MAX;
-}
-
 
 
 /* =============================
