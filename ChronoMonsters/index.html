@@ -239,6 +239,9 @@ function setupTelegramBackButton(){
 }
 
 
+
+
+
 /* =============================
    LEADERBOARDS (KV + SERVER + LOCAL)
 ============================= */
@@ -258,7 +261,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
     const levelParam = (levelFilter === 'all' || levelFilter == null) ? null : String(levelFilter);
 
     try {
-        if (tgUser?.id && SERVER_OK) {
+        if (tgUser?.id) {
             // Загрузка с сервера / KV
             const url = new URL('/__leaders', window.location.origin);
             url.searchParams.set('game', GAME_ID);
@@ -298,7 +301,8 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 
     } catch (e) {
         console.log("leaders load fail", e);
-        SERVER_OK = false;
+
+        // fallback при ошибке
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
     }
@@ -316,7 +320,7 @@ async function saveToLeaderboard(score, level, isTotal = false) {
     window.savedLevels.sort((a, b) => b.score - a.score);
 
     // Сохраняем на сервер / KV
-    if (tgUser?.id && SERVER_OK) {
+    if (tgUser?.id) {
         try {
             await fetch('/__emit', {
                 method: 'POST',
@@ -336,7 +340,6 @@ async function saveToLeaderboard(score, level, isTotal = false) {
             });
         } catch (e) {
             console.log("score send fail", e);
-            SERVER_OK = false;
         }
     }
 
@@ -413,33 +416,21 @@ function updateLeaderboardTables() {
     };
 }
 
-
 /* =============================
    INIT BUTTON
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // ⚡ Инициализация Telegram перед всем остальным
-    await authTelegram(); // дождёмся, чтобы tgUser был определён
-
-    if (typeof SERVER_OK === 'undefined') window.SERVER_OK = false;
+    await authTelegram();
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
 
-    // кнопка становится активной после авторизации
     leaderBtn.disabled = false;
 
     leaderBtn.onclick = async () => {
-        // 🔹 Загружаем глобальный лидерборд по выбранному уровню
-        // selectedLevel можно оставить как фильтр, если есть выбор уровня
-        // или брать последний завершённый уровень игрока
         await loadGlobalLeaderboard(selectedLevel);
-
-        // 🔹 Обновляем таблицы HTML с новыми данными
         updateLeaderboardTables();
-
-        // 🔹 Показываем модалку
         if (modal) modal.style.display = 'flex';
     };
 
@@ -449,6 +440,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 });
+
+
 
 
 
