@@ -413,6 +413,7 @@ function updateLeaderboardTables() {
     };
 }
 
+
 /* =============================
    INIT BUTTON
 ============================= */
@@ -430,9 +431,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     leaderBtn.disabled = false;
 
     leaderBtn.onclick = async () => {
-        await loadGlobalLeaderboard(selectedLevel); // загрузка глобального/локального топа
-        updateLeaderboardTables();                  // обновление HTML таблиц
-        if (modal) modal.style.display = 'flex';   // показываем модалку
+        // 🔹 Загружаем глобальный лидерборд по выбранному уровню
+        // selectedLevel можно оставить как фильтр, если есть выбор уровня
+        // или брать последний завершённый уровень игрока
+        await loadGlobalLeaderboard(selectedLevel);
+
+        // 🔹 Обновляем таблицы HTML с новыми данными
+        updateLeaderboardTables();
+
+        // 🔹 Показываем модалку
+        if (modal) modal.style.display = 'flex';
     };
 
     if (modal) {
@@ -441,7 +449,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 });
-
 
 
 
@@ -625,7 +632,8 @@ function playLoseSound(){
 }
 
 
-/* ==================== КОНЕЦ ИГРЫ (РЕАЛЬНАЯ РАБОТАЮЩАЯ ВЕРСИЯ) ==================== */
+
+/* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
@@ -675,24 +683,22 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
-
     msgDiv.appendChild(btnContainer);
 
-    // 🔹 Сохраняем результат уровня и обновляем таблицу сразу
+    // 🔹 Сохраняем результат уровня всегда
     lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
-    // 🔹 Сохраняем общий результат только при поражении
+    // 🔹 При поражении сохраняем ещё и общий прогресс
     if (text.startsWith("Game Over")) {
         lastGameScore = totalScore;
         await saveToLeaderboard(totalScore, 0, true);
     }
 
-    // 🔹 Обновляем таблицы после сохранения
-    await loadGlobalLeaderboard(selectedLevel);
-    updateLeaderboardTables();
+    // 🔹 НЕ вызываем loadGlobalLeaderboard / updateLeaderboardTables здесь
+    // Таблицы подтягиваются только по кнопке Leaders
 
-    restartBtn.onclick = async () => {
+    restartBtn.onclick = () => {
         overlay.style.display = "none";
 
         if (text.startsWith("Game Over")) {
@@ -704,21 +710,20 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
 
+            player.power = 1;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
+
             bots = [];
             monsters = [];
             chests = [];
             flashes = [];
             deadZones = [];
 
-            player.power = 1;
-            player.movesLeft = player.speed;
-            player.x = 0;
-            player.y = 0;
-
-            spawn(); // старт с уровня 1
+            startNextLevel(); // старт с уровня 1
         } else if (text.startsWith("You Win")) {
-            level++;
-            totalScore += levelScore;
+            totalScore += levelScore; // добавляем очки уровня в общий счёт
 
             levelScore = 0;
             botsKilledThisLevel = 0;
@@ -736,12 +741,14 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             flashes = [];
             deadZones = [];
 
-            startNextLevel();
+            level++;
+            startNextLevel(); // следующий уровень
         }
 
         gameOver = false;
     };
 };
+
 
 
 
