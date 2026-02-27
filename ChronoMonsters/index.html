@@ -621,7 +621,6 @@ function playLoseSound(){
 }
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -637,13 +636,17 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     overlay.style.display = "block";
 
+    const isGameOver = text.startsWith("Game Over");
+    const isWin = text.startsWith("You Win");
+
     let title = '';
-    if (text.startsWith("Game Over")) {
+
+    if (isGameOver) {
         title = "Game Over";
         msgDiv.style.color = "red";
         playLoseSound();
         restartBtn.innerText = "Restart Game";
-    } else if (text.startsWith("You Win")) {
+    } else if (isWin) {
         title = "You Win";
         msgDiv.style.color = "yellow";
         playWinSound();
@@ -676,26 +679,45 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     msgDiv.appendChild(btnContainer);
 
-    // Сохраняем результат уровня
+    /* ========= СОХРАНЕНИЕ ========= */
+
     await saveToLeaderboard(levelScore, currentLevel, false);
 
-    // Сохраняем общий результат ТОЛЬКО при смерти
-    if (text.startsWith("Game Over")) {
+    if (isGameOver) {
         await saveToLeaderboard(totalScore, 0, true);
     }
+
+    selectedLevel = isGameOver ? 'all' : currentLevel;
+    await loadGlobalLeaderboard(selectedLevel);
+
+    /* ========= RESTART ========= */
 
     restartBtn.onclick = () => {
         overlay.style.display = "none";
 
-        if (text.startsWith("Game Over")) {
+        if (isGameOver) {
+            // 🔥 ВАЖНО — полный сброс
+            level = 1;
+            totalScore = 0;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+
+            player.power = 1;
+            player.speed = 5;
+            player.movesLeft = player.speed;
+
             restartGame();
-        } else if (text.startsWith("You Win")) {
+        } 
+        else if (isWin) {
             level++;
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
+
             player.movesLeft = player.speed;
             bots.forEach(b => b.alive = true);
+
             startNextLevel();
         }
 
