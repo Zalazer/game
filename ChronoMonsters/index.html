@@ -238,8 +238,9 @@ function setupTelegramBackButton(){
     });
 }
 
+
 /* =============================
-   LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE)
+   LEADERBOARDS (LEVEL SUPPORT + OFFLINE MODE)
 ============================= */
 
 let localScores = [];
@@ -251,12 +252,11 @@ let selectedLevel = 'all';
    LOAD LEADERBOARD
 ============================= */
 async function loadGlobalLeaderboard(levelFilter = null) {
+
     globalScores = [];
     localScores = [];
 
-    const levelParam = (levelFilter === 'all' || levelFilter == null) ? null : Number(levelFilter);
-
-    // OFFLINE / no server / no TG user
+    // Если нет Telegram или сервер недоступен — просто нули
     if (!tgUser?.id || !SERVER_OK) {
         for (let i = 0; i < LEADERBOARD_MAX; i++) {
             globalScores.push({ nick: '—', score: 0, level: 0 });
@@ -269,7 +269,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
         const url = new URL('/__leaders', window.location.origin);
         url.searchParams.set('game', GAME_ID);
 
-        if (levelParam) url.searchParams.set('level', String(levelParam));
+        if (levelFilter && levelFilter !== 'all') url.searchParams.set('level', levelFilter);
         url.searchParams.set('user', String(tgUser.id));
 
         const r = await fetch(url);
@@ -300,45 +300,103 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 }
 
 /* =============================
+   SEND SCORE
+============================= */
+async function sendScoreToServer(score, level) {
+    if (!SERVER_OK || !tgUser?.id) return;
+
+    try {
+        const t = await fetch('/__ticket', { method: 'POST' });
+        const ticket = await t.json();
+
+        await fetch('/__emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                k: ticket.k,
+                d: {
+                    type: 'score',
+                    game: GAME_ID,
+                    user: { id: String(tgUser.id) },
+                    nick: playerNick,
+                    score: Number(score || 0),
+                    level: Number(level || 0)
+                }
+            })
+        });
+
+    } catch (e) {
+        console.log("send score fail", e);
+        SERVER_OK = false;
+    }
+}
+
+/* =============================
+   SEND TOTAL SCORE
+============================= */
+async function sendTotalScore(total) {
+    if (!SERVER_OK || !tgUser?.id) return;
+
+    try {
+        const t = await fetch('/__ticket', { method: 'POST' });
+        const ticket = await t.json();
+
+        await fetch('/__emit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                k: ticket.k,
+                d: {
+                    type: 'score',
+                    game: GAME_ID,
+                    total: Number(total || 0),
+                    nick: playerNick,
+                    user: { id: String(tgUser.id) }
+                }
+            })
+        });
+
+    } catch (e) {
+        console.log("send total fail", e);
+    }
+}
+
+/* =============================
    SAVE RESULT
 ============================= */
 async function saveToLeaderboard(score, level) {
     lastGameScore = score;
-    if (tgUser?.id && SERVER_OK) await sendScoreToServer(score, level);
 
-    // после сохранения подтягиваем именно текущий фильтр selectedLevel
-    await loadGlobalLeaderboard(selectedLevel);
+    if (tgUser?.id && SERVER_OK) await sendScoreToServer(score, level);
+    await loadGlobalLeaderboard(level);
 }
 
 /* =============================
-   UPDATE / RENDER LEADERBOARD TABLES
+   RENDER LEADERBOARD
 ============================= */
-function updateLeaderboardTables() {
-    const modal = document.getElementById('leaderboardModal');
-    if (!modal) return;
+function renderLeaderboard() {
 
     let html = `<div id="leaderFilterBox">
                     <select id="levelSelect">
                         <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>`;
 
     for (let i = 1; i <= 20; i++) {
-        const isSelected = (selectedLevel !== 'all' && Number(selectedLevel) === i);
-        html += `<option value="${i}" ${isSelected ? 'selected' : ''}>Level ${i}</option>`;
+        html += `<option value="${i}" ${i === selectedLevel ? 'selected' : ''}>Level ${i}</option>`;
     }
 
     html += `</select></div>`;
 
     html += `<h2>Global Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        const e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        let e = globalScores[i] || { nick: '—', score: 0, level: 0 };
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
-        const e = localScores[i] || { score: 0, level: 0 };
-        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        let e = localScores[i] || { score: 0, level: 0 };
+        let color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
@@ -349,24 +407,20 @@ function updateLeaderboardTables() {
 
     document.getElementById('leaderContent').innerHTML = html;
 
-    // Смена уровня через select
-    const levelSelect = document.getElementById('levelSelect');
-    if (levelSelect) {
-        levelSelect.onchange = async e => {
-            selectedLevel = (e.target.value === 'all') ? 'all' : Number(e.target.value);
-            await loadGlobalLeaderboard(selectedLevel);
-            updateLeaderboardTables();
-        };
-    }
-
-    // Кнопка Return
-    document.getElementById('leaderReturnBtn').onclick = () => {
-        modal.style.display = 'none';
+    // Событие смены уровня
+    document.getElementById('levelSelect').onchange = async e => {
+        const v = e.target.value;
+        selectedLevel = (v === 'all') ? 'all' : Number(v);
+        await loadGlobalLeaderboard(selectedLevel);
+        renderLeaderboard();
     };
 
-    // Кнопка Restart (без изменений)
+    document.getElementById('leaderReturnBtn').onclick = () => {
+        document.getElementById('leaderboardModal').style.display = 'none';
+    };
+
     document.getElementById('leaderRestartBtn').onclick = () => {
-        modal.style.display = 'none';
+        document.getElementById('leaderboardModal').style.display = 'none';
 
         totalScore = 0;
         level = 1;
@@ -391,16 +445,20 @@ function updateLeaderboardTables() {
    INIT BUTTONS
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
+
     await authTelegram();
     setupTelegramBackButton();
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
+    const levelSelect = document.getElementById('levelSelect');
 
     leaderBtn.onclick = async () => {
-        // используем уже выбранный ранее selectedLevel
+        // синхронизируем selectedLevel с select, если он уже есть
+        if(levelSelect) selectedLevel = (levelSelect.value === 'all') ? 'all' : Number(levelSelect.value);
+
         await loadGlobalLeaderboard(selectedLevel);
-        updateLeaderboardTables();
+        renderLeaderboard();
         modal.style.display = 'flex';
     };
 
@@ -408,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target === modal) modal.style.display = 'none';
     };
 });
+
 
 
 /* ==================== КОНСТАНТЫ ==================== */
