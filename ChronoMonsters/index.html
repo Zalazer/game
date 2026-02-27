@@ -238,9 +238,8 @@ function setupTelegramBackButton(){
     });
 }
 
-
 /* =============================
-   LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE FIX)
+   LEADERBOARDS (FULL WORKING VERSION)
 ============================= */
 
 let localScores = [];
@@ -258,8 +257,8 @@ async function loadGlobalLeaderboard(levelFilter = null) {
     const levelParam = (levelFilter === 'all' || levelFilter == null) ? null : String(levelFilter);
 
     try {
-        // Если есть ТГ и сервер доступен — загружаем реальные данные
         if (tgUser?.id && SERVER_OK) {
+            // Загрузка с сервера
             const url = new URL('/__leaders', window.location.origin);
             url.searchParams.set('game', GAME_ID);
             if (levelParam) url.searchParams.set('level', levelParam);
@@ -278,9 +277,18 @@ async function loadGlobalLeaderboard(levelFilter = null) {
                 score: Number(e.score || 0),
                 level: Number(e.level || 0)
             }));
+        } else {
+            // Оффлайн / нет ТГ — показываем локальные очки
+            for (let i = 0; i < LEADERBOARD_MAX; i++) {
+                globalScores.push({ nick: '—', score: 0, level: 0 });
+                localScores.push({
+                    score: i === 0 ? totalScore : 0,
+                    level: i === 0 ? level : 0
+                });
+            }
         }
 
-        // ✅ Всегда заполняем массивы до LEADERBOARD_MAX, даже если офлайн
+        // Заполняем массивы до LEADERBOARD_MAX
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
 
@@ -396,7 +404,7 @@ function updateLeaderboardTables() {
 }
 
 /* =============================
-   INIT BUTTON (WORKS LOCALLY WITHOUT TG)
+   INIT BUTTON (WORKS LOCALLY & TELEGRAM)
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
     if (!window.tgUser) window.tgUser = null;
@@ -407,8 +415,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     leaderBtn.onclick = async () => {
         await loadGlobalLeaderboard(selectedLevel);
-        if (modal) modal.style.display = 'flex';
         updateLeaderboardTables();
+        if (modal) modal.style.display = 'flex';
     };
 
     if (modal) {
