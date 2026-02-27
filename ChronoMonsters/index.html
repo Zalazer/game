@@ -620,6 +620,9 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
+
+
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -645,12 +648,14 @@ Level score: ${finalLevelScore} | Total score: ${totalScore}`
         msgDiv.style.color = "red";
         playLoseSound();
         restartBtn.innerText = "Restart Game";
-    } else if (isWin) {
+    } 
+    else if (isWin) {
         title = "You Win";
         msgDiv.style.color = "yellow";
         playWinSound();
         restartBtn.innerText = "Next Level";
-    } else {
+    } 
+    else {
         title = "Notice";
         msgDiv.style.color = "white";
         restartBtn.innerText = "Continue";
@@ -692,7 +697,25 @@ Level score: ${finalLevelScore} | Total score: ${totalScore}`
     /* ========= RESTART / NEXT LEVEL ========= */
 
     restartBtn.onclick = () => {
+
         overlay.style.display = "none";
+
+        /* ===== ОБЩИЙ СБРОС ПАРАМЕТРОВ ИГРОКА ===== */
+        function resetPlayer() {
+            player.power = 1;
+            player.speed = 5;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
+        }
+
+        /* ===== ОБЩИЙ СБРОС СТАТИСТИКИ УРОВНЯ ===== */
+        function resetLevelStats() {
+            levelScore = 0;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+        }
 
         if (isGameOver) {
 
@@ -700,41 +723,26 @@ Level score: ${finalLevelScore} | Total score: ${totalScore}`
 
             level = 1;
             totalScore = 0;
-            levelScore = 0;
 
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-
-            player.power = 1;
-            player.speed = 5;
-            player.movesLeft = player.speed;
-            player.x = 0;
-            player.y = 0;
+            resetLevelStats();
+            resetPlayer();
 
             bots = [];
             monsters = [];
             chests = [];
             flashes = [];
             deadZones = [];
-
-            // 🔥 ВАЖНО — пересчитывает MAP и спавнит заново
-            startNextLevel();
         }
         else if (isWin) {
 
-            level++;
+            /* ===== НОВЫЙ УРОВЕНЬ С ПОЛНЫМ СБРОСОМ ПРОГРЕССА ===== */
 
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-
-            player.movesLeft = player.speed;
-            bots.forEach(b => b.alive = true);
-
-            startNextLevel();
+            level++;          // переходим дальше
+            resetLevelStats();
+            resetPlayer();    // 🔥 СБРОС ИГРОКА ПРИ ПОБЕДЕ
         }
 
+        startNextLevel();     // spawn() сам всё пересоздаст
         gameOver = false;
     };
 }
