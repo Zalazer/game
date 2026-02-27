@@ -620,18 +620,17 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
 
-    const levelScore = calculateScore();
+    const finalLevelScore = calculateScore();
     const currentLevel = level || 1;
 
     log(
         `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
-Level score: ${levelScore} | Total score: ${totalScore}`
+Level score: ${finalLevelScore} | Total score: ${totalScore}`
     );
 
     overlay.style.display = "block";
@@ -673,7 +672,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div>Bots killed: ${botsKilledThisLevel}</div>
         <div>Monsters killed: ${monstersKilledThisLevel}</div>
         <div>Chests collected: ${chestsCollectedThisLevel}</div>
-        <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
+        <div style="margin-top:10px; font-weight:bold;">Level score: ${finalLevelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
 
@@ -681,7 +680,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     /* ========= СОХРАНЕНИЕ ========= */
 
-    await saveToLeaderboard(levelScore, currentLevel, false);
+    await saveToLeaderboard(finalLevelScore, currentLevel, false);
 
     if (isGameOver) {
         await saveToLeaderboard(totalScore, 0, true);
@@ -690,15 +689,19 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     selectedLevel = isGameOver ? 'all' : currentLevel;
     await loadGlobalLeaderboard(selectedLevel);
 
-    /* ========= RESTART ========= */
+    /* ========= RESTART / NEXT LEVEL ========= */
 
     restartBtn.onclick = () => {
         overlay.style.display = "none";
 
         if (isGameOver) {
-            // 🔥 ВАЖНО — полный сброс
+
+            /* ===== ПОЛНЫЙ СБРОС ИГРЫ ===== */
+
             level = 1;
             totalScore = 0;
+            levelScore = 0;
+
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
@@ -706,11 +709,22 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             player.power = 1;
             player.speed = 5;
             player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
 
-            restartGame();
-        } 
+            bots = [];
+            monsters = [];
+            chests = [];
+            flashes = [];
+            deadZones = [];
+
+            // 🔥 ВАЖНО — пересчитывает MAP и спавнит заново
+            startNextLevel();
+        }
         else if (isWin) {
+
             level++;
+
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
