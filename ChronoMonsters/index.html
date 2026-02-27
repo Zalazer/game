@@ -238,6 +238,8 @@ function setupTelegramBackButton(){
     });
 }
 
+
+
 /* =============================
    LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE)
 ============================= */
@@ -622,7 +624,6 @@ function playLoseSound(){
 
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -648,14 +649,12 @@ Level score: ${finalLevelScore} | Total score: ${totalScore}`
         msgDiv.style.color = "red";
         playLoseSound();
         restartBtn.innerText = "Restart Game";
-    } 
-    else if (isWin) {
+    } else if (isWin) {
         title = "You Win";
         msgDiv.style.color = "yellow";
         playWinSound();
-        restartBtn.innerText = "Next Level";
-    } 
-    else {
+        restartBtn.innerText = "Restart Game"; // 🔥 Сбрасываем прогресс игрока при You Win
+    } else {
         title = "Notice";
         msgDiv.style.color = "white";
         restartBtn.innerText = "Continue";
@@ -684,65 +683,47 @@ Level score: ${finalLevelScore} | Total score: ${totalScore}`
     msgDiv.appendChild(btnContainer);
 
     /* ========= СОХРАНЕНИЕ ========= */
-
     await saveToLeaderboard(finalLevelScore, currentLevel, false);
 
-    if (isGameOver) {
-        await saveToLeaderboard(totalScore, 0, true);
+    if (isGameOver || isWin) {
+        await saveToLeaderboard(totalScore, 0, true); // общий счёт
     }
 
-    selectedLevel = isGameOver ? 'all' : currentLevel;
+    selectedLevel = 'all';
     await loadGlobalLeaderboard(selectedLevel);
 
     /* ========= RESTART / NEXT LEVEL ========= */
-
-    restartBtn.onclick = () => {
-
+    restartBtn.onclick = async () => {
         overlay.style.display = "none";
 
-        /* ===== ОБЩИЙ СБРОС ПАРАМЕТРОВ ИГРОКА ===== */
-        function resetPlayer() {
-            player.power = 1;
-            player.speed = 5;
-            player.movesLeft = player.speed;
-            player.x = 0;
-            player.y = 0;
-        }
+        // 🔥 Полный сброс прогресса игрока независимо от Win/GameOver
+        level = 1;
+        totalScore = 0;
+        levelScore = 0;
 
-        /* ===== ОБЩИЙ СБРОС СТАТИСТИКИ УРОВНЯ ===== */
-        function resetLevelStats() {
-            levelScore = 0;
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-        }
+        botsKilledThisLevel = 0;
+        monstersKilledThisLevel = 0;
+        chestsCollectedThisLevel = 0;
 
-        if (isGameOver) {
+        player.power = 1;
+        player.speed = 5;
+        player.movesLeft = player.speed;
+        player.x = 0;
+        player.y = 0;
 
-            /* ===== ПОЛНЫЙ СБРОС ИГРЫ ===== */
+        bots = [];
+        monsters = [];
+        chests = [];
+        flashes = [];
+        deadZones = [];
 
-            level = 1;
-            totalScore = 0;
+        // Пересоздаём карту и спавним объекты
+        startNextLevel();
 
-            resetLevelStats();
-            resetPlayer();
+        // 🔄 Обновляем лидерборды сразу
+        await loadGlobalLeaderboard('all');
+        updateLeaderboardTables();
 
-            bots = [];
-            monsters = [];
-            chests = [];
-            flashes = [];
-            deadZones = [];
-        }
-        else if (isWin) {
-
-            /* ===== НОВЫЙ УРОВЕНЬ С ПОЛНЫМ СБРОСОМ ПРОГРЕССА ===== */
-
-            level++;          // переходим дальше
-            resetLevelStats();
-            resetPlayer();    // 🔥 СБРОС ИГРОКА ПРИ ПОБЕДЕ
-        }
-
-        startNextLevel();     // spawn() сам всё пересоздаст
         gameOver = false;
     };
 }
