@@ -623,37 +623,31 @@ function playLoseSound(){
 }
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
 
-    const finalLevelScore = calculateScore();
     const currentLevel = level || 1;
 
     log(
         `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
-Level score: ${finalLevelScore} | Total score: ${totalScore}`
+Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
     overlay.style.display = "block";
 
-    const isGameOver = text.startsWith("Game Over");
-    const isWin = text.startsWith("You Win");
-
     let title = '';
-
-    if (isGameOver) {
+    if (text.startsWith("Game Over")) {
         title = "Game Over";
         msgDiv.style.color = "red";
         playLoseSound();
         restartBtn.innerText = "Restart Game";
-    } else if (isWin) {
+    } else if (text.startsWith("You Win")) {
         title = "You Win";
         msgDiv.style.color = "yellow";
         playWinSound();
-        restartBtn.innerText = "Restart Game"; // 🔥 Сбрасываем прогресс игрока при You Win
+        restartBtn.innerText = "Next Level";
     } else {
         title = "Notice";
         msgDiv.style.color = "white";
@@ -676,61 +670,98 @@ Level score: ${finalLevelScore} | Total score: ${totalScore}`
         <div>Bots killed: ${botsKilledThisLevel}</div>
         <div>Monsters killed: ${monstersKilledThisLevel}</div>
         <div>Chests collected: ${chestsCollectedThisLevel}</div>
-        <div style="margin-top:10px; font-weight:bold;">Level score: ${finalLevelScore}</div>
+        <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
 
     msgDiv.appendChild(btnContainer);
 
-    /* ========= СОХРАНЕНИЕ ========= */
-    await saveToLeaderboard(finalLevelScore, currentLevel, false);
+    // Сохраняем результат уровня
+    await saveToLeaderboard(levelScore, currentLevel);
 
-    if (isGameOver || isWin) {
-        await saveToLeaderboard(totalScore, 0, true); // общий счёт
+    // Сохраняем общий результат только при смерти
+    if (text.startsWith("Game Over")) {
+        await saveToLeaderboard(totalScore, 0, true);
     }
 
-    selectedLevel = 'all';
-    await loadGlobalLeaderboard(selectedLevel);
-
-    /* ========= RESTART / NEXT LEVEL ========= */
-    restartBtn.onclick = async () => {
+    restartBtn.onclick = () => {
         overlay.style.display = "none";
 
-        // 🔥 Полный сброс прогресса игрока независимо от Win/GameOver
-        level = 1;
-        totalScore = 0;
-        levelScore = 0;
+        if (text.startsWith("Game Over")) {
+            // 🔹 Полный сброс игры
+            level = 1;             
+            totalScore = 0;        
+            levelScore = 0;        
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
 
-        botsKilledThisLevel = 0;
-        monstersKilledThisLevel = 0;
-        chestsCollectedThisLevel = 0;
+            // 🔹 Стартовые размеры карты
+            const baseMapSize = 15;
+            const densityMapSize = 20; 
+            const baseBots = 5;
+            const baseMonsters = 20;
+            const baseChests = 20;
 
-        player.power = 1;
-        player.speed = 5;
-        player.movesLeft = player.speed;
-        player.x = 0;
-        player.y = 0;
+            MAP = baseMapSize;
 
-        bots = [];
-        monsters = [];
-        chests = [];
-        flashes = [];
-        deadZones = [];
+            const scaleFactor = (MAP * MAP) / (densityMapSize * densityMapSize);
 
-        // Пересоздаём карту и спавним объекты
-        startNextLevel();
+            BOTS = Math.max(1, Math.round(baseBots * scaleFactor));
+            MONSTERS = Math.max(1, Math.round(baseMonsters * scaleFactor));
+            CHESTS = Math.max(1, Math.round(baseChests * scaleFactor));
 
-        // 🔄 Обновляем лидерборды сразу
-        await loadGlobalLeaderboard('all');
-        updateLeaderboardTables();
+            // 🔹 Очистка массивов
+            bots = [];
+            monsters = [];
+            chests = [];
+            flashes = [];
+            deadZones = [];
+
+            // 🔹 Сброс игрока
+            player.power = 1;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
+
+            spawn(); // старт с уровня 1 с правильным количеством объектов
+        } else if (text.startsWith("You Win")) {
+            // 🔹 Увеличиваем уровень
+            level++;
+
+            // 🔹 Добавляем очки текущего уровня в общий счёт
+            totalScore += levelScore;
+
+            // 🔹 Сбрасываем только прогресс текущего уровня
+            levelScore = 0;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+
+            // 🔹 Сброс игрока
+            player.power = 1;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
+
+            // 🔹 Сброс объектов уровня
+            bots = [];
+            monsters = [];
+            chests = [];
+            flashes = [];
+            deadZones = [];
+
+            startNextLevel();
+        }
 
         gameOver = false;
     };
-}
+};
 
 
 
 
+/* ==================== ЛОВУШКИ ==================== */
 function handleTrapAtRoundStart(character) {
     const dirs = [
         { dx: 0, dy: -1 },
@@ -801,25 +832,21 @@ function handleTrapAtRoundStart(character) {
     character.dead = true;
 }
 
-
 /* ==================== NEXT LEVEL ==================== */
-function startNextLevel(){
-
-    /* ===== SCORE RESET FOR NEW LEVEL ===== */
+function startNextLevel() {
+    // 🔹 Сброс счетчиков уровня
     levelScore = 0;
-
     botsKilledThisLevel = 0;
     monstersKilledThisLevel = 0;
     chestsCollectedThisLevel = 0;
 
-
-    // Размер карты: стартовая 15x15, +5 клеток по каждой оси на каждом новом уровне
+    // Размер карты: стартовая 15x15, +5 клеток по каждой оси на новом уровне
     const baseMapSize = 15;
     const mapGrowth = 5;
-    MAP = baseMapSize + (level - 1) * mapGrowth; // уровень должен быть установлен заранее
+    MAP = baseMapSize + (level - 1) * mapGrowth;
 
-    // Плотность объектов фиксируем относительно карты 20x20
-    const densityMapSize = 20; 
+    // Плотность объектов относительно карты 20x20
+    const densityMapSize = 20;
     const baseBots = 5;
     const baseMonsters = 20;
     const baseChests = 20;
@@ -836,63 +863,136 @@ function startNextLevel(){
     player.movesLeft = player.speed;
     bots.forEach(b => b.alive = true);
 
-    spawn(); // старый проверенный метод размещения объектов
+    spawn(); // размещение объектов + анимация
 }
 
-
-
 /* ==================== SPAWN ==================== */
-function spawn(){
+function spawn() {
     const used = new Set();
-    function placeUnique(){
-        let x,y,key;
-        do { x=Math.floor(Math.random()*MAP); y=Math.floor(Math.random()*MAP); key=posKey(x,y);} 
-        while(used.has(key));
+
+    function placeUnique() {
+        let x, y, key;
+        do {
+            x = Math.floor(Math.random() * MAP);
+            y = Math.floor(Math.random() * MAP);
+            key = posKey(x, y);
+        } while (used.has(key));
         used.add(key);
-        return {x,y};
+        return { x, y };
     }
 
-    // Сброс всех параметров
-    moveNumber = 0; roundNumber = 0; logCounter = 0;
-    player.x = 0; player.y = 0; player.power = 1; player.speed = 5; player.movesLeft = player.speed;
-    bots = []; monsters = []; chests = []; flashes = []; deadZones = []; gameOver = false; overlay.style.display="none";
+    // ===== СБРОС ПАРАМЕТРОВ УРОВНЯ =====
+    moveNumber = 0;
+    roundNumber = 0;
+    logCounter = 0;
 
-    // Игрок
-    let p = placeUnique();
-    player.x = p.x; player.y = p.y;
+    player.x = 0;
+    player.y = 0;
+    player.power = 1;
+    player.speed = 5;
+    player.movesLeft = player.speed;
 
-    // Боты
-    for(let i=0;i<BOTS;i++){
-        let pos = placeUnique();
+    bots = [];
+    monsters = [];
+    chests = [];
+    flashes = [];
+    deadZones = [];
+    gameOver = false;
+    overlay.style.display = "none";
+
+    // ===== ИГРОК =====
+    const p = placeUnique();
+    player.x = p.x;
+    player.y = p.y;
+
+    // ===== БОТЫ =====
+    for (let i = 0; i < BOTS; i++) {
+        const pos = placeUnique();
         bots.push({
-            id:`bot-${String(i+1).padStart(3,"0")}`,
-            x:pos.x,y:pos.y,
-            power:1,speed:5,movesLeft:5,
-            alive:true,px:null,py:null,color:"blue"
+            id: `bot-${String(i + 1).padStart(3, "0")}`,
+            x: pos.x,
+            y: pos.y,
+            power: 1,
+            speed: 5,
+            movesLeft: 5,
+            alive: true,
+            px: null,
+            py: null,
+            color: "blue"
         });
     }
 
-    // Монстры
-    for(let i=0;i<MONSTERS;i++){
-        let pos = placeUnique();
-        monsters.push({x:pos.x,y:pos.y,power:1});
+    // ===== МОНСТРЫ =====
+    for (let i = 0; i < MONSTERS; i++) {
+        const pos = placeUnique();
+        monsters.push({ x: pos.x, y: pos.y, power: 1 });
     }
 
-    // Сундуки
-    for(let i=0;i<CHESTS;i++){
-        let pos = placeUnique();
-        chests.push({x:pos.x,y:pos.y,power:1});
+    // ===== СУНДУКИ =====
+    for (let i = 0; i < CHESTS; i++) {
+        const pos = placeUnique();
+        chests.push({ x: pos.x, y: pos.y, power: 1 });
     }
 
-    // Проверяем ловушки сразу после расстановки
+    // ===== ПРОВЕРКА ЛОВУШЕК =====
     resolveTrapAtRoundStart(player);
-    bots.forEach(b=>{
-        if(!b.alive) return;
+    bots.forEach(b => {
+        if (!b.alive) return;
         resolveTrapAtRoundStart(b);
     });
 
+    // ===== ПЛАВНАЯ АНИМАЦИЯ ЗУМА НА ИГРОКА =====
+    animateMapToPlayer();
+
+    // ===== ЗВУК НОВОГО РАУНДА =====
     playNewRoundSound();
 }
+
+/* ==================== АНИМАЦИЯ ЗУМА НА ИГРОКА ==================== */
+function animateMapToPlayer() {
+    const screenWidth = canvas.width;
+    const screenHeight = canvas.height;
+
+    // стартовый масштаб чтобы карта полностью помещалась по ширине
+    const startScale = screenWidth / (MAP * TILE); // TILE — твой CELL_SIZE
+    const endScale = 1; // нормальный масштаб для игры
+
+    // стартовая камера в левом верхнем углу
+    const startCamX = 0;
+    const startCamY = (screenHeight - MAP * TILE * startScale) / 2; // вертикальное центрирование
+
+    // камера для центрирования игрока
+    const targetCamX = -(player.x * TILE - screenWidth / 2 + TILE / 2);
+    const targetCamY = -(player.y * TILE - screenHeight / 2 + TILE / 2);
+
+    let startTime = null;
+
+    function animate(time) {
+        if (!startTime) startTime = time;
+        const elapsed = time - startTime;
+        const duration = 2000; // 2 секунды
+        const t = Math.min(elapsed / duration, 1);
+
+        // Линейная интерполяция масштаба и камеры
+        scale = startScale + (endScale - startScale) * t;
+        camX = startCamX + (targetCamX - startCamX) * t;
+        camY = startCamY + (targetCamY - startCamY) * t;
+
+        draw(); // твоя функция draw() полностью рабочая
+
+        if (t < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            // Анимация закончилась — игрок может ходить
+            playerCanMove = true;
+        }
+    }
+
+    playerCanMove = false; // блокируем ходы
+    requestAnimationFrame(animate);
+}
+
+
 
 
 /* ==================== ПРОХОДИМОСТЬ КЛЕТКИ ==================== */
