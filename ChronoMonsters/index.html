@@ -417,16 +417,22 @@ function updateLeaderboardTables() {
    INIT BUTTON
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!window.tgUser) window.tgUser = null;
+
+    // ⚡ Инициализация Telegram перед всем остальным
+    await authTelegram(); // дождёмся, чтобы tgUser был определён
+
     if (typeof SERVER_OK === 'undefined') window.SERVER_OK = false;
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
 
+    // кнопка становится активной после авторизации
+    leaderBtn.disabled = false;
+
     leaderBtn.onclick = async () => {
-        await loadGlobalLeaderboard(selectedLevel);
-        updateLeaderboardTables();
-        if (modal) modal.style.display = 'flex';
+        await loadGlobalLeaderboard(selectedLevel); // загрузка глобального/локального топа
+        updateLeaderboardTables();                  // обновление HTML таблиц
+        if (modal) modal.style.display = 'flex';   // показываем модалку
     };
 
     if (modal) {
@@ -435,6 +441,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 });
+
+
 
 
 /* ==================== КОНСТАНТЫ ==================== */
