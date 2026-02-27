@@ -241,7 +241,6 @@ function setupTelegramBackButton(){
 
 
 
-
 /* =============================
    LEADERBOARDS (KV + SERVER + LOCAL)
 ============================= */
@@ -262,7 +261,6 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 
     try {
         if (tgUser?.id) {
-            // Загрузка с сервера / KV
             const url = new URL('/__leaders', window.location.origin);
             url.searchParams.set('game', GAME_ID);
             if (levelParam) url.searchParams.set('level', levelParam);
@@ -271,41 +269,44 @@ async function loadGlobalLeaderboard(levelFilter = null) {
             const r = await fetch(url);
             const data = await r.json();
 
-            // Глобальный топ
             globalScores = (data?.globalTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
                 nick: e.nick || 'Player',
                 score: Number(e.score || 0),
                 level: Number(e.level || 0)
             }));
 
-            // Локальные результаты игрока
             localScores = (data?.userTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
                 score: Number(e.score || 0),
                 level: Number(e.level || 0)
             }));
 
         } else {
-            // Offline / WebApp без KV
             if (!window.savedLevels) window.savedLevels = [];
             const sorted = [...window.savedLevels].sort((a, b) => b.score - a.score);
             localScores = sorted.slice(0, LEADERBOARD_MAX);
             while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
 
-            // Заглушка глобальных данных
             while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         }
 
-        // Безопасно дополняем массивы до LEADERBOARD_MAX
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
 
     } catch (e) {
         console.log("leaders load fail", e);
 
-        // fallback при ошибке
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
     }
+}
+
+/* =============================
+   GET NEW TICKET
+============================= */
+async function getTicket() {
+    const r = await fetch('/__ticket', { method: 'POST' });
+    const data = await r.json();
+    return data.k;
 }
 
 /* =============================
@@ -314,19 +315,20 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 async function saveToLeaderboard(score, level, isTotal = false) {
     lastGameScore = score;
 
-    // Сохраняем локально для WebApp
     if (!window.savedLevels) window.savedLevels = [];
     if (!isTotal) window.savedLevels.push({ score, level });
     window.savedLevels.sort((a, b) => b.score - a.score);
 
-    // Сохраняем на сервер / KV
     if (tgUser?.id) {
         try {
+
+            const newTicket = await getTicket();
+
             await fetch('/__emit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    k: ticketKey,
+                    k: newTicket,
                     d: {
                         type: 'score',
                         game: GAME_ID,
@@ -338,6 +340,7 @@ async function saveToLeaderboard(score, level, isTotal = false) {
                     }
                 })
             });
+
         } catch (e) {
             console.log("score send fail", e);
         }
@@ -357,7 +360,7 @@ function updateLeaderboardTables() {
     let html = `<div id="leaderFilterBox">
                     <select id="levelSelect">
                         <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>`;
-    for (let i = 1; i <= 20; i++) {
+    for (let i = 1; i <= 10; i++) {
         const isSelected = selectedLevel !== 'all' && Number(selectedLevel) === i;
         html += `<option value="${i}" ${isSelected ? 'selected' : ''}>Level ${i}</option>`;
     }
@@ -440,7 +443,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 });
-
 
 
 
