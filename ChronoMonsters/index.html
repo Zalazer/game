@@ -239,9 +239,8 @@ function setupTelegramBackButton(){
 }
 
 
-
 /* =============================
-   LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE)
+   LEADERBOARDS (LEVEL SUPPORT + LIVE UPDATE FIX)
 ============================= */
 
 let localScores = [];
@@ -256,48 +255,40 @@ async function loadGlobalLeaderboard(levelFilter = null) {
     globalScores = [];
     localScores = [];
 
-    const levelParam = (levelFilter === 'all' || levelFilter == null) ? null : Number(levelFilter);
-
-    // OFFLINE / no server / no TG user
-    if (!tgUser?.id || !SERVER_OK) {
-        for (let i = 0; i < LEADERBOARD_MAX; i++) {
-            globalScores.push({ nick: '—', score: 0, level: 0 });
-            localScores.push({ score: 0, level: 0 });
-        }
-        return;
-    }
+    const levelParam = (levelFilter === 'all' || levelFilter == null) ? null : String(levelFilter);
 
     try {
-        const url = new URL('/__leaders', window.location.origin);
-        url.searchParams.set('game', GAME_ID);
+        // Если есть ТГ и сервер доступен — загружаем реальные данные
+        if (tgUser?.id && SERVER_OK) {
+            const url = new URL('/__leaders', window.location.origin);
+            url.searchParams.set('game', GAME_ID);
+            if (levelParam) url.searchParams.set('level', levelParam);
+            url.searchParams.set('user', String(tgUser.id));
 
-        if (levelParam) url.searchParams.set('level', String(levelParam));
-        url.searchParams.set('user', String(tgUser.id));
+            const r = await fetch(url);
+            const data = await r.json();
 
-        const r = await fetch(url);
-        const data = await r.json();
+            globalScores = (data?.globalTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
+                nick: e.nick || 'Player',
+                score: Number(e.score || 0),
+                level: Number(e.level || 0)
+            }));
 
-        globalScores = (data?.globalTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
-            nick: e.nick || 'Player',
-            score: Number(e.score || 0),
-            level: Number(e.level || 0)
-        }));
+            localScores = (data?.userTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
+                score: Number(e.score || 0),
+                level: Number(e.level || 0)
+            }));
+        }
 
-        localScores = (data?.userTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
-            score: Number(e.score || 0),
-            level: Number(e.level || 0)
-        }));
-
+        // ✅ Всегда заполняем массивы до LEADERBOARD_MAX, даже если офлайн
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
 
     } catch (e) {
         console.log("leaders load fail", e);
         SERVER_OK = false;
-        for (let i = 0; i < LEADERBOARD_MAX; i++) {
-            globalScores.push({ nick: '—', score: 0, level: 0 });
-            localScores.push({ score: 0, level: 0 });
-        }
+        while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
+        while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
     }
 }
 
@@ -317,8 +308,8 @@ async function saveToLeaderboard(score, level, isTotal = false) {
                     d: {
                         type: 'score',
                         game: GAME_ID,
-                        score: score,
-                        level: level,
+                        score,
+                        level,
                         total: isTotal,
                         nick: playerNick,
                         user: tgUser
@@ -331,17 +322,9 @@ async function saveToLeaderboard(score, level, isTotal = false) {
         }
     }
 
-    // ✅ КОРРЕКТНОЕ обновление таблиц
-    if (isTotal) {
-        // если это общий счёт — обновляем "all"
-        await loadGlobalLeaderboard('all');
-    } else {
-        // если это уровень — обновляем именно этот уровень
-        await loadGlobalLeaderboard(level);
-    }
+    const filter = isTotal ? 'all' : level;
+    await loadGlobalLeaderboard(filter);
 }
-
-
 
 /* =============================
    UPDATE / RENDER LEADERBOARD TABLES
@@ -353,25 +336,23 @@ function updateLeaderboardTables() {
     let html = `<div id="leaderFilterBox">
                     <select id="levelSelect">
                         <option value="all" ${selectedLevel === 'all' ? 'selected' : ''}>All Levels</option>`;
-
     for (let i = 1; i <= 20; i++) {
-        const isSelected = (selectedLevel !== 'all' && Number(selectedLevel) === i);
+        const isSelected = selectedLevel !== 'all' && Number(selectedLevel) === i;
         html += `<option value="${i}" ${isSelected ? 'selected' : ''}>Level ${i}</option>`;
     }
-
     html += `</select></div>`;
 
     html += `<h2>Global Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
         const e = globalScores[i] || { nick: '—', score: 0, level: 0 };
-        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        const color = (e.score === lastGameScore && (selectedLevel === 'all' || e.level === selectedLevel)) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.nick} — ${e.score} (Lv ${e.level})</div>`;
     }
 
     html += `<h2 style="margin-top:15px;">Your Top</h2>`;
     for (let i = 0; i < LEADERBOARD_MAX; i++) {
         const e = localScores[i] || { score: 0, level: 0 };
-        const color = (e.score === lastGameScore) ? '#00ff99' : '#ccc';
+        const color = (e.score === lastGameScore && (selectedLevel === 'all' || e.level === selectedLevel)) ? '#00ff99' : '#ccc';
         html += `<div style="color:${color}">${i + 1}. ${e.score} (Lv ${e.level})</div>`;
     }
 
@@ -382,7 +363,6 @@ function updateLeaderboardTables() {
 
     document.getElementById('leaderContent').innerHTML = html;
 
-    // Смена уровня через select
     const levelSelect = document.getElementById('levelSelect');
     if (levelSelect) {
         levelSelect.onchange = async e => {
@@ -392,55 +372,52 @@ function updateLeaderboardTables() {
         };
     }
 
-    // Кнопка Return
     document.getElementById('leaderReturnBtn').onclick = () => {
         modal.style.display = 'none';
     };
 
-    // Кнопка Restart (без изменений)
     document.getElementById('leaderRestartBtn').onclick = () => {
         modal.style.display = 'none';
-
-        totalScore = 0;
         level = 1;
+        totalScore = 0;
+        levelScore = 0;
         botsKilledThisLevel = 0;
         monstersKilledThisLevel = 0;
         chestsCollectedThisLevel = 0;
-
         player.power = 1;
         player.speed = 5;
         player.movesLeft = player.speed;
         player.x = 0;
         player.y = 0;
-
         bots.forEach(b => b.alive = true);
-
         startNextLevel();
         gameOver = false;
     };
 }
 
 /* =============================
-   INIT BUTTONS
+   INIT BUTTON (WORKS LOCALLY WITHOUT TG)
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
-    await authTelegram();
-    setupTelegramBackButton();
+    if (!window.tgUser) window.tgUser = null;
+    if (typeof SERVER_OK === 'undefined') window.SERVER_OK = false;
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
 
     leaderBtn.onclick = async () => {
-        // используем уже выбранный ранее selectedLevel
         await loadGlobalLeaderboard(selectedLevel);
+        if (modal) modal.style.display = 'flex';
         updateLeaderboardTables();
-        modal.style.display = 'flex';
     };
 
-    modal.onclick = e => {
-        if (e.target === modal) modal.style.display = 'none';
-    };
+    if (modal) {
+        modal.onclick = e => {
+            if (e.target === modal) modal.style.display = 'none';
+        };
+    }
 });
+
 
 
 /* ==================== КОНСТАНТЫ ==================== */
@@ -622,7 +599,6 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -676,15 +652,15 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     msgDiv.appendChild(btnContainer);
 
-    // Сохраняем результат уровня
+    // 🔹 Сохраняем результат уровня
     await saveToLeaderboard(levelScore, currentLevel);
 
-    // Сохраняем общий результат только при смерти
+    // 🔹 Сохраняем общий результат только при поражении
     if (text.startsWith("Game Over")) {
         await saveToLeaderboard(totalScore, 0, true);
     }
 
-    restartBtn.onclick = () => {
+    restartBtn.onclick = async () => {
         overlay.style.display = "none";
 
         if (text.startsWith("Game Over")) {
@@ -696,7 +672,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
 
-            // 🔹 Стартовые размеры карты
             const baseMapSize = 15;
             const densityMapSize = 20; 
             const baseBots = 5;
@@ -704,7 +679,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             const baseChests = 20;
 
             MAP = baseMapSize;
-
             const scaleFactor = (MAP * MAP) / (densityMapSize * densityMapSize);
 
             BOTS = Math.max(1, Math.round(baseBots * scaleFactor));
@@ -724,15 +698,13 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             player.x = 0;
             player.y = 0;
 
-            spawn(); // старт с уровня 1 с правильным количеством объектов
+            spawn(); // старт с уровня 1
         } else if (text.startsWith("You Win")) {
             // 🔹 Увеличиваем уровень
             level++;
-
-            // 🔹 Добавляем очки текущего уровня в общий счёт
             totalScore += levelScore;
 
-            // 🔹 Сбрасываем только прогресс текущего уровня
+            // 🔹 Сбрасываем прогресс текущего уровня
             levelScore = 0;
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
@@ -744,7 +716,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
             player.x = 0;
             player.y = 0;
 
-            // 🔹 Сброс объектов уровня
+            // 🔹 Очистка объектов уровня
             bots = [];
             monsters = [];
             chests = [];
@@ -948,49 +920,58 @@ function spawn() {
     playNewRoundSound();
 }
 
+
+
+
 /* ==================== АНИМАЦИЯ ЗУМА НА ИГРОКА ==================== */
 function animateMapToPlayer() {
     const screenWidth = canvas.width;
     const screenHeight = canvas.height;
 
-    // стартовый масштаб чтобы карта полностью помещалась по ширине
-    const startScale = screenWidth / (MAP * TILE); // TILE — твой CELL_SIZE
-    const endScale = 1; // нормальный масштаб для игры
+    // стартовый масштаб — карта полностью по ширине
+    const startScale = screenWidth / (MAP * TILE);
 
-    // стартовая камера в левом верхнем углу
+    // 🔥 теперь зум в 2 раза ближе
+    const endScale = 2;
+
+    // стартовая камера (левый верх, с вертикальным центрированием)
     const startCamX = 0;
-    const startCamY = (screenHeight - MAP * TILE * startScale) / 2; // вертикальное центрирование
-
-    // камера для центрирования игрока
-    const targetCamX = -(player.x * TILE - screenWidth / 2 + TILE / 2);
-    const targetCamY = -(player.y * TILE - screenHeight / 2 + TILE / 2);
+    const startCamY = (screenHeight - MAP * TILE * startScale) / 2;
 
     let startTime = null;
 
     function animate(time) {
         if (!startTime) startTime = time;
         const elapsed = time - startTime;
-        const duration = 2000; // 2 секунды
+        const duration = 2000;
         const t = Math.min(elapsed / duration, 1);
 
-        // Линейная интерполяция масштаба и камеры
+        // интерполируем масштаб
         scale = startScale + (endScale - startScale) * t;
+
+        // 🔥 ВАЖНО: камера должна учитывать scale
+        const targetCamX =
+            screenWidth / 2 - (player.x * TILE + TILE / 2) * scale;
+
+        const targetCamY =
+            screenHeight / 2 - (player.y * TILE + TILE / 2) * scale;
+
         camX = startCamX + (targetCamX - startCamX) * t;
         camY = startCamY + (targetCamY - startCamY) * t;
 
-        draw(); // твоя функция draw() полностью рабочая
+        draw();
 
         if (t < 1) {
             requestAnimationFrame(animate);
         } else {
-            // Анимация закончилась — игрок может ходить
             playerCanMove = true;
         }
     }
 
-    playerCanMove = false; // блокируем ходы
+    playerCanMove = false;
     requestAnimationFrame(animate);
 }
+
 
 
 
