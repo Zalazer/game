@@ -302,44 +302,13 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 /* =============================
    SAVE RESULT
 ============================= */
-async function saveToLeaderboard(score, level, isTotal = false) {
+async function saveToLeaderboard(score, level) {
     lastGameScore = score;
+    if (tgUser?.id && SERVER_OK) await sendScoreToServer(score, level);
 
-    if (tgUser?.id && SERVER_OK) {
-        try {
-            await fetch('/__emit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    k: ticketKey,
-                    d: {
-                        type: 'score',
-                        game: GAME_ID,
-                        score: score,
-                        level: level,
-                        total: isTotal,
-                        nick: playerNick,
-                        user: tgUser
-                    }
-                })
-            });
-        } catch (e) {
-            console.log("score send fail", e);
-            SERVER_OK = false;
-        }
-    }
-
-    // ✅ КОРРЕКТНОЕ обновление таблиц
-    if (isTotal) {
-        // если это общий счёт — обновляем "all"
-        await loadGlobalLeaderboard('all');
-    } else {
-        // если это уровень — обновляем именно этот уровень
-        await loadGlobalLeaderboard(level);
-    }
+    // после сохранения подтягиваем именно текущий фильтр selectedLevel
+    await loadGlobalLeaderboard(selectedLevel);
 }
-
-
 
 /* =============================
    UPDATE / RENDER LEADERBOARD TABLES
@@ -676,13 +645,13 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     msgDiv.appendChild(btnContainer);
 
-    // Сохраняем результат уровня
-    await saveToLeaderboard(levelScore, currentLevel, false);
+    // ✅ Сохраняем результат на сервер
+    await saveToLeaderboard(levelScore, currentLevel);
 
-    // Сохраняем общий результат ТОЛЬКО при смерти
-    if (text.startsWith("Game Over")) {
-        await saveToLeaderboard(totalScore, 0, true);
-    }
+// отправляем TOTAL SCORE только при смерти
+if (text.startsWith("Game Over")) {
+    await sendTotalScore(totalScore);
+}
 
     restartBtn.onclick = () => {
         overlay.style.display = "none";
