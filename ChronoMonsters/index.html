@@ -238,8 +238,9 @@ function setupTelegramBackButton(){
     });
 }
 
+
 /* =============================
-   LEADERBOARDS (FULL WORKING VERSION)
+   LEADERBOARDS (KV + SERVER + LOCAL)
 ============================= */
 
 let localScores = [];
@@ -248,7 +249,7 @@ let lastGameScore = null;
 let selectedLevel = 'all';
 
 /* =============================
-   LOAD LEADERBOARD
+   LOAD LEADERBOARD (KV + SERVER + LOCAL)
 ============================= */
 async function loadGlobalLeaderboard(levelFilter = null) {
     globalScores = [];
@@ -258,7 +259,7 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 
     try {
         if (tgUser?.id && SERVER_OK) {
-            // Загрузка с сервера
+            // Загрузка с сервера / KV
             const url = new URL('/__leaders', window.location.origin);
             url.searchParams.set('game', GAME_ID);
             if (levelParam) url.searchParams.set('level', levelParam);
@@ -267,28 +268,31 @@ async function loadGlobalLeaderboard(levelFilter = null) {
             const r = await fetch(url);
             const data = await r.json();
 
+            // Глобальный топ
             globalScores = (data?.globalTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
                 nick: e.nick || 'Player',
                 score: Number(e.score || 0),
                 level: Number(e.level || 0)
             }));
 
+            // Локальные результаты игрока
             localScores = (data?.userTop || []).slice(0, LEADERBOARD_MAX).map(e => ({
                 score: Number(e.score || 0),
                 level: Number(e.level || 0)
             }));
+
         } else {
-            // Оффлайн / нет ТГ — показываем локальные очки
-            for (let i = 0; i < LEADERBOARD_MAX; i++) {
-                globalScores.push({ nick: '—', score: 0, level: 0 });
-                localScores.push({
-                    score: i === 0 ? totalScore : 0,
-                    level: i === 0 ? level : 0
-                });
-            }
+            // Offline / WebApp без KV
+            if (!window.savedLevels) window.savedLevels = [];
+            const sorted = [...window.savedLevels].sort((a, b) => b.score - a.score);
+            localScores = sorted.slice(0, LEADERBOARD_MAX);
+            while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
+
+            // Заглушка глобальных данных
+            while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         }
 
-        // Заполняем массивы до LEADERBOARD_MAX
+        // Безопасно дополняем массивы до LEADERBOARD_MAX
         while (globalScores.length < LEADERBOARD_MAX) globalScores.push({ nick: '—', score: 0, level: 0 });
         while (localScores.length < LEADERBOARD_MAX) localScores.push({ score: 0, level: 0 });
 
@@ -301,11 +305,17 @@ async function loadGlobalLeaderboard(levelFilter = null) {
 }
 
 /* =============================
-   SAVE RESULT
+   SAVE RESULT (KV + SERVER + LOCAL)
 ============================= */
 async function saveToLeaderboard(score, level, isTotal = false) {
     lastGameScore = score;
 
+    // Сохраняем локально для WebApp
+    if (!window.savedLevels) window.savedLevels = [];
+    if (!isTotal) window.savedLevels.push({ score, level });
+    window.savedLevels.sort((a, b) => b.score - a.score);
+
+    // Сохраняем на сервер / KV
     if (tgUser?.id && SERVER_OK) {
         try {
             await fetch('/__emit', {
@@ -335,7 +345,7 @@ async function saveToLeaderboard(score, level, isTotal = false) {
 }
 
 /* =============================
-   UPDATE / RENDER LEADERBOARD TABLES
+   UPDATE / RENDER LEADERBOARD
 ============================= */
 function updateLeaderboardTables() {
     const modal = document.getElementById('leaderboardModal');
@@ -404,7 +414,7 @@ function updateLeaderboardTables() {
 }
 
 /* =============================
-   INIT BUTTON (WORKS LOCALLY & TELEGRAM)
+   INIT BUTTON
 ============================= */
 document.addEventListener('DOMContentLoaded', async () => {
     if (!window.tgUser) window.tgUser = null;
@@ -425,7 +435,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 });
-
 
 
 /* ==================== КОНСТАНТЫ ==================== */
@@ -607,7 +616,8 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-/* ==================== КОНЕЦ ИГРЫ ==================== */
+
+/* ==================== КОНЕЦ ИГРЫ (РЕАЛЬНАЯ РАБОТАЮЩАЯ ВЕРСИЯ) ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
@@ -660,47 +670,38 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     msgDiv.appendChild(btnContainer);
 
-    // 🔹 Сохраняем результат уровня
+    // 🔹 Сохраняем результат уровня и обновляем таблицу сразу
+    lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
     // 🔹 Сохраняем общий результат только при поражении
     if (text.startsWith("Game Over")) {
+        lastGameScore = totalScore;
         await saveToLeaderboard(totalScore, 0, true);
     }
+
+    // 🔹 Обновляем таблицы после сохранения
+    await loadGlobalLeaderboard(selectedLevel);
+    updateLeaderboardTables();
 
     restartBtn.onclick = async () => {
         overlay.style.display = "none";
 
         if (text.startsWith("Game Over")) {
             // 🔹 Полный сброс игры
-            level = 1;             
-            totalScore = 0;        
-            levelScore = 0;        
+            level = 1;
+            totalScore = 0;
+            levelScore = 0;
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
 
-            const baseMapSize = 15;
-            const densityMapSize = 20; 
-            const baseBots = 5;
-            const baseMonsters = 20;
-            const baseChests = 20;
-
-            MAP = baseMapSize;
-            const scaleFactor = (MAP * MAP) / (densityMapSize * densityMapSize);
-
-            BOTS = Math.max(1, Math.round(baseBots * scaleFactor));
-            MONSTERS = Math.max(1, Math.round(baseMonsters * scaleFactor));
-            CHESTS = Math.max(1, Math.round(baseChests * scaleFactor));
-
-            // 🔹 Очистка массивов
             bots = [];
             monsters = [];
             chests = [];
             flashes = [];
             deadZones = [];
 
-            // 🔹 Сброс игрока
             player.power = 1;
             player.movesLeft = player.speed;
             player.x = 0;
@@ -708,23 +709,19 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
             spawn(); // старт с уровня 1
         } else if (text.startsWith("You Win")) {
-            // 🔹 Увеличиваем уровень
             level++;
             totalScore += levelScore;
 
-            // 🔹 Сбрасываем прогресс текущего уровня
             levelScore = 0;
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
 
-            // 🔹 Сброс игрока
             player.power = 1;
             player.movesLeft = player.speed;
             player.x = 0;
             player.y = 0;
 
-            // 🔹 Очистка объектов уровня
             bots = [];
             monsters = [];
             chests = [];
@@ -737,7 +734,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         gameOver = false;
     };
 };
-
 
 
 
