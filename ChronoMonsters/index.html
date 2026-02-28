@@ -520,6 +520,34 @@ const ctx = canvas.getContext("2d");
 canvas.width = innerWidth;
 canvas.height = innerHeight;
 
+/* ==================== OFFSCREEN GRID ==================== */
+let gridCanvas = null;
+let gridCtx = null;
+
+function rebuildGridCanvas() {
+
+    gridCanvas = document.createElement("canvas");
+    gridCanvas.width = MAP * TILE;
+    gridCanvas.height = MAP * TILE;
+
+    gridCtx = gridCanvas.getContext("2d");
+    gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+    gridCtx.strokeStyle = "#333";
+    gridCtx.lineWidth = 1;
+
+    for (let x = 0; x < MAP; x++) {
+        for (let y = 0; y < MAP; y++) {
+            gridCtx.strokeRect(
+                x * TILE,
+                y * TILE,
+                TILE,
+                TILE
+            );
+        }
+    }
+}
+
 /* ==================== КАМЕРА, ЖЕСТЫ И PINCH-ZOOM ==================== */
 let camX = 0, camY = 150, scale = 0.49;
 let pointers = new Map();   // для multi-touch
@@ -818,8 +846,10 @@ function handleTrapAtRoundStart(character) {
     character.dead = true;
 }
 
+
 /* ==================== NEXT LEVEL ==================== */
 function startNextLevel() {
+
     // 🔹 Сброс счетчиков уровня
     levelScore = 0;
     botsKilledThisLevel = 0;
@@ -830,6 +860,9 @@ function startNextLevel() {
     const baseMapSize = 15;
     const mapGrowth = 5;
     MAP = baseMapSize + (level - 1) * mapGrowth;
+
+    // 🔥 ПЕРЕСТРОЙКА СЕТКИ (ОДИН РАЗ НА УРОВЕНЬ)
+    rebuildGridCanvas();
 
     // Плотность объектов относительно карты 20x20
     const densityMapSize = 20;
@@ -849,8 +882,9 @@ function startNextLevel() {
     player.movesLeft = player.speed;
     bots.forEach(b => b.alive = true);
 
-    spawn(); // размещение объектов + анимация
+    spawn();
 }
+
 
 /* ==================== SPAWN ==================== */
 function spawn() {
@@ -936,34 +970,35 @@ function spawn() {
 
 
 
-
 /* ==================== АНИМАЦИЯ ЗУМА НА ИГРОКА ==================== */
 function animateMapToPlayer() {
+
+    // 🔥 ГАРАНТИЯ, что сетка существует
+    if (!gridCanvas) {
+        rebuildGridCanvas();
+    }
+
     const screenWidth = canvas.width;
     const screenHeight = canvas.height;
 
-    // стартовый масштаб — карта полностью по ширине
     const startScale = screenWidth / (MAP * TILE);
-
-    // 🔥 теперь зум в 2 раза ближе
     const endScale = 2;
 
-    // стартовая камера (левый верх, с вертикальным центрированием)
     const startCamX = 0;
     const startCamY = (screenHeight - MAP * TILE * startScale) / 2;
 
     let startTime = null;
 
     function animate(time) {
+
         if (!startTime) startTime = time;
+
         const elapsed = time - startTime;
         const duration = 2000;
         const t = Math.min(elapsed / duration, 1);
 
-        // интерполируем масштаб
         scale = startScale + (endScale - startScale) * t;
 
-        // 🔥 ВАЖНО: камера должна учитывать scale
         const targetCamX =
             screenWidth / 2 - (player.x * TILE + TILE / 2) * scale;
 
@@ -985,7 +1020,6 @@ function animateMapToPlayer() {
     playerCanMove = false;
     requestAnimationFrame(animate);
 }
-
 
 
 
@@ -1466,132 +1500,142 @@ restartBtn.addEventListener("click", () => {
 });
 
 
-
-
 /* ==================== BOT MOVE ==================== */
-function botStep(b){
+function botStep(b) {
 
-    if(!b.alive || gameOver) return;
+    if (!b.alive || gameOver) return;
 
     b.movesLeft = b.speed;
 
-    while(b.movesLeft > 0 && !gameOver){
+    while (b.movesLeft > 0 && !gameOver) {
 
         let bestTarget = null;
         let bestValue = -Infinity;
 
         const entities = [];
 
-        chests.forEach(c=>entities.push({type:"chest",obj:c}));
-        monsters.forEach(m=>entities.push({type:"monster",obj:m}));
-        bots.forEach(o=>{
-            if(o!==b && o.alive) entities.push({type:"bot",obj:o});
+        chests.forEach(c => entities.push({ type: "chest", obj: c }));
+        monsters.forEach(m => entities.push({ type: "monster", obj: m }));
+        bots.forEach(o => {
+            if (o !== b && o.alive) entities.push({ type: "bot", obj: o });
         });
-        entities.push({type:"player",obj:player});
+        entities.push({ type: "player", obj: player });
 
-        function dangerAt(x,y){
+        // ===== КЭШ для опасности и ловушек =====
+        const dangerCache = {};
+        const trapCache = {};
+
+        function dangerAt(x, y) {
+            const key = `${x},${y}`;
+            if (dangerCache[key] !== undefined) return dangerCache[key];
 
             let danger = 0;
 
-            bots.forEach(o=>{
-                if(o===b || !o.alive) return;
-                const d = Math.abs(o.x-x)+Math.abs(o.y-y);
-                if(d<=2 && o.power > b.power){
+            bots.forEach(o => {
+                if (o === b || !o.alive) return;
+                const d = Math.abs(o.x - x) + Math.abs(o.y - y);
+                if (d <= 2 && o.power > b.power) {
                     danger += (o.power - b.power) * 20;
                 }
             });
 
-            if(player !== b){
-                const d = Math.abs(player.x-x)+Math.abs(player.y-y);
-                if(d<=2 && player.power > b.power){
+            if (player !== b) {
+                const d = Math.abs(player.x - x) + Math.abs(player.y - y);
+                if (d <= 2 && player.power > b.power) {
                     danger += (player.power - b.power) * 25;
                 }
             }
 
+            dangerCache[key] = danger;
             return danger;
         }
 
-        function trapRisk(x,y){
-            if(isImmediateDeadEnd({x,y,power:b.power})) return 200;
-            return 0;
+        function trapRisk(x, y) {
+            const key = `${x},${y}`;
+            if (trapCache[key] !== undefined) return trapCache[key];
+
+            const risk = isImmediateDeadEnd({ x, y, power: b.power }) ? 200 : 0;
+            trapCache[key] = risk;
+            return risk;
         }
 
-        entities.forEach(e=>{
+        entities.forEach(e => {
 
             const t = e.obj;
 
-            if(e.type==="monster" && t.power > b.power) return;
-            if(e.type==="bot" && t.power >= b.power) return;
-            if(e.type==="player" && player.power >= b.power) return;
+            if (e.type === "monster" && t.power > b.power) return;
+            if (e.type === "bot" && t.power >= b.power) return;
+            if (e.type === "player" && player.power >= b.power) return;
 
-            const dist = Math.abs(b.x-t.x)+Math.abs(b.y-t.y);
-            if(dist===0) return;
+            const dist = Math.abs(b.x - t.x) + Math.abs(b.y - t.y);
+            if (dist === 0) return;
 
             let reward = 0;
 
-            if(e.type==="chest") reward = 40 + t.power*12;
-            if(e.type==="monster") reward = 70 + t.power*18;
-            if(e.type==="bot") reward = 160 + t.power*25;
-            if(e.type==="player") reward = 300 + player.power*35;
+            if (e.type === "chest") reward = 40 + t.power * 12;
+            if (e.type === "monster") reward = 70 + t.power * 18;
+            if (e.type === "bot") reward = 160 + t.power * 25;
+            if (e.type === "player") reward = 300 + player.power * 35;
 
-            const path = bfsPath(b, b.x, b.y, t.x, t.y);
-            if(!path || path.length===0) return;
+            const path = bfsPath(b, b.x, b.y, t.x, t.y, 4); // ⚡ строго 4 направления
+            if (!path || path.length === 0) return;
 
             const next = path[0];
 
             let value =
                 reward
-                - dist*15
-                - dangerAt(next.x,next.y)
-                - trapRisk(next.x,next.y);
+                - dist * 15
+                - dangerAt(next.x, next.y)
+                - trapRisk(next.x, next.y);
 
             // агрессия если бот сильный
-            if(b.power > player.power * 1.3 && e.type==="player"){
+            if (b.power > player.power * 1.3 && e.type === "player") {
                 value += 200;
             }
 
             // охота на лидера
-            let strongest = Math.max(
+            const strongest = Math.max(
                 player.power,
-                ...bots.filter(o=>o.alive).map(o=>o.power)
+                ...bots.filter(o => o.alive).map(o => o.power)
             );
 
-            if(t.power === strongest){
+            if (t.power === strongest) {
                 value += 120;
             }
 
-            if(value > bestValue){
+            if (value > bestValue) {
                 bestValue = value;
-                bestTarget = {target:t,step:next};
+                bestTarget = { target: t, step: next };
             }
         });
 
         let step = null;
 
-        if(bestTarget){
+        if (bestTarget) {
             step = bestTarget.step;
         }
 
-        // fallback движение
-        if(!step){
-
+        // fallback движение — только 4 направления
+        if (!step) {
             const dirs = [
-                {x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}
+                { x: 1, y: 0 },
+                { x: -1, y: 0 },
+                { x: 0, y: 1 },
+                { x: 0, y: -1 }
             ];
+            dirs.sort(() => Math.random() - 0.5);
 
-            dirs.sort(()=>Math.random()-0.5);
-
-            for(let d of dirs){
-                let nx = b.x + d.x;
-                let ny = b.y + d.y;
-                if(!isBlockedFor(b,nx,ny)){
-                    step = {x:nx,y:ny};
+            for (let d of dirs) {
+                const nx = b.x + d.x;
+                const ny = b.y + d.y;
+                if (!isBlockedFor(b, nx, ny)) {
+                    step = { x: nx, y: ny };
                     break;
                 }
             }
         }
 
-        if(!step) break;
+        if (!step) break;
 
         b.x = step.x;
         b.y = step.y;
@@ -1599,14 +1643,15 @@ function botStep(b){
 
         collect(b);
 
-        if(!b.alive) break;
+        if (!b.alive) break;
 
-        if(isImmediateDeadEnd(b)){
+        if (isImmediateDeadEnd(b)) {
             b.movesLeft = 0;
             break;
         }
     }
 }
+
 
 
 
@@ -2076,37 +2121,51 @@ function glowStyleLabel(cls) {
 }
 
 
+/* ==================== DRAW с кэшированием ==================== */
+const reachCache = { player: {}, bots: new Map() };
+let lastPlayerPos = { x: player.x, y: player.y, moves: player.movesLeft };
+let lastBotPos = new Map();
 
-/* ==================== DRAW ==================== */
 function draw() {
-    // Сброс трансформации и очистка канваса
+    if(lastPlayerPos.x !== player.x || lastPlayerPos.y !== player.y || lastPlayerPos.moves !== player.movesLeft){
+        reachCache.player = {};
+        lastPlayerPos = { x: player.x, y: player.y, moves: player.movesLeft };
+    }
+
+    bots.forEach(b=>{
+        if(!b.alive) return;
+        const last = lastBotPos.get(b) || { x: -1, y: -1, speed: -1 };
+        if(b.x !== last.x || b.y !== last.y || b.speed !== last.speed){
+            reachCache.bots.set(b,{});
+            lastBotPos.set(b,{ x: b.x, y: b.y, speed: b.speed });
+        }
+    });
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(scale, 0, 0, scale, camX, camY);
 
-    // Обновляем statFX для отображения
     updateStatFX();
 
-    // ===== СЕТКА ПОЛЯ =====
-    for (let x = 0; x < MAP; x++) {
-        for (let y = 0; y < MAP; y++) {
-            ctx.strokeStyle = "#333";
-            ctx.strokeRect(x * TILE, y * TILE, TILE, TILE);
-        }
-    }
+    if (gridCanvas) {
+    ctx.drawImage(gridCanvas, 0, 0);
+}
 
-    // Подсветка достижимых клеток игрока
-    bfsReachable(player).forEach(c => {
+    const playerKey = `${player.x},${player.y},${player.movesLeft}`;
+    if (!reachCache.player[playerKey]) reachCache.player[playerKey] = bfsReachable(player);
+    reachCache.player[playerKey].forEach(c => {
         ctx.fillStyle = "rgba(255,255,255,0.08)";
         roundRect(c.x * TILE, c.y * TILE, TILE, TILE, 6, true);
     });
 
-    // Подсветка достижимых клеток ботов
     bots.filter(b => b.alive).forEach(b => {
         const savedMoves = b.movesLeft;
         b.movesLeft = b.speed;
+        const botKey = `${b.x},${b.y},${b.speed}`;
+        if (!reachCache.bots.has(b)) reachCache.bots.set(b, {});
+        if (!reachCache.bots.get(b)[botKey]) reachCache.bots.get(b)[botKey] = bfsReachable(b);
 
-        bfsReachable(b).forEach(c => {
+        reachCache.bots.get(b)[botKey].forEach(c => {
             ctx.fillStyle = "rgba(80,80,200,0.10)";
             roundRect(c.x * TILE, c.y * TILE, TILE, TILE, 6, true);
         });
@@ -2114,7 +2173,6 @@ function draw() {
         b.movesLeft = savedMoves;
     });
 
-    // === Вспомогательные функции для рисования ===
     function roundRect(x, y, w, h, r, fill = true) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -2179,7 +2237,6 @@ function draw() {
         }
     }
 
-    // ===== РИСУЕМ ОБЪЕКТЫ =====
     deadZones.forEach(d => {
         drawCandy(d.x * TILE + 4, d.y * TILE + 4, TILE - 8, "#ffffff");
         ctx.fillStyle = "#000";
@@ -2211,7 +2268,6 @@ function draw() {
     ctx.fillStyle = "white";
     ctx.fillText(player.power, player.x * TILE + 12, player.y * TILE + 30);
 
-    // ===== FLASHES =====
     flashes.forEach(f => {
         ctx.fillStyle = `rgba(255,255,255,${f.alpha})`;
         roundRect(f.x * TILE + 4, f.y * TILE + 4, TILE - 8, TILE - 8, 6, true);
@@ -2219,15 +2275,12 @@ function draw() {
     });
     flashes = flashes.filter(f => f.alpha > 0);
 
-    // ===== ОБНОВЛЯЕМ INFO БЛОК СЧЕТЧИКА =====
     let currentLevelScore = typeof levelScore !== "undefined" ? levelScore : 0;
     let currentTotalScore = typeof totalScore !== "undefined" ? totalScore : 0;
 
-    // ===== Обновляем свечением цифры очков =====
     if (!statFX.levelScore) statFX.levelScore = 0;
     if (!statFX.totalScore) statFX.totalScore = 0;
 
-    // Легкое сглаживание свечения
     statFX.levelScore += (currentLevelScore - statFX.levelScore) * 0.1;
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
@@ -2243,7 +2296,6 @@ function draw() {
 <span class="lbl score" style="${glowStyleLabel('round')}">Level ${level} Score</span><span class="val" style="${glowStyleNumber(statFX.levelScore)}">${Math.round(statFX.levelScore)}</span>
 <span class="lbl score" style="${glowStyleLabel('round')}">Total</span><span class="val" style="${glowStyleNumber(statFX.totalScore)}">${Math.round(statFX.totalScore)}</span>`;
 
-    // ===== Декрементируем эффект свечения для остальных значений =====
     decrementGlow();
 }
 
