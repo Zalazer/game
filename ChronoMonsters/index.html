@@ -1721,12 +1721,105 @@ function resolveAreaTrap(entity){
 /* ==================== ПРОВЕРКА ЛОВУШЕК ПЕРЕД ХОДАМИ ==================== */
 function checkTrapsAndStucks(){
 
+    // 🔥 НОВОЕ — сначала проверяем стояние на белой
+    resolveStandingWhiteTrap(player);
+
+    bots.forEach(b=>{
+        if(!b.alive) return;
+        resolveStandingWhiteTrap(b);
+    });
+
+    // затем обычные проверки
     resolveAreaTrap(player);
 
     bots.forEach(b=>{
         if(!b.alive) return;
         resolveAreaTrap(b);
     });
+}
+
+
+
+/* ==================== СТОЮ НА БЕЛОЙ КЛЕТКЕ В ЛОВУШКЕ ==================== */
+function resolveStandingWhiteTrap(entity){
+
+    if(gameOver) return;
+    if(entity.dead || entity.alive === false) return;
+
+    // Проверяем: стоит ли на белой клетке
+    const currentWhite = deadZones.find(d =>
+        d.x === entity.x && d.y === entity.y
+    );
+
+    if(!currentWhite) return;
+
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    let blocked = 0;
+
+    for(const d of dirs){
+        const nx = entity.x + d[0];
+        const ny = entity.y + d[1];
+
+        if(nx < 0 || ny < 0 || nx >= MAP || ny >= MAP){
+            blocked++;
+            continue;
+        }
+
+        // если вокруг тоже белая клетка
+        if(deadZones.some(z => z.x === nx && z.y === ny)){
+            blocked++;
+            continue;
+        }
+
+        // если клетка непроходима
+        if(isBlockedFor(entity, nx, ny)){
+            blocked++;
+            continue;
+        }
+
+        // есть выход
+        return;
+    }
+
+    if(blocked < 4) return;
+
+    // === ТУПИК НА БЕЛОЙ КЛЕТКЕ ===
+
+    const damage = currentWhite.number;
+    const prevPower = entity.power;
+
+    entity.power -= damage;
+
+    log(`${entity.id || 'entity'} broke standing white: -${damage} (${prevPower}→${entity.power})`);
+
+    // удаляем белую клетку ПОД персонажем
+    const idx = deadZones.indexOf(currentWhite);
+    if(idx !== -1){
+        deadZones.splice(idx,1);
+    }
+
+    flash(entity.x, entity.y, "white");
+
+    if(entity.power <= 0){
+
+        deadZones.push({
+            x: entity.x,
+            y: entity.y,
+            number: prevPower
+        });
+
+        if(entity === player){
+            endGame(`Game Over: trapped on white with ${prevPower} power`);
+        }else{
+            entity.alive = false;
+            flash(entity.x, entity.y, "red");
+        }
+    }
+
+    // если это игрок — раунд завершается
+    if(entity === player){
+        player.movesLeft = 0;
+    }
 }
 
 
