@@ -658,7 +658,6 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -690,7 +689,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         restartBtn.innerText = "Continue";
     }
 
-    // Создаем контейнер для кнопки
     const btnContainer = document.createElement("div");
     btnContainer.style.marginTop = "20px";
     btnContainer.style.display = "flex";
@@ -698,7 +696,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     btnContainer.style.gap = "10px";
     btnContainer.appendChild(restartBtn);
 
-    // Выводим статистику
     msgDiv.innerHTML = `
         <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
         <div>Nick: ${playerNick || "—"}</div>
@@ -713,11 +710,11 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
-    // Сохраняем результат уровня всегда
+    // сохраняем очки уровня
     lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
-    // При поражении сохраняем общий прогресс
+    // при поражении сохраняем общий прогресс
     if (text.startsWith("Game Over")) {
         lastGameScore = totalScore;
         await saveToLeaderboard(totalScore, 0, true);
@@ -725,22 +722,37 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     restartBtn.onclick = () => {
         overlay.style.display = "none";
+        gameOver = false;
 
         if (text.startsWith("Game Over")) {
-            resetGame();
-            startNextLevel(); // старт с уровня 1
+
+            // 🔴 ПОЛНЫЙ СБРОС
+            level = 1;
+            totalScore = 0;
+
         } else if (text.startsWith("You Win")) {
+
+            // 🟡 ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ
             totalScore += levelScore;
-            resetLevelEntities();
             level++;
-            startNextLevel(); // следующий уровень
         }
 
-        gameOver = false;
-    };
-};
+        // 🔹 Сброс счётчиков уровня
+        levelScore = 0;
+        botsKilledThisLevel = 0;
+        monstersKilledThisLevel = 0;
+        chestsCollectedThisLevel = 0;
 
-// 🔹 Сброс всей игры
+        // 🔹 Полная очистка сущностей
+        resetLevelEntities();
+
+        // 🔹 Запуск уровня (всегда один вызов)
+        startNextLevel();
+    };
+}
+
+
+/* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
 function resetGame() {
     level = 1;
     totalScore = 0;
@@ -752,9 +764,11 @@ function resetGame() {
     resetLevelEntities();
 }
 
-// 🔹 Сброс сущностей уровня без изменения очков и уровня
+
+/* ==================== СБРОС СУЩНОСТЕЙ УРОВНЯ ==================== */
 function resetLevelEntities() {
     player.power = 1;
+    player.speed = 5;
     player.movesLeft = player.speed;
     player.x = 0;
     player.y = 0;
