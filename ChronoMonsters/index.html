@@ -1021,19 +1021,18 @@ function animateMapToPlayer() {
 
 
 
+
 /* ==================== ПРОХОДИМОСТЬ КЛЕТКИ ==================== */
 function isBlockedFor(entity, x, y){
     if(x<0 || y<0 || x>=MAP || y>=MAP) return true;
 
     if(deadZones.some(dz => dz.x === x && dz.y === y)) return true;
 
-
-// Игрок как цель
-if(entity !== player && player.x === x && player.y === y){
-    // бот может войти ТОЛЬКО если он сильнее или равен
-    if(entity.power < player.power) return true;
-}
-
+    // Игрок как цель
+    if(entity !== player && player.x === x && player.y === y){
+        // бот может войти ТОЛЬКО если он сильнее или равен
+        if(entity.power < player.power) return true;
+    }
 
     for(let m of monsters){
         if(m.x === x && m.y === y){
@@ -1052,8 +1051,6 @@ if(entity !== player && player.x === x && player.y === y){
 }
 
 
-
-
 /* ==================== ТУПИК В ТЕКУЩЕМ РАУНДЕ ==================== */
 function isImmediateDeadEnd(entity){
     const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -1062,7 +1059,6 @@ function isImmediateDeadEnd(entity){
         const nx = entity.x + d[0];
         const ny = entity.y + d[1];
 
-        // если хотя бы одно направление проходимо — НЕ тупик
         if(nx >= 0 && ny >= 0 && nx < MAP && ny < MAP){
             if(!isBlockedFor(entity, nx, ny)){
                 return false;
@@ -1070,11 +1066,8 @@ function isImmediateDeadEnd(entity){
         }
     }
 
-    // все 4 направления заблокированы
     return true;
 }
-
-
 
 
 /* ==================== ЛОВУШКА В НАЧАЛЕ РАУНДА ==================== */
@@ -1086,19 +1079,14 @@ function getTrapWhiteCells(entity){
         const nx = entity.x + d[0];
         const ny = entity.y + d[1];
 
-        // граница карты — считается непроходимой
-        if(nx < 0 || ny < 0 || nx >= MAP || ny >= MAP){
-            continue;
-        }
+        if(nx < 0 || ny < 0 || nx >= MAP || ny >= MAP) continue;
 
-        // ищем белую клетку
         const dz = deadZones.find(z => z.x === nx && z.y === ny);
         if(dz){
             whites.push(dz);
             continue;
         }
 
-        // если есть хотя бы одна проходимая клетка — НЕ ловушка
         if(!isBlockedFor(entity, nx, ny)){
             return null;
         }
@@ -1107,26 +1095,17 @@ function getTrapWhiteCells(entity){
     return whites;
 }
 
-
-
-
 function resolveTrapAtRoundStart(entity){
     const whites = getTrapWhiteCells(entity);
-    if(!whites) return; // не в ловушке
+    if(!whites || whites.length === 0) return;
 
-    if(whites.length === 0) return; // нет белых — нечего ломать
-
-    // выбираем белую клетку с максимальной силой
     let maxWhite = whites.reduce((a,b)=> b.number > a.number ? b : a);
-
     const damage = maxWhite.number;
     const prevPower = entity.power;
 
     entity.power -= damage;
-
     log(`${entity.id || 'entity'} trapped: -${damage} power (from ${prevPower} to ${entity.power})`);
 
-    // смерть
     if(entity.power <= 0){
         deadZones.push({
             x: entity.x,
@@ -1137,35 +1116,18 @@ function resolveTrapAtRoundStart(entity){
         if(entity === player){
             endGame(`Game Over: trapped with ${prevPower} power`);
         } else {
-    entity.alive = false;
-
-    const index = aliveBots.indexOf(entity);
-    if(index !== -1){
-        aliveBots.splice(index, 1);
-    }
-
-    flash(entity.x, entity.y, "red");
-}
+            entity.alive = false;
+            const index = aliveBots.indexOf(entity);
+            if(index !== -1) aliveBots.splice(index, 1);
+            flash(entity.x, entity.y, "red");
+        }
         return;
     }
 
-    // выжил — убираем белую клетку
     const idx = deadZones.indexOf(maxWhite);
-    if(idx !== -1){
-        deadZones.splice(idx, 1);
-    }
-
+    if(idx !== -1) deadZones.splice(idx, 1);
     flash(maxWhite.x, maxWhite.y, "white");
 }
-
-
-
-
-
-
-
-
-
 
 
 /* ==================== BFS ДОСТУПНЫХ КЛЕТОК ==================== */
@@ -1214,18 +1176,16 @@ function bfsPath(entity, sx,sy,tx,ty){
 /* ==================== FLASH ЭФФЕКТ ==================== */
 function flash(x,y,color){flashes.push({x,y,color,alpha:1});}
 
+
 /* ==================== ПРОВЕРКА ЛОВУШЕК И ТУПИКОВ ==================== */
 function isTrappedOrStuck(x, y, entity) {
     let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
-    let q = [{x, y}];
-    visited[x][y] = true;
+    let q = [{x, y}]; visited[x][y] = true;
     
     while(q.length) {
         let cur = q.shift();
         
-        // Проверка на границу карты
-        if(cur.x === 0 || cur.x === MAP-1 || cur.y === 0 || cur.y === MAP-1) {
-            // Если достигнута граница - это не ловушка, но может быть тупик
+        if(cur.x === 0 || cur.x === MAP-1 || cur.y === 0 || cur.y === MAP-1){
             return {isTrapped: false, isStuck: false};
         }
         
@@ -1234,95 +1194,88 @@ function isTrappedOrStuck(x, y, entity) {
             let nx = cur.x+d[0], ny = cur.y+d[1];
             if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
             if(visited[nx][ny]) return;
-            
-            // Проверка на белые клетки (стены)
+
             let isDeadZone = deadZones.some(dz => dz.x === nx && dz.y === ny);
-            if(!isDeadZone && !isBlockedFor(entity, nx, ny)) {
-                hasEmpty = true;
-            }
-            
-            // Если клетка не стена и доступна
-            if(!isDeadZone && !visited[nx][ny] && !isBlockedFor(entity, nx, ny)) {
+            if(!isDeadZone && !isBlockedFor(entity, nx, ny)) hasEmpty = true;
+
+            if(!isDeadZone && !visited[nx][ny] && !isBlockedFor(entity, nx, ny)){
                 visited[nx][ny] = true;
                 q.push({x:nx, y:ny});
             }
         });
-        
-        // Если нашли пустую клетку, значит не тупик
-        if (hasEmpty) {
-            return {isTrapped: false, isStuck: false};
-        }
+
+        if(hasEmpty) return {isTrapped: false, isStuck: false};
     }
     
-    // Если не нашли выход - это либо ловушка, либо тупик
     return {isTrapped: true, isStuck: true};
 }
 
+
 /* ==================== ПРИМЕНЕНИЕ ШТРАФА ==================== */
 function applyPenalty(entity, penaltyType) {
-    // Находим все белые клетки вокруг области
+    if(entity.power <= 0){
+        // если сила уже 0 — сразу смерть
+        if(entity === player){
+            endGame(`Game Over: ${entity.id} trapped with 0 power`);
+        } else {
+            entity.alive = false;
+            const idx = aliveBots.indexOf(entity);
+            if(idx !== -1) aliveBots.splice(idx,1);
+            flash(entity.x, entity.y, "red");
+        }
+        return;
+    }
+
     let surroundingWhite = [];
     let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
-    let q = [{x:entity.x,y:entity.y}];
-    visited[entity.x][entity.y] = true;
-    
-    while(q.length) {
+    let q = [{x:entity.x,y:entity.y}]; visited[entity.x][entity.y] = true;
+
+    while(q.length){
         let cur = q.shift();
-        
         [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
             let nx = cur.x+d[0], ny = cur.y+d[1];
             if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
             if(visited[nx][ny]) return;
-            
-            // Ищем белые клетки
-            let deadZoneMatch = deadZones.find(dz => dz.x === nx && dz.y === ny);
-            if (deadZoneMatch) {
-                surroundingWhite.push(deadZoneMatch.number);
-                return;
-            }
-            
-            // Пропускаем стены и недоступные клетки
-            if (isBlockedFor(entity, nx, ny)) return;
-            
-            // Продолжаем поиск
-            if (!visited[nx][ny]) {
-                visited[nx][ny] = true;
-                q.push({x:nx, y:ny});
+
+            let dz = deadZones.find(dz => dz.x===nx && dz.y===ny);
+            if(dz) { surroundingWhite.push(dz.number); return; }
+            if(isBlockedFor(entity, nx, ny)) return;
+
+            if(!visited[nx][ny]){
+                visited[nx][ny]=true;
+                q.push({x:nx,y:ny});
             }
         });
     }
-    
-    // Находим максимальный номер белой клетки
-    if (surroundingWhite.length === 0) return;
+
+    if(surroundingWhite.length === 0) return;
     let maxNumber = Math.max(...surroundingWhite);
-    
-    // Применяем штраф
-    if (penaltyType === "trap") {
-        // Для ловушки: если сила меньше максимального числа - персонаж умирает
-        if (entity.power < maxNumber) {
-            if (entity === player) {
-                endGame(`Game Over: ${entity.id} trapped with power ${entity.power} < ${maxNumber}`);
-            } else {
-                entity.alive = false;
-                log(`${entity.id} died in trap (power ${entity.power} < ${maxNumber})`);
-                flash(entity.x, entity.y, "red");
-            }
-            return;
+
+    if(penaltyType==="trap" && entity.power < maxNumber){
+        if(entity === player){
+            endGame(`Game Over: ${entity.id} trapped with power ${entity.power} < ${maxNumber}`);
+        } else {
+            entity.alive = false;
+            const idx = aliveBots.indexOf(entity);
+            if(idx !== -1) aliveBots.splice(idx,1);
+            flash(entity.x, entity.y, "red");
         }
+        return;
     }
-    
-    // Для всех: уменьшаем силу
+
     entity.power -= maxNumber;
     entity.power = Math.max(0, entity.power);
     log(`${entity.id} penalty: -${maxNumber} power (now ${entity.power})`);
     flash(entity.x, entity.y, "white");
-    
-    // Удаляем одну белую клетку с максимальным номером
-    let index = deadZones.findIndex(dz => dz.number === maxNumber);
-    if (index !== -1) {
-        deadZones.splice(index, 1);
-    }
+
+    let index = deadZones.findIndex(dz => dz.number===maxNumber);
+    if(index !== -1) deadZones.splice(index,1);
 }
+
+
+
+
+
 
 /* ==================== COLLECT ==================== */
 function collect(e){
