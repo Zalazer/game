@@ -854,7 +854,6 @@ function handleTrapAtRoundStart(character) {
     character.dead = true;
 }
 
-
 /* ==================== NEXT LEVEL ==================== */
 function startNextLevel() {
 
@@ -868,6 +867,26 @@ function startNextLevel() {
     const baseMapSize = 15;
     const mapGrowth = 5;
     MAP = baseMapSize + (level - 1) * mapGrowth;
+
+    // ===== СБРОС КАНВАСА ДЛЯ TELEGRAM WEBAPP =====
+    if(window.Telegram) {
+        // удаляем старый canvas, если есть
+        if(gridCanvas && gridCanvas.parentNode){
+            const parent = gridCanvas.parentNode;
+            parent.removeChild(gridCanvas);
+
+            // создаём новый canvas
+            gridCanvas = document.createElement("canvas");
+            gridCanvas.id = "gridCanvas";
+            gridCanvas.width = canvas.width;
+            gridCanvas.height = canvas.height;
+            parent.appendChild(gridCanvas);
+
+            gridCtx = gridCanvas.getContext("2d");
+        }
+        // добавляем уникальный хэш в URL, чтобы WebApp не использовал кеш
+        window.location.hash = `t=${Date.now()}`;
+    }
 
     // ===== ПЕРЕСТРОЙКА СЕТКИ С НОВЫМ РАЗМЕРОМ =====
     rebuildGridCanvas(); // теперь сетка соответствует MAP
@@ -893,7 +912,6 @@ function startNextLevel() {
     // ===== ЗАПУСК СПАУНА С ОБНОВЛЕННЫМ РАЗМЕРОМ КАРТЫ =====
     spawn();
 }
-
 
 
 /* ==================== SPAWN ==================== */
@@ -2197,7 +2215,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Pow1er</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
