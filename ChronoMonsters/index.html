@@ -8,36 +8,6 @@
 <!-- TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- TELEGRAM WEBAPP IFRAME CACHE FIX -->
-<script>
-/*
-  Минимальный безопасный фикс кеша Telegram WebView.
-  НИЧЕГО не ломает в логике игры.
-  Работает только если игра открыта внутри Telegram iframe.
-*/
-
-(function(){
-
-  const isTelegram = !!(window.Telegram && window.Telegram.WebApp);
-  const isIframe = window.parent !== window;
-
-  // Если не Telegram или не iframe — ничего не делаем
-  if (!isTelegram || !isIframe) return;
-
-  const url = new URL(window.location.href);
-
-  // Если параметра версии нет — добавляем и перезагружаем один раз
-  if (!url.searchParams.has('v')) {
-
-    url.searchParams.set('v', Date.now());
-
-    // replace чтобы не ломать историю
-    window.location.replace(url.toString());
-  }
-
-})();
-</script>
-
 <style>
 html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 #info{position:fixed;top:0px;left:6px;font-family:monospace;font-size:18px;color:#0f0;background:rgba(0,0,0,0.65);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.3;}
@@ -689,6 +659,8 @@ function playLoseSound(){
 }
 
 
+
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -700,6 +672,43 @@ async function endGame(text) {
         `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
+
+    // === Рисуем мигающий крест на игроке перед overlay ===
+    if (text.startsWith("Game Over")) {
+        const crossDuration = 3000; // 3 секунды
+        const startTime = Date.now();
+
+        await new Promise(resolve => {
+            function drawCross() {
+                const elapsed = Date.now() - startTime;
+                if (elapsed >= crossDuration) return resolve();
+
+                const blink = Math.floor(elapsed / 300) % 2 === 0;
+                const cx = player.x * TILE + TILE / 2;
+                const cy = player.y * TILE + TILE / 2;
+                const size = TILE / 3;
+
+                // Перерисовка канваса (карта + объекты)
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.setTransform(scale, 0, 0, scale, camX, camY);
+                draw(); // твоя существующая функция draw()
+
+                // Рисуем крест
+                ctx.strokeStyle = blink ? "white" : "red";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(cx - size, cy - size);
+                ctx.lineTo(cx + size, cy + size);
+                ctx.moveTo(cx + size, cy - size);
+                ctx.lineTo(cx - size, cy + size);
+                ctx.stroke();
+
+                requestAnimationFrame(drawCross);
+            }
+            drawCross();
+        });
+    }
 
     overlay.style.display = "block";
 
@@ -779,6 +788,8 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         startNextLevel();
     };
 }
+
+
 
 
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
