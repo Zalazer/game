@@ -8,6 +8,36 @@
 <!-- TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+<!-- TELEGRAM WEBAPP IFRAME CACHE FIX -->
+<script>
+/*
+  Минимальный безопасный фикс кеша Telegram WebView.
+  НИЧЕГО не ломает в логике игры.
+  Работает только если игра открыта внутри Telegram iframe.
+*/
+
+(function(){
+
+  const isTelegram = !!(window.Telegram && window.Telegram.WebApp);
+  const isIframe = window.parent !== window;
+
+  // Если не Telegram или не iframe — ничего не делаем
+  if (!isTelegram || !isIframe) return;
+
+  const url = new URL(window.location.href);
+
+  // Если параметра версии нет — добавляем и перезагружаем один раз
+  if (!url.searchParams.has('v')) {
+
+    url.searchParams.set('v', Date.now());
+
+    // replace чтобы не ломать историю
+    window.location.replace(url.toString());
+  }
+
+})();
+</script>
+
 <style>
 html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 #info{position:fixed;top:0px;left:6px;font-family:monospace;font-size:18px;color:#0f0;background:rgba(0,0,0,0.65);padding:8px 12px;border-radius:6px;z-index:10;line-height:1.3;}
