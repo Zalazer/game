@@ -658,6 +658,7 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -725,14 +726,11 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         gameOver = false;
 
         if (text.startsWith("Game Over")) {
-
-            //  ПОЛНЫЙ СБРОС
+            // ПОЛНЫЙ СБРОС ИГРЫ
             level = 1;
             totalScore = 0;
-
         } else if (text.startsWith("You Win")) {
-
-            //  ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ
+            // ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ
             totalScore += levelScore;
             level++;
         }
@@ -743,8 +741,9 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         monstersKilledThisLevel = 0;
         chestsCollectedThisLevel = 0;
 
-        // Полная очистка сущностей
+        // Полная очистка сущностей и канваса
         resetLevelEntities();
+        rebuildGridCanvas();
 
         // Запуск уровня (всегда один вызов)
         startNextLevel();
@@ -762,6 +761,7 @@ function resetGame() {
     chestsCollectedThisLevel = 0;
 
     resetLevelEntities();
+    rebuildGridCanvas();
 }
 
 
@@ -869,8 +869,8 @@ function startNextLevel() {
     const mapGrowth = 5;
     MAP = baseMapSize + (level - 1) * mapGrowth;
 
-    // ПЕРЕСТРОЙКА СЕТКИ (ОДИН РАЗ НА УРОВЕНЬ)
-    rebuildGridCanvas();
+    // ===== ПЕРЕСТРОЙКА СЕТКИ С НОВЫМ РАЗМЕРОМ =====
+    rebuildGridCanvas(); // теперь сетка соответствует MAP
 
     // Плотность объектов относительно карты 20x20
     const densityMapSize = 20;
@@ -890,8 +890,11 @@ function startNextLevel() {
     player.movesLeft = player.speed;
     aliveBots = [...bots];
 
+    // ===== ЗАПУСК СПАУНА С ОБНОВЛЕННЫМ РАЗМЕРОМ КАРТЫ =====
     spawn();
 }
+
+
 
 /* ==================== SPAWN ==================== */
 function spawn() {
@@ -912,21 +915,25 @@ function spawn() {
     moveNumber = 0;
     roundNumber = 0;
     logCounter = 0;
+    gameOver = false;
+    overlay.style.display = "none";
 
+    // ===== СБРОС ИГРОКА =====
     player.x = 0;
     player.y = 0;
     player.power = 1;
     player.speed = 5;
     player.movesLeft = player.speed;
 
+    // ===== ПОЛНАЯ ОЧИСТКА ОБЪЕКТОВ =====
     bots = [];
     aliveBots = [];
     monsters = [];
     chests = [];
     flashes = [];
     deadZones = [];
-    gameOver = false;
-    overlay.style.display = "none";
+    reachCache.player = {};
+    reachCache.bots = new Map();
 
     // ===== ИГРОК =====
     const p = placeUnique();
@@ -944,11 +951,9 @@ function spawn() {
             speed: 5,
             movesLeft: 5,
             alive: true,
-            px: null,
-            py: null,
+            trace: [{ x: pos.x, y: pos.y }],
             color: "blue"
         };
-
         bots.push(bot);
         aliveBots.push(bot);
     }
@@ -965,16 +970,14 @@ function spawn() {
         chests.push({ x: pos.x, y: pos.y, power: 1 });
     }
 
-    // ===== ПРОВЕРКА ЛОВУШЕК =====
+    // ===== ПРОВЕРКА ЛОВУШЕК НА СТАРТЕ =====
     resolveTrapAtRoundStart(player);
-    aliveBots.forEach(b => {
-        resolveTrapAtRoundStart(b);
-    });
+    aliveBots.forEach(b => resolveTrapAtRoundStart(b));
 
     // Если после ловушек не осталось живых ботов — сразу победа
     if(aliveBots.length === 0){
         endGame("You Win: all bots destroyed");
-        return; // останавливаем spawn
+        return;
     }
 
     // ===== ПЛАВНАЯ АНИМАЦИЯ ЗУМА НА ИГРОКА =====
@@ -982,7 +985,12 @@ function spawn() {
 
     // ===== ЗВУК НОВОГО РАУНДА =====
     playNewRoundSound();
+
+    // ===== ПЕРЕРИСОВКА КАРТЫ =====
+    draw();
 }
+
+
 
 
 /* ==================== АНИМАЦИЯ ЗУМА НА ИГРОКА ==================== */
