@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+<head>
 <meta charset="UTF-8">
 <title>ChronoMonsters - Turn Strategy</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -726,27 +726,27 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
         if (text.startsWith("Game Over")) {
 
-            // 🔴 ПОЛНЫЙ СБРОС
+            //  ПОЛНЫЙ СБРОС
             level = 1;
             totalScore = 0;
 
         } else if (text.startsWith("You Win")) {
 
-            // 🟡 ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ
+            //  ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ
             totalScore += levelScore;
             level++;
         }
 
-        // 🔹 Сброс счётчиков уровня
+        // Сброс счётчиков уровня
         levelScore = 0;
         botsKilledThisLevel = 0;
         monstersKilledThisLevel = 0;
         chestsCollectedThisLevel = 0;
 
-        // 🔹 Полная очистка сущностей
+        // Полная очистка сущностей
         resetLevelEntities();
 
-        // 🔹 Запуск уровня (всегда один вызов)
+        // Запуск уровня (всегда один вызов)
         startNextLevel();
     };
 }
@@ -858,7 +858,7 @@ function handleTrapAtRoundStart(character) {
 /* ==================== NEXT LEVEL ==================== */
 function startNextLevel() {
 
-    // 🔹 Сброс счетчиков уровня
+    // Сброс счетчиков уровня
     levelScore = 0;
     botsKilledThisLevel = 0;
     monstersKilledThisLevel = 0;
@@ -869,7 +869,7 @@ function startNextLevel() {
     const mapGrowth = 5;
     MAP = baseMapSize + (level - 1) * mapGrowth;
 
-    // 🔥 ПЕРЕСТРОЙКА СЕТКИ (ОДИН РАЗ НА УРОВЕНЬ)
+    // ПЕРЕСТРОЙКА СЕТКИ (ОДИН РАЗ НА УРОВЕНЬ)
     rebuildGridCanvas();
 
     // Плотность объектов относительно карты 20x20
@@ -892,7 +892,6 @@ function startNextLevel() {
 
     spawn();
 }
-
 
 /* ==================== SPAWN ==================== */
 function spawn() {
@@ -938,20 +937,20 @@ function spawn() {
     for (let i = 0; i < BOTS; i++) {
         const pos = placeUnique();
         let bot = {
-    id: `bot-${String(i + 1).padStart(3, "0")}`,
-    x: pos.x,
-    y: pos.y,
-    power: 1,
-    speed: 5,
-    movesLeft: 5,
-    alive: true,
-    px: null,
-    py: null,
-    color: "blue"
-};
+            id: `bot-${String(i + 1).padStart(3, "0")}`,
+            x: pos.x,
+            y: pos.y,
+            power: 1,
+            speed: 5,
+            movesLeft: 5,
+            alive: true,
+            px: null,
+            py: null,
+            color: "blue"
+        };
 
-bots.push(bot);
-aliveBots.push(bot);
+        bots.push(bot);
+        aliveBots.push(bot);
     }
 
     // ===== МОНСТРЫ =====
@@ -969,8 +968,14 @@ aliveBots.push(bot);
     // ===== ПРОВЕРКА ЛОВУШЕК =====
     resolveTrapAtRoundStart(player);
     aliveBots.forEach(b => {
-    resolveTrapAtRoundStart(b);
-});
+        resolveTrapAtRoundStart(b);
+    });
+
+    // Если после ловушек не осталось живых ботов — сразу победа
+    if(aliveBots.length === 0){
+        endGame("You Win: all bots destroyed");
+        return; // останавливаем spawn
+    }
 
     // ===== ПЛАВНАЯ АНИМАЦИЯ ЗУМА НА ИГРОКА =====
     animateMapToPlayer();
@@ -980,11 +985,10 @@ aliveBots.push(bot);
 }
 
 
-
 /* ==================== АНИМАЦИЯ ЗУМА НА ИГРОКА ==================== */
 function animateMapToPlayer() {
 
-    // 🔥 ГАРАНТИЯ, что сетка существует
+    // ГАРАНТИЯ, что сетка существует
     if (!gridCanvas) {
         rebuildGridCanvas();
     }
@@ -1109,39 +1113,49 @@ function getTrapWhiteCells(entity){
     return whites;
 }
 
-function resolveTrapAtRoundStart(entity){
-    const whites = getTrapWhiteCells(entity);
-    if(!whites || whites.length === 0) return;
 
-    let maxWhite = whites.reduce((a,b)=> b.number > a.number ? b : a);
+
+
+function resolveTrapAtRoundStart(entity) {
+    const whites = getTrapWhiteCells(entity);
+    if (!whites || whites.length === 0) return;
+
+    let maxWhite = whites.reduce((a, b) => b.number > a.number ? b : a);
     const damage = maxWhite.number;
     const prevPower = entity.power;
 
     entity.power -= damage;
     log(`${entity.id || 'entity'} trapped: -${damage} power (from ${prevPower} to ${entity.power})`);
 
-    if(entity.power <= 0){
+    if (entity.power <= 0) {
         deadZones.push({
             x: entity.x,
             y: entity.y,
             number: prevPower
         });
 
-        if(entity === player){
+        if (entity === player) {
             endGame(`Game Over: trapped with ${prevPower} power`);
         } else {
             entity.alive = false;
             const index = aliveBots.indexOf(entity);
-            if(index !== -1) aliveBots.splice(index, 1);
+            if (index !== -1) aliveBots.splice(index, 1);
             flash(entity.x, entity.y, "red");
+
+            if (aliveBots.length === 0) {
+                endGame("You Win: all bots destroyed");
+            }
+            entity.power = 0;
         }
         return;
     }
 
     const idx = deadZones.indexOf(maxWhite);
-    if(idx !== -1) deadZones.splice(idx, 1);
+    if (idx !== -1) deadZones.splice(idx, 1);
     flash(maxWhite.x, maxWhite.y, "white");
 }
+
+
 
 
 /* ==================== BFS ДОСТУПНЫХ КЛЕТОК ==================== */
@@ -1290,168 +1304,71 @@ function applyPenalty(entity, penaltyType) {
 
 
 
-
 /* ==================== COLLECT ==================== */
 function collect(e){
-
     if(gameOver) return;
-
     let playerDidSomething = false;
 
-
-    /* ---------- СУНДУКИ ---------- */
+    // ===== СУНДУКИ =====
     chests = chests.filter(c=>{
-
-        if(c.x === e.x && c.y === e.y){
-
-            e.power += c.power;
-
-            if(e === player){
-                chestsCollectedThisLevel++;
-                playerDidSomething = true;
-            }
-
-            log(`${e.id || 'entity'} collected chest +${c.power} (power:${e.power} speed:${e.speed})`);
+        if(c.x===e.x && c.y===e.y){
+            e.power+=c.power;
+            if(e===player){ chestsCollectedThisLevel++; playerDidSomething=true; }
+            log(`${e.id||'entity'} collected chest +${c.power} (power:${e.power} speed:${e.speed})`);
             flash(c.x,c.y,"yellow");
-
-            deadZones.push({
-                x:c.x,
-                y:c.y,
-                number:c.power
-            });
-
+            deadZones.push({x:c.x,y:c.y,number:c.power});
             playChestSound();
-
             return false;
         }
-
         return true;
     });
 
-
-
-    /* ---------- МОНСТРЫ ---------- */
+    // ===== МОНСТРЫ =====
     monsters = monsters.filter(m=>{
-
-        if(m.x === e.x && m.y === e.y){
-
-            if(e.power >= m.power){
-
-                e.speed += 1;
-
-                if(e === player){
-                    monstersKilledThisLevel++;
-                    playerDidSomething = true;
-                }
-
-                log(`${e.id || 'entity'} killed monster (power:${e.power} speed:${e.speed})`);
+        if(m.x===e.x && m.y===e.y){
+            if(e.power>=m.power){
+                e.speed+=1;
+                if(e===player){ monstersKilledThisLevel++; playerDidSomething=true; }
+                log(`${e.id||'entity'} killed monster (power:${e.power} speed:${e.speed})`);
                 flash(m.x,m.y,"red");
-
-                deadZones.push({
-                    x:m.x,
-                    y:m.y,
-                    number:m.power
-                });
-
+                deadZones.push({x:m.x,y:m.y,number:m.power});
                 playMonsterSound();
-
                 return false;
-
-            } else {
-
-                // непроходимая клетка
-                deadZones.push({
-                    x:m.x,
-                    y:m.y,
-                    number:m.power
-                });
-
-            }
+            } else deadZones.push({x:m.x,y:m.y,number:m.power});
         }
-
         return true;
     });
 
-
-
-    /* ---------- УБИЙСТВО ИГРОКА ---------- */
-    if(
-        e !== player &&
-        player.x === e.x &&
-        player.y === e.y &&
-        e.power >= player.power &&
-        !gameOver
-    ){
-
+    // ===== УБИЙСТВО ИГРОКА =====
+    if(e!==player && player.x===e.x && player.y===e.y && e.power>=player.power && !gameOver){
         log(`player killed by ${e.id} (power:${e.power} >= ${player.power})`);
-
         endGame(`Game Over with ${player.power} power and ${player.speed} speed, killed by ${e.id}`);
-
         return;
     }
 
-
-
-    /* ---------- БОТЫ ---------- */
+    // ===== БОТЫ =====
     aliveBots.forEach(b=>{
-
-    if(
-        b !== e &&
-        b.x === e.x &&
-        b.y === e.y
-    ){
-
-        if(e.power >= b.power){
-
-            b.alive = false;
-
+        if(b!==e && b.x===e.x && b.y===e.y && e.power>=b.power){
+            b.alive=false;
             const index = aliveBots.indexOf(b);
-            if(index !== -1){
-                aliveBots.splice(index, 1);
-            }
-
-            e.speed += 2;
-
-            if(e === player){
-                botsKilledThisLevel++;
-                playerDidSomething = true;
-            }
-
-            log(`${e.id || 'entity'} killed ${b.id} (power:${e.power} speed:${e.speed})`);
+            if(index!==-1) aliveBots.splice(index,1);
+            e.speed+=2;
+            if(e===player){ botsKilledThisLevel++; playerDidSomething=true; }
+            log(`${e.id||'entity'} killed ${b.id} (power:${e.power} speed:${e.speed})`);
             flash(b.x,b.y,"blue");
-
-            deadZones.push({
-                x:b.x,
-                y:b.y,
-                number:b.power
-            });
-
+            deadZones.push({x:b.x,y:b.y,number:b.power});
             playBotSound();
         }
-    }
-});
+    });
 
+    // ===== ОБНОВЛЕНИЕ SCORE =====
+    if(e===player) updateScore();
 
-
-    /* ---------- ОБНОВЛЕНИЕ SCORE ---------- */
-    if(e === player){
-        // даже если просто походил — очки могли измениться (deadZones, power и т.д.)
-        updateScore();
-    }
-
-
-
-    /* ---------- ПРОВЕРКА ПОБЕДЫ ---------- */
-    if(e === player){
-
-        if(aliveBots.length === 0 && !gameOver){
-
-            endGame(`You Win with ${player.power} power and ${player.speed} speed!`);
-
-        }
-    }
-
+    // ===== ПРОВЕРКА ПОБЕДЫ =====
+    if(e===player && aliveBots.length===0 && !gameOver)
+        endGame(`You Win with ${player.power} power and ${player.speed} speed!`);
 }
+
 
 
 
@@ -1465,8 +1382,8 @@ restartBtn.addEventListener("click", () => {
     monstersKilledThisLevel = 0;
     chestsCollectedThisLevel = 0;
 
-    // Сброс игрока и ботов (если нужно)
-    player.movesLeft = player.speed; // или другой механизм обновления
+    // Сброс игрока и ботов
+    player.movesLeft = player.speed; 
     bots.forEach(b => b.alive = true);
 
     // Запуск следующего уровня
@@ -1607,7 +1524,6 @@ function botStep(b) {
 
 
 
-/* ==================== ПРОВЕРКА ЛОВУШЕК И ТУПИКОВ ПЕРЕД ХОДОМ БОТОВ ==================== */
 /* ==================== ПРОВЕРКА ЗАМКНУТОЙ ОБЛАСТИ В НАЧАЛЕ ХОДА ==================== */
 function resolveAreaTrap(entity){
 
@@ -1717,7 +1633,7 @@ function resolveAreaTrap(entity){
 /* ==================== ПРОВЕРКА ЛОВУШЕК ПЕРЕД ХОДАМИ ==================== */
 function checkTrapsAndStucks(){
 
-    // 🔥 НОВОЕ — сначала проверяем стояние на белой
+    // сначала проверяем стояние на белой
     resolveStandingWhiteTrap(player);
 
     aliveBots.forEach(b=>{
@@ -1824,29 +1740,41 @@ flash(entity.x, entity.y, "red");
 
 
 
-
-
 /* ==================== КОНЕЦ ХОДА ИГРОКА ==================== */
 function endPlayerTurn(){
-    // 1️⃣ Проверка ловушек и тупиков после хода игрока
+    // Проверка ловушек и тупиков после хода игрока
     checkTrapsAndStucks();
 
-    // 2️⃣ Сброс трейсов ботов для нового раунда
+    // Убираем мертвых ботов (сила <=0) и помечаем их как неактивных
+    aliveBots = aliveBots.filter(b => {
+        if(b.power <= 0){ 
+            b.alive = false; 
+            return false; 
+        }
+        return true;
+    });
+
+    // Убираем мертвых ботов из кэша reachable клеток
+    reachCache.bots.forEach((_, b) => {
+        if(!aliveBots.includes(b)) reachCache.bots.delete(b);
+    });
+
+    // Сброс трейсов ботов для нового раунда
     aliveBots.forEach(b=>{
         b.trace = [{ x: b.x, y: b.y }]; // оставляем только текущую позицию
         if(reachCache.bots.has(b)) reachCache.bots.set(b, {}); // сброс кэша reachable клеток
     });
 
-    // 3️⃣ Ход ботов
+    // Ход ботов
     aliveBots.forEach(b=>botStep(b));
 
     if(gameOver) return;
 
-    // 4️⃣ Усиление существующих объектов
+    // Усиление существующих объектов
     monsters.forEach(m=>m.power++);
     chests.forEach(c=>c.power++);
 
-    // 5️⃣ Возрождение объектов, уничтоженных в прошлом раунде
+    // Возрождение объектов, уничтоженных в прошлом раунде
     while(chests.length < CHESTS){
         let x=Math.floor(Math.random()*MAP), y=Math.floor(Math.random()*MAP);
         if(!deadZones.some(d=>d.x===x&&d.y===y) && !chests.some(c=>c.x===x&&c.y===y) &&
@@ -1864,12 +1792,12 @@ function endPlayerTurn(){
         }
     }
 
-    // 6️⃣ Новый раунд
+    // Новый раунд
     roundNumber++;
     player.movesLeft = player.speed;
     playNewRoundSound();
 
-    // 7️⃣ Перерисовка карты сразу после хода ботов
+    // Перерисовка карты сразу после хода ботов
     draw();
 }
 
@@ -2086,6 +2014,10 @@ function glowStyleLabel(cls) {
     }
 }
 
+
+
+
+
 /* ==================== DRAW с кэшированием и BOT TRACES за раунд ==================== */
 const reachCache = { player: {}, bots: new Map() };
 let lastPlayerPos = { x: player.x, y: player.y, moves: player.movesLeft };
@@ -2093,159 +2025,170 @@ let lastBotPos = new Map();
 
 // ==== Цвета для ботов (разные оттенки синих) ====
 const botTraceColors = new Map();
-function getBotTraceColor(b, index){
-    if(botTraceColors.has(b)) return botTraceColors.get(b);
-    const hue = 200 + (index*30)%100; // оттенки синего
+function getBotTraceColor(b, index) {
+    if (botTraceColors.has(b)) return botTraceColors.get(b);
+    const hue = 200 + (index * 30) % 100; // оттенки синего
     const color = `hsla(${hue},80%,55%,0.5)`;
-    botTraceColors.set(b,color);
+    botTraceColors.set(b, color);
     return color;
 }
 
 function draw() {
     // ==== Сброс кэша для игрока ====
-    if(lastPlayerPos.x !== player.x || lastPlayerPos.y !== player.y || lastPlayerPos.moves !== player.movesLeft){
+    if (lastPlayerPos.x !== player.x || lastPlayerPos.y !== player.y || lastPlayerPos.moves !== player.movesLeft) {
         reachCache.player = {};
         lastPlayerPos = { x: player.x, y: player.y, moves: player.movesLeft };
     }
 
     // ==== Сброс кэша для ботов и инициализация trace ====
-    aliveBots.forEach((b,index)=>{
+    aliveBots.forEach((b, index) => {
         const last = lastBotPos.get(b) || { x: -1, y: -1, speed: -1 };
-        if(b.x !== last.x || b.y !== last.y || b.speed !== last.speed){
-            reachCache.bots.set(b,{});
-            lastBotPos.set(b,{ x: b.x, y: b.y, speed: b.speed });
+        if (b.x !== last.x || b.y !== last.y || b.speed !== last.speed) {
+            reachCache.bots.set(b, {});
+            lastBotPos.set(b, { x: b.x, y: b.y, speed: b.speed });
         }
-        if(!b.trace) b.trace = [];
+        if (!b.trace) b.trace = [];
         // ==== Очищаем trace в начале раунда ====
-        if(b.movesLeft === b.speed) b.trace = [{x:b.x,y:b.y}];
+        if (b.movesLeft === b.speed) b.trace = [{ x: b.x, y: b.y }];
         // сохраняем цвет
-        getBotTraceColor(b,index);
+        getBotTraceColor(b, index);
     });
 
     // ==== Очистка и трансформация ====
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.setTransform(scale,0,0,scale,camX,camY);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(scale, 0, 0, scale, camX, camY);
 
     updateStatFX();
 
-    if(gridCanvas) ctx.drawImage(gridCanvas,0,0);
+    if (gridCanvas) ctx.drawImage(gridCanvas, 0, 0);
 
     // ==== Отрисовка reachable клеток игрока ====
     const playerKey = `${player.x},${player.y},${player.movesLeft}`;
-    if(!reachCache.player[playerKey]) reachCache.player[playerKey] = bfsReachable(player);
-    reachCache.player[playerKey].forEach(c=>{
+    if (!reachCache.player[playerKey]) reachCache.player[playerKey] = bfsReachable(player);
+    reachCache.player[playerKey].forEach(c => {
         ctx.fillStyle = "rgba(255,255,255,0.08)";
-        roundRect(c.x*TILE,c.y*TILE,TILE,TILE,6,true);
+        roundRect(c.x * TILE, c.y * TILE, TILE, TILE, 6, true);
     });
 
     // ==== Отрисовка reachable клеток ботов ====
-    aliveBots.forEach(b=>{
+    aliveBots.forEach(b => {
         const savedMoves = b.movesLeft;
         b.movesLeft = b.speed;
         const botKey = `${b.x},${b.y},${b.speed}`;
-        if(!reachCache.bots.has(b)) reachCache.bots.set(b,{});
-        if(!reachCache.bots.get(b)[botKey]) reachCache.bots.get(b)[botKey] = bfsReachable(b);
-        reachCache.bots.get(b)[botKey].forEach(c=>{
+        if (!reachCache.bots.has(b)) reachCache.bots.set(b, {});
+        if (!reachCache.bots.get(b)[botKey]) reachCache.bots.get(b)[botKey] = bfsReachable(b);
+        reachCache.bots.get(b)[botKey].forEach(c => {
             ctx.fillStyle = "rgba(80,80,200,0.10)";
-            roundRect(c.x*TILE,c.y*TILE,TILE,TILE,6,true);
+            roundRect(c.x * TILE, c.y * TILE, TILE, TILE, 6, true);
         });
         b.movesLeft = savedMoves;
     });
 
     // ==== Вспомогательные функции roundRect, lighten/darken color ====
-    function roundRect(x,y,w,h,r,fill=true){
+    function roundRect(x, y, w, h, r, fill = true) {
         ctx.beginPath();
-        ctx.moveTo(x+r,y);
-        ctx.lineTo(x+w-r,y);
-        ctx.quadraticCurveTo(x+w,y,x+w,y+r);
-        ctx.lineTo(x+w,y+h-r);
-        ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
-        ctx.lineTo(x+r,y+h);
-        ctx.quadraticCurveTo(x,y+h,x,y+h-r);
-        ctx.lineTo(x,y+r);
-        ctx.quadraticCurveTo(x,y,x+r,y);
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
         ctx.closePath();
-        if(fill) ctx.fill(); else ctx.stroke();
+        if (fill) ctx.fill(); else ctx.stroke();
     }
-    function lightenColor(color,percent){
-        const f=parseInt(color.slice(1),16), t=255;
-        const R=f>>16,G=(f>>8)&0x00FF,B=f&0x0000FF;
-        return "#" + (0x1000000+((Math.round((t-R)*percent)+R)*0x10000
-            + (Math.round((t-G)*percent)+G)*0x100
-            + (Math.round((t-B)*percent)+B))).toString(16).slice(1);
+
+    function lightenColor(color, percent) {
+        const f = parseInt(color.slice(1), 16), t = 255;
+        const R = f >> 16, G = (f >> 8) & 0x00FF, B = f & 0x0000FF;
+        return "#" + (0x1000000 + ((Math.round((t - R) * percent) + R) * 0x10000
+            + (Math.round((t - G) * percent) + G) * 0x100
+            + (Math.round((t - B) * percent) + B))).toString(16).slice(1);
     }
-    function darkenColor(color,percent){
-        const f=parseInt(color.slice(1),16), t=0;
-        const R=f>>16,G=(f>>8)&0x00FF,B=f&0x0000FF;
-        return "#" + (0x1000000+((Math.round((t-R)*percent)+R)*0x10000
-            + (Math.round((t-G)*percent)+G)*0x100
-            + (Math.round((t-B)*percent)+B))).toString(16).slice(1);
+
+    function darkenColor(color, percent) {
+        const f = parseInt(color.slice(1), 16), t = 0;
+        const R = f >> 16, G = (f >> 8) & 0x00FF, B = f & 0x0000FF;
+        return "#" + (0x1000000 + ((Math.round((t - R) * percent) + R) * 0x10000
+            + (Math.round((t - G) * percent) + G) * 0x100
+            + (Math.round((t - B) * percent) + B))).toString(16).slice(1);
     }
 
     // ==== Визуализация траекторий ботов (только текущий раунд) ====
-    aliveBots.forEach(b=>{
-        if(!b.trace || b.trace.length<2) return;
+    aliveBots.forEach(b => {
+        if (!b.trace || b.trace.length < 2) return;
         ctx.beginPath();
         ctx.strokeStyle = botTraceColors.get(b) || "rgba(30,144,255,0.5)";
         ctx.lineWidth = 2;
-        ctx.moveTo(b.trace[0].x*TILE+TILE/2, b.trace[0].y*TILE+TILE/2);
-        for(let i=1;i<b.trace.length;i++){
-            ctx.lineTo(b.trace[i].x*TILE+TILE/2, b.trace[i].y*TILE+TILE/2);
+        ctx.moveTo(b.trace[0].x * TILE + TILE / 2, b.trace[0].y * TILE + TILE / 2);
+        for (let i = 1; i < b.trace.length; i++) {
+            ctx.lineTo(b.trace[i].x * TILE + TILE / 2, b.trace[i].y * TILE + TILE / 2);
         }
         ctx.stroke();
     });
 
     // ==== Отрисовка объектов карты ====
-    function drawCandy(x,y,size,baseColor,softCenter=false,noGradient=false){
-        if(noGradient){ ctx.fillStyle=baseColor; }
-        else{
-            let grad=ctx.createLinearGradient(x,y,x,y+size);
-            if(softCenter){
-                grad.addColorStop(0,lightenColor(baseColor,0.15));
-                grad.addColorStop(0.5,darkenColor(baseColor,0.05));
-                grad.addColorStop(1,lightenColor(baseColor,0.15));
-            } else{
-                grad.addColorStop(0,lightenColor(baseColor,0.4));
-                grad.addColorStop(0.5,baseColor);
-                grad.addColorStop(1,darkenColor(baseColor,0.2));
+    function drawCandy(x, y, size, baseColor, softCenter = false, noGradient = false) {
+        if (noGradient) {
+            ctx.fillStyle = baseColor;
+        } else {
+            let grad = ctx.createLinearGradient(x, y, x, y + size);
+            if (softCenter) {
+                grad.addColorStop(0, lightenColor(baseColor, 0.15));
+                grad.addColorStop(0.5, darkenColor(baseColor, 0.05));
+                grad.addColorStop(1, lightenColor(baseColor, 0.15));
+            } else {
+                grad.addColorStop(0, lightenColor(baseColor, 0.4));
+                grad.addColorStop(0.5, baseColor);
+                grad.addColorStop(1, darkenColor(baseColor, 0.2));
             }
-            ctx.fillStyle=grad;
+            ctx.fillStyle = grad;
         }
-        roundRect(x,y,size,size,size/4,true);
-        const shine=ctx.createLinearGradient(x,y,x,y+size/3);
-        shine.addColorStop(0,"rgba(255,255,255,0.2)");
-        shine.addColorStop(1,"rgba(255,255,255,0)");
-        roundRect(x,y,size,size/3,size/4,true);
+        roundRect(x, y, size, size, size / 4, true);
+        const shine = ctx.createLinearGradient(x, y, x, y + size / 3);
+        shine.addColorStop(0, "rgba(255,255,255,0.2)");
+        shine.addColorStop(1, "rgba(255,255,255,0)");
+        roundRect(x, y, size, size / 3, size / 4, true);
 
-        const cellX=Math.floor(x/TILE);
-        const cellY=Math.floor(y/TILE);
-        if(deadZones.some(d=>d.x===cellX&&d.y===cellY)){
-            ctx.strokeStyle="white";
-            ctx.lineWidth=2;
-            roundRect(x,y,size,size,size/4,false);
+        const cellX = Math.floor(x / TILE);
+        const cellY = Math.floor(y / TILE);
+        if (deadZones.some(d => d.x === cellX && d.y === cellY)) {
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            roundRect(x, y, size, size, size / 4, false);
         }
     }
 
-    deadZones.forEach(d=>{ drawCandy(d.x*TILE+4,d.y*TILE+4,TILE-8,"#ffffff"); ctx.fillStyle="#000"; ctx.fillText(d.number,d.x*TILE+12,d.y*TILE+28); });
-    chests.forEach(c=>{ drawCandy(c.x*TILE+8,c.y*TILE+8,28,"#f5c542"); ctx.fillStyle="#000"; ctx.fillText(c.power,c.x*TILE+14,c.y*TILE+30); });
-    monsters.forEach(m=>{ drawCandy(m.x*TILE+6,m.y*TILE+6,32,"#e53935"); ctx.fillStyle="white"; ctx.fillText(m.power,m.x*TILE+12,m.y*TILE+30); });
-    aliveBots.forEach(b=>{ let soft=false,color=b.color;if(color==="blue"){color="#1e90ff";soft=true;} drawCandy(b.x*TILE+6,b.y*TILE+6,32,color,soft); ctx.fillStyle="white"; ctx.fillText(b.power,b.x*TILE+12,b.y*TILE+30); });
-    drawCandy(player.x*TILE+5,player.y*TILE+5,34,"#00ced1",false); ctx.fillStyle="white"; ctx.fillText(player.power,player.x*TILE+12,player.y*TILE+30);
+    deadZones.forEach(d => { drawCandy(d.x * TILE + 4, d.y * TILE + 4, TILE - 8, "#ffffff"); ctx.fillStyle = "#000"; ctx.fillText(d.number, d.x * TILE + 12, d.y * TILE + 28); });
+    chests.forEach(c => { drawCandy(c.x * TILE + 8, c.y * TILE + 8, 28, "#f5c542"); ctx.fillStyle = "#000"; ctx.fillText(c.power, c.x * TILE + 14, c.y * TILE + 30); });
+    monsters.forEach(m => { drawCandy(m.x * TILE + 6, m.y * TILE + 6, 32, "#e53935"); ctx.fillStyle = "white"; ctx.fillText(m.power, m.x * TILE + 12, m.y * TILE + 30); });
+    aliveBots.forEach(b => { 
+        let soft = false, color = b.color; 
+        if (color === "blue") { color = "#1e90ff"; soft = true; } 
+        drawCandy(b.x * TILE + 6, b.y * TILE + 6, 32, color, soft); 
+        ctx.fillStyle = "white"; 
+        ctx.fillText(b.power, b.x * TILE + 12, b.y * TILE + 30); 
+    });
+    drawCandy(player.x * TILE + 5, player.y * TILE + 5, 34, "#00ced1", false); 
+    ctx.fillStyle = "white"; 
+    ctx.fillText(player.power, player.x * TILE + 12, player.y * TILE + 30);
 
     // ==== Flashes ====
-    flashes.forEach(f=>{ ctx.fillStyle=`rgba(255,255,255,${f.alpha})`; roundRect(f.x*TILE+4,f.y*TILE+4,TILE-8,TILE-8,6,true); f.alpha-=0.05; });
-    flashes = flashes.filter(f=>f.alpha>0);
+    flashes.forEach(f => { ctx.fillStyle = `rgba(255,255,255,${f.alpha})`; roundRect(f.x * TILE + 4, f.y * TILE + 4, TILE - 8, TILE - 8, 6, true); f.alpha -= 0.05; });
+    flashes = flashes.filter(f => f.alpha > 0);
 
     // ==== Статистика ====
-    let currentLevelScore = typeof levelScore!=="undefined"?levelScore:0;
-    let currentTotalScore = typeof totalScore!=="undefined"?totalScore:0;
-    if(!statFX.levelScore) statFX.levelScore=0;
-    if(!statFX.totalScore) statFX.totalScore=0;
-    statFX.levelScore += (currentLevelScore - statFX.levelScore)*0.1;
-    statFX.totalScore += (currentTotalScore - statFX.totalScore)*0.1;
+    let currentLevelScore = typeof levelScore !== "undefined" ? levelScore : 0;
+    let currentTotalScore = typeof totalScore !== "undefined" ? totalScore : 0;
+    if (!statFX.levelScore) statFX.levelScore = 0;
+    if (!statFX.totalScore) statFX.totalScore = 0;
+    statFX.levelScore += (currentLevelScore - statFX.levelScore) * 0.1;
+    statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
-    document.getElementById("info").innerHTML=`
+    document.getElementById("info").innerHTML = `
 <span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
