@@ -658,9 +658,6 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-
-
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -765,27 +762,24 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         await saveToLeaderboard(totalScore, 0, true);
     }
 
+    // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ
     restartBtn.onclick = () => {
         overlay.style.display = "none";
         gameOver = false;
-
+        
         if (text.startsWith("Game Over")) {
-            level = 1;
-            totalScore = 0;
+            // ПОЛНЫЙ СБРОС
+            resetGame();
+            spawn();
         } else if (text.startsWith("You Win")) {
             totalScore += levelScore;
             level++;
+            startNextLevel(false);
+        } else {
+            // Continue — просто возобновить текущий
+            gameOver = false;
+            draw();
         }
-
-        levelScore = 0;
-        botsKilledThisLevel = 0;
-        monstersKilledThisLevel = 0;
-        chestsCollectedThisLevel = 0;
-
-        resetLevelEntities();
-        rebuildGridCanvas();
-
-        startNextLevel();
     };
 }
 
@@ -795,6 +789,11 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
 function resetGame() {
     level = 1;
+    MAP = BASE_MAP;
+    BOTS = BASE_BOTS;
+    MONSTERS = BASE_MONSTERS;
+    CHESTS = BASE_CHESTS;
+    
     totalScore = 0;
     levelScore = 0;
     botsKilledThisLevel = 0;
@@ -821,6 +820,7 @@ function resetLevelEntities() {
     flashes = [];
     deadZones = [];
 }
+
 
 
 
@@ -895,14 +895,21 @@ function handleTrapAtRoundStart(character) {
     character.dead = true;
 }
 
+
+
 /* ==================== NEXT LEVEL ==================== */
-function startNextLevel() {
+function startNextLevel(isNewGame = false) {
 
     // Сброс счетчиков уровня
     levelScore = 0;
     botsKilledThisLevel = 0;
     monstersKilledThisLevel = 0;
     chestsCollectedThisLevel = 0;
+
+    // СБРОС TOTAL ПРИ НОВОЙ ИГРЕ
+    if (isNewGame) {
+        totalScore = 0;
+    }
 
     // Размер карты: стартовая 15x15, +5 клеток по каждой оси на новом уровне
     const baseMapSize = 15;
@@ -929,6 +936,12 @@ function startNextLevel() {
         window.location.hash = `t=${Date.now()}`;
     }
 
+    // Telegram WebApp haptic
+    if(window.Telegram?.WebApp) {
+        Telegram.WebApp.HapticFeedback.selectionChanged();
+        Telegram.WebApp.MainButton.offClick();
+    }
+
     // ===== ПЕРЕСТРОЙКА СЕТКИ С НОВЫМ РАЗМЕРОМ =====
     rebuildGridCanvas(); // теперь сетка соответствует MAP
 
@@ -953,6 +966,7 @@ function startNextLevel() {
     // ===== ЗАПУСК СПАУНА С ОБНОВЛЕННЫМ РАЗМЕРОМ КАРТЫ =====
     spawn();
 }
+
 
 
 /* ==================== SPAWN ==================== */
