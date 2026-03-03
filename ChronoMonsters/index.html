@@ -659,22 +659,11 @@ function playLoseSound(){
 }
 
 
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
-
-    // ФОРСИРОВАННЫЙ REFRESH КАК В ЛИДЕРБОРДАХ (имитация серверного запроса для сброса кеша ТГ)
-    try {
-        if(tgUser?.id && window.Telegram?.WebApp){
-            const url = new URL('/__leaders', window.location.origin);
-            url.searchParams.set('game', GAME_ID);
-            url.searchParams.set('user', String(tgUser.id));
-            await fetch(url); // НЕ используем ответ — только для refresh контекста WebApp
-        }
-    } catch(e) {
-        // игнорируем ошибки — главное запрос прошёл
-    }
 
     const currentLevel = level || 1;
 
@@ -683,7 +672,7 @@ async function endGame(text) {
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
-    // === Рисуем мигающий крест на месте игрока ===
+    // === Рисуем мигающий крест на месте игрока (СНАЧАЛА) ===
     if (text.startsWith("Game Over")) {
         const crossDuration = 3000; // 3 секунды
         const startTime = Date.now();
@@ -726,7 +715,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         });
     }
 
-    // ==== Overlay и остальной код остаются без изменений ====
+    // ==== Overlay (НА РЕАЛЬНЫХ ДАННЫХ) ====
     overlay.style.display = "block";
 
     let title = '';
@@ -767,6 +756,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
+    // СОХРАНЯЕМ НА РЕАЛЬНЫХ ДАННЫХ (ДО сброса)
     lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
@@ -775,28 +765,33 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         await saveToLeaderboard(totalScore, 0, true);
     }
 
-    // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ
+    // СБРОС ТОЛЬКО ПРИ КЛИКЕ КНОПКИ (после показа статистики)
     restartBtn.onclick = () => {
         overlay.style.display = "none";
         gameOver = false;
         
         if (text.startsWith("Game Over")) {
             // ПОЛНЫЙ СБРОС
-            resetGame();
-            spawn();
+            level = 1;
+            totalScore = 0;
+            levelScore = 0;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+            player.power = 1;
+            player.speed = 5;
+            player.movesLeft = player.speed;
+            player.x = 0;
+            player.y = 0;
+            aliveBots = [...bots];
         } else if (text.startsWith("You Win")) {
+            // СЛЕДУЮЩИЙ УРОВЕНЬ
             totalScore += levelScore;
             level++;
-            startNextLevel(false);
-        } else {
-            // Continue — просто возобновить текущий
-            gameOver = false;
-            draw();
         }
+        spawn();
     };
 }
-
-
 
 
 
