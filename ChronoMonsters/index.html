@@ -659,11 +659,22 @@ function playLoseSound(){
 }
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
     gameOver = true;
+
+    // ФОРСИРОВАННЫЙ REFRESH КАК В ЛИДЕРБОРДАХ (имитация серверного запроса для сброса кеша ТГ)
+    try {
+        if(tgUser?.id && window.Telegram?.WebApp){
+            const url = new URL('/__leaders', window.location.origin);
+            url.searchParams.set('game', GAME_ID);
+            url.searchParams.set('user', String(tgUser.id));
+            await fetch(url); // НЕ используем ответ — только для refresh контекста WebApp
+        }
+    } catch(e) {
+        // игнорируем ошибки — главное запрос прошёл
+    }
 
     const currentLevel = level || 1;
 
