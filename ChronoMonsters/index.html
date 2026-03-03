@@ -659,7 +659,6 @@ function playLoseSound(){
 }
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -674,7 +673,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
     // === Рисуем мигающий крест на месте игрока (СНАЧАЛА) ===
     if (text.startsWith("Game Over")) {
-        const crossDuration = 3000; // 3 секунды
+        const crossDuration = 3000;
         const startTime = Date.now();
 
         await new Promise(resolve => {
@@ -684,22 +683,18 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
                 const blink = Math.floor(elapsed / 300) % 2 === 0;
 
-                // === Смещение как у drawCandy(player) + центрируем ===
-                const offset = 5; // смещение внутрь клетки
-                const size = 34;  // размер игрока
-                const px = player.x * TILE + offset + size / 2; // центр игрока по X
-                const py = player.y * TILE + offset + size / 2; // центр игрока по Y
-                const half = (size / 1.5) / 2; // крестик в полтора раза меньше
+                const offset = 5;
+                const size = 34;
+                const px = player.x * TILE + offset + size / 2;
+                const py = player.y * TILE + offset + size / 2;
+                const half = (size / 1.5) / 2;
 
-                // Перерисовка канваса
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.setTransform(scale, 0, 0, scale, camX, camY);
 
-                // Отрисовка карты, объектов, ботов и игрока
                 draw();
 
-                // Рисуем мигающий крест красно‑cyan поверх игрока
                 ctx.strokeStyle = blink ? "red" : "cyan";
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -715,7 +710,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         });
     }
 
-    // ==== Overlay (НА РЕАЛЬНЫХ ДАННЫХ) ====
+    // ==== Overlay ====
     overlay.style.display = "block";
 
     let title = '';
@@ -756,7 +751,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
-    // СОХРАНЯЕМ НА РЕАЛЬНЫХ ДАННЫХ (ДО сброса)
+    // ==== Сохраняем ДО сброса ====
     lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
@@ -765,31 +760,66 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         await saveToLeaderboard(totalScore, 0, true);
     }
 
-    // СБРОС ТОЛЬКО ПРИ КЛИКЕ КНОПКИ (после показа статистики)
+    // =========================
+    // КНОПКА РЕСТАРТА
+    // =========================
     restartBtn.onclick = () => {
         overlay.style.display = "none";
         gameOver = false;
-        
+
         if (text.startsWith("Game Over")) {
-            // ПОЛНЫЙ СБРОС
+
+            // ===== ПОЛНЫЙ СБРОС =====
             level = 1;
             totalScore = 0;
             levelScore = 0;
+
             botsKilledThisLevel = 0;
             monstersKilledThisLevel = 0;
             chestsCollectedThisLevel = 0;
+
             player.power = 1;
             player.speed = 5;
             player.movesLeft = player.speed;
             player.x = 0;
             player.y = 0;
-            aliveBots = [...bots];
+
+            bots = [];
+            aliveBots = [];
+            monsters = [];
+            chests = [];
+            flashes = [];
+            deadZones = [];
+
+            // ===== ДОПОЛНИТЕЛЬНЫЙ СБРОС ДЛЯ TELEGRAM WEBAPP =====
+            if (window.Telegram) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (typeof gridCanvas !== "undefined" && gridCanvas && gridCanvas.parentNode) {
+                    gridCanvas.parentNode.removeChild(gridCanvas);
+                }
+
+                window.location.hash = "reset_" + Date.now();
+            }
+
+            rebuildGridCanvas();
+            spawn();
+
         } else if (text.startsWith("You Win")) {
-            // СЛЕДУЮЩИЙ УРОВЕНЬ
+
+            // ===== СЛЕДУЮЩИЙ УРОВЕНЬ =====
             totalScore += levelScore;
             level++;
+
+            levelScore = 0;
+            botsKilledThisLevel = 0;
+            monstersKilledThisLevel = 0;
+            chestsCollectedThisLevel = 0;
+
+            rebuildGridCanvas();
+            spawn();
         }
-        spawn();
     };
 }
 
