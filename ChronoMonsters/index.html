@@ -673,7 +673,7 @@ async function endGame(text) {
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
-    // === Рисуем мигающий крест на игроке перед overlay ===
+    // === Рисуем мигающий крест на месте игрока ===
     if (text.startsWith("Game Over")) {
         const crossDuration = 3000; // 3 секунды
         const startTime = Date.now();
@@ -684,24 +684,30 @@ Level score: ${levelScore} | Total score: ${totalScore}`
                 if (elapsed >= crossDuration) return resolve();
 
                 const blink = Math.floor(elapsed / 300) % 2 === 0;
-                const cx = player.x * TILE + TILE / 2;
-                const cy = player.y * TILE + TILE / 2;
-                const size = TILE / 3;
 
-                // Перерисовка канваса (карта + объекты)
+                // === Смещение как у drawCandy(player) + центрируем ===
+                const offset = 5; // смещение внутрь клетки
+                const size = 34;  // размер игрока
+                const px = player.x * TILE + offset + size / 2; // центр игрока по X
+                const py = player.y * TILE + offset + size / 2; // центр игрока по Y
+                const half = (size / 1.5) / 2; // крестик в полтора раза меньше
+
+                // Перерисовка канваса
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.setTransform(scale, 0, 0, scale, camX, camY);
-                draw(); // твоя существующая функция draw()
 
-                // Рисуем крест
-                ctx.strokeStyle = blink ? "white" : "red";
+                // Отрисовка карты, объектов, ботов и игрока
+                draw();
+
+                // Рисуем мигающий крест красно‑cyan поверх игрока
+                ctx.strokeStyle = blink ? "red" : "cyan";
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(cx - size, cy - size);
-                ctx.lineTo(cx + size, cy + size);
-                ctx.moveTo(cx + size, cy - size);
-                ctx.lineTo(cx - size, cy + size);
+                ctx.moveTo(px - half, py - half);
+                ctx.lineTo(px + half, py + half);
+                ctx.moveTo(px + half, py - half);
+                ctx.lineTo(px - half, py + half);
                 ctx.stroke();
 
                 requestAnimationFrame(drawCross);
@@ -710,6 +716,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         });
     }
 
+    // ==== Overlay и остальной код остаются без изменений ====
     overlay.style.display = "block";
 
     let title = '';
@@ -750,11 +757,9 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
-    // сохраняем очки уровня
     lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
-    // при поражении сохраняем общий прогресс
     if (text.startsWith("Game Over")) {
         lastGameScore = totalScore;
         await saveToLeaderboard(totalScore, 0, true);
@@ -765,26 +770,21 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         gameOver = false;
 
         if (text.startsWith("Game Over")) {
-            // ПОЛНЫЙ СБРОС ИГРЫ
             level = 1;
             totalScore = 0;
         } else if (text.startsWith("You Win")) {
-            // ПЕРЕХОД НА СЛЕДУЮЩИЙ УРОВЕНЬ
             totalScore += levelScore;
             level++;
         }
 
-        // Сброс счётчиков уровня
         levelScore = 0;
         botsKilledThisLevel = 0;
         monstersKilledThisLevel = 0;
         chestsCollectedThisLevel = 0;
 
-        // Полная очистка сущностей и канваса
         resetLevelEntities();
         rebuildGridCanvas();
 
-        // Запуск уровня (всегда один вызов)
         startNextLevel();
     };
 }
@@ -1406,12 +1406,19 @@ function collect(e){
         return true;
     });
 
-    // ===== УБИЙСТВО ИГРОКА =====
-    if(e!==player && player.x===e.x && player.y===e.y && e.power>=player.power && !gameOver){
-        log(`player killed by ${e.id} (power:${e.power} >= ${player.power})`);
-        endGame(`Game Over with ${player.power} power and ${player.speed} speed, killed by ${e.id}`);
-        return;
-    }
+
+// ===== УБИЙСТВО ИГРОКА =====
+if (e !== player && player.x === e.x && player.y === e.y && e.power >= player.power && !gameOver) {
+    log(`player killed by ${e.id} (power:${e.power} >= ${player.power})`);
+
+    endGame(
+        `Game Over with ${player.power} power and ${player.speed} speed, killed by ${e.id}`,
+        e   // ← ВОТ ЭТО И ЕСТЬ ИЗМЕНЕНИЕ
+    );
+
+    return;
+}
+
 
     // ===== БОТЫ =====
     aliveBots.forEach(b=>{
@@ -2082,9 +2089,6 @@ function glowStyleLabel(cls) {
 }
 
 
-
-
-
 /* ==================== DRAW с кэшированием и BOT TRACES за раунд ==================== */
 const reachCache = { player: {}, bots: new Map() };
 let lastPlayerPos = { x: player.x, y: player.y, moves: player.movesLeft };
@@ -2115,9 +2119,7 @@ function draw() {
             lastBotPos.set(b, { x: b.x, y: b.y, speed: b.speed });
         }
         if (!b.trace) b.trace = [];
-        // ==== Очищаем trace в начале раунда ====
         if (b.movesLeft === b.speed) b.trace = [{ x: b.x, y: b.y }];
-        // сохраняем цвет
         getBotTraceColor(b, index);
     });
 
@@ -2192,16 +2194,15 @@ function draw() {
         ctx.lineWidth = 2;
         ctx.moveTo(b.trace[0].x * TILE + TILE / 2, b.trace[0].y * TILE + TILE / 2);
         for (let i = 1; i < b.trace.length; i++) {
-            ctx.lineTo(b.trace[i].x * TILE + TILE / 2, b.trace[i].y * TILE + TILE / 2);
+            ctx.lineTo(b.trace[i].x * TILE + TILE / 2, b.trace[i].y * TILE + TILE / 2); // исправлено
         }
         ctx.stroke();
     });
 
-    // ==== Отрисовка объектов карты ====
+    // ==== Отрисовка объектов карты (сначала игрок, потом боты, чтобы они его могли перекрыть) ====
     function drawCandy(x, y, size, baseColor, softCenter = false, noGradient = false) {
-        if (noGradient) {
-            ctx.fillStyle = baseColor;
-        } else {
+        if (noGradient) ctx.fillStyle = baseColor;
+        else {
             let grad = ctx.createLinearGradient(x, y, x, y + size);
             if (softCenter) {
                 grad.addColorStop(0, lightenColor(baseColor, 0.15));
@@ -2229,9 +2230,31 @@ function draw() {
         }
     }
 
-    deadZones.forEach(d => { drawCandy(d.x * TILE + 4, d.y * TILE + 4, TILE - 8, "#ffffff"); ctx.fillStyle = "#000"; ctx.fillText(d.number, d.x * TILE + 12, d.y * TILE + 28); });
-    chests.forEach(c => { drawCandy(c.x * TILE + 8, c.y * TILE + 8, 28, "#f5c542"); ctx.fillStyle = "#000"; ctx.fillText(c.power, c.x * TILE + 14, c.y * TILE + 30); });
-    monsters.forEach(m => { drawCandy(m.x * TILE + 6, m.y * TILE + 6, 32, "#e53935"); ctx.fillStyle = "white"; ctx.fillText(m.power, m.x * TILE + 12, m.y * TILE + 30); });
+    // ==== Отрисовка всех объектов ====
+    deadZones.forEach(d => { 
+        drawCandy(d.x * TILE + 4, d.y * TILE + 4, TILE - 8, "#ffffff"); 
+        ctx.fillStyle = "#000"; 
+        ctx.fillText(d.number, d.x * TILE + 12, d.y * TILE + 28); 
+    });
+
+    chests.forEach(c => { 
+        drawCandy(c.x * TILE + 8, c.y * TILE + 8, 28, "#f5c542"); 
+        ctx.fillStyle = "#000"; 
+        ctx.fillText(c.power, c.x * TILE + 14, c.y * TILE + 30); 
+    });
+
+    monsters.forEach(m => { 
+        drawCandy(m.x * TILE + 6, m.y * TILE + 6, 32, "#e53935"); 
+        ctx.fillStyle = "white"; 
+        ctx.fillText(m.power, m.x * TILE + 12, m.y * TILE + 30); 
+    });
+
+    // игрок
+    drawCandy(player.x * TILE + 5, player.y * TILE + 5, 34, "#00ced1", false); 
+    ctx.fillStyle = "white"; 
+    ctx.fillText(player.power, player.x * TILE + 12, player.y * TILE + 30);
+
+    // боты
     aliveBots.forEach(b => { 
         let soft = false, color = b.color; 
         if (color === "blue") { color = "#1e90ff"; soft = true; } 
@@ -2239,12 +2262,13 @@ function draw() {
         ctx.fillStyle = "white"; 
         ctx.fillText(b.power, b.x * TILE + 12, b.y * TILE + 30); 
     });
-    drawCandy(player.x * TILE + 5, player.y * TILE + 5, 34, "#00ced1", false); 
-    ctx.fillStyle = "white"; 
-    ctx.fillText(player.power, player.x * TILE + 12, player.y * TILE + 30);
 
     // ==== Flashes ====
-    flashes.forEach(f => { ctx.fillStyle = `rgba(255,255,255,${f.alpha})`; roundRect(f.x * TILE + 4, f.y * TILE + 4, TILE - 8, TILE - 8, 6, true); f.alpha -= 0.05; });
+    flashes.forEach(f => { 
+        ctx.fillStyle = `rgba(255,255,255,${f.alpha})`; 
+        roundRect(f.x * TILE + 4, f.y * TILE + 4, TILE - 8, TILE - 8, 6, true); 
+        f.alpha -= 0.05; 
+    });
     flashes = flashes.filter(f => f.alpha > 0);
 
     // ==== Статистика ====
@@ -2269,6 +2293,8 @@ function draw() {
 
     decrementGlow();
 }
+
+
 
 
 
