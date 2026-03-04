@@ -401,22 +401,16 @@ function updateLeaderboardTables() {
     };
 
     document.getElementById('leaderRestartBtn').onclick = () => {
-        modal.style.display = 'none';
-        level = 1;
-        totalScore = 0;
-        levelScore = 0;
-        botsKilledThisLevel = 0;
-        monstersKilledThisLevel = 0;
-        chestsCollectedThisLevel = 0;
-        player.power = 1;
-        player.speed = 5;
-        player.movesLeft = player.speed;
-        player.x = 0;
-        player.y = 0;
-        aliveBots = [...bots];
-        startNextLevel();
-        gameOver = false;
-    };
+    modal.style.display = 'none';
+
+    // ВМЕСТО ручного сброса — полный resetGame, который уже есть
+    resetGame();  // внутри него: level = 1, totalScore = 0, ... и resetLevelEntities()
+
+    // И только после resetGame — spawn и старт
+    spawn();
+    gameOver = false;
+};
+
 }
 
 /* =============================
@@ -670,9 +664,9 @@ async function endGame(text) {
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
-    // === Мигающий крест ===
+    // === Рисуем мигающий крест на месте игрока ===
     if (text.startsWith("Game Over")) {
-        const crossDuration = 3000;
+        const crossDuration = 3000; // 3 секунды
         const startTime = Date.now();
 
         await new Promise(resolve => {
@@ -682,18 +676,22 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
                 const blink = Math.floor(elapsed / 300) % 2 === 0;
 
-                const offset = 5;
-                const size = 34;
-                const px = player.x * TILE + offset + size / 2;
-                const py = player.y * TILE + offset + size / 2;
-                const half = (size / 1.5) / 2;
+                // === Смещение как у drawCandy(player) + центрируем ===
+                const offset = 5; // смещение внутрь клетки
+                const size = 34;  // размер игрока
+                const px = player.x * TILE + offset + size / 2; // центр игрока по X
+                const py = player.y * TILE + offset + size / 2; // центр игрока по Y
+                const half = (size / 1.5) / 2; // крестик в полтора раза меньше
 
+                // Перерисовка канваса
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.setTransform(scale, 0, 0, scale, camX, camY);
 
+                // Отрисовка карты, объектов, ботов и игрока
                 draw();
 
+                // Рисуем мигающий крест красно‑cyan поверх игрока
                 ctx.strokeStyle = blink ? "red" : "cyan";
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -709,7 +707,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         });
     }
 
-    // ==== Overlay ====
+    // ==== Overlay и остальной код остаются без изменений ====
     overlay.style.display = "block";
 
     let title = '';
@@ -750,7 +748,6 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     `;
     msgDiv.appendChild(btnContainer);
 
-    // ==== Сохраняем ДО сброса ====
     lastGameScore = levelScore;
     await saveToLeaderboard(levelScore, currentLevel);
 
@@ -759,59 +756,23 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         await saveToLeaderboard(totalScore, 0, true);
     }
 
-    // =========================
-    // КНОПКА РЕСТАРТА
-    // =========================
+    // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ
     restartBtn.onclick = () => {
         overlay.style.display = "none";
         gameOver = false;
-
+        
         if (text.startsWith("Game Over")) {
-
-// Reload только если это НЕ file://
-if (location.protocol === "http:" || location.protocol === "https:") {
-    location.reload();
-    return;
-}
-
-
-            // Локальный браузер — обычный сброс
-            level = 1;
-            totalScore = 0;
-            levelScore = 0;
-
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-
-            player.power = 1;
-            player.speed = 5;
-            player.movesLeft = player.speed;
-            player.x = 0;
-            player.y = 0;
-
-            bots = [];
-            aliveBots = [];
-            monsters = [];
-            chests = [];
-            flashes = [];
-            deadZones = [];
-
-            rebuildGridCanvas();
+            // ПОЛНЫЙ СБРОС
+            resetGame();
             spawn();
-
         } else if (text.startsWith("You Win")) {
-
             totalScore += levelScore;
             level++;
-
-            levelScore = 0;
-            botsKilledThisLevel = 0;
-            monstersKilledThisLevel = 0;
-            chestsCollectedThisLevel = 0;
-
-            rebuildGridCanvas();
-            spawn();
+            startNextLevel(false);
+        } else {
+            // Continue — просто возобновить текущий
+            gameOver = false;
+            draw();
         }
     };
 }
@@ -965,8 +926,7 @@ function startNextLevel(isNewGame = false) {
 
             gridCtx = gridCanvas.getContext("2d");
         }
-        // добавляем уникальный хэш в URL, чтобы WebApp не использовал кеш
-        window.location.hash = `t=${Date.now()}`;
+       
     }
 
     // Telegram WebApp haptic
@@ -2343,31 +2303,6 @@ function draw() {
 
 
 
-
-
-// ===== Вспомогательная функция скруглённого прямоугольника =====
-function roundRect(ctx, x, y, w, h, r, fill, stroke) {
-    if (typeof r === 'undefined') r = 5;
-    if (typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r};
-    else {
-        const defaultR = {tl:0,tr:0,br:0,bl:0};
-        for(let side in defaultR){ r[side] = r[side] || defaultR[side]; }
-    }
-    ctx.beginPath();
-    ctx.moveTo(x + r.tl, y);
-    ctx.lineTo(x + w - r.tr, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
-    ctx.lineTo(x + w, y + h - r.br);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
-    ctx.lineTo(x + r.bl, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
-    ctx.lineTo(x, y + r.tl);
-    ctx.quadraticCurveTo(x, y, x + r.tl, y);
-    ctx.closePath();
-    if(fill) ctx.fill();
-    if(stroke) ctx.stroke();
-}
-
 // ===== Вспомогательная функция затемнения цвета =====
 function shadeColor(color, percent) {
     const f=parseInt(color.slice(1),16),t=percent<0?0:255,p=percent<0?percent*-1:percent;
@@ -2382,7 +2317,7 @@ function shadeColor(color, percent) {
 /* ==================== GAME LOOP ==================== */
 (function loop(){ draw(); requestAnimationFrame(loop); })();
 spawn();
-restartBtn.onclick = ()=>spawn();
+
 
 </script>
 </body>
