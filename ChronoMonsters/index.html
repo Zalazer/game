@@ -157,6 +157,13 @@ html,body{margin:0;padding:0;overflow:hidden;background:#111;touch-action:none;}
 
 <script>
 
+
+if (window.__CHRONO_MONSTERS_INITIALIZED__) {
+    console.log("Game already initialized");
+} else {
+    window.__CHRONO_MONSTERS_INITIALIZED__ = true;
+
+
 /* =============================
    GAME CONSTANTS
 ============================= */
@@ -1202,45 +1209,109 @@ function resolveTrapAtRoundStart(entity) {
 
 /* ==================== BFS ДОСТУПНЫХ КЛЕТОК ==================== */
 function bfsReachable(e){
+
     let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
-    let q = [{x:e.x,y:e.y,dist:0}]; visited[e.x][e.y] = true;
+    let q = [{x:e.x,y:e.y,dist:0}];
+
+    visited[e.x][e.y] = true;
+
     let reachable = [];
+
     while(q.length){
+
         let cur = q.shift();
-        if(cur.dist>0 && cur.dist<=e.movesLeft) reachable.push({x:cur.x,y:cur.y,dist:cur.dist});
+
+        if(cur.dist>0 && cur.dist<=e.movesLeft){
+            reachable.push({x:cur.x,y:cur.y,dist:cur.dist});
+        }
+
         [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
-            let nx = cur.x+d[0], ny = cur.y+d[1];
-            if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
+
+            let nx = cur.x + d[0];
+            let ny = cur.y + d[1];
+            let nd = cur.dist + 1;
+
+            if(nx<0 || ny<0 || nx>=MAP || ny>=MAP) return;
             if(visited[nx][ny]) return;
             if(isBlockedFor(e, nx, ny)) return;
-            visited[nx][ny]=true;
-            if(cur.dist+1<=e.movesLeft) q.push({x:nx,y:ny,dist:cur.dist+1});
+            if(nd > e.movesLeft) return;
+
+            visited[nx][ny] = true;
+
+            q.push({
+                x:nx,
+                y:ny,
+                dist:nd
+            });
+
         });
+
     }
+
     return reachable;
 }
 
+
 /* ==================== BFS ПУТИ ==================== */
-function bfsPath(entity, sx,sy,tx,ty){
-    let visited = Array.from({length:MAP},()=>Array(MAP).fill(false));
-    let prev = Array.from({length:MAP},()=>Array(MAP).fill(null));
-    let q=[{x:sx,y:sy}]; visited[sx][sy]=true;
-    while(q.length){
-        let cur = q.shift();
-        if(cur.x===tx && cur.y===ty) break;
+function bfsPath(entity, sx, sy, tx, ty){
+
+    let visited = Array.from({length:MAP}, ()=>Array(MAP).fill(false));
+    let prev = Array.from({length:MAP}, ()=>Array(MAP).fill(null));
+
+    let q = [{x:sx, y:sy}];
+    let qi = 0;
+
+    visited[sx][sy] = true;
+
+    while(qi < q.length){
+
+        let cur = q[qi++];
+
+        if(cur.x === tx && cur.y === ty) break;
+
         [[1,0],[-1,0],[0,1],[0,-1]].forEach(d=>{
-            let nx = cur.x+d[0], ny = cur.y+d[1];
-            if(nx<0||ny<0||nx>=MAP||ny>=MAP) return;
+
+            let nx = cur.x + d[0];
+            let ny = cur.y + d[1];
+
+            if(nx < 0 || ny < 0 || nx >= MAP || ny >= MAP) return;
             if(visited[nx][ny]) return;
             if(isBlockedFor(entity, nx, ny)) return;
-            visited[nx][ny]=true; prev[nx][ny]=cur; q.push({x:nx,y:ny});
+
+            visited[nx][ny] = true;
+
+            prev[nx][ny] = cur;
+
+            q.push({x:nx, y:ny});
+
         });
+
     }
-    let path=[], cx=tx, cy=ty;
-    if(!prev[cx][cy] && !(cx===sx&&cy===sy)) return null;
-    while(cx!==sx||cy!==sy){ path.push({x:cx,y:cy}); let p=prev[cx][cy]; if(!p) break; cx=p.x; cy=p.y;}
-    path.reverse(); return path;
+
+    let path = [];
+    let cx = tx;
+    let cy = ty;
+
+    if(!prev[cx][cy] && !(cx === sx && cy === sy)) return null;
+
+    while(cx !== sx || cy !== sy){
+
+        path.push({x:cx, y:cy});
+
+        let p = prev[cx][cy];
+        if(!p) break;
+
+        cx = p.x;
+        cy = p.y;
+
+    }
+
+    path.reverse();
+
+    return path;
 }
+
+
 
 
 /* ==================== FLASH ЭФФЕКТ ==================== */
@@ -2255,7 +2326,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Powe2r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
@@ -2285,6 +2356,9 @@ function shadeColor(color, percent) {
 /* ==================== GAME LOOP ==================== */
 (function loop(){ draw(); requestAnimationFrame(loop); })();
 spawn();
+
+
+}
 
 
 </script>
