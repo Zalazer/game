@@ -672,6 +672,7 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
 
@@ -754,30 +755,42 @@ Level score: ${finalLevelScore} | Total score: ${finalTotalScore}`
 
     restartBtn.onclick = () => {
 
-        overlay.style.display = "none";
-        leaderBtn.style.display = "block";
+        // защита от двойного нажатия
+        restartBtn.disabled = true;
+        restartBtn.innerText = "Loading...";
 
-        gameOver = false;
+        // даем Telegram перерисовать UI
+        setTimeout(() => {
 
-        if (text.startsWith("Game Over")) {
+            overlay.style.display = "none";
+            leaderBtn.style.display = "block";
 
-            resetGame();
-            spawn();
+            gameOver = false;
 
-        } 
-        else if (text.startsWith("You Win")) {
+            if (text.startsWith("Game Over")) {
 
-            level++;
-            startNextLevel(false);
+                resetGame();
+                spawn();
 
-        } 
-        else {
+            } 
+            else if (text.startsWith("You Win")) {
 
-            draw();
+                level++;
+                startNextLevel(false);
 
-        }
+            } 
+            else {
+
+                draw();
+
+            }
+
+            restartBtn.disabled = false;
+
+        }, 50);
     };
 }
+
 
 
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
@@ -2369,7 +2382,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Powe1r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
