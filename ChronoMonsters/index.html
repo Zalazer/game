@@ -672,43 +672,48 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
+
     if (gameOver) return;
     gameOver = true;
 
     const currentLevel = level || 1;
 
+    // фиксируем значения ДО async
+    const finalLevelScore = levelScore;
+    const finalTotalScore = totalScore;
+
     log(
         `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
-Level score: ${levelScore} | Total score: ${totalScore}`
+Level score: ${finalLevelScore} | Total score: ${finalTotalScore}`
     );
 
-    // Всегда явно показываем overlay и кнопку лидеров
     overlay.style.display = "block";
     leaderBtn.style.display = "block";
 
     let title = '';
+
     if (text.startsWith("Game Over")) {
         title = "Game Over";
         msgDiv.style.color = "red";
         playLoseSound();
         restartBtn.innerText = "Restart Game";
-    } else if (text.startsWith("You Win")) {
+    }
+    else if (text.startsWith("You Win")) {
         title = "You Win";
         msgDiv.style.color = "yellow";
         playWinSound();
         restartBtn.innerText = "Next Level";
-    } else {
+    }
+    else {
         title = "Notice";
         msgDiv.style.color = "white";
         restartBtn.innerText = "Continue";
     }
 
-    // Очищаем старый контент overlay и создаём заново
     msgDiv.innerHTML = `
-        <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
+        <div style="font-size:28px;font-weight:bold;margin-bottom:10px;">${title}</div>
         <div>Nick: ${playerNick || "—"}</div>
         <div>Level: ${currentLevel}</div>
         <div>Power: ${player.power}</div>
@@ -716,8 +721,8 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div>Bots killed: ${botsKilledThisLevel}</div>
         <div>Monsters killed: ${monstersKilledThisLevel}</div>
         <div>Chests collected: ${chestsCollectedThisLevel}</div>
-        <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
-        <div style="font-weight:bold;">Total score: ${totalScore}</div>
+        <div style="margin-top:10px;font-weight:bold;">Level score: ${finalLevelScore}</div>
+        <div style="font-weight:bold;">Total score: ${finalTotalScore}</div>
     `;
 
     const btnContainer = document.createElement("div");
@@ -726,36 +731,54 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     btnContainer.style.flexDirection = "column";
     btnContainer.style.gap = "10px";
     btnContainer.appendChild(restartBtn);
+
     msgDiv.appendChild(btnContainer);
 
-    lastGameScore = levelScore;
-    await saveToLeaderboard(levelScore, currentLevel);
+    // блокируем кнопку пока идет сохранение
+    restartBtn.disabled = true;
 
-    if (text.startsWith("Game Over")) {
-        lastGameScore = totalScore;
-        await saveToLeaderboard(totalScore, 0, true);
+    try {
+
+        await saveToLeaderboard(finalLevelScore, currentLevel);
+
+        if (text.startsWith("Game Over")) {
+            await saveToLeaderboard(finalTotalScore, 0, true);
+        }
+
+    } catch(e) {
+        console.log("Leaderboard error", e);
     }
 
+    // теперь кнопку можно нажимать
+    restartBtn.disabled = false;
+
     restartBtn.onclick = () => {
-        // **Сразу очищаем overlay и показываем кнопку лидеров**
+
         overlay.style.display = "none";
         leaderBtn.style.display = "block";
 
-        // Полный сброс всех флагов
         gameOver = false;
 
-        // Сбросим всё: уровень, очки, сущности
         if (text.startsWith("Game Over")) {
-            resetGame();   // сброс уровня и totalScore
-            spawn();       // запускаем новый стартовый раунд
-        } else if (text.startsWith("You Win")) {
+
+            resetGame();
+            spawn();
+
+        } 
+        else if (text.startsWith("You Win")) {
+
             level++;
             startNextLevel(false);
-        } else {
+
+        } 
+        else {
+
             draw();
+
         }
     };
 }
+
 
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
 function resetGame() {
@@ -2346,7 +2369,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Powe1r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
