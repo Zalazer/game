@@ -566,48 +566,6 @@ let flashes = [];
 let deadZones = [];
 
 
-
-function resetRuntimeState() {
-    // ===== Reachable cache =====
-    reachCache.player = {};
-    reachCache.bots.clear();
-
-    // ===== Позиции ботов =====
-    lastBotPos.clear();
-
-    // ===== Цвета и trace ботов =====
-    botTraceColors.clear();
-    aliveBots.forEach(b => {
-        b.trace = [];
-    });
-
-    // ===== Игрок =====
-    lastPlayerPos = { 
-        x: player.x, 
-        y: player.y, 
-        moves: player.movesLeft 
-    };
-
-    // ===== Статистика glow =====
-    for (let k in statFX) {
-        if (typeof statFX[k] === "object") {
-            statFX[k].glow = 0;
-            statFX[k].delta = 0;
-        }
-    }
-
-    // пересинхронизация statLast
-    statLast.power = player.power;
-    statLast.speed = player.speed;
-    statLast.movesLeft = player.movesLeft;
-    statLast.chests = chests.length;
-    statLast.monsters = monsters.length;
-    statLast.bots = aliveBots.length;
-    statLast.roundNumber = roundNumber;
-    statLast.blockedCells = deadZones.length;
-}
-
-
 /* ==================== ЛОГ С НУМЕРАЦИЕЙ ==================== */
 
 function colorizeGameText(text){
@@ -798,25 +756,34 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         await saveToLeaderboard(totalScore, 0, true);
     }
 
-    // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ
-    restartBtn.onclick = () => {
-        overlay.style.display = "none";
-        gameOver = false;
-        
-        if (text.startsWith("Game Over")) {
-            // ПОЛНЫЙ СБРОС
-            resetGame();
-            spawn();
-        } else if (text.startsWith("You Win")) {
-            totalScore += levelScore;
-            level++;
-            startNextLevel(false);
-        } else {
-            // Continue — просто возобновить текущий
-            gameOver = false;
-            draw();
-        }
-    };
+ restartBtn.onclick = () => {
+
+    overlay.style.display = "none";
+    gameOver = false;
+
+    if (text.startsWith("Game Over")) {
+
+        // ПОЛНЫЙ СБРОС ИГРЫ
+        resetGame();
+        spawn();
+
+    } 
+    else if (text.startsWith("You Win")) {
+
+        // totalScore уже обновлялся через updateScore()
+        level++;
+
+        startNextLevel(false);
+
+    } 
+    else {
+
+        // Continue
+        draw();
+
+    }
+
+};
 }
 
 
@@ -824,6 +791,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
 
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
 function resetGame() {
+
     level = 1;
     MAP = BASE_MAP;
     BOTS = BASE_BOTS;
@@ -832,14 +800,21 @@ function resetGame() {
     
     totalScore = 0;
     levelScore = 0;
+
     botsKilledThisLevel = 0;
     monstersKilledThisLevel = 0;
     chestsCollectedThisLevel = 0;
 
+    // сброс визуального FX
+    if(typeof statFX !== "undefined"){
+        statFX.levelScore = 0;
+        statFX.totalScore = 0;
+    }
+
     resetLevelEntities();
     rebuildGridCanvas();
-}
 
+}
 
 /* ==================== СБРОС СУЩНОСТЕЙ УРОВНЯ ==================== */
 function resetLevelEntities() {
@@ -1003,6 +978,7 @@ function startNextLevel(isNewGame = false) {
 }
 
 
+
 /* ==================== SPAWN ==================== */
 function spawn() {
     const used = new Set();
@@ -1019,6 +995,8 @@ function spawn() {
     }
 
     // ===== СБРОС ПАРАМЕТРОВ УРОВНЯ =====
+
+levelScore = 0;
     moveNumber = 0;
     roundNumber = 0;
     logCounter = 0;
@@ -1039,11 +1017,10 @@ function spawn() {
     chests = [];
     flashes = [];
     deadZones = [];
+    reachCache.player = {};
+    reachCache.bots = new Map();
 
-    // ===== ПЕРЕСБРОС КЭШЕЙ И СТАТИСТИКИ =====
-    resetRuntimeState();
-
-    // ===== ИГРОК (первичная установка позиции) =====
+    // ===== ИГРОК =====
     const p = placeUnique();
     player.x = p.x;
     player.y = p.y;
@@ -2355,15 +2332,10 @@ function shadeColor(color, percent) {
 
 
 
-/* ==================== GAME LOOP ==================== */
-function gameLoop() {
-    draw();
-    requestAnimationFrame(gameLoop);
-}
 
-// ===== Сначала запускаем spawn, потом цикл =====
+/* ==================== GAME LOOP ==================== */
+(function loop(){ draw(); requestAnimationFrame(loop); })();
 spawn();
-gameLoop();
 
 
 </script>
