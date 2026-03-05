@@ -674,7 +674,6 @@ function playLoseSound(){
 
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -687,7 +686,9 @@ async function endGame(text) {
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
+    // Всегда явно показываем overlay и кнопку лидеров
     overlay.style.display = "block";
+    leaderBtn.style.display = "block";
 
     let title = '';
     if (text.startsWith("Game Over")) {
@@ -706,13 +707,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         restartBtn.innerText = "Continue";
     }
 
-    const btnContainer = document.createElement("div");
-    btnContainer.style.marginTop = "20px";
-    btnContainer.style.display = "flex";
-    btnContainer.style.flexDirection = "column";
-    btnContainer.style.gap = "10px";
-    btnContainer.appendChild(restartBtn);
-
+    // Убираем старые кнопки, создаем заново
     msgDiv.innerHTML = `
         <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
         <div>Nick: ${playerNick || "—"}</div>
@@ -725,6 +720,12 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
+    const btnContainer = document.createElement("div");
+    btnContainer.style.marginTop = "20px";
+    btnContainer.style.display = "flex";
+    btnContainer.style.flexDirection = "column";
+    btnContainer.style.gap = "10px";
+    btnContainer.appendChild(restartBtn);
     msgDiv.appendChild(btnContainer);
 
     lastGameScore = levelScore;
@@ -736,7 +737,11 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     }
 
     restartBtn.onclick = () => {
+        // Скрываем overlay и явно показываем кнопку лидеров
         overlay.style.display = "none";
+        leaderBtn.style.display = "block";
+
+        // Сброс всех флагов и сущностей
         gameOver = false;
 
         if (text.startsWith("Game Over")) {
@@ -751,44 +756,47 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     };
 }
 
-
-
-
-
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
 function resetGame() {
+    // Сброс уровня и карты
     level = 1;
     MAP = BASE_MAP;
     BOTS = BASE_BOTS;
     MONSTERS = BASE_MONSTERS;
     CHESTS = BASE_CHESTS;
-    
+
+    // Сброс очков
     totalScore = 0;
     levelScore = 0;
-
     botsKilledThisLevel = 0;
     monstersKilledThisLevel = 0;
     chestsCollectedThisLevel = 0;
 
-    if(typeof statFX !== "undefined"){
+    // Сброс FX
+    if (typeof statFX !== "undefined") {
         statFX.levelScore = 0;
         statFX.totalScore = 0;
     }
 
+    // Полный сброс сущностей уровня
     resetLevelEntities();
+
+    // Явная перерисовка сетки и кнопок для Telegram
     rebuildGridCanvas();
+    overlay.style.display = "none";
+    leaderBtn.style.display = "block";
 }
-
-
 
 /* ==================== СБРОС СУЩНОСТЕЙ УРОВНЯ ==================== */
 function resetLevelEntities() {
+    // Игрок
     player.power = 1;
     player.speed = 5;
     player.movesLeft = player.speed;
     player.x = 0;
     player.y = 0;
 
+    // Сброс массивов
     bots = [];
     aliveBots = [];
     monsters = [];
@@ -2326,7 +2334,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Powe2r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
