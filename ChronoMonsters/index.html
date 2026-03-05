@@ -2326,7 +2326,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Powe2r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
