@@ -413,30 +413,43 @@ function updateLeaderboardTables() {
 
 }
 
-/* =============================
-   INIT BUTTON
-============================= */
-document.addEventListener('DOMContentLoaded', async () => {
 
+
+/* =============================
+   INIT BUTTON (Telegram-safe)
+============================= */
+(async function initGame() {
+
+    // Авторизация Telegram
     await authTelegram();
 
     const leaderBtn = document.getElementById('leaderBtn');
     const modal = document.getElementById('leaderboardModal');
 
-    leaderBtn.disabled = false;
+    if (leaderBtn) leaderBtn.disabled = false;
 
-    leaderBtn.onclick = async () => {
-        await loadGlobalLeaderboard(selectedLevel);
-        updateLeaderboardTables();
-        if (modal) modal.style.display = 'flex';
-    };
+    // Кнопка открытия лидеров
+    if (leaderBtn) {
+        leaderBtn.onclick = async () => {
+            await loadGlobalLeaderboard(selectedLevel);
+            updateLeaderboardTables();
+            if (modal) modal.style.display = 'flex';
+        };
+    }
 
+    // Закрытие модалки по клику вне контента
     if (modal) {
         modal.onclick = e => {
             if (e.target === modal) modal.style.display = 'none';
         };
     }
-});
+
+    // Если Telegram уже загружен, сразу разрешаем BackButton
+    if (window.Telegram?.WebApp) {
+        setupTelegramBackButton();
+    }
+
+})();
 
 
 
@@ -2306,7 +2319,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Powe1r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
