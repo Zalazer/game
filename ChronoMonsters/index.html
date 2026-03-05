@@ -672,15 +672,17 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
+
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
-function endGame(text) {
+async function endGame(text) {
 
     if (gameOver) return;
     gameOver = true;
 
     const currentLevel = level || 1;
 
-    // фиксируем значения ДО отправки
+    // фиксируем значения
     const finalLevelScore = levelScore;
     const finalTotalScore = totalScore;
 
@@ -688,6 +690,60 @@ function endGame(text) {
         `=== Level ${currentLevel} completed with Power ${player.power}, Speed ${player.speed}, Bots killed ${botsKilledThisLevel}, Monsters killed ${monstersKilledThisLevel}, Chests collected ${chestsCollectedThisLevel} ===
 Level score: ${finalLevelScore} | Total score: ${finalTotalScore}`
     );
+
+    /* ==================== АНИМАЦИЯ СМЕРТИ ==================== */
+
+    if (text.startsWith("Game Over")) {
+
+        const crossDuration = 3000;
+        const startTime = Date.now();
+
+        await new Promise(resolve => {
+
+            function drawCross() {
+
+                const elapsed = Date.now() - startTime;
+
+                if (elapsed >= crossDuration) {
+                    resolve();
+                    return;
+                }
+
+                const blink = Math.floor(elapsed / 300) % 2 === 0;
+
+                const offset = 5;
+                const size = 34;
+
+                const px = player.x * TILE + offset + size / 2;
+                const py = player.y * TILE + offset + size / 2;
+
+                const half = (size / 1.5) / 2;
+
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.setTransform(scale, 0, 0, scale, camX, camY);
+
+                draw();
+
+                ctx.strokeStyle = blink ? "red" : "cyan";
+                ctx.lineWidth = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(px - half, py - half);
+                ctx.lineTo(px + half, py + half);
+                ctx.moveTo(px + half, py - half);
+                ctx.lineTo(px - half, py + half);
+                ctx.stroke();
+
+                requestAnimationFrame(drawCross);
+            }
+
+            drawCross();
+
+        });
+    }
+
+    /* ==================== OVERLAY ==================== */
 
     overlay.style.display = "block";
     leaderBtn.style.display = "block";
@@ -754,10 +810,8 @@ Level score: ${finalLevelScore} | Total score: ${finalTotalScore}`
 
     restartBtn.onclick = () => {
 
-        // защита от двойного нажатия
         restartBtn.disabled = true;
 
-        // даем Telegram перерисовать UI
         setTimeout(() => {
 
             overlay.style.display = "none";
