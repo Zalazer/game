@@ -665,6 +665,9 @@ function playLoseSound(){
     setTimeout(()=>playTone(164.81,0.35,'square',0.9),380);  // E3
 }
 
+
+
+
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -677,50 +680,6 @@ async function endGame(text) {
 Level score: ${levelScore} | Total score: ${totalScore}`
     );
 
-    // === Рисуем мигающий крест на месте игрока ===
-    if (text.startsWith("Game Over")) {
-        const crossDuration = 3000; // 3 секунды
-        const startTime = Date.now();
-
-        await new Promise(resolve => {
-            function drawCross() {
-                const elapsed = Date.now() - startTime;
-                if (elapsed >= crossDuration) return resolve();
-
-                const blink = Math.floor(elapsed / 300) % 2 === 0;
-
-                // === Смещение как у drawCandy(player) + центрируем ===
-                const offset = 5; // смещение внутрь клетки
-                const size = 34;  // размер игрока
-                const px = player.x * TILE + offset + size / 2; // центр игрока по X
-                const py = player.y * TILE + offset + size / 2; // центр игрока по Y
-                const half = (size / 1.5) / 2; // крестик в полтора раза меньше
-
-                // Перерисовка канваса
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.setTransform(scale, 0, 0, scale, camX, camY);
-
-                // Отрисовка карты, объектов, ботов и игрока
-                draw();
-
-                // Рисуем мигающий крест красно‑cyan поверх игрока
-                ctx.strokeStyle = blink ? "red" : "cyan";
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(px - half, py - half);
-                ctx.lineTo(px + half, py + half);
-                ctx.moveTo(px + half, py - half);
-                ctx.lineTo(px - half, py + half);
-                ctx.stroke();
-
-                requestAnimationFrame(drawCross);
-            }
-            drawCross();
-        });
-    }
-
-    // ==== Overlay и остальной код остаются без изменений ====
     overlay.style.display = "block";
 
     let title = '';
@@ -769,42 +728,28 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         await saveToLeaderboard(totalScore, 0, true);
     }
 
- restartBtn.onclick = () => {
+    restartBtn.onclick = () => {
+        overlay.style.display = "none";
+        gameOver = false;
 
-    overlay.style.display = "none";
-    gameOver = false;
-
-    if (text.startsWith("Game Over")) {
-
-        // ПОЛНЫЙ СБРОС ИГРЫ
-        resetGame();
-        spawn();
-
-    } 
-    else if (text.startsWith("You Win")) {
-
-        // totalScore уже обновлялся через updateScore()
-        level++;
-
-        startNextLevel(false);
-
-    } 
-    else {
-
-        // Continue
-        draw();
-
-    }
-
-};
+        if (text.startsWith("Game Over")) {
+            resetGame();
+            spawn();
+        } else if (text.startsWith("You Win")) {
+            level++;
+            startNextLevel(false);
+        } else {
+            draw();
+        }
+    };
 }
+
 
 
 
 
 /* ==================== СБРОС ВСЕЙ ИГРЫ ==================== */
 function resetGame() {
-
     level = 1;
     MAP = BASE_MAP;
     BOTS = BASE_BOTS;
@@ -818,7 +763,6 @@ function resetGame() {
     monstersKilledThisLevel = 0;
     chestsCollectedThisLevel = 0;
 
-    // сброс визуального FX
     if(typeof statFX !== "undefined"){
         statFX.levelScore = 0;
         statFX.totalScore = 0;
@@ -826,8 +770,9 @@ function resetGame() {
 
     resetLevelEntities();
     rebuildGridCanvas();
-
 }
+
+
 
 /* ==================== СБРОС СУЩНОСТЕЙ УРОВНЯ ==================== */
 function resetLevelEntities() {
@@ -844,7 +789,6 @@ function resetLevelEntities() {
     flashes = [];
     deadZones = [];
 }
-
 
 
 
@@ -920,7 +864,6 @@ function handleTrapAtRoundStart(character) {
 }
 
 
-
 /* ==================== NEXT LEVEL ==================== */
 function startNextLevel(isNewGame = false) {
 
@@ -935,19 +878,17 @@ function startNextLevel(isNewGame = false) {
         totalScore = 0;
     }
 
-    // Размер карты: стартовая 15x15, +5 клеток по каждой оси на новом уровне
+    // Размер карты
     const baseMapSize = 15;
     const mapGrowth = 5;
     MAP = baseMapSize + (level - 1) * mapGrowth;
 
-    // ===== СБРОС КАНВАСА ДЛЯ TELEGRAM WEBAPP =====
+    // Telegram WebApp canvas reset
     if(window.Telegram) {
-        // удаляем старый canvas, если есть
         if(gridCanvas && gridCanvas.parentNode){
             const parent = gridCanvas.parentNode;
             parent.removeChild(gridCanvas);
 
-            // создаём новый canvas
             gridCanvas = document.createElement("canvas");
             gridCanvas.id = "gridCanvas";
             gridCanvas.width = canvas.width;
@@ -956,19 +897,16 @@ function startNextLevel(isNewGame = false) {
 
             gridCtx = gridCanvas.getContext("2d");
         }
-       
     }
 
-    // Telegram WebApp haptic
     if(window.Telegram?.WebApp) {
         Telegram.WebApp.HapticFeedback.selectionChanged();
         Telegram.WebApp.MainButton.offClick();
     }
 
-    // ===== ПЕРЕСТРОЙКА СЕТКИ С НОВЫМ РАЗМЕРОМ =====
-    rebuildGridCanvas(); // теперь сетка соответствует MAP
+    rebuildGridCanvas();
 
-    // Плотность объектов относительно карты 20x20
+    // Плотность объектов
     const densityMapSize = 20;
     const baseBots = 5;
     const baseMonsters = 20;
@@ -982,11 +920,9 @@ function startNextLevel(isNewGame = false) {
 
     console.log(`Level ${level}: MAP=${MAP}x${MAP}, BOTS=${BOTS}, MONSTERS=${MONSTERS}, CHESTS=${CHESTS}`);
 
-    // Сброс игрока и ботов
     player.movesLeft = player.speed;
     aliveBots = [...bots];
 
-    // ===== ЗАПУСК СПАУНА С ОБНОВЛЕННЫМ РАЗМЕРОМ КАРТЫ =====
     spawn();
 }
 
