@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -566,6 +566,48 @@ let flashes = [];
 let deadZones = [];
 
 
+
+function resetRuntimeState() {
+    // ===== Reachable cache =====
+    reachCache.player = {};
+    reachCache.bots.clear();
+
+    // ===== Позиции ботов =====
+    lastBotPos.clear();
+
+    // ===== Цвета и trace ботов =====
+    botTraceColors.clear();
+    aliveBots.forEach(b => {
+        b.trace = [];
+    });
+
+    // ===== Игрок =====
+    lastPlayerPos = { 
+        x: player.x, 
+        y: player.y, 
+        moves: player.movesLeft 
+    };
+
+    // ===== Статистика glow =====
+    for (let k in statFX) {
+        if (typeof statFX[k] === "object") {
+            statFX[k].glow = 0;
+            statFX[k].delta = 0;
+        }
+    }
+
+    // пересинхронизация statLast
+    statLast.power = player.power;
+    statLast.speed = player.speed;
+    statLast.movesLeft = player.movesLeft;
+    statLast.chests = chests.length;
+    statLast.monsters = monsters.length;
+    statLast.bots = aliveBots.length;
+    statLast.roundNumber = roundNumber;
+    statLast.blockedCells = deadZones.length;
+}
+
+
 /* ==================== ЛОГ С НУМЕРАЦИЕЙ ==================== */
 
 function colorizeGameText(text){
@@ -961,7 +1003,6 @@ function startNextLevel(isNewGame = false) {
 }
 
 
-
 /* ==================== SPAWN ==================== */
 function spawn() {
     const used = new Set();
@@ -998,10 +1039,11 @@ function spawn() {
     chests = [];
     flashes = [];
     deadZones = [];
-    reachCache.player = {};
-    reachCache.bots = new Map();
 
-    // ===== ИГРОК =====
+    // ===== ПЕРЕСБРОС КЭШЕЙ И СТАТИСТИКИ =====
+    resetRuntimeState();
+
+    // ===== ИГРОК (первичная установка позиции) =====
     const p = placeUnique();
     player.x = p.x;
     player.y = p.y;
@@ -2287,7 +2329,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Powe2r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
@@ -2313,10 +2355,15 @@ function shadeColor(color, percent) {
 
 
 
-
 /* ==================== GAME LOOP ==================== */
-(function loop(){ draw(); requestAnimationFrame(loop); })();
+function gameLoop() {
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+// ===== Сначала запускаем spawn, потом цикл =====
 spawn();
+gameLoop();
 
 
 </script>
