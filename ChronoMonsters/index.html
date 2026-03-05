@@ -673,7 +673,6 @@ function playLoseSound(){
 }
 
 
-
 /* ==================== КОНЕЦ ИГРЫ ==================== */
 async function endGame(text) {
     if (gameOver) return;
@@ -707,7 +706,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         restartBtn.innerText = "Continue";
     }
 
-    // Убираем старые кнопки, создаем заново
+    // Очищаем старый контент overlay и создаём заново
     msgDiv.innerHTML = `
         <div style="font-size:28px; font-weight:bold; margin-bottom:10px;">${title}</div>
         <div>Nick: ${playerNick || "—"}</div>
@@ -720,6 +719,7 @@ Level score: ${levelScore} | Total score: ${totalScore}`
         <div style="margin-top:10px; font-weight:bold;">Level score: ${levelScore}</div>
         <div style="font-weight:bold;">Total score: ${totalScore}</div>
     `;
+
     const btnContainer = document.createElement("div");
     btnContainer.style.marginTop = "20px";
     btnContainer.style.display = "flex";
@@ -737,16 +737,17 @@ Level score: ${levelScore} | Total score: ${totalScore}`
     }
 
     restartBtn.onclick = () => {
-        // Скрываем overlay и явно показываем кнопку лидеров
+        // **Сразу очищаем overlay и показываем кнопку лидеров**
         overlay.style.display = "none";
         leaderBtn.style.display = "block";
 
-        // Сброс всех флагов и сущностей
+        // Полный сброс всех флагов
         gameOver = false;
 
+        // Сбросим всё: уровень, очки, сущности
         if (text.startsWith("Game Over")) {
-            resetGame();
-            spawn();
+            resetGame();   // сброс уровня и totalScore
+            spawn();       // запускаем новый стартовый раунд
         } else if (text.startsWith("You Win")) {
             level++;
             startNextLevel(false);
@@ -785,6 +786,17 @@ function resetGame() {
     rebuildGridCanvas();
     overlay.style.display = "none";
     leaderBtn.style.display = "block";
+
+    // Принудительно очистить все временные массивы и кэшированные ссылки
+    bots.length = 0;
+    aliveBots.length = 0;
+    monsters.length = 0;
+    chests.length = 0;
+    flashes.length = 0;
+    deadZones.length = 0;
+
+    // Флаг Telegram для перезапуска игры
+    window.__CHRONO_MONSTERS_RESTARTED__ = true;
 }
 
 /* ==================== СБРОС СУЩНОСТЕЙ УРОВНЯ ==================== */
@@ -2334,7 +2346,7 @@ function draw() {
     statFX.totalScore += (currentTotalScore - statFX.totalScore) * 0.1;
 
     document.getElementById("info").innerHTML = `
-<span class="lbl player" style="${glowStyleLabel('player')}">Power</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
+<span class="lbl player" style="${glowStyleLabel('player')}">Powe1r</span><span class="val" style="${glowStyleNumber(statFX.power)}">${player.power}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Speed</span><span class="val" style="${glowStyleNumber(statFX.speed)}">${player.speed}</span>
 <span class="lbl player" style="${glowStyleLabel('player')}">Steps left</span><span class="val" style="${glowStyleNumber(statFX.movesLeft)}">${player.movesLeft}</span><br>
 <span class="lbl chest" style="${glowStyleLabel('chest')}">Chests</span><span class="val" style="${glowStyleNumber(statFX.chests)}">${chests.length}</span>
