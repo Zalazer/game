@@ -421,7 +421,6 @@ function updateLeaderboardTables() {
 }
 
 
-
 /* =============================
    INIT BUTTON (Telegram-safe)
 ============================= */
@@ -437,10 +436,19 @@ function updateLeaderboardTables() {
 
     // Кнопка открытия лидеров
     if (leaderBtn) {
-        leaderBtn.onclick = async () => {
-            await loadGlobalLeaderboard(selectedLevel);
-            updateLeaderboardTables();
+        leaderBtn.onclick = () => {
+            // Мгновенно показываем модалку
             if (modal) modal.style.display = 'flex';
+
+            // Асинхронно подтягиваем данные в фоне
+            (async () => {
+                try {
+                    await loadGlobalLeaderboard(selectedLevel);
+                    updateLeaderboardTables();
+                } catch (e) {
+                    console.log("Failed to load leaderboard in background", e);
+                }
+            })();
         };
     }
 
