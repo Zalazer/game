@@ -1186,18 +1186,6 @@ function drawTable(){
 
 
 
-/* =====================================================
-   LOOP
-===================================================== */
-function loop(){
-    drawWheel();
-    drawHistory();
-    drawTable();
-    requestAnimationFrame(loop);
-}
-loop();
-
-
 
 
 
@@ -1293,7 +1281,18 @@ document.addEventListener('DOMContentLoaded', () => {
         playerState.lastBet = amount;
 
         if (spotId) {
-            tableBets.push({spotId, x:0, y:0, value:amount});
+            const spots = generateBetSpots(tableCanvas);
+            const spot = spots.find(s => s.id === spotId);
+
+            if (spot) {
+                tableBets.push({
+                    spotId: spotId,
+                    x: spot.x,
+                    y: spot.y,
+                    value: amount
+                });
+            }
+
             logResult(`Bet ${amount} on ${spotId}. Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
         } else {
             logResult(`Added ${amount} to current bet. Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
@@ -1309,7 +1308,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         playerState.currentBet = 0;
         tableBets.length = 0;
-        renderTableAndBets();
         updatePlayerUI();
     }
 
@@ -1332,7 +1330,6 @@ document.addEventListener('DOMContentLoaded', () => {
         logResult(`Spin result: ${winningNumber}, Win/Loss: ${winAmount}, Balance: ${playerState.balance}`);
         playerState.currentBet = 0;
         tableBets.length = 0;
-        renderTableAndBets();
         updatePlayerUI();
     }
 
@@ -1345,333 +1342,99 @@ document.addEventListener('DOMContentLoaded', () => {
         return arr;
     }
 
-    /* ==========================
-   GENERATE BET SPOTS (FIXED)
-========================== */
-function generateBetSpots(canvas){
+    function generateBetSpots(canvas) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        const cols = 14;
+        const cellW = w / cols;
+        const cellH = h / 7.5;
+        const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 
-const w = canvas.clientWidth;
-const h = canvas.clientHeight;
+        const numRows = [
+            [3,6,9,12,15,18,21,24,27,30,33,36],
+            [2,5,8,11,14,17,20,23,26,29,32,35],
+            [1,4,7,10,13,16,19,22,25,28,31,34]
+        ];
 
-const cols = 14;
-const cellW = w / cols;
-const cellH = h / 7.5;
+        const spots = [];
 
-const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+        // --- STRAIGHT ---
+        for(let r=0;r<3;r++){
+            for(let c=0;c<12;c++){
+                const x = (c+1)*cellW + cellW/2;
+                const y = r*cellH + cellH/2;
+                spots.push({id:'n'+numRows[r][c], type:'straight', numbers:[numRows[r][c]], x, y, w:cellW*0.7, h:cellH*0.7});
+            }
+        }
 
-const numRows = [
-    [3,6,9,12,15,18,21,24,27,30,33,36],
-    [2,5,8,11,14,17,20,23,26,29,32,35],
-    [1,4,7,10,13,16,19,22,25,28,31,34]
-];
+        // --- ZERO ---
+        spots.push({id:'n0', type:'straight', numbers:[0], x:cellW/2, y:cellH*1.5, w:cellW*0.8, h:cellH*2.5});
 
-const spots = [];
+        // --- SPLIT HORIZONTAL ---
+        for(let r=0;r<3;r++){
+            for(let c=0;c<11;c++){
+                const x = (c+2)*cellW;
+                const y = r*cellH + cellH/2;
+                spots.push({id:`split_h_${r}_${c}`, type:'split', numbers:[numRows[r][c],numRows[r][c+1]], x, y, w:cellW*0.5, h:cellH*0.7});
+            }
+        }
 
-/* =========================
-   STRAIGHT
-========================= */
-for(let r=0;r<3;r++){
-    for(let c=0;c<12;c++){
+        // --- SPLIT VERTICAL ---
+        for(let r=0;r<2;r++){
+            for(let c=0;c<12;c++){
+                const x = (c+1)*cellW + cellW/2;
+                const y = (r+1)*cellH;
+                spots.push({id:`split_v_${r}_${c}`, type:'split', numbers:[numRows[r][c],numRows[r+1][c]], x, y, w:cellW*0.7, h:cellH*0.5});
+            }
+        }
 
-        const x = (c+1)*cellW + cellW/2;
-        const y = r*cellH + cellH/2;
+        // --- CORNER ---
+        for(let r=0;r<2;r++){
+            for(let c=0;c<11;c++){
+                const x = (c+2)*cellW;
+                const y = (r+1)*cellH;
+                spots.push({id:`corner_${r}_${c}`, type:'corner', numbers:[numRows[r][c],numRows[r][c+1],numRows[r+1][c],numRows[r+1][c+1]], x, y, w:cellW*0.6, h:cellH*0.6});
+            }
+        }
 
-        spots.push({
-            id:'n'+numRows[r][c],
-            type:'straight',
-            numbers:[numRows[r][c]],
-            x:x,
-            y:y,
-            w:cellW*0.7,
-            h:cellH*0.7
-        });
+        // --- STREET ---
+        for(let c=0;c<12;c++){
+            const x = (c+1)*cellW + cellW/2;
+            const y = cellH*3 - cellH*0.15;
+            spots.push({id:`street_${c}`, type:'street', numbers:[numRows[2][c],numRows[1][c],numRows[0][c]], x, y, w:cellW*0.9, h:cellH*0.5});
+        }
+
+        // --- SIXLINE ---
+        for(let c=0;c<11;c++){
+            const x = (c+2)*cellW;
+            const y = cellH*3 - cellH*0.15;
+            spots.push({id:`sixline_${c}`, type:'sixline', numbers:[
+                numRows[2][c],numRows[1][c],numRows[0][c],
+                numRows[2][c+1],numRows[1][c+1],numRows[0][c+1]
+            ], x, y, w:cellW*0.6, h:cellH*0.6});
+        }
+
+        // --- DOZEN ---
+        spots.push({id:'d1', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+1), x:3*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+        spots.push({id:'d2', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+13), x:7*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+        spots.push({id:'d3', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+25), x:11*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+
+        // --- COLUMNS ---
+        spots.push({id:'c1', type:'column', numbers:[1,4,7,10,13,16,19,22,25,28,31,34], x:13*cellW + cellW/2, y:2*cellH + cellH/2, w:cellW, h:cellH});
+        spots.push({id:'c2', type:'column', numbers:[2,5,8,11,14,17,20,23,26,29,32,35], x:13*cellW + cellW/2, y:1*cellH + cellH/2, w:cellW, h:cellH});
+        spots.push({id:'c3', type:'column', numbers:[3,6,9,12,15,18,21,24,27,30,33,36], x:13*cellW + cellW/2, y:0*cellH + cellH/2, w:cellW, h:cellH});
+
+        // --- OUTSIDE ---
+        const y = cellH*4.5;
+        spots.push({id:'low', numbers:[...Array(18)].map((_,i)=>i+1), x:3*cellW, y, w:2*cellW, h:cellH});
+        spots.push({id:'even', numbers:[2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36], x:5*cellW, y, w:2*cellW, h:cellH});
+        spots.push({id:'red', numbers:reds, x:7*cellW, y, w:2*cellW, h:cellH});
+        spots.push({id:'black', numbers:[...Array(36).keys()].map(n=>n+1).filter(n=>!reds.includes(n)), x:9*cellW, y, w:2*cellW, h:cellH});
+        spots.push({id:'odd', numbers:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35], x:11*cellW, y, w:2*cellW, h:cellH});
+        spots.push({id:'high', numbers:[...Array(18)].map((_,i)=>i+19), x:13*cellW - cellW, y, w:2*cellW, h:cellH});
+
+        return spots;
     }
-}
-
-/* =========================
-   ZERO
-========================= */
-
-spots.push({
-    id:'n0',
-    type:'straight',
-    numbers:[0],
-    x:cellW/2,
-    y:cellH*1.5,
-    w:cellW*0.8,
-    h:cellH*2.5
-});
-
-
-/* =========================
-   SPLIT HORIZONTAL
-========================= */
-
-for(let r=0;r<3;r++){
-    for(let c=0;c<11;c++){
-
-        const x = (c+2)*cellW;
-        const y = r*cellH + cellH/2;
-
-        spots.push({
-            id:`split_h_${r}_${c}`,
-            type:'split',
-            numbers:[
-                numRows[r][c],
-                numRows[r][c+1]
-            ],
-            x:x,
-            y:y,
-            w:cellW*0.5,
-            h:cellH*0.7
-        });
-    }
-}
-
-
-/* =========================
-   SPLIT VERTICAL
-========================= */
-
-for(let r=0;r<2;r++){
-    for(let c=0;c<12;c++){
-
-        const x = (c+1)*cellW + cellW/2;
-        const y = (r+1)*cellH;
-
-        spots.push({
-            id:`split_v_${r}_${c}`,
-            type:'split',
-            numbers:[
-                numRows[r][c],
-                numRows[r+1][c]
-            ],
-            x:x,
-            y:y,
-            w:cellW*0.7,
-            h:cellH*0.5
-        });
-    }
-}
-
-
-/* =========================
-   CORNER
-========================= */
-
-for(let r=0;r<2;r++){
-    for(let c=0;c<11;c++){
-
-        const x = (c+2)*cellW;
-        const y = (r+1)*cellH;
-
-        spots.push({
-            id:`corner_${r}_${c}`,
-            type:'corner',
-            numbers:[
-                numRows[r][c],
-                numRows[r][c+1],
-                numRows[r+1][c],
-                numRows[r+1][c+1]
-            ],
-            x:x,
-            y:y,
-            w:cellW*0.6,
-            h:cellH*0.6
-        });
-    }
-}
-
-
-/* =========================
-   STREET (нижняя линия)
-========================= */
-
-for(let c=0;c<12;c++){
-
-    const x = (c+1)*cellW + cellW/2;
-    const y = cellH*3 - cellH*0.15;
-
-    spots.push({
-        id:`street_${c}`,
-        type:'street',
-        numbers:[
-            numRows[2][c],
-            numRows[1][c],
-            numRows[0][c]
-        ],
-        x:x,
-        y:y,
-        w:cellW*0.9,
-        h:cellH*0.5
-    });
-}
-
-
-/* =========================
-   SIXLINE
-========================= */
-
-for(let c=0;c<11;c++){
-
-    const x = (c+2)*cellW;
-    const y = cellH*3 - cellH*0.15;
-
-    spots.push({
-        id:`sixline_${c}`,
-        type:'sixline',
-        numbers:[
-            numRows[2][c],
-            numRows[1][c],
-            numRows[0][c],
-            numRows[2][c+1],
-            numRows[1][c+1],
-            numRows[0][c+1]
-        ],
-        x:x,
-        y:y,
-        w:cellW*0.6,
-        h:cellH*0.6
-    });
-}
-
-
-/* =========================
-   DOZEN
-========================= */
-
-spots.push({
-    id:'d1',
-    type:'dozen',
-    numbers:Array.from({length:12},(_,i)=>i+1),
-    x:3*cellW,
-    y:cellH*3.5,
-    w:4*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'d2',
-    type:'dozen',
-    numbers:Array.from({length:12},(_,i)=>i+13),
-    x:7*cellW,
-    y:cellH*3.5,
-    w:4*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'d3',
-    type:'dozen',
-    numbers:Array.from({length:12},(_,i)=>i+25),
-    x:11*cellW,
-    y:cellH*3.5,
-    w:4*cellW,
-    h:cellH
-});
-
-
-/* =========================
-   COLUMNS
-========================= */
-
-spots.push({
-    id:'c1',
-    type:'column',
-    numbers:[1,4,7,10,13,16,19,22,25,28,31,34],
-    x:13*cellW + cellW/2,
-    y:2*cellH + cellH/2,
-    w:cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'c2',
-    type:'column',
-    numbers:[2,5,8,11,14,17,20,23,26,29,32,35],
-    x:13*cellW + cellW/2,
-    y:1*cellH + cellH/2,
-    w:cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'c3',
-    type:'column',
-    numbers:[3,6,9,12,15,18,21,24,27,30,33,36],
-    x:13*cellW + cellW/2,
-    y:0*cellH + cellH/2,
-    w:cellW,
-    h:cellH
-});
-
-
-/* =========================
-   OUTSIDE
-========================= */
-
-const y = cellH*4.5;
-
-spots.push({
-    id:'low',
-    numbers:[...Array(18)].map((_,i)=>i+1),
-    x:3*cellW,
-    y:y,
-    w:2*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'even',
-    numbers:[2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36],
-    x:5*cellW,
-    y:y,
-    w:2*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'red',
-    numbers:reds,
-    x:7*cellW,
-    y:y,
-    w:2*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'black',
-    numbers:[...Array(36).keys()].map(n=>n+1).filter(n=>!reds.includes(n)),
-    x:9*cellW,
-    y:y,
-    w:2*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'odd',
-    numbers:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35],
-    x:11*cellW,
-    y:y,
-    w:2*cellW,
-    h:cellH
-});
-
-spots.push({
-    id:'high',
-    numbers:[...Array(18)].map((_,i)=>i+19),
-    x:13*cellW - cellW,
-    y:y,
-    w:2*cellW,
-    h:cellH
-});
-
-return spots;
-}
-
-
-
-
 
     /* ==========================
        PLACE BET ON CANVAS
@@ -1693,59 +1456,174 @@ return spots;
         if (!nearest) return;
 
         addBet(playerState.chipValue, nearest.id);
-        renderTableAndBets();
     });
 
     /* ==========================
        DRAW BETS
     ========================== */
-    function drawTableBets() {
-        const ctx = tctx;
-        const stackOffset = 4;
-        const stacks = {};
-        tableBets.forEach(b=>{
-            if(!stacks[b.spotId]) stacks[b.spotId]=[];
-            stacks[b.spotId].push(b);
-        });
 
-        Object.values(stacks).forEach(stack=>{
-            stack.forEach((b,i)=>{
-                const x = b.x || 0;
-                const y = b.y || 0;
+
+    function drawTableBets() {
+    if (!tableBets || tableBets.length === 0) return;
+
+    const ctx = tctx;
+    const stackOffset = 4;
+    const stacks = {};
+    tableBets.forEach(b => {
+        if (!stacks[b.spotId]) stacks[b.spotId] = [];
+        stacks[b.spotId].push(b);
+    });
+
+    const offsetX = tableState?.x || 0;
+    const offsetY = tableState?.y || 0;
+    const zoom = tableState?.zoom || 1;
+
+    const baseRadius = 20;
+    const radius = (baseRadius / 2) * zoom;
+
+    Object.values(stacks).forEach(stack => {
+        stack.forEach((b, i) => {
+            const x = (b.x ?? 0) * zoom + offsetX;
+            const y = (b.y ?? 0) * zoom + offsetY - i * stackOffset * zoom;
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // -------------------------
+            // EDGE SEGMENTS как ::before
+            // -------------------------
+            const edgeSegments = [
+                [0, 20], [20, 60], [60, 80],
+                [80, 120], [120, 140], [140, 180],
+                [180, 200], [200, 240], [240, 260],
+                [260, 300], [300, 320], [320, 360]
+            ];
+
+            const accentColor = getChipAccent(b.value);
+            edgeSegments.forEach(([startDeg, endDeg]) => {
+                const start = (startDeg * Math.PI) / 180;
+                const end = (endDeg * Math.PI) / 180;
                 ctx.beginPath();
-                ctx.arc(x, y - i*stackOffset, 20, 0, Math.PI*2);
-                switch(b.value){
-                    case 1: ctx.fillStyle='white'; break;
-                    case 5: ctx.fillStyle='red'; break;
-                    case 25: ctx.fillStyle='green'; break;
-                    case 100: ctx.fillStyle='black'; break;
-                    case 500: ctx.fillStyle='purple'; break;
-                    default: ctx.fillStyle='yellow';
-                }
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, start, end);
+                ctx.closePath();
+                ctx.fillStyle = (startDeg % 40 === 0) ? accentColor : 'transparent';
                 ctx.fill();
-                ctx.lineWidth=2;
-                ctx.strokeStyle='gold';
-                ctx.stroke();
-                ctx.fillStyle = (b.value<=25)?'black':'white';
-                ctx.font='bold 12px Arial';
-                ctx.textAlign='center';
-                ctx.textBaseline='middle';
-                ctx.fillText(b.value, x, y - i*stackOffset);
             });
+
+            // -------------------------
+            // MAIN GRADIENT
+            // -------------------------
+            const grad = ctx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
+            let mainColor;
+            switch (b.value) {
+                case 1: grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.6, '#d9d9d9'); grad.addColorStop(1, '#cfcfcf'); mainColor = '#000'; break;
+                case 5: grad.addColorStop(0, '#ff2b2b'); grad.addColorStop(0.6, '#b22222'); grad.addColorStop(1, '#800000'); mainColor = '#ff2b2b'; break;
+                case 25: grad.addColorStop(0, '#00c851'); grad.addColorStop(0.6, '#007a33'); grad.addColorStop(1, '#005922'); mainColor = '#00c851'; break;
+                case 100: grad.addColorStop(0, '#111111'); grad.addColorStop(0.6, '#222222'); grad.addColorStop(1, '#444444'); mainColor = '#111111'; break;
+                case 500: grad.addColorStop(0, '#8a2be2'); grad.addColorStop(0.6, '#4b0082'); grad.addColorStop(1, '#2e004f'); mainColor = '#8a2be2'; break;
+                default: grad.addColorStop(0, 'yellow'); grad.addColorStop(1, 'orange'); mainColor = 'yellow';
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // -------------------------
+            // CHESS RING :: шашечки чуть шире
+            // -------------------------
+            const ringSegments = 12;
+            const ringWidth = 2 * zoom;
+            for (let s = 0; s < ringSegments; s++) {
+                const start = (s / ringSegments) * 2 * Math.PI;
+                const end = ((s + 1) / ringSegments) * 2 * Math.PI;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, start, end);
+                ctx.strokeStyle = (s % 2 === 0) ? ((b.value === 1) ? '#000' : mainColor) : '#fff';
+                ctx.lineWidth = ringWidth;
+                ctx.stroke();
+            }
+
+            // -------------------------
+            // OUTER BLACK EDGE :: минимальный 1px снаружи шахматного кольца
+            // -------------------------
+            ctx.beginPath();
+            ctx.arc(0, 0, radius + ringWidth / 2 + 0.5, 0, 2 * Math.PI);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#000';
+            ctx.stroke();
+
+            // -------------------------
+            // CENTRAL DISC :: всех фишек одинакового размера
+            // -------------------------
+            const innerRadius = radius * 0.4 * 1.3;
+            ctx.beginPath();
+            ctx.arc(0, 0, innerRadius, 0, 2 * Math.PI);
+            if (b.value === 1) {
+                const innerGrad = ctx.createRadialGradient(-innerRadius * 0.3, -innerRadius * 0.3, innerRadius * 0.1, 0, 0, innerRadius);
+                innerGrad.addColorStop(0, '#4a4a4a');
+                innerGrad.addColorStop(1, '#1f1f1f');
+                ctx.fillStyle = innerGrad;
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            }
+            ctx.fill();
+
+            // -------------------------
+            // VALUE TEXT (везде белый, немного меньше, центр вертикально)
+            // -------------------------
+            ctx.fillStyle = 'white';
+            const fontSize = 6 * zoom;
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const verticalOffset = radius * 0.05;
+            ctx.fillText(b.value, 0, verticalOffset);
+
+            ctx.restore();
         });
+    });
+}
+
+// --- helper for edge color like CSS ---
+function getChipAccent(value) {
+    switch (value) {
+        case 1: return '#0a1f44';
+        default: return '#ffffff';
     }
+}
+
+
+
+
+
 
     /* ==========================
        RENDER TABLE + BETS
     ========================== */
     function renderTableAndBets() {
-        drawTable();      // твой код рисования стола
-        drawTableBets();  // фишки поверх
+        drawTable();
+        drawTableBets();
     }
 
-    // Стартовое отображение
-    renderTableAndBets();
+    /* =====================================================
+       LOOP
+    ===================================================== */
+    function loop() {
+        drawWheel();
+        drawHistory();
+        drawTable();
+        drawTableBets(); // фишки рисуются поверх стола
+        requestAnimationFrame(loop);
+    }
+
+    // Старт цикла
+    loop();
 });
+
+
+
 
 </script>
 
