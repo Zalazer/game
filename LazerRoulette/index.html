@@ -842,6 +842,16 @@ ctx.restore();
             winningNumber=wheelNumbers[idx];
             history.unshift(winningNumber);
 
+
+
+// Вызвать обработку результата спина
+if (typeof spinResult === 'function') {
+    const winAmount = calculateWinAmount(winningNumber); // твоя функция расчёта
+    spinResult(winningNumber, winAmount);
+}
+
+
+
             ballAngle=idx*SLICE+SLICE/2;
             ballRadius=POCKET_R;
             highlightTime=0;
@@ -1810,6 +1820,20 @@ function getChipAccent(value) {
 
 
 
+
+function calculateWinAmount(winningNumber) {
+    let totalWin = 0;
+    tableBets.forEach(bet => {
+        const spot = generateBetSpots(tableCanvas).find(s => s.id === bet.spotId);
+        if (spot && spot.numbers.includes(winningNumber)) {
+            // Простая логика коэффициентов (расширь по типам ставок)
+            const payout = bet.spotId.startsWith('n') ? bet.value * 36 : bet.value * 2; // straight x36, others x2
+            totalWin += payout;
+        }
+    });
+    const netWin = totalWin - playerState.currentBet;
+    return netWin;
+}
 
 
 
