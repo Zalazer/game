@@ -1191,9 +1191,11 @@ function drawTable(){
 
 
 document.addEventListener('DOMContentLoaded', () => {
+
     /* ==========================
        PLAYER STATE
     ========================== */
+
     const playerState = {
         name: 'Lazer',
         balance: 1000,
@@ -1203,7 +1205,9 @@ document.addEventListener('DOMContentLoaded', () => {
         history: []
     };
 
-    const tableBets = []; // массив ставок {x,y,value,spotId}
+    const tableBets = [];
+    const actionHistory = [];
+
     const balanceEl = document.getElementById('playerBalance');
     const betEl = document.getElementById('playerBet');
     const historyEl = document.getElementById('betHistory');
@@ -1211,15 +1215,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableCanvas = document.getElementById('table');
     const tctx = tableCanvas.getContext('2d');
 
-    // Активная фишка по умолчанию
+
+
+    /* ==========================
+       CHIP SELECTION
+    ========================== */
+
     chips.forEach(c => c.classList.remove('active'));
     chips[0].classList.add('active');
     playerState.chipValue = +chips[0].dataset.value;
     updatePlayerUI();
 
-    /* ==========================
-       CHIP SELECTION
-    ========================== */
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
             chips.forEach(c => c.classList.remove('active'));
@@ -1228,110 +1234,288 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+
+
     /* ==========================
        BUTTONS
     ========================== */
-    document.querySelector('.betButtons').addEventListener('click', e => {
-        if (!e.target.dataset.action) return;
 
-        if (e.target.dataset.action === 'repeat') repeatLastBet();
-        if (e.target.dataset.action === 'double') doubleCurrentBet();
-        if (e.target.dataset.action === 'clear') clearBets();
-    });
+    document.querySelector('.betButtons').addEventListener('click', e => {
+
+    if (!e.target.dataset.action) return;
+
+    // блокировка ставок
+    if (typeof betsLocked !== 'undefined' && betsLocked) {
+        logResult('Bets are currently locked.');
+        return;
+    }
+
+    if (e.target.dataset.action === 'repeat') repeatLastBet();
+    if (e.target.dataset.action === 'double') doubleCurrentBet();
+    if (e.target.dataset.action === 'clear') clearBets();
+
+});
+
+
 
     /* ==========================
        UPDATE UI
     ========================== */
+
     function updatePlayerUI() {
+
         balanceEl.textContent = playerState.balance;
         betEl.textContent = playerState.currentBet;
+
     }
+
+
 
     /* ==========================
        BET HISTORY
     ========================== */
+
     function logResult(text) {
+
         const time = new Date().toLocaleTimeString();
         const entry = `[${time}] ${text}`;
+
         playerState.history.unshift(entry);
         renderHistory();
+
     }
 
     function renderHistory() {
+
         historyEl.innerHTML = '';
+
         playerState.history.forEach(h => {
+
             const div = document.createElement('div');
             div.textContent = h;
             div.style.marginBottom = '2px';
             div.style.fontFamily = 'monospace';
             div.style.fontSize = '12px';
+
             historyEl.appendChild(div);
+
         });
+
         historyEl.scrollTop = historyEl.scrollHeight;
+
     }
 
-    /* ==========================
-       BET LOGIC
-    ========================== */
-    function addBet(amount, spotId = '') {
-        if (amount <= 0 || playerState.balance < amount) return;
 
-        playerState.balance -= amount;
-        playerState.currentBet += amount;
-        playerState.lastBet = amount;
 
-        if (spotId) {
-            const spots = generateBetSpots(tableCanvas);
-            const spot = spots.find(s => s.id === spotId);
 
-            if (spot) {
-                tableBets.push({
-                    spotId: spotId,
-                    x: spot.x,
-                    y: spot.y,
-                    value: amount
-                });
-            }
 
-            logResult(`Bet ${amount} on ${spotId}. Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
-        } else {
-            logResult(`Added ${amount} to current bet. Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
-        }
 
-        updatePlayerUI();
-    }
+/* ==========================
+   CHIP STACK NORMALIZATION
+========================== */
 
-    function clearBets() {
-        if (playerState.currentBet > 0) {
-            playerState.balance += playerState.currentBet;
-            logResult(`Cleared bets. Returned: ${playerState.currentBet}, Balance: ${playerState.balance}`);
-        }
-        playerState.currentBet = 0;
-        tableBets.length = 0;
-        updatePlayerUI();
-    }
+function normalizeSpotStack(spotId){
 
-    function repeatLastBet() {
-        if (playerState.lastBet > 0) {
-            addBet(playerState.lastBet);
-            logResult(`Repeated last bet: ${playerState.lastBet}`);
+    const chips = tableBets.filter(b => b.spotId === spotId);
+    if(chips.length === 0) return;
+
+    const x = chips[0].x;
+    const y = chips[0].y;
+
+    let total = 0;
+    chips.forEach(c => total += c.value);
+
+    for(let i = tableBets.length-1; i>=0; i--){
+        if(tableBets[i].spotId === spotId){
+            tableBets.splice(i,1);
         }
     }
 
-    function doubleCurrentBet() {
-        if (playerState.currentBet > 0) {
-            addBet(playerState.currentBet);
-            logResult(`Doubled current bet: ${playerState.currentBet}`);
+    const denom = [500,100,25,5,1];
+
+    denom.forEach(v=>{
+        while(total >= v){
+            tableBets.push({
+                spotId:spotId,
+                x:x,
+                y:y,
+                value:v
+            });
+            total -= v;
         }
+    });
+
+}
+
+
+
+/* ==========================
+   BET LOGIC
+========================== */
+
+function addBet(amount, spotId = '') {
+
+    if (amount <= 0 || playerState.balance < amount) return;
+
+    const spots = generateBetSpots(tableCanvas);
+    const spot = spots.find(s => s.id === spotId);
+
+    if (!spot) return;
+
+    playerState.balance -= amount;
+    playerState.currentBet += amount;
+    playerState.lastBet = amount;
+
+    const bet = {
+        spotId: spotId,
+        x: spot.x,
+        y: spot.y,
+        value: amount
+    };
+
+    tableBets.push(bet);
+
+    normalizeSpotStack(spotId);
+
+    actionHistory.push({
+        type: 'bet',
+        spotId: spotId,
+        amount: amount
+    });
+
+    logResult(`Bet ${amount} on ${spotId}. Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
+
+    updatePlayerUI();
+    renderTableAndBets();
+}
+
+
+
+function clearBets() {
+    if (actionHistory.length === 0) return;
+
+    // Берём последнее действие
+    const last = actionHistory.pop();
+
+    // Возврат баланса и уменьшение текущей ставки
+    playerState.balance += last.amount;
+    playerState.currentBet -= last.amount;
+
+    // Находим все фишки этого спота
+    const spotBets = tableBets.filter(b => b.spotId === last.spotId);
+
+    // Вычитаем из total последнюю ставку
+    let total = spotBets.reduce((sum, b) => sum + b.value, 0) - last.amount;
+
+    // Удаляем все фишки с этого спота
+    for (let i = tableBets.length - 1; i >= 0; i--) {
+        if (tableBets[i].spotId === last.spotId) tableBets.splice(i, 1);
     }
+
+    // Восстанавливаем стек с оставшейся суммой
+    const x = last.x || (spotBets[0]?.x || 0);
+    const y = last.y || (spotBets[0]?.y || 0);
+
+    const denom = [500, 100, 25, 5, 1];
+    denom.forEach(v => {
+        while (total >= v) {
+            tableBets.push({ spotId: last.spotId, x, y, value: v });
+            total -= v;
+        }
+    });
+
+    logResult(`Undo last action. Returned ${last.amount}. Balance: ${playerState.balance}`);
+
+    updatePlayerUI();
+    renderTableAndBets();
+}
+
+
+
+
+function repeatLastBet() {
+
+    if (actionHistory.length === 0) return;
+
+    const last = actionHistory[actionHistory.length-1];
+
+    if(playerState.balance < last.amount) return;
+
+    addBet(last.amount, last.spotId);
+
+    logResult(`Repeat last action`);
+}
+
+
+
+function doubleCurrentBet() {
+
+    if (tableBets.length === 0) return;
+
+    const snapshot = [...tableBets];
+
+    let newActions = [];
+
+    snapshot.forEach(b=>{
+
+        if(playerState.balance < b.value) return;
+
+        playerState.balance -= b.value;
+        playerState.currentBet += b.value;
+
+        const bet = {
+            spotId:b.spotId,
+            x:b.x,
+            y:b.y,
+            value:b.value
+        };
+
+        tableBets.push(bet);
+
+        normalizeSpotStack(b.spotId);
+
+        newActions.push({
+            type:'bet',
+            spotId:b.spotId,
+            amount:b.value
+        });
+
+    });
+
+    newActions.forEach(a=> actionHistory.push(a));
+
+    logResult(`Doubled current bet. Total Bet: ${playerState.currentBet}`);
+
+    updatePlayerUI();
+    renderTableAndBets();
+}
+
+
+
+
+
+
+
+
+
+
+
 
     function spinResult(winningNumber, winAmount) {
+
         playerState.balance += winAmount;
+
         logResult(`Spin result: ${winningNumber}, Win/Loss: ${winAmount}, Balance: ${playerState.balance}`);
+
         playerState.currentBet = 0;
         tableBets.length = 0;
+        actionHistory.length = 0;
+
         updatePlayerUI();
+
     }
+
+
 
     /* ==========================
        BET SPOTS
@@ -1342,99 +1526,129 @@ document.addEventListener('DOMContentLoaded', () => {
         return arr;
     }
 
+
+
+
+
     function generateBetSpots(canvas) {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        const cols = 14;
-        const cellW = w / cols;
-        const cellH = h / 7.5;
-        const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const cols = 14;
+    const cellW = w / cols;
+    const cellH = h / 7.5;
+    const reds = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
 
-        const numRows = [
-            [3,6,9,12,15,18,21,24,27,30,33,36],
-            [2,5,8,11,14,17,20,23,26,29,32,35],
-            [1,4,7,10,13,16,19,22,25,28,31,34]
-        ];
+    const numRows = [
+        [3,6,9,12,15,18,21,24,27,30,33,36],
+        [2,5,8,11,14,17,20,23,26,29,32,35],
+        [1,4,7,10,13,16,19,22,25,28,31,34]
+    ];
 
-        const spots = [];
+    const spots = [];
 
-        // --- STRAIGHT ---
-        for(let r=0;r<3;r++){
-            for(let c=0;c<12;c++){
-                const x = (c+1)*cellW + cellW/2;
-                const y = r*cellH + cellH/2;
-                spots.push({id:'n'+numRows[r][c], type:'straight', numbers:[numRows[r][c]], x, y, w:cellW*0.7, h:cellH*0.7});
-            }
-        }
-
-        // --- ZERO ---
-        spots.push({id:'n0', type:'straight', numbers:[0], x:cellW/2, y:cellH*1.5, w:cellW*0.8, h:cellH*2.5});
-
-        // --- SPLIT HORIZONTAL ---
-        for(let r=0;r<3;r++){
-            for(let c=0;c<11;c++){
-                const x = (c+2)*cellW;
-                const y = r*cellH + cellH/2;
-                spots.push({id:`split_h_${r}_${c}`, type:'split', numbers:[numRows[r][c],numRows[r][c+1]], x, y, w:cellW*0.5, h:cellH*0.7});
-            }
-        }
-
-        // --- SPLIT VERTICAL ---
-        for(let r=0;r<2;r++){
-            for(let c=0;c<12;c++){
-                const x = (c+1)*cellW + cellW/2;
-                const y = (r+1)*cellH;
-                spots.push({id:`split_v_${r}_${c}`, type:'split', numbers:[numRows[r][c],numRows[r+1][c]], x, y, w:cellW*0.7, h:cellH*0.5});
-            }
-        }
-
-        // --- CORNER ---
-        for(let r=0;r<2;r++){
-            for(let c=0;c<11;c++){
-                const x = (c+2)*cellW;
-                const y = (r+1)*cellH;
-                spots.push({id:`corner_${r}_${c}`, type:'corner', numbers:[numRows[r][c],numRows[r][c+1],numRows[r+1][c],numRows[r+1][c+1]], x, y, w:cellW*0.6, h:cellH*0.6});
-            }
-        }
-
-        // --- STREET ---
+    // --- STRAIGHT (точные числа) ---
+    for(let r=0;r<3;r++){
         for(let c=0;c<12;c++){
             const x = (c+1)*cellW + cellW/2;
-            const y = cellH*3 - cellH*0.15;
-            spots.push({id:`street_${c}`, type:'street', numbers:[numRows[2][c],numRows[1][c],numRows[0][c]], x, y, w:cellW*0.9, h:cellH*0.5});
+            const y = r*cellH + cellH/2;
+            spots.push({id:'n'+numRows[r][c], type:'straight', numbers:[numRows[r][c]], x, y, w:cellW*0.7, h:cellH*0.7});
         }
-
-        // --- SIXLINE ---
-        for(let c=0;c<11;c++){
-            const x = (c+2)*cellW;
-            const y = cellH*3 - cellH*0.15;
-            spots.push({id:`sixline_${c}`, type:'sixline', numbers:[
-                numRows[2][c],numRows[1][c],numRows[0][c],
-                numRows[2][c+1],numRows[1][c+1],numRows[0][c+1]
-            ], x, y, w:cellW*0.6, h:cellH*0.6});
-        }
-
-        // --- DOZEN ---
-        spots.push({id:'d1', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+1), x:3*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
-        spots.push({id:'d2', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+13), x:7*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
-        spots.push({id:'d3', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+25), x:11*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
-
-        // --- COLUMNS ---
-        spots.push({id:'c1', type:'column', numbers:[1,4,7,10,13,16,19,22,25,28,31,34], x:13*cellW + cellW/2, y:2*cellH + cellH/2, w:cellW, h:cellH});
-        spots.push({id:'c2', type:'column', numbers:[2,5,8,11,14,17,20,23,26,29,32,35], x:13*cellW + cellW/2, y:1*cellH + cellH/2, w:cellW, h:cellH});
-        spots.push({id:'c3', type:'column', numbers:[3,6,9,12,15,18,21,24,27,30,33,36], x:13*cellW + cellW/2, y:0*cellH + cellH/2, w:cellW, h:cellH});
-
-        // --- OUTSIDE ---
-        const y = cellH*4.5;
-        spots.push({id:'low', numbers:[...Array(18)].map((_,i)=>i+1), x:3*cellW, y, w:2*cellW, h:cellH});
-        spots.push({id:'even', numbers:[2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36], x:5*cellW, y, w:2*cellW, h:cellH});
-        spots.push({id:'red', numbers:reds, x:7*cellW, y, w:2*cellW, h:cellH});
-        spots.push({id:'black', numbers:[...Array(36).keys()].map(n=>n+1).filter(n=>!reds.includes(n)), x:9*cellW, y, w:2*cellW, h:cellH});
-        spots.push({id:'odd', numbers:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35], x:11*cellW, y, w:2*cellW, h:cellH});
-        spots.push({id:'high', numbers:[...Array(18)].map((_,i)=>i+19), x:13*cellW - cellW, y, w:2*cellW, h:cellH});
-
-        return spots;
     }
+
+    // --- ZERO ---
+    spots.push({id:'n0', type:'straight', numbers:[0], x:cellW/2, y:cellH*1.5, w:cellW*0.8, h:cellH*2.5});
+
+    // --- SPLIT HORIZONTAL ---
+    for(let r=0;r<3;r++){
+        for(let c=0;c<11;c++){
+            const x = (c+1)*cellW + cellW;
+            const y = r*cellH + cellH/2;
+            spots.push({id:`split_h_${r}_${c}`, type:'split', numbers:[numRows[r][c],numRows[r][c+1]], x, y, w:cellW*0.9, h:cellH*0.7});
+        }
+    }
+
+    // --- SPLIT VERTICAL ---
+    for(let r=0;r<2;r++){
+        for(let c=0;c<12;c++){
+            const x = (c+1)*cellW + cellW/2;
+            const y = r*cellH + cellH;
+            spots.push({id:`split_v_${r}_${c}`, type:'split', numbers:[numRows[r][c],numRows[r+1][c]], x, y, w:cellW*0.7, h:cellH*0.9});
+        }
+    }
+
+// --- SPLITS WITH ZERO (0–1, 0–2, 0–3) ---
+const zeroSplits = [
+    {id:'split_0_1', numbers:[0,1], yOffset: cellH*2.5},  // опущено для совпадения с 1-4
+    {id:'split_0_2', numbers:[0,2], yOffset: cellH*1.5},  // опущено для совпадения с 2-5
+    {id:'split_0_3', numbers:[0,3], yOffset: cellH*0.5}   // поднято для совпадения с 3-6
+];
+zeroSplits.forEach(z => {
+    const x = cellW/2 + cellW * 0.50;
+    spots.push({...z, type:'split', x, y:z.yOffset, w:cellW*0.7, h:cellH*0.7});
+});
+
+
+    // --- CORNERS WITH ZERO (0–1–2, 0–2–3) ---
+    const zeroCorners = [
+        {id:'corner_0_1_2', numbers:[0,1,2], xOffset: cellW/2 + cellW * 0.50, yOffset: cellH*2.0},
+        {id:'corner_0_2_3', numbers:[0,2,3], xOffset: cellW/2 + cellW * 0.50, yOffset: cellH*1.0}
+    ];
+    zeroCorners.forEach(z => {
+        spots.push({id:z.id, type:'corner', numbers:z.numbers, x:z.xOffset, y:z.yOffset, w:cellW*0.6, h:cellH*0.6});
+    });
+
+    // --- CORNER ---
+    for(let r=0;r<2;r++){
+        for(let c=0;c<11;c++){
+            const x = (c+1)*cellW + cellW;
+            const y = r*cellH + cellH;
+            spots.push({id:`corner_${r}_${c}`, type:'corner', numbers:[numRows[r][c],numRows[r][c+1],numRows[r+1][c],numRows[r+1][c+1]], x, y, w:cellW*0.6, h:cellH*0.6});
+        }
+    }
+
+    // --- STREET ---
+    for(let c=0;c<12;c++){
+        const x = (c+1)*cellW + cellW/2;
+        const y = cellH*3 - cellH*0.05; // опущено вниз
+        spots.push({id:`street_${c}`, type:'street', numbers:[numRows[2][c],numRows[1][c],numRows[0][c]], x, y, w:cellW*0.9, h:cellH*0.5});
+    }
+
+    // --- SIXLINE ---
+    for(let c=0;c<11;c++){
+        const x = (c+1)*cellW + cellW;
+        const y = cellH*3 - cellH*0.05; // выравнено с улицами
+        spots.push({id:`sixline_${c}`, type:'sixline', numbers:[
+            numRows[2][c],numRows[1][c],numRows[0][c],
+            numRows[2][c+1],numRows[1][c+1],numRows[0][c+1]
+        ], x, y, w:cellW*0.6, h:cellH*0.6});
+    }
+
+    // --- DOZEN ---
+    spots.push({id:'d1', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+1), x:3*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+    spots.push({id:'d2', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+13), x:7*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+    spots.push({id:'d3', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+25), x:11*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+
+    // --- COLUMNS ---
+    spots.push({id:'c1', type:'column', numbers:[1,4,7,10,13,16,19,22,25,28,31,34], x:13*cellW + cellW/2, y:2*cellH + cellH/2, w:cellW, h:cellH});
+    spots.push({id:'c2', type:'column', numbers:[2,5,8,11,14,17,20,23,26,29,32,35], x:13*cellW + cellW/2, y:1*cellH + cellH/2, w:cellW, h:cellH});
+    spots.push({id:'c3', type:'column', numbers:[3,6,9,12,15,18,21,24,27,30,33,36], x:13*cellW + cellW/2, y:0*cellH + cellH/2, w:cellW, h:cellH});
+
+    // --- OUTSIDE (1-18, even, red, black, odd, 19-36) ---
+    const y = cellH*4.5;
+    spots.push({id:'low', numbers:Array.from({length:18},(_,i)=>i+1), x:2*cellW, y, w:2*cellW, h:cellH});
+    spots.push({id:'even', numbers:[2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36], x:4*cellW, y, w:2*cellW, h:cellH});
+    spots.push({id:'red', numbers:reds, x:6*cellW, y, w:2*cellW, h:cellH});
+    spots.push({id:'black', numbers:[...Array(36).keys()].map(n=>n+1).filter(n=>!reds.includes(n)), x:8*cellW, y, w:2*cellW, h:cellH});
+    spots.push({id:'odd', numbers:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35], x:10*cellW, y, w:2*cellW, h:cellH});
+    spots.push({id:'high', numbers:Array.from({length:18},(_,i)=>i+19), x:12*cellW, y, w:2*cellW, h:cellH});
+
+    return spots;
+}
+
+
+
+
+
 
     /* ==========================
        PLACE BET ON CANVAS
