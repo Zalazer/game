@@ -843,15 +843,9 @@ ctx.restore();
             history.unshift(winningNumber);
 
 
-
-// Вызвать обработку результата спина
-if (typeof spinResult === 'function') {
-    const winAmount = calculateWinAmount(winningNumber); // твоя функция расчёта
-    spinResult(winningNumber, winAmount);
+if (typeof window.onSpinComplete === 'function') {
+    window.onSpinComplete(winningNumber);
 }
-
-
-
             ballAngle=idx*SLICE+SLICE/2;
             ballRadius=POCKET_R;
             highlightTime=0;
@@ -1368,6 +1362,8 @@ function addBet(amount, spotId = '') {
     if (amount <= 0 || playerState.balance < amount) return;
 
     const spots = generateBetSpots(tableCanvas);
+window.betSpotsCache = spots;
+
     const spot = spots.find(s => s.id === spotId);
 
     if (!spot) return;
@@ -1504,29 +1500,6 @@ function doubleCurrentBet() {
 
 
 
-
-
-
-
-
-
-
-    function spinResult(winningNumber, winAmount) {
-
-        playerState.balance += winAmount;
-
-        logResult(`Spin result: ${winningNumber}, Win/Loss: ${winAmount}, Balance: ${playerState.balance}`);
-
-        playerState.currentBet = 0;
-        tableBets.length = 0;
-        actionHistory.length = 0;
-
-        updatePlayerUI();
-
-    }
-
-
-
     /* ==========================
        BET SPOTS
     ========================== */
@@ -1652,6 +1625,9 @@ zeroSplits.forEach(z => {
     spots.push({id:'odd', numbers:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35], x:10*cellW, y, w:2*cellW, h:cellH});
     spots.push({id:'high', numbers:Array.from({length:18},(_,i)=>i+19), x:12*cellW, y, w:2*cellW, h:cellH});
 
+
+window.betSpotsCache = spots;  // КЭШ
+
     return spots;
 }
 
@@ -1692,6 +1668,26 @@ zeroSplits.forEach(z => {
 
     const ctx = tctx;
     const stackOffset = 4;
+
+    // ==========================
+    // FADE LOGIC (3 sec)
+    // ==========================
+    let alpha = 1;
+
+    if (betsFadeStart !== null) {
+        const elapsed = performance.now() - betsFadeStart;
+        alpha = Math.max(0, 1 - elapsed / 5000);
+
+        if (elapsed >= 7000) {
+            tableBets.length = 0;
+            betsFadeStart = null;
+            return;
+        }
+    }
+
+    ctx.save();
+  //  ctx.globalAlpha = alpha;
+
     const stacks = {};
     tableBets.forEach(b => {
         if (!stacks[b.spotId]) stacks[b.spotId] = [];
@@ -1707,15 +1703,24 @@ zeroSplits.forEach(z => {
 
     Object.values(stacks).forEach(stack => {
         stack.forEach((b, i) => {
+
+const isWinning = winningSpotIds.has(b.spotId);
+
             const x = (b.x ?? 0) * zoom + offsetX;
             const y = (b.y ?? 0) * zoom + offsetY - i * stackOffset * zoom;
 
             ctx.save();
-            ctx.translate(x, y);
 
-            // -------------------------
-            // EDGE SEGMENTS как ::before
-            // -------------------------
+if (betsFadeStart !== null && !isWinning) {
+    const elapsed = performance.now() - betsFadeStart;
+    const alpha = Math.max(0, 1 - elapsed / 3000);
+    ctx.globalAlpha = alpha;
+}
+
+ctx.translate(x, y);
+
+
+
             const edgeSegments = [
                 [0, 20], [20, 60], [60, 80],
                 [80, 120], [120, 140], [140, 180],
@@ -1724,6 +1729,7 @@ zeroSplits.forEach(z => {
             ];
 
             const accentColor = getChipAccent(b.value);
+
             edgeSegments.forEach(([startDeg, endDeg]) => {
                 const start = (startDeg * Math.PI) / 180;
                 const end = (endDeg * Math.PI) / 180;
@@ -1735,18 +1741,50 @@ zeroSplits.forEach(z => {
                 ctx.fill();
             });
 
-            // -------------------------
-            // MAIN GRADIENT
-            // -------------------------
             const grad = ctx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
+
             let mainColor;
+
             switch (b.value) {
-                case 1: grad.addColorStop(0, '#ffffff'); grad.addColorStop(0.6, '#d9d9d9'); grad.addColorStop(1, '#cfcfcf'); mainColor = '#000'; break;
-                case 5: grad.addColorStop(0, '#ff2b2b'); grad.addColorStop(0.6, '#b22222'); grad.addColorStop(1, '#800000'); mainColor = '#ff2b2b'; break;
-                case 25: grad.addColorStop(0, '#00c851'); grad.addColorStop(0.6, '#007a33'); grad.addColorStop(1, '#005922'); mainColor = '#00c851'; break;
-                case 100: grad.addColorStop(0, '#111111'); grad.addColorStop(0.6, '#222222'); grad.addColorStop(1, '#444444'); mainColor = '#111111'; break;
-                case 500: grad.addColorStop(0, '#8a2be2'); grad.addColorStop(0.6, '#4b0082'); grad.addColorStop(1, '#2e004f'); mainColor = '#8a2be2'; break;
-                default: grad.addColorStop(0, 'yellow'); grad.addColorStop(1, 'orange'); mainColor = 'yellow';
+                case 1:
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(0.6, '#d9d9d9');
+                    grad.addColorStop(1, '#cfcfcf');
+                    mainColor = '#000';
+                    break;
+
+                case 5:
+                    grad.addColorStop(0, '#ff2b2b');
+                    grad.addColorStop(0.6, '#b22222');
+                    grad.addColorStop(1, '#800000');
+                    mainColor = '#ff2b2b';
+                    break;
+
+                case 25:
+                    grad.addColorStop(0, '#00c851');
+                    grad.addColorStop(0.6, '#007a33');
+                    grad.addColorStop(1, '#005922');
+                    mainColor = '#00c851';
+                    break;
+
+                case 100:
+                    grad.addColorStop(0, '#111111');
+                    grad.addColorStop(0.6, '#222222');
+                    grad.addColorStop(1, '#444444');
+                    mainColor = '#111111';
+                    break;
+
+                case 500:
+                    grad.addColorStop(0, '#8a2be2');
+                    grad.addColorStop(0.6, '#4b0082');
+                    grad.addColorStop(1, '#2e004f');
+                    mainColor = '#8a2be2';
+                    break;
+
+                default:
+                    grad.addColorStop(0, 'yellow');
+                    grad.addColorStop(1, 'orange');
+                    mainColor = 'yellow';
             }
 
             ctx.beginPath();
@@ -1754,14 +1792,13 @@ zeroSplits.forEach(z => {
             ctx.fillStyle = grad;
             ctx.fill();
 
-            // -------------------------
-            // CHESS RING :: шашечки чуть шире
-            // -------------------------
             const ringSegments = 12;
             const ringWidth = 2 * zoom;
+
             for (let s = 0; s < ringSegments; s++) {
                 const start = (s / ringSegments) * 2 * Math.PI;
                 const end = ((s + 1) / ringSegments) * 2 * Math.PI;
+
                 ctx.beginPath();
                 ctx.arc(0, 0, radius, start, end);
                 ctx.strokeStyle = (s % 2 === 0) ? ((b.value === 1) ? '#000' : mainColor) : '#fff';
@@ -1769,46 +1806,57 @@ zeroSplits.forEach(z => {
                 ctx.stroke();
             }
 
-            // -------------------------
-            // OUTER BLACK EDGE :: минимальный 1px снаружи шахматного кольца
-            // -------------------------
             ctx.beginPath();
             ctx.arc(0, 0, radius + ringWidth / 2 + 0.5, 0, 2 * Math.PI);
             ctx.lineWidth = 1;
             ctx.strokeStyle = '#000';
             ctx.stroke();
 
-            // -------------------------
-            // CENTRAL DISC :: всех фишек одинакового размера
-            // -------------------------
             const innerRadius = radius * 0.4 * 1.3;
+
             ctx.beginPath();
             ctx.arc(0, 0, innerRadius, 0, 2 * Math.PI);
+
             if (b.value === 1) {
-                const innerGrad = ctx.createRadialGradient(-innerRadius * 0.3, -innerRadius * 0.3, innerRadius * 0.1, 0, 0, innerRadius);
+                const innerGrad = ctx.createRadialGradient(
+                    -innerRadius * 0.3,
+                    -innerRadius * 0.3,
+                    innerRadius * 0.1,
+                    0,
+                    0,
+                    innerRadius
+                );
+
                 innerGrad.addColorStop(0, '#4a4a4a');
                 innerGrad.addColorStop(1, '#1f1f1f');
+
                 ctx.fillStyle = innerGrad;
             } else {
                 ctx.fillStyle = 'rgba(255,255,255,0.15)';
             }
+
             ctx.fill();
 
-            // -------------------------
-            // VALUE TEXT (везде белый, немного меньше, центр вертикально)
-            // -------------------------
             ctx.fillStyle = 'white';
+
             const fontSize = 6 * zoom;
+
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
+
             const verticalOffset = radius * 0.05;
+
             ctx.fillText(b.value, 0, verticalOffset);
 
             ctx.restore();
         });
     });
+
+    ctx.restore();
 }
+
+
 
 // --- helper for edge color like CSS ---
 function getChipAccent(value) {
@@ -1821,19 +1869,91 @@ function getChipAccent(value) {
 
 
 
+// Глобальный хук для спина (вызывается из drawWheel)
+window.onSpinComplete = function(winningNumber) {
+    const winAmount = calculateWinAmount(winningNumber);
+    spinResult(winningNumber, winAmount);
+};
+
+
+
+
+/* =====================================================
+   ТОЧНЫЙ РАСЧЁТ РЕЗУЛЬТАТА СПИНА по всем спотам
+===================================================== */
+/* =====================================================
+   ПОЛНЫЙ РАСЧЁТ СПИНА (твоя логика: grossWin - totalBet)
+===================================================== */
+window.betSpotsCache = [];  // КЭШ для избежания рекурсии
+let betsFadeStart = null;
+let winningSpotIds = new Set();
+
+
 function calculateWinAmount(winningNumber) {
-    let totalWin = 0;
+    let grossWin = 0;
+    const spots = window.betSpotsCache.length ? window.betSpotsCache : generateBetSpots(tableCanvas);
+    
     tableBets.forEach(bet => {
-        const spot = generateBetSpots(tableCanvas).find(s => s.id === bet.spotId);
-        if (spot && spot.numbers.includes(winningNumber)) {
-            // Простая логика коэффициентов (расширь по типам ставок)
-            const payout = bet.spotId.startsWith('n') ? bet.value * 36 : bet.value * 2; // straight x36, others x2
-            totalWin += payout;
-        }
+        const spot = spots.find(s => s.id === bet.spotId);
+        if (!spot || !spot.numbers.includes(winningNumber)) return;
+        
+        let multiplier;
+        const id = spot.id;
+        
+        // ТВОИ споты с ТОЧНЫМИ коэффициентами
+        if (id.startsWith('n')) multiplier = 36;                          // straight x36
+        else if (id.startsWith('split')) multiplier = 18;                 // split_h/v/0_* x18  
+        else if (id.startsWith('street')) multiplier = 12;                // street x12
+        else if (id.startsWith('corner') && !id.includes('_0_')) multiplier = 9;  // обычные corner x9
+        else if (['corner_0_1_2', 'corner_0_2_3'].includes(id)) multiplier = 12; // 0-1-2, 0-2-3 = street x12 (3 числа!)
+        else if (id.startsWith('sixline')) multiplier = 6;                // sixline x6
+        else if (['d1','d2','d3'].includes(id)) multiplier = 3;           // dozens x3
+        else if (['c1','c2','c3'].includes(id)) multiplier = 3;           // columns x3
+        else if (['low','high','even','odd','red','black'].includes(id)) multiplier = 2;  // even-money x2
+        else multiplier = 2;  // fallback
+        
+        grossWin += bet.value * multiplier;
     });
-    const netWin = totalWin - playerState.currentBet;
-    return netWin;
+    
+    const totalBet = playerState.currentBet;
+    const netProfit = grossWin - totalBet;
+    console.log(`SPIN ${winningNumber}: gross=${grossWin} bet=${totalBet} net=${netProfit}`);
+    return netProfit;
 }
+
+
+
+function spinResult(winningNumber, netProfit) {
+
+
+winningSpotIds.clear();
+
+const spots = window.betSpotsCache;
+
+tableBets.forEach(bet => {
+    const spot = spots.find(s => s.id === bet.spotId);
+    if (spot && spot.numbers.includes(winningNumber)) {
+        winningSpotIds.add(bet.spotId);
+    }
+});
+
+
+    const grossWin = playerState.currentBet + netProfit;
+    playerState.balance += grossWin;
+    
+    const resultText = netProfit >= 0 
+        ? `WIN +${grossWin} BET -${playerState.currentBet} (total +${netProfit}) on ${winningNumber}!`
+        : `Loss -${playerState.currentBet} on ${winningNumber}`;
+    
+    logResult(resultText);
+    
+    playerState.currentBet = 0;
+    betsFadeStart = performance.now();
+    actionHistory.length = 0;
+    updatePlayerUI();
+    renderTableAndBets();
+}
+
 
 
 
