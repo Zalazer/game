@@ -275,19 +275,23 @@ canvas{
 
 
 
-
-.playerHistory{
-    height: 5vh;
-    overflow-x: auto;
-    white-space: nowrap;
+.playerHistory {
+    height: 120px;          /* фиксированная высота блока */
+    overflow-y: auto;       /* вертикальная прокрутка для новых записей */
+    overflow-x: auto;       /* горизонтальная прокрутка для длинных строк */
     border-top: 1px solid #333;
-    padding-top: 4px;
+    padding: 4px;
+    white-space: nowrap;    /* строки не переносятся, чтобы была горизонтальная прокрутка */
+    font-family: monospace;
+    font-size: 12px;
 }
 
-.playerHistory span{
-    margin-right: 12px;
-    color:#d4af37;
+.playerHistory div {
+    margin-bottom: 2px;
 }
+
+
+
 
 
 </style>
@@ -854,7 +858,8 @@ if (typeof window.onSpinComplete === 'function') {
 
 
 
-betsLocked = false;
+// betsLocked = false;
+
 
 // 🔹 Плавное возвращение колеса к центру и масштабу
 const startX = wheelState.x;
@@ -1681,6 +1686,10 @@ window.betSpotsCache = spots;  // КЭШ
         if (elapsed >= 7000) {
             tableBets.length = 0;
             betsFadeStart = null;
+
+
+betsLocked = false;
+
             return;
         }
     }
