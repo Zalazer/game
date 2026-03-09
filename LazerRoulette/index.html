@@ -272,37 +272,21 @@ canvas{
 
 
 
-.playerHistoryContainer {
-    height: 150px;           /* увеличиваем высоту лога */
-    border-top: 1px solid #333;
-    display: flex;
-    flex-direction: column;
-    padding-top: 4px;
-    box-sizing: border-box;
-}
 
-.historyTitle {
-    flex: 0 0 auto;          /* заголовок фиксирован */
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 4px;
-}
 
-#betHistory {
-    flex: 1 1 auto;          /* оставшееся место для записей */
+.playerHistory{
+    height: 5vh;
     overflow-x: auto;
-    overflow-y: auto;
     white-space: nowrap;
-    display: flex;
-    flex-direction: column-reverse; /* новые записи сверху */
-    padding-bottom: 20px;    /* свободное пространство снизу */
-    font-family: monospace;
-    font-size: 12px;
-    color: #d4af37;
+    border-top: 1px solid #333;
+    padding-top: 4px;
 }
-#betHistory div {
-    margin-bottom: 2px;
+
+.playerHistory span{
+    margin-right: 12px;
+    color:#d4af37;
 }
+
 
 
 
@@ -1300,28 +1284,20 @@ document.addEventListener('DOMContentLoaded', () => {
     ========================== */
 
     function logResult(text) {
-    const time = new Date().toLocaleTimeString();
-    const entry = `[${time}] ${text}`;
+        playerState.history.unshift(text);
+        if (playerState.history.length > 20) playerState.history.pop();
+        renderHistory();
+    }
 
-    playerState.history.unshift(entry);
+    function renderHistory() {
+        historyEl.innerHTML = '';
+        playerState.history.forEach(h => {
+            const span = document.createElement('span');
+            span.textContent = h;
+            historyEl.appendChild(span);
+        });
+    }
 
-    // Используем requestAnimationFrame для надежного рендера в Telegram WebApp
-    requestAnimationFrame(() => renderHistory());
-}
-
-function renderHistory() {
-    const historyEl = document.getElementById('betHistory');
-    if (!historyEl) return;
-
-    // Очищаем контейнер
-    historyEl.innerHTML = '';
-
-    playerState.history.forEach(h => {
-        const div = document.createElement('div');
-        div.textContent = h;
-        historyEl.appendChild(div);
-    });
-}
 
 
 
@@ -2033,10 +2009,10 @@ tableBets.forEach(bet => {
         <div class="chip" data-value="500">500</div>
     </div>
 
-    <div class="playerHistoryContainer">
-    <div class="historyTitle">Bet History</div>
-    <div id="betHistory"></div>
-</div>
+    <div class="playerHistory">
+        <div class="historyTitle">Bet History</div>
+        <div id="betHistory"></div>
+    </div>
 
 </div>
 
