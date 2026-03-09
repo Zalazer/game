@@ -273,22 +273,39 @@ canvas{
 
 
 
-
-
-.playerHistory {
-    height: 120px;          /* фиксированная высота блока */
-    overflow-y: auto;       /* вертикальная прокрутка для новых записей */
-    overflow-x: auto;       /* горизонтальная прокрутка для длинных строк */
+.playerHistoryContainer {
+    height: 220px;           /* Высота блока логов */
+    padding-bottom: 20px;    /* Нижние 20px */
     border-top: 1px solid #333;
-    padding: 4px;
-    white-space: nowrap;    /* строки не переносятся, чтобы была горизонтальная прокрутка */
+    display: flex;
+    flex-direction: column;
+    background: #111;        /* Для контраста */
+    color: #d4af37;
     font-family: monospace;
     font-size: 12px;
 }
 
-.playerHistory div {
-    margin-bottom: 2px;
+.historyTitle {
+    flex: 0 0 auto;          /* Заголовок всегда сверху */
+    padding: 4px 8px;
+    border-bottom: 1px solid #333;
 }
+
+#betHistory {
+    flex: 1 1 auto;          /* Занимает остальное пространство */
+    overflow-y: auto;        /* Вертикальный скролл */
+    overflow-x: auto;        /* Горизонтальный скролл */
+    display: flex;
+    flex-direction: column-reverse; /* Новые строки сверху */
+    padding: 4px 8px;
+    gap: 2px;
+}
+
+#betHistory div {
+    white-space: nowrap;     /* Чтобы длинные строки шли в одну линию */
+}
+
+
 
 
 
@@ -1285,34 +1302,28 @@ document.addEventListener('DOMContentLoaded', () => {
     ========================== */
 
     function logResult(text) {
+    const time = new Date().toLocaleTimeString();
+    const entry = `[${time}] ${text}`;
 
-        const time = new Date().toLocaleTimeString();
-        const entry = `[${time}] ${text}`;
+    // Добавляем запись в историю
+    playerState.history.unshift(entry);
+    renderHistory();
+}
 
-        playerState.history.unshift(entry);
-        renderHistory();
+function renderHistory() {
+    const historyEl = document.getElementById('betHistory');
+    historyEl.innerHTML = '';
 
-    }
+    playerState.history.forEach(h => {
+        const div = document.createElement('div');
+        div.textContent = h;
+        historyEl.appendChild(div);
+    });
 
-    function renderHistory() {
+    // scroll не нужен, column-reverse уже ставит новые сверху
+}
 
-        historyEl.innerHTML = '';
 
-        playerState.history.forEach(h => {
-
-            const div = document.createElement('div');
-            div.textContent = h;
-            div.style.marginBottom = '2px';
-            div.style.fontFamily = 'monospace';
-            div.style.fontSize = '12px';
-
-            historyEl.appendChild(div);
-
-        });
-
-        historyEl.scrollTop = historyEl.scrollHeight;
-
-    }
 
 
 
@@ -2023,10 +2034,12 @@ tableBets.forEach(bet => {
         <div class="chip" data-value="500">500</div>
     </div>
 
-    <div class="playerHistory">
-        <div class="historyTitle">Bet History</div>
-        <div id="betHistory"></div>
-    </div>
+    <div class="playerHistoryContainer">
+    <div class="historyTitle">Bet History</div>
+    <div id="betHistory"></div>
+</div>
+
+<canvas id="table" width="700" height="500"></canvas>
 </div>
 
 
