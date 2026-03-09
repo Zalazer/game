@@ -272,39 +272,37 @@ canvas{
 
 
 
-
 .playerHistoryContainer {
-    height: 220px;           /* Высота блока логов */
-    padding-bottom: 20px;    /* Нижние 20px */
+    height: 150px;           /* увеличиваем высоту лога */
     border-top: 1px solid #333;
     display: flex;
     flex-direction: column;
-    background: #111;        /* Для контраста */
-    color: #d4af37;
-    font-family: monospace;
-    font-size: 12px;
+    padding-top: 4px;
+    box-sizing: border-box;
 }
 
 .historyTitle {
-    flex: 0 0 auto;          /* Заголовок всегда сверху */
-    padding: 4px 8px;
-    border-bottom: 1px solid #333;
+    flex: 0 0 auto;          /* заголовок фиксирован */
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 4px;
 }
 
 #betHistory {
-    flex: 1 1 auto;          /* Занимает остальное пространство */
-    overflow-y: auto;        /* Вертикальный скролл */
-    overflow-x: auto;        /* Горизонтальный скролл */
+    flex: 1 1 auto;          /* оставшееся место для записей */
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: nowrap;
     display: flex;
-    flex-direction: column-reverse; /* Новые строки сверху */
-    padding: 4px 8px;
-    gap: 2px;
+    flex-direction: column-reverse; /* новые записи сверху */
+    padding-bottom: 20px;    /* свободное пространство снизу */
+    font-family: monospace;
+    font-size: 12px;
+    color: #d4af37;
 }
-
 #betHistory div {
-    white-space: nowrap;     /* Чтобы длинные строки шли в одну линию */
+    margin-bottom: 2px;
 }
-
 
 
 
@@ -1305,13 +1303,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const time = new Date().toLocaleTimeString();
     const entry = `[${time}] ${text}`;
 
-    // Добавляем запись в историю
     playerState.history.unshift(entry);
-    renderHistory();
+
+    // Используем requestAnimationFrame для надежного рендера в Telegram WebApp
+    requestAnimationFrame(() => renderHistory());
 }
 
 function renderHistory() {
     const historyEl = document.getElementById('betHistory');
+    if (!historyEl) return;
+
+    // Очищаем контейнер
     historyEl.innerHTML = '';
 
     playerState.history.forEach(h => {
@@ -1319,10 +1321,7 @@ function renderHistory() {
         div.textContent = h;
         historyEl.appendChild(div);
     });
-
-    // scroll не нужен, column-reverse уже ставит новые сверху
 }
-
 
 
 
@@ -2039,7 +2038,6 @@ tableBets.forEach(bet => {
     <div id="betHistory"></div>
 </div>
 
-<canvas id="table" width="700" height="500"></canvas>
 </div>
 
 
