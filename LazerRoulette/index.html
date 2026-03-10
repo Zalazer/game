@@ -1358,6 +1358,61 @@ function normalizeSpotStack(spotId){
    BET LOGIC
 ========================== */
 
+
+
+function formatBetLog(amount, spot){
+
+    const nums = spot.numbers;
+
+    const list = nums.join(',');
+
+    switch(spot.type){
+
+        case 'straight':
+            return `Bet ${amount} on ${nums[0]}.`;
+
+        case 'split':
+            return `Bet ${amount} on Split ${list}.`;
+
+        case 'street':
+            return `Bet ${amount} on Street ${list}.`;
+
+        case 'corner':
+            return `Bet ${amount} on Corner ${list}.`;
+
+        case 'sixline':
+            return `Bet ${amount} on Sixline ${list}.`;
+
+        case 'dozen':
+            const dozen = Math.floor((nums[0]-1)/12)+1;
+            return `Bet ${amount} on Dozen ${dozen}.`;
+
+        case 'column':
+            const colMap = {c1:1,c2:2,c3:3};
+            return `Bet ${amount} on Column ${colMap[spot.id] || ''}.`;
+
+        default:
+
+            const outsideNames = {
+                low:'1-18',
+                high:'19-36',
+                even:'Even',
+                odd:'Odd',
+                red:'Red',
+                black:'Black'
+            };
+
+            if(outsideNames[spot.id]){
+                return `Bet ${amount} on ${outsideNames[spot.id]}.`;
+            }
+
+            return `Bet ${amount}.`;
+    }
+}
+
+
+
+
 function addBet(amount, spotId = '') {
 
     if (amount <= 0 || playerState.balance < amount) return;
@@ -1390,7 +1445,10 @@ window.betSpotsCache = spots;
         amount: amount
     });
 
-    logResult(`Bet ${amount} on ${spotId}. Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
+
+logResult(`${formatBetLog(amount, spot)} Total Bet: ${playerState.currentBet}, Balance: ${playerState.balance}`);
+
+
 
     updatePlayerUI();
     renderTableAndBets();
@@ -1562,9 +1620,9 @@ function doubleCurrentBet() {
 
 // --- SPLITS WITH ZERO (0–1, 0–2, 0–3) ---
 const zeroSplits = [
-    {id:'split_0_1', numbers:[0,1], yOffset: cellH*2.5},  // опущено для совпадения с 1-4
-    {id:'split_0_2', numbers:[0,2], yOffset: cellH*1.5},  // опущено для совпадения с 2-5
-    {id:'split_0_3', numbers:[0,3], yOffset: cellH*0.5}   // поднято для совпадения с 3-6
+    {id:'split_0_1', numbers:[0,1], yOffset: cellH*2.5},  
+    {id:'split_0_2', numbers:[0,2], yOffset: cellH*1.5},  
+    {id:'split_0_3', numbers:[0,3], yOffset: cellH*0.5}   
 ];
 zeroSplits.forEach(z => {
     const x = cellW/2 + cellW * 0.50;
@@ -1607,10 +1665,40 @@ zeroSplits.forEach(z => {
         ], x, y, w:cellW*0.6, h:cellH*0.6});
     }
 
-    // --- DOZEN ---
-    spots.push({id:'d1', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+1), x:3*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
-    spots.push({id:'d2', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+13), x:7*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
-    spots.push({id:'d3', type:'dozen', numbers:Array.from({length:12},(_,i)=>i+25), x:11*cellW, y:cellH*3.5, w:4*cellW, h:cellH});
+
+
+// --- DOZEN ---
+spots.push({
+    id:'d1',
+    type:'dozen',
+    numbers:[1,2,3,4,5,6,7,8,9,10,11,12],
+    x:3*cellW,
+    y:cellH*3.5,
+    w:4*cellW,
+    h:cellH
+});
+
+spots.push({
+    id:'d2',
+    type:'dozen',
+    numbers:[13,14,15,16,17,18,19,20,21,22,23,24],
+    x:7*cellW,
+    y:cellH*3.5,
+    w:4*cellW,
+    h:cellH
+});
+
+spots.push({
+    id:'d3',
+    type:'dozen',
+    numbers:[25,26,27,28,29,30,31,32,33,34,35,36],
+    x:11*cellW,
+    y:cellH*3.5,
+    w:4*cellW,
+    h:cellH
+});
+
+
 
     // --- COLUMNS ---
     spots.push({id:'c1', type:'column', numbers:[1,4,7,10,13,16,19,22,25,28,31,34], x:13*cellW + cellW/2, y:2*cellH + cellH/2, w:cellW, h:cellH});
@@ -1874,117 +1962,94 @@ function getChipAccent(value) {
 
 
 
-// Глобальный хук для спина (вызывается из drawWheel)
-window.onSpinComplete = function(winningNumber) {
-    const winAmount = calculateWinAmount(winningNumber);
-    spinResult(winningNumber, winAmount);
-};
-
-
 
 
 /* =====================================================
-   ТОЧНЫЙ РАСЧЁТ РЕЗУЛЬТАТА СПИНА по всем спотам
+   СПИН И РАСЧЁТ ВЫИГРЫША (полностью готовый блок)
 ===================================================== */
-/* =====================================================
-   ПОЛНЫЙ РАСЧЁТ СПИНА (твоя логика: grossWin - totalBet)
-===================================================== */
-window.betSpotsCache = [];  // КЭШ для избежания рекурсии
+window.betSpotsCache = [];  // кэш для спотов
 let betsFadeStart = null;
 let winningSpotIds = new Set();
 
+window.onSpinComplete = function(winningNumber) {
+    winningSpotIds.clear();
+    const spots = window.betSpotsCache;
 
-function calculateWinAmount(winningNumber) {
-    let grossWin = 0;
-    const spots = window.betSpotsCache.length ? window.betSpotsCache : generateBetSpots(tableCanvas);
-    
+    let grossWin = 0;          // выигрышные ставки
+    const totalBet = tableBets.reduce((sum,b) => sum + b.value, 0);  // сумма всех ставок
+
     tableBets.forEach(bet => {
         const spot = spots.find(s => s.id === bet.spotId);
-        if (!spot || !spot.numbers.includes(winningNumber)) return;
-        
+        if (!spot) return;
+
         let multiplier;
         const id = spot.id;
-        
-        // ТВОИ споты с ТОЧНЫМИ коэффициентами
-        if (id.startsWith('n')) multiplier = 36;                          // straight x36
-        else if (id.startsWith('split')) multiplier = 18;                 // split_h/v/0_* x18  
-        else if (id.startsWith('street')) multiplier = 12;                // street x12
-        else if (id.startsWith('corner') && !id.includes('_0_')) multiplier = 9;  // обычные corner x9
-        else if (['corner_0_1_2', 'corner_0_2_3'].includes(id)) multiplier = 12; // 0-1-2, 0-2-3 = street x12 (3 числа!)
-        else if (id.startsWith('sixline')) multiplier = 6;                // sixline x6
-        else if (['d1','d2','d3'].includes(id)) multiplier = 3;           // dozens x3
-        else if (['c1','c2','c3'].includes(id)) multiplier = 3;           // columns x3
-        else if (['low','high','even','odd','red','black'].includes(id)) multiplier = 2;  // even-money x2
-        else multiplier = 2;  // fallback
-        
-        grossWin += bet.value * multiplier;
+
+        if (id.startsWith('n')) multiplier = 36;
+        else if (id.startsWith('split')) multiplier = 18;
+        else if (id.startsWith('street')) multiplier = 12;
+        else if (id.startsWith('corner') && !id.includes('_0_')) multiplier = 9;
+        else if (['corner_0_1_2','corner_0_2_3'].includes(id)) multiplier = 12;
+        else if (id.startsWith('sixline')) multiplier = 6;
+        else if (['d1','d2','d3'].includes(id)) multiplier = 3;
+        else if (['c1','c2','c3'].includes(id)) multiplier = 3;
+        else if (['low','high','even','odd','red','black'].includes(id)) multiplier = 2;
+        else multiplier = 2;
+
+        if (spot.numbers.includes(winningNumber)) {
+            grossWin += bet.value * multiplier;
+            winningSpotIds.add(bet.spotId);
+        }
     });
-    
-    const totalBet = playerState.currentBet;
+
     const netProfit = grossWin - totalBet;
-    console.log(`SPIN ${winningNumber}: gross=${grossWin} bet=${totalBet} net=${netProfit}`);
-    return netProfit;
-}
 
-
-
-function spinResult(winningNumber, netProfit) {
-
-
-winningSpotIds.clear();
-
-const spots = window.betSpotsCache;
-
-tableBets.forEach(bet => {
-    const spot = spots.find(s => s.id === bet.spotId);
-    if (spot && spot.numbers.includes(winningNumber)) {
-        winningSpotIds.add(bet.spotId);
-    }
-});
-
-
-    const grossWin = playerState.currentBet + netProfit;
+    // обновляем баланс игрока
     playerState.balance += grossWin;
-    
-    const resultText = netProfit >= 0 
-        ? `WIN +${grossWin} BET -${playerState.currentBet} (total +${netProfit}) on ${winningNumber}!`
-        : `Loss -${playerState.currentBet} on ${winningNumber}`;
-    
+
+    // лог всегда в формате WIN +… BET LOST -… total ±…
+    const resultText = `WIN +${grossWin} BET LOST -${totalBet} (total ${netProfit >= 0 ? '+' : ''}${netProfit}) on ${winningNumber}!`;
     logResult(resultText);
-    
+
+    // подготовка к следующему раунду
     playerState.currentBet = 0;
     betsFadeStart = performance.now();
     actionHistory.length = 0;
     updatePlayerUI();
     renderTableAndBets();
+};
+
+
+
+
+
+/* ==========================
+   RENDER TABLE + BETS
+========================== */
+
+function renderTableAndBets() {
+    drawTable();
+    drawTableBets();
 }
 
 
+/* =====================================================
+   LOOP
+===================================================== */
+
+function loop() {
+    drawWheel();
+    drawHistory();
+    drawTable();
+    drawTableBets();
+    requestAnimationFrame(loop);
+}
+
+// Старт цикла
+loop();
 
 
-    /* ==========================
-       RENDER TABLE + BETS
-    ========================== */
-    function renderTableAndBets() {
-        drawTable();
-        drawTableBets();
-    }
-
-    /* =====================================================
-       LOOP
-    ===================================================== */
-    function loop() {
-        drawWheel();
-        drawHistory();
-        drawTable();
-        drawTableBets(); // фишки рисуются поверх стола
-        requestAnimationFrame(loop);
-    }
-
-    // Старт цикла
-    loop();
-});
-
+ });
 
 
 
