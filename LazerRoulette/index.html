@@ -1961,15 +1961,31 @@ function getChipAccent(value) {
 
 
 
-
-
-
 /* =====================================================
-   СПИН И РАСЧЁТ ВЫИГРЫША (полностью готовый блок)
+   СПИН И РАСЧЁТ ВЫИГРЫША (с красным результатом спина и балансом)
 ===================================================== */
 window.betSpotsCache = [];  // кэш для спотов
 let betsFadeStart = null;
 let winningSpotIds = new Set();
+
+function logResult(text, isSpinResult = false) {
+    const historyEl = document.getElementById('betHistory');
+    if (!historyEl) return;
+
+    const div = document.createElement('div');
+    div.textContent = text;
+
+    if (isSpinResult) {
+        div.style.color = 'red';        // выделяем красным
+        div.style.fontWeight = 'bold';
+    }
+
+    // вставляем сверху
+    historyEl.insertBefore(div, historyEl.firstChild);
+
+    // чтобы последняя строка всегда была видна
+    historyEl.scrollTop = 0;
+}
 
 window.onSpinComplete = function(winningNumber) {
     winningSpotIds.clear();
@@ -2007,9 +2023,9 @@ window.onSpinComplete = function(winningNumber) {
     // обновляем баланс игрока
     playerState.balance += grossWin;
 
-    // лог всегда в формате WIN +… BET LOST -… total ±…
-    const resultText = `WIN +${grossWin} BET LOST -${totalBet} (total ${netProfit >= 0 ? '+' : ''}${netProfit}) on ${winningNumber}!`;
-    logResult(resultText);
+    // лог с балансом, красный только для результата спина
+    const resultText = `WIN +${grossWin} Last bet -${totalBet} (total ${netProfit >= 0 ? '+' : ''}${netProfit}) on ${winningNumber}. Balance: ${playerState.balance}`;
+    logResult(resultText, true); // <-- используем logResult
 
     // подготовка к следующему раунду
     playerState.currentBet = 0;
