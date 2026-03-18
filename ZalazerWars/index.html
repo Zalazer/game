@@ -1,53 +1,63 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1200, initial-scale=0.4, user-scalable=no">
-<title>Worms PRO++ UI Big</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>ZalazerWars</title>
 <style>
-body{margin:0;background:#222;color:#fff;font-family:Arial;text-align:center;touch-action: manipulation;}
-canvas{display:block;margin:10px auto;background:#87CEEB;border:2px solid black}
-button{padding:60px 80px;margin:10px;font-size:72px;cursor:pointer;border-radius:12px;outline:none}
-.control-row{display:flex;justify-content:center;margin-bottom:10px;gap:20px}
-#overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);color:white;font-size:160px;flex-direction:column;visibility:hidden}
+body{margin:0;background:#222;color:#fff;font-family:Arial;text-align:center;display:flex;flex-direction:column;align-items:center;}
+canvas{background:#87CEEB;border:2px solid black;display:block;}
+.controls{display:flex;justify-content:center;gap:10px;margin:5px 0;flex-wrap:wrap;}
+button{font-size:32px;padding:15px 30px;border-radius:12px;cursor:pointer;}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);color:white;font-size:64px;flex-direction:column;visibility:hidden;}
 </style>
 </head>
 <body>
-<h2 style="font-size:72px"></h2>
-<canvas id="game" width="900" height="500"></canvas>
-<div class="control-row">
+
+<h2 style="font-size:48px"></h2>
+<canvas id="game"></canvas>
+
+<div class="controls">
 <button onclick="move(-10)">◀ Move</button>
 <button onclick="move(10)">Move ▶</button>
-</div>
-<div class="control-row">
 <button onclick="angle+=5">Angle +</button>
 <button onclick="angle-=5">Angle -</button>
-</div>
-<div class="control-row">
 <button onclick="power+=1">Power +</button>
 <button onclick="power-=1">Power -</button>
-</div>
-<div class="control-row">
 <button onclick="shoot()">Shoot</button>
-</div><div id="overlay">
+</div>
+
+<div id="overlay">
   <div id="resultText"></div>
   <button onclick="restartGame()">Restart</button>
 </div>
 
-
-
 <script>
+const BASE_W = 900;
+const BASE_H = 500;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// ===== Сама правильная растяжка =====
+function resizeCanvas(){
+  const scale = Math.min(window.innerWidth/BASE_W, window.innerHeight/BASE_H);
+  canvas.width = BASE_W * scale;
+  canvas.height = BASE_H * scale;
+  ctx.setTransform(scale,0,0,scale,0,0);
+}
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();
+
 // Prevent double tap zoom
 document.addEventListener('touchstart', e => { if(e.touches.length>1) e.preventDefault(); }, {passive:false});
 document.addEventListener('gesturestart', e => { e.preventDefault(); });
 
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
+// ===== GAME CODE =====
+const W = BASE_W, H = BASE_H;
 
 // Audio
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-// Звук выстрела
 function playShootSound(){
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -57,8 +67,6 @@ function playShootSound(){
   osc.connect(gain); gain.connect(audioCtx.destination);
   osc.start(); osc.stop(audioCtx.currentTime+0.12);
 }
-
-// Звук попадания с затуханием
 function playHitSound(){
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -69,8 +77,6 @@ function playHitSound(){
   osc.connect(gain); gain.connect(audioCtx.destination);
   osc.start(); osc.stop(audioCtx.currentTime+0.3);
 }
-
-// Звук взрыва (низкий треск)
 function playExplodeSound(){
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -97,7 +103,6 @@ function drawTerrain(){
   ctx.lineTo(W,H);
   ctx.fill();
   
-  // Белая граница на земле
   ctx.strokeStyle='white';
   ctx.lineWidth=2;
   ctx.beginPath();
@@ -172,12 +177,10 @@ function shoot(){
 function explode(x,y){
     playExplodeSound();
     let radius = 40;
-
     for(let i=0;i<W;i++){
         let dx = i - x, dy = terrain[i]-y, dist = Math.sqrt(dx*dx+dy*dy);
         if(dist < radius) terrain[i]+=(radius-dist);
     }
-
     [player, bot].forEach(w=>{
         let dist = Math.hypot(w.x - x, w.y - y);
         if(dist<50){
@@ -187,7 +190,6 @@ function explode(x,y){
             playHitSound();
         }
     });
-
     projectile = null;
     nextTurn();
 }
@@ -218,7 +220,6 @@ function updateProjectile(){
     }
 }
 
-// Проверка падения в пропасть
 function checkFalling(w){
   if(w.y>=H-10){
     w.hp=0; w.hits.push({x:w.x,y:w.y-20,amount:100,life:100});
@@ -239,7 +240,6 @@ function botAction(){
   setTimeout(botShootSafe,500);
 }
 
-// Бот ищет ближайшую «выгодную» высоту
 function botMoveHeightSeek(){
   let bestX = bot.x;
   let minDiff = Infinity;
@@ -254,7 +254,6 @@ function botMoveHeightSeek(){
   place(bot);
 }
 
-// Безопасная стрельба бота
 function botShootSafe(){
   if(gameOver) return;
   let targetX = player.x + (Math.random()*20-10);
@@ -286,6 +285,7 @@ function drawAim(){
   for(let i=0;i<30;i++){ x+=vx; y+=vy; vy+=0.4; vx+=wind; ctx.lineTo(x,y); }
   ctx.stroke();
 }
+
 function drawProjectile(){ if(!projectile) return; ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(projectile.x,projectile.y,5,0,Math.PI*2); ctx.fill(); }
 function drawWind(){ ctx.fillStyle='white'; ctx.font='100px Arial'; ctx.textAlign='center'; ctx.fillText('Wind '+(wind>0?'→':(wind<0?'←':'↔'))+' '+wind.toFixed(2),W/2,100); }
 
@@ -296,16 +296,10 @@ function showEnd(text){ gameOver=true; document.getElementById('overlay').style.
 function restartGame(){ initGame(); }
 function loop(){ updateProjectile(); draw(); checkGameOver(); requestAnimationFrame(loop); }
 
-// KEYS
 window.addEventListener('keydown',e=>{ if(turn!=='player') return; if(e.key==='ArrowLeft') move(-5); if(e.key==='ArrowRight') move(5); });
 
 initGame(); loop();
+
 </script>
-
-
-
-
-
-
 </body>
 </html>
