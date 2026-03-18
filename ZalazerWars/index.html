@@ -128,7 +128,7 @@ function drawWorm(w,color){
   drawHealthBar(w); drawDamageNumbers(w);
 }
 function drawHealthBar(w){
-  const barW=200/1.5, barH=32*1.5, x=w.x-barW/2, y=w.y-60;
+  const barW=200/1.5, barH=32*1.5, x=w.x-barW/2, y=w.y-125;
   ctx.fillStyle='red'; ctx.fillRect(x,y,barW,barH);
   ctx.fillStyle='lime'; ctx.fillRect(x,y,barW*(w.hp/100),barH);
   ctx.strokeStyle='black'; ctx.lineWidth=4; ctx.strokeRect(x,y,barW,barH);
