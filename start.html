@@ -12,6 +12,8 @@
 <link rel="prefetch" href="ChronoMonsters/index.html">
 <link rel="prefetch" href="LazerRoulette/index.html">
 <link rel="prefetch" href="Odrive/index.html">
+<link rel="prefetch" href="ZalazerWars/index.html">
+
 
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -81,6 +83,7 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
 <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
 <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
+<button class="btn" onclick="loadGame('ZalazerWars')">💥 ZalazerWars</button>
 </div>
 
 <div>
@@ -144,6 +147,7 @@ All rights reserved.
 <audio id="music-ChronoMonsters" src="music-ChronoMonsters.mp3" loop></audio>
 <audio id="music-LazerRoulette" src="music-LazerRoulette.mp3" loop></audio>
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
+<audio id="music-ZalazerWars" src="music-ZalazerWars.mp3" loop></audio>
 
 <script>
 let tg=null;
@@ -194,7 +198,8 @@ PokerLazer:document.getElementById('music-PokerLazer'),
 StarDropper:document.getElementById('music-StarDropper'),
 ChronoMonsters:document.getElementById('music-ChronoMonsters'),
 LazerRoulette:document.getElementById('music-LazerRoulette'),
-Odrive:document.getElementById('music-Odrive')
+Odrive:document.getElementById('music-Odrive'),
+ZalazerWars:document.getElementById('music-ZalazerWars')
 };
 
 let currentGame='';
