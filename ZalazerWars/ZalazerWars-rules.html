@@ -1,0 +1,328 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+<title>ZalazerWars – Game Rules</title>
+
+<!--
+© 2026 ZALAZER
+ZalazerWars rules document.
+Unauthorized reproduction or modification is prohibited.
+-->
+
+<meta name="generator" content="ZALAZER rules engine v1">
+
+<style>
+/* ==== GLOBAL ==== */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #0b0b0b;
+    color: #eaeaea;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    overflow-y: auto;
+    touch-action: manipulation;
+}
+
+/* ==== TOUCH SHIELD CANVAS ==== */
+#touchShield {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    z-index: 0;
+    touch-action: none;
+}
+
+/* ==== CONTENT ==== */
+#content {
+    position: relative;
+    z-index: 1;
+    padding: 10px 20px 40px 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h2 {
+    margin-top: 40px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    color: #ffd36a;
+}
+
+h3 {
+    margin-top: 24px;
+    color: #9fd6ff;
+}
+
+p {
+    margin: 10px 0;
+}
+
+ul {
+    margin: 10px 0 20px 20px;
+}
+
+li {
+    margin-bottom: 8px;
+}
+
+.note {
+    background: #151515;
+    border-left: 4px solid #ffd36a;
+    padding: 12px;
+    margin: 20px 0;
+}
+
+.rules-footer-sep {
+    margin-top: 50px;
+    border: 0;
+    border-top: 1px solid #333;
+}
+
+.rules-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.rules-copyright {
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.rules-contact-btn {
+    background: #151515;
+    color: #ffd36a;
+    border: 1px solid #333;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.rules-contact-btn:hover {
+    background: #1e1e1e;
+    border-color: #ffd36a;
+}
+
+.rules-note {
+    margin-top: 10px;
+    font-size: 11px;
+    opacity: 0.5;
+}
+
+.game-title {
+    text-align: center;
+    margin-bottom: 30px;
+    line-height: 1.3;
+}
+
+.game-subtitle {
+    display: block;
+    font-size: 0.65em;
+    font-weight: normal;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+/* hidden ownership marker */
+.doc-signature {
+    display: none;
+    opacity: 0.15;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="touchShield"></canvas>
+
+<div id="content">
+
+  <div class="doc-signature">
+      © 2026 ZALAZER · ZalazerWars · Rules Document
+  </div>
+
+  <h1 class="game-title">
+      💥 ZalazerWars<br>
+      <span class="game-subtitle">Game Rules</span>
+  </h1>
+
+  <!-- ENGLISH -->
+  <h2>🇬🇧 English</h2>
+  <h3>Goal of the Game</h3>
+  <p>
+  ZalazerWars is a strategic artillery game where you control your worm and fight against a bot.  
+  Shoot projectiles, avoid hazards, and destroy your opponent to win. Use movement, angle, and power to plan your attacks.
+  </p>
+
+  <h3>How the Game Works</h3>
+  <ul>
+      <li>Move your worm left or right to position yourself.</li>
+      <li>Adjust the firing angle and power to hit the opponent.</li>
+      <li>Projectiles follow realistic physics with gravity and wind.</li>
+      <li>The bot takes turns, moves strategically, and fires back.</li>
+      <li>Each hit reduces HP — the first to drop to zero loses.</li>
+  </ul>
+
+  <div class="note">
+  Terrain and wind conditions change every round, affecting strategy.
+  </div>
+
+  <!-- UKRAINIAN -->
+  <h2>🇺🇦 Українською</h2>
+
+  <h3>Мета гри</h3>
+  <p>
+  ZalazerWars — стратегічна артилерійська гра, де ви керуєте хробаком і боретеся проти бота.  
+  Стріляйте снарядами, уникайте небезпек та знищуйте суперника, щоб перемогти. Використовуйте рух, кут та силу для планування атак.
+  </p>
+
+  <h3>Як грати</h3>
+  <ul>
+      <li>Переміщуйте свого хробака вліво або вправо для позиціювання.</li>
+      <li>Регулюйте кут та силу пострілу, щоб потрапити в супротивника.</li>
+      <li>Снаряди рухаються за фізикою з урахуванням гравітації та вітру.</li>
+      <li>Бот ходить по черзі, рухається стратегічно та стріляє у відповідь.</li>
+      <li>Кожне попадання зменшує HP — перший, у кого HP ≤ 0, програє.</li>
+  </ul>
+
+  <div class="note">
+  Рельєф та вітер змінюються в кожному раунді, впливаючи на стратегію.
+  </div>
+
+  <!-- RUSSIAN -->
+  <h2>🇷🇺 По-русски</h2>
+
+  <h3>Цель игры</h3>
+  <p>
+  ZalazerWars — стратегическая артиллерийская игра, где вы управляете червяком и сражаетесь с ботом.  
+  Стреляйте снарядами, избегайте опасностей и уничтожьте противника, чтобы победить. Используйте движение, угол и силу для планирования атак.
+  </p>
+
+  <h3>Как играть</h3>
+  <ul>
+      <li>Перемещайте червяка влево или вправо для позиционирования.</li>
+      <li>Настраивайте угол и силу выстрела, чтобы попасть по противнику.</li>
+      <li>Снаряды подчиняются физике с учетом гравитации и ветра.</li>
+      <li>Бот ходит по очереди, движется стратегически и стреляет в ответ.</li>
+      <li>Каждое попадание уменьшает HP — первый, у кого HP ≤ 0, проигрывает.</li>
+  </ul>
+
+  <div class="note">
+  Рельеф и ветер меняются каждый раунд, влияя на стратегию.
+  </div>
+
+  <hr class="rules-footer-sep">
+
+  <div class="rules-footer">
+      <div class="rules-copyright">
+          © 2026 <strong>ZALAZER</strong><br>
+          ZalazerWars and its source code are protected by copyright law.<br>
+          All rights reserved.
+      </div>
+
+      <button class="rules-contact-btn" onclick="sendFeedback()">
+          Contact / Feedback
+      </button>
+
+      <div class="rules-note">
+          Feedback can include text and screenshot. No reply guaranteed.
+      </div>
+  </div>
+
+</div>
+
+<script>
+['gesturestart','gesturechange','gestureend'].forEach(evt => {
+    document.addEventListener(evt, e => e.preventDefault(), { passive:false });
+});
+
+const shield = document.getElementById('touchShield');
+['touchstart','touchmove','touchend'].forEach(evt => {
+    shield.addEventListener(evt, e => {
+        if (e.touches && e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive:false });
+});
+</script>
+
+<script>
+const __docSignature = {
+    product: "ZalazerWars",
+    type: "rules",
+    revision: "1.0",
+    year: 2026
+};
+
+const tg = window.Telegram?.WebApp;
+
+async function sendFeedback() {
+    if(!tg) {
+        alert("Feedback works only inside Telegram WebApp");
+        return;
+    }
+
+    const feedbackText = prompt("Please enter your feedback (you can describe a bug or suggestion):");
+    if(!feedbackText) return;
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async () => {
+        let fileData = null;
+        if(fileInput.files.length > 0) {
+            fileData = await fileToBase64(fileInput.files[0]);
+        }
+
+        const payload = {
+            type: 'feedback',
+            game: 'ZalazerWars',
+            page: 'rules',
+            text: feedbackText,
+            screenshot: fileData,
+            platform: tg.platform,
+            lang: tg.initDataUnsafe?.user?.language_code,
+            user: tg.initDataUnsafe?.user?.id,
+            ts: Date.now()
+        };
+
+        tg.sendData(JSON.stringify(payload));
+        alert("Thank you! Your feedback has been sent ✅");
+    };
+    fileInput.click();
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+if (tg) {
+    console.log("Telegram WebApp доступен ✅");
+} else {
+    console.log("Telegram WebApp НЕ доступен ❌");
+}
+</script>
+
+</body>
+</html>
