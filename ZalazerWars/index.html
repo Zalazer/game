@@ -1,0 +1,311 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=450, initial-scale=0.4, user-scalable=no">
+<title>Worms PRO++ UI Big</title>
+<style>
+body{margin:0;background:#222;color:#fff;font-family:Arial;text-align:center;touch-action: manipulation;}
+canvas{display:block;margin:10px auto;background:#87CEEB;border:2px solid black}
+button{padding:60px 80px;margin:10px;font-size:72px;cursor:pointer;border-radius:12px;outline:none}
+.control-row{display:flex;justify-content:center;margin-bottom:10px;gap:20px}
+#overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);color:white;font-size:160px;flex-direction:column;visibility:hidden}
+</style>
+</head>
+<body>
+<h2 style="font-size:72px">ZalazerWars💥</h2>
+<canvas id="game" width="900" height="500"></canvas>
+<div class="control-row">
+<button onclick="move(-10)">◀ Move</button>
+<button onclick="move(10)">Move ▶</button>
+</div>
+<div class="control-row">
+<button onclick="angle+=5">Angle +</button>
+<button onclick="angle-=5">Angle -</button>
+</div>
+<div class="control-row">
+<button onclick="power+=1">Power +</button>
+<button onclick="power-=1">Power -</button>
+</div>
+<div class="control-row">
+<button onclick="shoot()">Shoot</button>
+</div><div id="overlay">
+  <div id="resultText"></div>
+  <button onclick="restartGame()">Restart</button>
+</div>
+
+
+
+<script>
+// Prevent double tap zoom
+document.addEventListener('touchstart', e => { if(e.touches.length>1) e.preventDefault(); }, {passive:false});
+document.addEventListener('gesturestart', e => { e.preventDefault(); });
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+// Audio
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// Звук выстрела
+function playShootSound(){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type='sawtooth';
+  osc.frequency.setValueAtTime(150,audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.1,audioCtx.currentTime);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime+0.12);
+}
+
+// Звук попадания с затуханием
+function playHitSound(){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type='triangle';
+  osc.frequency.setValueAtTime(400,audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.15,audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime+0.3);
+}
+
+// Звук взрыва (низкий треск)
+function playExplodeSound(){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type='sawtooth';
+  osc.frequency.setValueAtTime(100,audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.2,audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime+0.3);
+}
+
+// TERRAIN
+let terrain = new Array(W);
+function generateTerrain(){
+  for(let x=0;x<W;x++){
+    terrain[x] = 350 + Math.sin(x*0.01)*40;
+  }
+}
+function drawTerrain(){
+  ctx.fillStyle='#5a3b1a';
+  ctx.beginPath();
+  ctx.moveTo(0,H);
+  for(let x=0;x<W;x++) ctx.lineTo(x, terrain[x]);
+  ctx.lineTo(W,H);
+  ctx.fill();
+  
+  // Белая граница на земле
+  ctx.strokeStyle='white';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  let mid = Math.floor(W/2);
+  ctx.moveTo(mid, terrain[mid]);
+  ctx.lineTo(mid, H);
+  ctx.stroke();
+}
+function groundY(x){ x=Math.max(0,Math.min(W-1,Math.floor(x))); return terrain[x]; }
+
+// PLAYERS
+let player, bot;
+function initPlayers(){
+  player={x:150,y:0,hp:100,hits:[]};
+  bot={x:750,y:0,hp:100,hits:[]};
+  place(player); place(bot);
+}
+function place(w){ w.y = groundY(w.x)-10; }
+
+function drawWorm(w,color){
+  ctx.fillStyle=color;
+  ctx.beginPath(); ctx.arc(w.x,w.y,10,0,Math.PI*2); ctx.fill();
+  drawHealthBar(w); drawDamageNumbers(w);
+}
+function drawHealthBar(w){
+  const barW=200/1.5, barH=32*1.5, x=w.x-barW/2, y=w.y-60;
+  ctx.fillStyle='red'; ctx.fillRect(x,y,barW,barH);
+  ctx.fillStyle='lime'; ctx.fillRect(x,y,barW*(w.hp/100),barH);
+  ctx.strokeStyle='black'; ctx.lineWidth=4; ctx.strokeRect(x,y,barW,barH);
+  ctx.fillStyle='black'; ctx.font='28px Arial'; ctx.textAlign='center';
+  ctx.fillText(Math.max(0,w.hp),w.x,y+barH-6);
+}
+function drawDamageNumbers(w){
+  for(let i=w.hits.length-1;i>=0;i--){
+    let h=w.hits[i];
+    ctx.fillStyle='yellow'; ctx.font='48px Arial';
+    ctx.fillText('-'+h.amount,h.x,h.y);
+    h.y-=1.5; h.life-=1;
+    if(h.y<50) h.life=Math.max(h.life,1);
+    if(h.life<=0) w.hits.splice(i,1);
+  }
+}
+
+// GAME STATE
+let turn, projectile, angle, power, gameOver, wind;
+
+function initGame(){
+  generateTerrain(); initPlayers();
+  turn='player'; projectile=null; angle=45; power=10;
+  wind=(Math.random()-0.5)*0.2; gameOver=false;
+  document.getElementById('overlay').style.visibility='hidden';
+}
+
+// PLAYER MOVEMENT
+function move(dx){
+  if(turn!=='player'||projectile||gameOver) return;
+  let newX = player.x + dx;
+  if(newX<10) newX=10;
+  if(newX>W/2-10) newX=W/2-10;
+  player.x=newX; place(player);
+}
+
+// SHOOT
+function shoot(){
+  if(turn!=='player'||projectile||gameOver) return;
+  let r=angle*Math.PI/180;
+  projectile={x:player.x,y:player.y,vx:Math.cos(r)*power,vy:-Math.sin(r)*power,owner:'player'};
+  playShootSound();
+}
+
+// PHYSICS
+function explode(x,y){
+    playExplodeSound();
+    let radius = 40;
+
+    for(let i=0;i<W;i++){
+        let dx = i - x, dy = terrain[i]-y, dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist < radius) terrain[i]+=(radius-dist);
+    }
+
+    [player, bot].forEach(w=>{
+        let dist = Math.hypot(w.x - x, w.y - y);
+        if(dist<50){
+            let dmg = Math.floor(50 - dist);
+            w.hp -= dmg;
+            w.hits.push({x:w.x,y:w.y-20,amount:dmg,life:100});
+            playHitSound();
+        }
+    });
+
+    projectile = null;
+    nextTurn();
+}
+
+function updateProjectile(){
+    if(!projectile) return;
+    projectile.x+=projectile.vx;
+    projectile.y+=projectile.vy;
+    projectile.vy+=0.4;
+    projectile.vx+=wind;
+
+    [player, bot].forEach(w=>{
+        if(projectile && Math.hypot(projectile.x-w.x,projectile.y-w.y)<10){
+            w.hp-=20;
+            w.hits.push({x:w.x,y:w.y-20,amount:20,life:100});
+            playHitSound();
+            projectile=null;
+            nextTurn();
+        }
+    });
+
+    if(projectile && projectile.y>=groundY(projectile.x)){
+        explode(projectile.x,projectile.y); return;
+    }
+
+    if(projectile && (projectile.x<0||projectile.x>W||projectile.y>H)){
+        projectile=null; nextTurn();
+    }
+}
+
+// Проверка падения в пропасть
+function checkFalling(w){
+  if(w.y>=H-10){
+    w.hp=0; w.hits.push({x:w.x,y:w.y-20,amount:100,life:100});
+  }
+}
+
+// TURN
+function nextTurn(){
+  place(player); place(bot); wind=(Math.random()-0.5)*0.2;
+  checkFalling(player); checkFalling(bot);
+  if(turn==='player'){ turn='bot'; setTimeout(botAction,500); } else turn='player';
+}
+
+// BOT
+function botAction(){
+  if(gameOver) return;
+  botMoveHeightSeek();
+  setTimeout(botShootSafe,500);
+}
+
+// Бот ищет ближайшую «выгодную» высоту
+function botMoveHeightSeek(){
+  let bestX = bot.x;
+  let minDiff = Infinity;
+  for(let dx=-30;dx<=30;dx+=5){
+    let x = bot.x+dx;
+    if(x<W/2+10) x=W/2+10;
+    if(x>W-10) x=W-10;
+    let diff = Math.abs(groundY(x)-bot.y);
+    if(diff<minDiff){ minDiff=diff; bestX=x; }
+  }
+  bot.x += Math.sign(bestX-bot.x)*5;
+  place(bot);
+}
+
+// Безопасная стрельба бота
+function botShootSafe(){
+  if(gameOver) return;
+  let targetX = player.x + (Math.random()*20-10);
+  let targetY = player.y + (Math.random()*10-5);
+
+  let dx = targetX - bot.x;
+  let dy = bot.y - targetY;
+  if(Math.abs(dx)<30 && dy>0){ nextTurn(); return; }
+
+  let g = 0.4;
+  let distance = Math.abs(dx);
+  let angleRad = Math.atan((dy + 0.5*g*distance*distance/100)/distance);
+  let powerCalc = distance/(Math.cos(angleRad)*12);
+  powerCalc=Math.min(Math.max(powerCalc,5),15);
+  angleRad += (Math.random()*0.12-0.06);
+  powerCalc *= (0.95 + Math.random()*0.1);
+  if(dx<0) angleRad=Math.PI-angleRad;
+
+  projectile={x:bot.x,y:bot.y,vx:Math.cos(angleRad)*powerCalc+wind*5,vy:-Math.sin(angleRad)*powerCalc,owner:'bot'};
+  playShootSound();
+}
+
+// AIM
+function drawAim(){
+  if(turn!=='player'||gameOver) return;
+  let r=angle*Math.PI/180, x=player.x, y=player.y;
+  let vx=Math.cos(r)*power, vy=-Math.sin(r)*power;
+  ctx.strokeStyle='white'; ctx.beginPath();
+  for(let i=0;i<30;i++){ x+=vx; y+=vy; vy+=0.4; vx+=wind; ctx.lineTo(x,y); }
+  ctx.stroke();
+}
+function drawProjectile(){ if(!projectile) return; ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(projectile.x,projectile.y,5,0,Math.PI*2); ctx.fill(); }
+function drawWind(){ ctx.fillStyle='white'; ctx.font='100px Arial'; ctx.textAlign='center'; ctx.fillText('Wind '+(wind>0?'→':(wind<0?'←':'↔'))+' '+wind.toFixed(2),W/2,100); }
+
+function draw(){ ctx.clearRect(0,0,W,H); drawTerrain(); drawWorm(player,'cyan'); drawWorm(bot,'red'); drawAim(); drawProjectile(); drawWind(); }
+
+function checkGameOver(){ if(gameOver) return; if(player.hp<=0) showEnd('You Lose'); if(bot.hp<=0) showEnd('You Win'); }
+function showEnd(text){ gameOver=true; document.getElementById('overlay').style.visibility='visible'; document.getElementById('resultText').innerText=text; }
+function restartGame(){ initGame(); }
+function loop(){ updateProjectile(); draw(); checkGameOver(); requestAnimationFrame(loop); }
+
+// KEYS
+window.addEventListener('keydown',e=>{ if(turn!=='player') return; if(e.key==='ArrowLeft') move(-5); if(e.key==='ArrowRight') move(5); });
+
+initGame(); loop();
+</script>
+
+
+
+
+
+
+</body>
+</html>
