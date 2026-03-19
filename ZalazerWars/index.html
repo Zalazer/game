@@ -8,7 +8,35 @@
 body{margin:0;background:#222;color:#fff;font-family:Arial;text-align:center;display:flex;flex-direction:column;align-items:center;}
 canvas{background:#87CEEB;border:2px solid black;display:block;}
 .controls{display:flex;justify-content:center;gap:10px;margin:5px 0;flex-wrap:wrap;}
-button{font-size:32px;padding:15px 30px;border-radius:12px;cursor:pointer;}
+
+
+button {
+  font-size: 32px;
+  padding: 15px 30px;
+  border-radius: 25px; /* сильно скругленные края */
+  cursor: pointer;
+  border: none;
+  color: white;
+  font-weight: bold;
+  background: linear-gradient(145deg, #1b5e20, #2e7d32, #388e3c, #43a047); /* тёмно-зелёный градиент */
+  background-size: 400% 400%;
+  animation: candyGradient 5s ease infinite;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+/* Анимация градиента */
+@keyframes candyGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
 #overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);color:white;font-size:64px;flex-direction:column;visibility:hidden;}
 #leaderboard{font-size:32px;margin-top:20px;}
 </style>
@@ -35,6 +63,8 @@ button{font-size:32px;padding:15px 30px;border-radius:12px;cursor:pointer;}
 </div>
 
 <script>
+const WORLD_MARGIN = 10;
+
 const BASE_W = 900;
 const BASE_H = 500;
 const canvas = document.getElementById('game');
@@ -53,11 +83,25 @@ resizeCanvas();
 const W = BASE_W, H = BASE_H;
 let terrain = new Array(W);
 
+
+
 function generateTerrain(){
+  let base = 300 + Math.random()*80;     // базовая высота
+  let amp1 = 20 + Math.random()*40;      // первая волна
+  let amp2 = 10 + Math.random()*25;      // вторая волна
+  let freq1 = 0.005 + Math.random()*0.02;
+  let freq2 = 0.01 + Math.random()*0.03;
+  let phase = Math.random()*Math.PI*2;
+
   for(let x=0;x<W;x++){
-    terrain[x] = 350 + Math.sin(x*0.01)*40;
+    terrain[x] =
+      base +
+      Math.sin(x*freq1 + phase)*amp1 +
+      Math.sin(x*freq2)*amp2;
   }
 }
+
+
 
 function drawTerrain(){
   ctx.fillStyle='#5a3b1a';
@@ -134,18 +178,40 @@ let leaderboard=[];
 
 // ===== INIT =====
 function place(w){
+  // ограничение по X (чтобы не улетали за края)
+  if(w.x < WORLD_MARGIN) w.x = WORLD_MARGIN;
+  if(w.x > W - WORLD_MARGIN) w.x = W - WORLD_MARGIN;
+
   let ground = groundY(w.x) - 10;
 
-  // если провалился — поднимаем
+  // если земля разрушена и стала ниже — не даём падать ниже канваса
+  if(ground > H - WORLD_MARGIN){
+    ground = H - WORLD_MARGIN;
+  }
+
+  // фикс провала
   if(w.y > ground){
     w.y = ground;
   } else {
     w.y = ground;
   }
+
+  // 🔥 анти-баг: если вдруг ушёл ниже канваса
+  if(w.y > H - WORLD_MARGIN){
+    w.y = H - WORLD_MARGIN;
+  }
+
+  // 🔥 анти-баг: если ушёл вверх (редко, но бывает)
+  if(w.y < WORLD_MARGIN){
+    w.y = WORLD_MARGIN;
+  }
 }
 
 
 function initLevel(){
+
+generateTerrain();
+
   botsLeft=[]; botsRight=[]; allCharacters=[];
 
   player={x:150,y:0,hp:100,hits:[]};
@@ -158,7 +224,15 @@ function initLevel(){
   }
 
   for(let i=0;i<round;i++){
-    let b={x:750+50*i,y:0,hp:100,hits:[]};
+
+let b={
+  x:750+50*i,
+  y:0,
+  hp:100,
+  hits:[],
+  memory:{ lastShots: [], dangerX: null }
+};
+
     botsRight.push(b);
     allCharacters.push(b);
   }
@@ -180,11 +254,14 @@ function initGame(){
 
 // ===== DRAW =====
 function drawWorm(w,color){
+  if(w.mergedToTerrain) return; // уже в земле — не рисуем
+
   ctx.fillStyle=color;
   ctx.beginPath();
   ctx.arc(w.x,w.y,10,0,Math.PI*2);
   ctx.fill();
 
+  // Полоска здоровья
   const idx = allCharacters.indexOf(w);
   const barW=200/2.8;
   const barH=32/0.9;
@@ -204,6 +281,7 @@ function drawWorm(w,color){
   ctx.textAlign='center';
   ctx.fillText(Math.max(0,w.hp),w.x,y+barH-6);
 
+  // Всплывающий урон
   for(let i=w.hits.length-1;i>=0;i--){
     let h=w.hits[i];
     ctx.fillStyle='yellow';
@@ -214,6 +292,8 @@ function drawWorm(w,color){
     if(h.life<=0) w.hits.splice(i,1);
   }
 }
+
+
 
 function drawAim(){
   if(turn!=='player'||gameOver) return;
@@ -271,45 +351,68 @@ function draw(){
   updateHeader();
 }
 
+
 // ===== DAMAGE =====
-function applyDamage(w,dmg){
+function applyDamage(w, dmg) {
 
   // ❌ если уже мёртв — игнор
-  if(w.hp <= 0) return;
+  if (w.hp <= 0) return;
 
+  // уменьшаем здоровье
   w.hp -= dmg;
 
   // защита от минуса
   let realDmg = dmg;
-  if(w.hp < 0){
+  if (w.hp < 0) {
     realDmg += w.hp; // вычитаем лишний урон
     w.hp = 0;
   }
 
-  w.hits.push({x:w.x,y:w.y-20,amount:realDmg,life:100});
+  // всплывающий урон
+  w.hits.push({ x: w.x, y: w.y - 20, amount: realDmg, life: 100 });
   playHitSound();
 
-  if(projectile && projectile.owner==='player'){
+  // расчёт очков
+  if (projectile && projectile.owner === 'player') {
 
-  // 🎯 враги (botsRight)
-  if(botsRight.includes(w)){
-    roundDamage += realDmg;
-    totalDamage += realDmg;
+    // 🎯 враги (botsRight)
+    if (botsRight.includes(w)) {
+      roundDamage += realDmg;
+      totalDamage += realDmg;
+    }
+
+    // 💀 попадание в себя
+    else if (w === player) {
+      roundDamage -= realDmg;
+      totalDamage -= realDmg;
+    }
+
+    // 🤝 союзные боты
+    else if (botsLeft.includes(w)) {
+      roundDamage -= realDmg;
+      totalDamage -= realDmg;
+    }
   }
 
-  // 💀 попадание в себя
-  else if(w === player){
-    roundDamage -= realDmg;
-    totalDamage -= realDmg;
-  }
+  // ===== ПРЕВРАЩЕНИЕ В ЗЕМЛЮ =====
+  if (w.hp <= 0 && !w.mergedToTerrain) {
+    w.mergedToTerrain = true; // помечаем, чтобы не делать дважды
 
-  // 🤝 союзные боты
-  else if(botsLeft.includes(w)){
-    roundDamage -= realDmg;
-    totalDamage -= realDmg;
+    // делаем небольшую площадку на месте персонажа
+    let xStart = Math.max(0, Math.floor(w.x - 10));
+    let xEnd = Math.min(W - 1, Math.floor(w.x + 10));
+    for (let x = xStart; x <= xEnd; x++) {
+      terrain[x] = Math.min(H, Math.max(terrain[x], w.y)); // поднимаем землю до уровня персонажа
+    }
+
+    // удаляем персонажа из массивов, чтобы не рисовался
+    let idx = allCharacters.indexOf(w);
+    if (idx !== -1) allCharacters.splice(idx, 1);
+    if (botsRight.includes(w)) botsRight.splice(botsRight.indexOf(w), 1);
+    if (botsLeft.includes(w)) botsLeft.splice(botsLeft.indexOf(w), 1);
   }
 }
-}
+
 
 
 
@@ -317,27 +420,62 @@ function applyDamage(w,dmg){
 function explode(x,y){
   playExplodeSound();
 
-  let radius=40;
+  let radius = 40;
+
+  // ===== ДЕФОРМАЦИЯ ЗЕМЛИ =====
   for(let i=0;i<W;i++){
-    let dx=i-x, dy=terrain[i]-y;
-    let dist=Math.sqrt(dx*dx+dy*dy);
-    if(dist<radius) terrain[i]+=(radius-dist);
+    let dx = i - x;
+    let dy = terrain[i] - y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
+
+    if(dist < radius){
+      terrain[i] += (radius - dist);
+
+      // ограничение снизу (земля не уходит за экран)
+      if(terrain[i] > H - 5){
+        terrain[i] = H - 5;
+      }
+    }
   }
 
+  // ===== УРОН =====
   allCharacters.forEach(w=>{
-    let dist=Math.hypot(w.x-x,w.y-y);
-    if(dist<50){
-      let dmg=Math.floor(50-dist);
-      applyDamage(w,dmg);
+    let dist = Math.hypot(w.x - x, w.y - y);
+    if(dist < 50){
+      let dmg = Math.floor(50 - dist);
+      applyDamage(w, dmg);
     }
   });
 
-  // 🔥 ВАЖНО — фикс после изменения земли
+  // ===== ОБУЧЕНИЕ БОТА =====
+  if(projectile && projectile.owner === 'bot' && projectile.botRef){
+    let bot = projectile.botRef;
+
+    if(!bot.memory){
+      bot.memory = { lastShots: [] };
+    }
+
+    bot.memory.lastShots.push({
+      angle: projectile.angle,
+      power: projectile.power,
+      hitX: x
+    });
+
+    // ограничиваем память (последние 5 выстрелов)
+    if(bot.memory.lastShots.length > 5){
+      bot.memory.lastShots.shift();
+    }
+  }
+
+  // ===== СТАБИЛИЗАЦИЯ =====
   allCharacters.forEach(place);
 
-  projectile=null;
+  // очищаем снаряд
+  projectile = null;
+
   nextTurn();
 }
+
 
 
 
@@ -345,33 +483,60 @@ function explode(x,y){
 function updateProjectile(){
   if(!projectile) return;
 
-  projectile.x+=projectile.vx;
-  projectile.y+=projectile.vy;
-  projectile.vy+=0.4;
-  projectile.vx+=wind;
+  // движение
+  projectile.x += projectile.vx;
+  projectile.y += projectile.vy;
+  projectile.vy += 0.4;
+  projectile.vx += wind;
 
+  // возраст снаряда (для защиты от самопопадания)
+  if(projectile.life === undefined) projectile.life = 0;
+  projectile.life++;
+
+  // ===== СТОЛКНОВЕНИЕ С ПЕРСОНАЖАМИ =====
   allCharacters.forEach(w=>{
-    if(projectile && Math.hypot(projectile.x-w.x,projectile.y-w.y)<10){
-      applyDamage(w,20);
-      projectile=null;
-      nextTurn();
+    if(!projectile) return;
+
+    // ❌ игнор первых кадров (вылет из ствола)
+    if(projectile.life < 8) return;
+
+    // ❌ игнор владельца на старте
+    if(projectile.owner === 'player' && w === player && projectile.life < 20) return;
+    if(projectile.owner === 'bot' && projectile.botRef === w && projectile.life < 20) return;
+
+    if(Math.hypot(projectile.x - w.x, projectile.y - w.y) < 10){
+      explode(projectile.x, projectile.y); // 💥 только взрыв
+      return;
     }
   });
 
-  if(projectile && projectile.y>=groundY(projectile.x)){
-    explode(projectile.x,projectile.y);
+  // ===== СТОЛКНОВЕНИЕ С ЗЕМЛЁЙ =====
+  if(projectile && projectile.y >= groundY(projectile.x)){
+    explode(projectile.x, projectile.y);
     return;
   }
 
-  if(projectile && (projectile.x<0||projectile.x>W||projectile.y>H)){
-    projectile=null;
+  // ===== ВЫЛЕТ ЗА КАРТУ =====
+  if(projectile && (
+    projectile.x < -50 ||
+    projectile.x > W + 50 ||
+    projectile.y > H + 50
+  )){
+    projectile = null;
     nextTurn();
   }
 }
 
+
+
+
+
 // ===== TURN =====
 function nextTurn(){
   allCharacters.forEach(place);
+
+  setTimeout(()=> allCharacters.forEach(place), 0);
+
   wind=(Math.random()-0.5)*0.2;
 
   if(player.hp<=0){
@@ -391,67 +556,89 @@ function nextTurn(){
   }
 }
 
+
+
 // ===== BOT (ОРИГИНАЛ) =====
 function botAction(){
   if(gameOver) return;
 
+  // Берём живых ботов
   let botsAlive = botsRight.filter(b=>b.hp>0);
   if(botsAlive.length===0){
     nextTurn();
     return;
   }
 
+  // Случайный бот
   let bot = botsAlive[Math.floor(Math.random()*botsAlive.length)];
 
-  // move
+  // ===== 1️⃣ Найти безопасное место =====
   let bestX = bot.x;
   let minDiff = Infinity;
-
-  for(let dx=-30;dx<=30;dx+=5){
-    let x = bot.x+dx;
-    if(x<W/2+10) x=W/2+10;
-    if(x>W-10) x=W-10;
-    let diff = Math.abs(groundY(x)-bot.y);
-    if(diff<minDiff){ minDiff=diff; bestX=x; }
+  for(let dx=-30; dx<=30; dx+=5){
+    let x = bot.x + dx;
+    if(x < W/2 + 10) x = W/2 + 10;
+    if(x > W - 10) x = W - 10;
+    let diff = Math.abs(groundY(x) - bot.y);
+    if(diff < minDiff){
+      minDiff = diff;
+      bestX = x;
+    }
   }
-
-  bot.x += Math.sign(bestX-bot.x)*5;
+  bot.x += Math.sign(bestX - bot.x) * 5;
   place(bot);
 
   setTimeout(()=>{
-    let targetX = player.x + (Math.random()*20-10);
-    let targetY = player.y + (Math.random()*10-5);
+    // ===== 2️⃣ Цель — игрок =====
+    let dx = player.x - bot.x;
+    let dy = player.y - bot.y;
+    let g = 0.4;
 
-    let dx = targetX - bot.x;
-    let dy = bot.y - targetY;
+    let angleRad = Math.PI/4; // стартовый угол 45°
+    let powerCalc = 5;
+    let step = 0.2;
+    let found = false;
+    let sign = dx >= 0 ? 1 : -1;
 
-    if(Math.abs(dx)<30 && dy>0){
-      nextTurn();
-      return;
+    // Подбор силы, чтобы попасть
+    for(let p=5; p<=30; p+=step){
+      let vx = Math.cos(angleRad)*p*sign + wind*5;
+      let vy = -Math.sin(angleRad)*p;
+      let x=bot.x, y=bot.y;
+      let hit = false;
+
+      for(let t=0; t<1000; t++){
+        x += vx; y += vy; vy += g; vx += wind;
+        if(Math.abs(x-player.x)<10 && Math.abs(y-player.y)<10){
+          hit=true; break;
+        }
+        if(y>=groundY(x)) break;
+      }
+
+      if(hit){ powerCalc=p; found=true; break; }
     }
 
-    let g = 0.4;
-    let distance = Math.abs(dx);
-    let angleRad = Math.atan((dy + 0.5*g*distance*distance/100)/distance);
-    let powerCalc = distance/(Math.cos(angleRad)*12);
+    if(!found) powerCalc=15; // если не нашли — берём максимум
 
-    powerCalc=Math.min(Math.max(powerCalc,5),15);
-    angleRad += (Math.random()*0.12-0.06);
-    powerCalc *= (0.95 + Math.random()*0.1);
+    // ===== 3️⃣ Добавляем небольшую погрешность 5% =====
+    powerCalc *= 0.95 + Math.random()*0.1; // ±5% ошибки
 
-    if(dx<0) angleRad=Math.PI-angleRad;
-
-    projectile={
-      x:bot.x,
-      y:bot.y,
-      vx:Math.cos(angleRad)*powerCalc+wind*5,
-      vy:-Math.sin(angleRad)*powerCalc,
-      owner:'bot'
+    // ===== 4️⃣ Выстрел =====
+    projectile = {
+      x: bot.x,
+      y: bot.y-5,
+      vx: Math.cos(angleRad)*powerCalc*sign + wind*5,
+      vy: -Math.sin(angleRad)*powerCalc,
+      owner:'bot',
+      botRef: bot
     };
 
     playShootSound();
-  },400);
+  }, 400);
 }
+
+
+
 
 // ===== LEVEL =====
 function levelWin(){
@@ -490,21 +677,29 @@ function move(dx){
   place(player);
 }
 
+
+
+
 function shoot(){
   if(turn!=='player'||projectile||gameOver) return;
 
   let r=angle*Math.PI/180;
 
   projectile={
-    x:player.x,
-    y:player.y,
-    vx:Math.cos(r)*power,
-    vy:-Math.sin(r)*power,
-    owner:'player'
-  };
+  x:player.x,
+  y:player.y,
+  vx:Math.cos(r)*power,
+  vy:-Math.sin(r)*power,
+  owner:'player',
+  life:0
+};
 
   playShootSound();
 }
+
+
+
+
 
 function restartGame(){
   round=1;
