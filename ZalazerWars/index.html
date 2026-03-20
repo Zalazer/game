@@ -12,20 +12,151 @@
 
 
 <style>
-body{margin:0;background:#222;color:#fff;font-family:Arial;text-align:center;display:flex;flex-direction:column;align-items:center;}
-canvas{background:#87CEEB;border:2px solid black;display:block;}
-.controls{display:flex;justify-content:center;gap:10px;margin:5px 0;flex-wrap:wrap;}
 
 
+body{
+  margin:0;
+  background:#222;
+  color:#fff;
+  font-family:Arial;
+}
+
+/* общий контейнер */
+#gameWrapper{
+  display:flex;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* игровая зона */
+#gameArea{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+}
+
+/* canvas */
+canvas{
+  background:#87CEEB;
+  border:2px solid black;
+  display:block;
+}
+
+/* кнопки */
+.controls{
+  display:flex;
+  gap:10px;
+}
+
+/* ===== 📱 ПОРТРЕТ ===== */
+@media (orientation: portrait){
+  #gameWrapper{
+    flex-direction:column;
+    align-items:center;
+  }
+
+  #gameArea{
+    width:100%;
+  }
+
+  canvas{
+    width:100%;
+    height:auto;
+  }
+
+  .controls{
+    justify-content:center;
+    flex-wrap:wrap;
+    margin:5px 0;
+  }
+
+  /* 🎯 Shoot в портрете — чуть ниже и больше остальных */
+  .controls button:last-child{
+    width: 100%;
+    margin-top: 20px;
+    font-size: 36px;      /* чуть больше */
+    padding: 18px 12px;
+    border-radius: 25px;
+    background: linear-gradient(
+      145deg,
+      #5a3b1a,
+      #7a4f24,
+      #8b5e2b,
+      #a06b30
+    );
+    box-shadow: 0 0 15px rgba(160,107,48,0.6);
+  }
+}
+
+/* ===== 📱 АЛЬБОМНЫЙ (landscape) ===== */
+@media (orientation: landscape){
+  #gameWrapper{
+    flex-direction: row;
+    height: 100vh; /* занять весь экран */
+  }
+
+  #gameArea{
+    width: 75%;
+    height: 100%;
+  }
+
+  canvas{
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .controls{
+    width: 25%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    column-gap: 6px;
+    row-gap: 20px;
+    padding: 10px 5px;
+
+    /* приспуск блока вниз */
+    margin-top: auto;
+  }
+
+  /* обычные кнопки */
+  .controls button{
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 15px;
+    width: 48%;
+  }
+
+  /* 🎯 SHOOT — главная кнопка */
+  .controls button:last-child{
+    width: 100%;              
+    margin-top: 20px;       /* отступ от остальных */
+    font-size: 18px;        
+    padding: 14px 12px;     
+    background: linear-gradient(
+      145deg,
+      #5a3b1a,
+      #7a4f24,
+      #8b5e2b,
+      #a06b30
+    );
+    box-shadow: 0 0 15px rgba(160,107,48,0.6);
+  }
+}
+
+/* базовые стили всех кнопок */
 button {
   font-size: 32px;
   padding: 15px 30px;
-  border-radius: 25px; /* сильно скругленные края */
+  border-radius: 25px;
   cursor: pointer;
   border: none;
   color: white;
   font-weight: bold;
-  background: linear-gradient(145deg, #1b5e20, #2e7d32, #388e3c, #43a047); /* тёмно-зелёный градиент */
+  background: linear-gradient(145deg, #1b5e20, #2e7d32, #388e3c, #43a047);
   background-size: 400% 400%;
   animation: candyGradient 5s ease infinite;
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -43,8 +174,6 @@ button:hover {
   100% { background-position: 0% 50%; }
 }
 
-
-
 #overlay{
   position:absolute;
   top:0;
@@ -53,24 +182,31 @@ button:hover {
   height:100%;
   display:flex;
   align-items:center;
-  justify-content:flex-start; /* 🔥 вверх */
-  padding-top:40px;           /* 🔥 отступ сверху */
+  justify-content:flex-start;
+  padding-top:40px;
   background:rgba(0,0,0,0.9);
   color:white;
-  font-size:48px;             /* 🔥 чуть меньше */
+  font-size:48px;
   flex-direction:column;
   visibility:hidden;
 }
 
-
-
 #leaderboard{font-size:32px;margin-top:20px;}
+
+
+
+
 </style>
 </head>
 <body>
 
+<div id="gameWrapper">
+
+  <div id="gameArea">
 <h2 style="font-size:26px"></h2>
 <canvas id="game"></canvas>
+</div>
+
 
 <div class="controls">
 <button onclick="move(-10)">◀ Move</button>
@@ -97,11 +233,23 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 function resizeCanvas(){
-  const scale = Math.min(window.innerWidth/BASE_W, window.innerHeight/BASE_H);
-  canvas.width = BASE_W * scale;
-  canvas.height = BASE_H * scale;
-  ctx.setTransform(scale,0,0,scale,0,0);
+  if(window.innerWidth > window.innerHeight){
+    // LANDSCAPE
+    const scale = window.innerHeight / BASE_H;
+    canvas.width = BASE_W * scale;
+    canvas.height = BASE_H * scale;
+    ctx.setTransform(scale,0,0,scale,0,0);
+  } else {
+    // PORTRAIT (как было)
+    const scale = Math.min(window.innerWidth/BASE_W, window.innerHeight/BASE_H);
+    canvas.width = BASE_W * scale;
+    canvas.height = BASE_H * scale;
+    ctx.setTransform(scale,0,0,scale,0,0);
+  }
 }
+
+
+
 window.addEventListener('resize',resizeCanvas);
 resizeCanvas();
 
@@ -845,5 +993,8 @@ window.addEventListener('keydown',e=>{
 initGame();
 loop();
 </script>
+
+</div>
+
 </body>
 </html>
