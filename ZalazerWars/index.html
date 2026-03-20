@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>ZalazerWars</title>
+
+
+
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+
 <style>
 body{margin:0;background:#222;color:#fff;font-family:Arial;text-align:center;display:flex;flex-direction:column;align-items:center;}
 canvas{background:#87CEEB;border:2px solid black;display:block;}
@@ -37,7 +44,26 @@ button:hover {
 }
 
 
-#overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.9);color:white;font-size:64px;flex-direction:column;visibility:hidden;}
+
+#overlay{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start; /* 🔥 вверх */
+  padding-top:40px;           /* 🔥 отступ сверху */
+  background:rgba(0,0,0,0.9);
+  color:white;
+  font-size:48px;             /* 🔥 чуть меньше */
+  flex-direction:column;
+  visibility:hidden;
+}
+
+
+
 #leaderboard{font-size:32px;margin-top:20px;}
 </style>
 </head>
@@ -159,6 +185,58 @@ function playExplodeSound(){
   osc.connect(gain); gain.connect(audioCtx.destination);
   osc.start(); osc.stop(audioCtx.currentTime+0.3);
 }
+
+
+
+async function sendScoreToServer(){
+  const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+
+  const userId = tg?.id || "guest";
+  const nick = tg?.username || tg?.first_name || "Player";
+
+  try{
+    // 1️⃣ получаем ticket
+    const t = await fetch("/__ticket", { method:"POST" });
+    const { k } = await t.json();
+
+    // 2️⃣ отправляем score
+    await fetch("/__emit", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        k,
+        d:{
+          type:"score",
+          game:"ZalazerWars",
+          score: totalDamage,
+          round: round,
+          nick: nick,
+          user:{ id:userId }
+        }
+      })
+    });
+
+  }catch(e){
+    console.log("Send score error", e);
+  }
+}
+
+
+
+async function getLeaderboard(){
+  const tg = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  const userId = tg?.id || "";
+
+  try{
+    const res = await fetch(`/__leaders?game=ZalazerWars&user=${userId}`);
+    return await res.json();
+  }catch(e){
+    console.log(e);
+    return null;
+  }
+}
+
+
 
 // ===== CHARACTERS =====
 let player={x:150,y:0,hp:100,hits:[]};
@@ -647,23 +725,67 @@ function levelWin(){
 }
 
 // ===== END =====
-function endGame(){
-  gameOver=true;
+async function endGame(){
+  gameOver = true;
 
+  // сохраняем локально (как раньше)
   leaderboard.push({round,total:totalDamage});
   leaderboard.sort((a,b)=>b.total-a.total);
 
-  let top10=leaderboard.slice(0,10);
+  let localTop = leaderboard.slice(0,5);
 
-  let html='<b>Leaderboard:</b><br>';
-  top10.forEach((l,i)=>{
-    html+=`${i+1}. Round ${l.round} Total ${l.total}<br>`;
+  // пробуем сервер
+  let data = null;
+  try{
+    await sendScoreToServer();
+    data = await getLeaderboard();
+  }catch(e){
+    console.log("Server unavailable");
+  }
+
+  let html = '';
+
+  // ===== 🌍 GLOBAL =====
+  html += '<b>🏆 Global Top:</b><br>';
+
+  if(data?.globalTop?.length){
+    data.globalTop.forEach((l,i)=>{
+      html += `${i+1}. ${l.nick} — ${l.score}<br>`;
+    });
+  } else {
+    html += '<i>No server data</i><br>';
+  }
+
+  // ===== 👤 PERSONAL =====
+  html += '<br><b>👤 Your Top:</b><br>';
+
+  if(data?.userTop?.length){
+    data.userTop.forEach((l,i)=>{
+      html += `${i+1}. ${l.score}<br>`;
+    });
+  } else {
+    html += '<i>No server data</i><br>';
+  }
+
+  // ===== 💻 LOCAL =====
+  html += '<br><b>💻 Local Top:</b><br>';
+
+  localTop.forEach((l,i)=>{
+    html += `${i+1}. Round ${l.round} — ${l.total}<br>`;
   });
 
-  document.getElementById('resultText').innerText='You Lose!';
-  document.getElementById('leaderboard').innerHTML=html;
-  document.getElementById('overlay').style.visibility='visible';
+  // ===== RESULT (🔥 РАЗДЕЛЁН НА 2 СТРОКИ) =====
+  document.getElementById('resultText').innerHTML =
+    `You Lose!<br>
+     <span style="font-size:28px; opacity:0.8;">
+       Current Score: ${totalDamage}
+     </span>`;
+
+  document.getElementById('leaderboard').innerHTML = html;
+  document.getElementById('overlay').style.visibility = 'visible';
 }
+
+
 
 // ===== PLAYER =====
 function move(dx){
