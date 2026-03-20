@@ -539,14 +539,9 @@ function laserDealSequence() {
 
         let yOffset = 0;
         if (i === 1 || i === 8) yOffset -= 40;
-        if (i === 2 || i === 7) yOffset += 15;
+        if (i === 2 || i === 7) yOffset += 10;
         if (i === 3 || i === 6) yOffset -= 25;
         if (i === 4 || i === 5) yOffset += 5;
-
-
-// 🔧 точечный сдвиг вверх для игроков 3 и 8
-if (i === 2 || i === 7) yOffset -= 5;
-
 
         let xPos = pos.x;
         if (i === 4) xPos = playerPositions[1].x - 20;
@@ -679,11 +674,9 @@ if (i === 2 || i === 7) yOffset -= 5;
             let y = pos.y - tableRect.height * 0.12;
 
             if (item.playerIndex === 1 || item.playerIndex === 8) y -= 40;
-            if (item.playerIndex === 2 || item.playerIndex === 7) y += 15;
+            if (item.playerIndex === 2 || item.playerIndex === 7) y += 10;
             if (item.playerIndex === 3 || item.playerIndex === 6) y -= 25;
             if (item.playerIndex === 4 || item.playerIndex === 5) y += 5;
-
-        if (item.playerIndex === 2 || item.playerIndex === 7) y -= 5;
 
 
             // 🔧 Поднимаем карты всех игроков
