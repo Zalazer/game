@@ -987,10 +987,20 @@ function shoot(){
 
 
 function restartGame(){
-  round=1;
-  totalDamage=0;
+  round = 1;
+  totalDamage = 0;
+
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+
+  // 🔥 форсим пересчёт layout
+  resizeCanvas();
+
   initGame();
 }
+
+
+
 
 // ===== LOOP =====
 function loop(){
