@@ -5,15 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>ZalazerWars</title>
 
-
-
-<!-- TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-
 <style>
-
-
 body{
   margin:0;
   background:#222;
@@ -72,20 +66,13 @@ canvas{
     margin:5px 0;
   }
 
-  /* 🎯 Shoot в портрете — чуть ниже и больше остальных */
   .controls button:last-child{
     width: 100%;
     margin-top: 20px;
-    font-size: 36px;      /* чуть больше */
+    font-size: 36px;
     padding: 18px 12px;
     border-radius: 25px;
-    background: linear-gradient(
-      145deg,
-      #5a3b1a,
-      #7a4f24,
-      #8b5e2b,
-      #a06b30
-    );
+    background: linear-gradient(145deg, #5a3b1a, #7a4f24, #8b5e2b, #a06b30);
     box-shadow: 0 0 15px rgba(160,107,48,0.6);
   }
 }
@@ -94,12 +81,15 @@ canvas{
 @media (orientation: landscape){
   #gameWrapper{
     flex-direction: row;
-    height: 100vh; /* занять весь экран */
+    height: 100vh;
   }
 
   #gameArea{
     width: 75%;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   canvas{
@@ -111,41 +101,42 @@ canvas{
   .controls{
     width: 25%;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: wrap;         /* чтобы кнопки шли парами */
+    flex-direction: row;     /* горизонтальная раскладка */
     justify-content: center;
     align-content: flex-start;
-    column-gap: 6px;
-    row-gap: 20px;
-    padding: 10px 5px;
-
-    /* приспуск блока вниз */
-    margin-top: auto;
+    padding: 5px;
+    gap: 8px 6px;           /* row-gap и column-gap */
+    overflow-y: auto;
   }
 
-  /* обычные кнопки */
+  .controls h2{
+    width: 100%;
+    font-size: 18px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
   .controls button{
-    font-size: 16px;
-    padding: 8px 12px;
-    border-radius: 15px;
-    width: 48%;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    width: 48%;             /* две кнопки в ряд */
   }
 
-  /* 🎯 SHOOT — главная кнопка */
   .controls button:last-child{
     width: 100%;              
-    margin-top: 20px;       /* отступ от остальных */
-    font-size: 18px;        
-    padding: 14px 12px;     
-    background: linear-gradient(
-      145deg,
-      #5a3b1a,
-      #7a4f24,
-      #8b5e2b,
-      #a06b30
-    );
-    box-shadow: 0 0 15px rgba(160,107,48,0.6);
+    font-size: 16px;
+    padding: 10px 8px;
+    margin-top: 10px;       /* немного отступ сверху */
+    background: linear-gradient(145deg, #5a3b1a, #7a4f24, #8b5e2b, #a06b30);
+    box-shadow: 0 0 12px rgba(160,107,48,0.6);
   }
 }
+
+
+
+
 
 /* базовые стили всех кнопок */
 button {
@@ -192,10 +183,6 @@ button:hover {
 }
 
 #leaderboard{font-size:32px;margin-top:20px;}
-
-
-
-
 </style>
 </head>
 <body>
@@ -203,19 +190,22 @@ button:hover {
 <div id="gameWrapper">
 
   <div id="gameArea">
-<h2 style="font-size:26px"></h2>
-<canvas id="game"></canvas>
-</div>
+    <canvas id="game"></canvas>
+  </div>
 
+  <div class="controls">
+    <!-- Header теперь над кнопками в landscape -->
+    <h2 style="margin-bottom:10px;"></h2>
 
-<div class="controls">
-<button onclick="move(-10)">◀ Move</button>
-<button onclick="move(10)">Move ▶</button>
-<button onclick="angle+=5">Angle +</button>
-<button onclick="angle-=5">Angle -</button>
-<button onclick="power+=1">Power +</button>
-<button onclick="power-=1">Power -</button>
-<button onclick="shoot()">Shoot</button>
+    <button onclick="move(-10)">◀ Move</button>
+    <button onclick="move(10)">Move ▶</button>
+    <button onclick="angle+=5">Angle +</button>
+    <button onclick="angle-=5">Angle -</button>
+    <button onclick="power+=1">Power +</button>
+    <button onclick="power-=1">Power -</button>
+    <button onclick="shoot()">Shoot</button>
+  </div>
+
 </div>
 
 <div id="overlay">
@@ -225,26 +215,55 @@ button:hover {
 </div>
 
 <script>
+// ===== CANVAS RESIZE =====
+const BASE_W = 900, BASE_H = 500;
 const WORLD_MARGIN = 10;
-
-const BASE_W = 900;
-const BASE_H = 500;
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+
 function resizeCanvas(){
-  if(window.innerWidth > window.innerHeight){
-    // LANDSCAPE
-    const scale = window.innerHeight / BASE_H;
+  const vw = window.innerWidth;
+  const vh = document.documentElement.clientHeight; // реальная видимая высота
+  let scale;
+
+  if(vw > vh){
+    // LANDSCAPE — масштабируем так, чтобы канвас полностью помещался по высоте
+    scale = vh / BASE_H;
     canvas.width = BASE_W * scale;
     canvas.height = BASE_H * scale;
-    ctx.setTransform(scale,0,0,scale,0,0);
+
+    // optional: центрируем по вертикали
+    canvas.style.marginTop = ((vh - canvas.height)/2) + 'px';
   } else {
-    // PORTRAIT (как было)
-    const scale = Math.min(window.innerWidth/BASE_W, window.innerHeight/BASE_H);
+    // PORTRAIT
+    scale = Math.min(vw/BASE_W, vh/BASE_H);
     canvas.width = BASE_W * scale;
     canvas.height = BASE_H * scale;
-    ctx.setTransform(scale,0,0,scale,0,0);
+    canvas.style.marginTop = '0px';
+  }
+
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+}
+
+
+
+
+
+
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();
+
+// ===== HEADER UPDATE =====
+function updateHeader(){
+  const header = document.querySelector('.controls h2');
+
+  if(window.innerWidth > window.innerHeight){
+    // Landscape — три строки
+    header.innerHTML = `Round ${round}<br>Score ${roundDamage}<br>Total ${totalDamage}`;
+  } else {
+    // Portrait — одна строка
+    header.innerText = `Round ${round} | Score ${roundDamage} | Total ${totalDamage}`;
   }
 }
 
@@ -555,10 +574,6 @@ function drawWind(){
   ctx.fillText('Wind '+(wind>0?'→':(wind<0?'←':'↔'))+' '+wind.toFixed(2),W/2,80);
 }
 
-function updateHeader(){
-  document.querySelector('h2').innerText =
-    `Round ${round} | Score ${roundDamage} | Total ${totalDamage}`;
-}
 
 function draw(){
   ctx.clearRect(0,0,W,H);
