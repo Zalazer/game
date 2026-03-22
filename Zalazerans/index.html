@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ленинградский преферанс vs Бот</title>
+<title>Zalazerans - Leningrad-style Preferans game against a bot</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+
 <style>
 body {
     background: #0e5a2f;
@@ -819,4 +823,634 @@ function botBid(){
 
     // длинный козырь: 5+ карт в одной масти
     else if (shape[0] >= 5) {
-        botChoice = "7" + bestSuit;   // 7♠
+        botChoice = "7" + bestSuit;   // 7♠, 7♥, 7♦, 7♣
+    }
+
+    // умеренная сила, масть не длинная
+    else if (strength > 30) {
+        botChoice = "6" + bestSuit;   // 6♠, 6♥, 6♦, 6♣
+    }
+
+    // слабая рука — вообще не играем
+    else {
+        botChoice = "пас";
+    }
+
+    // ===== Лог бота в стиле мини-кнопок (без оптимизации, как у тебя) =====
+    if(botChoice === "пас" || botChoice === "мизер"){
+        logMsg("Бот сказал: " + botChoice);
+    } else {
+        let number, suit;
+        if(botChoice.endsWith("БК")){
+            number = botChoice.slice(0, botChoice.length - 2); // "7БК" → "7"
+            suit = "БК";
+        } else {
+            number = botChoice.slice(0, botChoice.length - 1); // "7♣" → "7"
+            suit = botChoice.slice(-1);                        // "7♣" → "♣"
+        }
+
+        const color = (suit === "♥" || suit === "♦") ? "#ff4444" : (suit === "БК" ? "#ffffff" : "#000000");
+
+        const miniContract = `
+            <span style="
+                display:inline-block;
+                background:#4CAF50;
+                color:#fff;
+                border-radius:4px;
+                padding:2px 6px;
+                margin-right:2px;
+                font-weight:bold;
+                font-size:14px;
+                text-align:center;
+            ">${number}</span>
+            <span style="
+                display:inline-block;
+                background:#4CAF50;
+                color:${color};
+                border-radius:4px;
+                padding:2px 6px;
+                margin-right:4px;
+                font-weight:bold;
+                font-size:14px;
+                text-align:center;
+            ">${suit}</span>
+        `;
+
+        logMsg("Бот сказал: " + miniContract);
+    }
+
+    determineAuctionWinner(contract, botChoice);
+}
+
+
+
+
+
+
+function handShape(hand) {
+    const suits = ["♠","♥","♦","♣"];
+    const count = {};
+    for (let s of suits) count[s] = 0;
+
+    for (let c of hand) {
+        count[c.suit]++;
+    }
+
+    const dist = suits.map(s => count[s]);
+    dist.sort((a,b) => b - a);
+    return dist;
+}
+
+
+
+
+
+function bidIndex(bid){
+    return allBids.indexOf(bid);
+}
+
+
+
+
+
+
+
+// ===== Определение победителя торгов =====
+function determineAuctionWinner(playerBid, botBid){
+    const p = bidIndex(playerBid);
+    const b = bidIndex(botBid);
+
+    if((p <= 0) && (b <= 0)){
+        logMsg("Оба пас. Новая сдача.");
+        setTimeout(startGame,1500);
+        return;
+    }
+
+    let winner;
+
+    if(p > b){
+        winner = "player";
+        declarer = "player";
+        contract = playerBid;
+        logMsg("Игрок выиграл торговлю: " + contract + ".");
+    } else if(b > p){
+        winner = "bot";
+        declarer = "bot";
+        contract = botBid;
+        logMsg("Бот выиграл торговлю: " + contract + ".");
+    } else {
+        winner = "player"; // при равной ставке выигрывает игрок
+        declarer = "player";
+        contract = playerBid;
+        logMsg("Равная ставка, контракт у игрока: " + contract + ".");
+    }
+
+    // ⚡ Сразу передаем победителя в прикуп
+    pickTalon(winner);
+}
+
+// ===== Прикуп и козырь/БК =====
+function pickTalon(winner){
+    phase = "trump";
+
+    if(talon.length > 0){
+        logMsg("Прикуп: " + cardsToHTML(talon));
+    }
+
+    if(winner === "player"){
+        playerHand = playerHand.concat(talon);
+        talon = [];
+        sortPlayerHand();
+        renderHands();
+
+        applyTrumpFromContract();
+
+        phase = "discard";
+        selectedDiscard = [];
+        logMsg("Выберите 2 карты для сброса.");
+        renderHands();
+    } else {
+        botHand = botHand.concat(talon);
+        talon = [];
+
+        applyTrumpFromContract();
+
+        phase = "discard";
+        // вызываем умный сброс бота
+        setTimeout(botDiscard, 700);
+    }
+}
+
+// ===== Умный сброс бота =====
+function botDiscard(){
+    // не трогаем козыри и сильные карты (A,K)
+    let candidate = botHand.filter(c => !trump || c.suit !== trump);
+    candidate = candidate.filter(c => !["A","K"].includes(c.rank));
+
+    if(candidate.length < 2) candidate = botHand.slice(); // fallback
+    const toDiscard = candidate.slice(0,2);
+    toDiscard.forEach(c=>{
+        const idx = botHand.indexOf(c);
+        if(idx >= 0) botHand.splice(idx,1);
+    });
+
+    phase = "play";
+    startPlay(declarer === "bot" ? "bot" : "player");
+}
+
+
+
+
+
+// ===== Установка козыря из контракта =====
+function applyTrumpFromContract(){
+    if(!contract) return;
+
+    if(contract === "мизер"){
+        trump = null;
+        return;
+    }
+
+    const lastChar = contract.slice(-1);
+
+    if(lastChar === "К"){
+        trump = null; // БК — без козыря
+    } else if(["♠","♥","♦","♣"].includes(lastChar)){
+        trump = lastChar;
+    } else {
+        trump = null;
+    }
+}
+
+
+// ===== Лог контракта в мини-карточках =====
+function logContractMini(contract){
+    if(contract === "мизер"){
+        logMsg('<span style="display:inline-block; padding:2px 6px; margin:2px; font-size:14px; font-weight:bold; background:#4CAF50; color:#fff; border-radius:4px;">МИЗЕР</span>');
+        return;
+    }
+
+    const numTricks = contract.slice(0, contract.length-1);
+    const suit = contract.slice(-1);
+
+    let suitColor = "#000000";
+    if(suit === "♥" || suit === "♦") suitColor = "#ff4444";
+    if(suit === "БК") suitColor = "#ffd700";
+
+    const numHtml = `<span style="
+        display:inline-block;
+        padding:2px 6px;
+        margin-right:2px;
+        font-size:14px;
+        font-weight:bold;
+        background:#4CAF50;
+        color:#fff;
+        border-radius:4px;
+    ">${numTricks}</span>`;
+
+    const suitHtml = `<span style="
+        display:inline-block;
+        padding:2px 6px;
+        margin-right:2px;
+        font-size:14px;
+        font-weight:bold;
+        background:#4CAF50;
+        color:${suitColor};
+        border-radius:4px;
+    ">${suit}</span>`;
+
+    logMsg("Контракт: " + numHtml + suitHtml);
+}
+
+
+
+
+
+
+
+
+
+// ===== Розыгрыш =====
+function startPlay(firstPlayer){
+    phase = "play";
+    turn = firstPlayer;
+    document.getElementById("controls").innerHTML = "";
+    document.getElementById("discardControls").innerHTML = "";
+
+    // Контракт и козырь уже показаны в логе при торговле, лишний вывод убран
+    renderHands();
+    
+    if(turn === "bot"){
+        setTimeout(botPlay, 800);
+    }
+}
+
+
+function playerPlay(i){
+    if(phase !== "play" || turn !== "player" || !playerHand[i]) return;
+
+    const card = playerHand[i];
+
+    if(!isLegalMove(card)){
+        logMsg("Нужно ходить в масть, при её отсутствии — бить козырем (если есть).");
+        return;
+    }
+
+    tableCards.push({card, owner:"player"});
+    playerHand.splice(i,1);
+
+    renderHands();
+
+    if(tableCards.length === 2){
+        // взятка укомплектована
+        turn = null;
+        setTimeout(resolveTrick, 700);
+    } else {
+        // очередь бота
+        turn = "bot";
+        setTimeout(botPlay, 700);
+    }
+}
+
+
+function botPlay(){
+    if(phase !== "play" || turn !== "bot" || botHand.length === 0) return;
+
+    const leadSuit = tableCards.length ? tableCards[0].card.suit : null;
+    let playable;
+
+    if(!leadSuit){
+        // бот ходит первым — любая карта
+        playable = botHand.slice();
+    } else {
+        const hasLeadSuit = botHand.some(c => c.suit === leadSuit);
+        if(hasLeadSuit){
+            playable = botHand.filter(c => c.suit === leadSuit);
+        } else if(trump && botHand.some(c => c.suit === trump)){
+            playable = botHand.filter(c => c.suit === trump);
+            logMsg("Бот бьёт козырем (нет масти хода).");
+        } else {
+            playable = botHand.slice();
+        }
+    }
+
+    if(!playable || playable.length === 0) playable = botHand.slice();
+
+    const chosen = chooseBotCard(playable, leadSuit);
+    tableCards.push({card:chosen, owner:"bot"});
+
+    const idx = botHand.indexOf(chosen);
+    if(idx >= 0) botHand.splice(idx,1);
+
+    renderHands();
+
+    if(tableCards.length === 2){
+        turn = null;
+        setTimeout(resolveTrick, 700);
+    } else {
+        turn = "player";
+        renderHands();
+    }
+}
+
+
+function chooseBotCard(candidates, leadSuit){
+    if(candidates.length === 0) return botHand[0];
+
+    const isDeclarer = declarer === "bot";
+    const isMiser = contract === "мизер";
+    const isBk = contract.endsWith("БК");
+    const leadCard = tableCards.length ? tableCards[0].card : null;
+    let best = candidates[0];
+
+    // 1. Сначала определим, какие карты могут перебить
+    const cardsThatCanBeat = candidates.filter(card => {
+        if(card.suit !== leadSuit) return false;
+        return cardPower(card) > cardPower(leadCard);
+    });
+
+    // 2. Если БК и нет козыря, выбираем минимальную карту в масти, если можем
+    if(isBk && !trump){
+        const cardsInSuit = candidates.filter(c => c.suit === leadSuit);
+        if(cardsInSuit.length > 0){
+            return cardsInSuit
+                .sort((a, b) => cardPower(a) - cardPower(b))[0];
+        }
+    }
+
+    // 3. Если можем перебить, выбираем минимальную карту, которая перебивает
+    if(cardsThatCanBeat.length > 0){
+        const weakestBeatCard = cardsThatCanBeat
+            .sort((a, b) => cardPower(a) - cardPower(b))[0];
+        return weakestBeatCard;
+    }
+
+    // 4. Если не можем перебить, выбираем минимальную карту в масти
+    const cardsInSuit = candidates.filter(c => c.suit === leadSuit);
+    if(cardsInSuit.length > 0){
+        const weakestCardInSuit = cardsInSuit
+            .sort((a, b) => cardPower(a) - cardPower(b))[0];
+        return weakestCardInSuit;
+    }
+
+    // 5. Если нет масти хода, бьём козырём минимальной картой
+    const trumpCards = candidates.filter(c => c.suit === trump);
+    if(trumpCards.length > 0){
+        return trumpCards
+            .sort((a, b) => cardPower(a) - cardPower(b))[0];
+    }
+
+    // 6. иначе — любая карта
+    return candidates[0];
+
+    // 7. оставим score только для обычных игр
+    if(!isBk){
+        let bestScore = -10000;
+        for(let card of candidates){
+            let score = 0;
+
+            // МИЗЕР
+            if(isMiser){
+                if(isDeclarer){
+                    if(card.suit !== leadSuit && card.suit !== trump){
+                        score -= 10;
+                    } else if(card.suit === trump || card.suit === leadSuit){
+                        score -= 100;
+                    }
+                } else {
+                    if(card.suit === leadSuit){
+                        const leadPower = cardPower(leadCard);
+                        const myPower = cardPower(card);
+                        if(myPower > leadPower){
+                            score += 40;
+                        } else {
+                            score -= 20;
+                        }
+                    } else if(card.suit === trump){
+                        score += 30;
+                    }
+                }
+            }
+
+            // ОБЫЧНЫЕ ИГРЫ
+            else {
+                if(!leadSuit){
+                    if(trump && card.suit === trump){
+                        score += 50;
+                    } else if(["A","K"].includes(card.rank)){
+                        score += 30;
+                    } else {
+                        score -= 10;
+                    }
+                } else {
+                    if(card.suit === leadSuit){
+                        const leadPower = cardPower(leadCard);
+                        const myPower = cardPower(card);
+                        if(myPower > leadPower){
+                            score += 40;
+                        } else {
+                            score -= 20;
+                        }
+                    } else if(trump && card.suit === trump){
+                        score += 60;
+                    } else {
+                        score -= 5;
+                    }
+                }
+            }
+
+            // 3. Учёт структуры масти (длинная масть)
+            if(card.suit === leadSuit && card.suit !== trump){
+                const otherSame = botHand.filter(c => c.suit === card.suit).length;
+                if(otherSame > 2 && card.rank !== "A" && card.rank !== "K"){
+                    score += 10;
+                }
+            }
+
+            if(score > bestScore){
+                bestScore = score;
+                best = card;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+// ===== Определение взятки =====
+function resolveTrick(){
+    if(tableCards.length !== 2) return;
+
+    const first  = tableCards[0];
+    const second = tableCards[1];
+    const leadSuit = first.card.suit;
+
+    let winnerObj;
+
+    if(!trump){
+        // БЕЗ КОЗЫРЯ: только масть хода
+        if(second.card.suit !== leadSuit){
+            winnerObj = first;
+        } else {
+            winnerObj = cardPower(first.card) > cardPower(second.card) ? first : second;
+        }
+    } else {
+        const firstTrump  = first.card.suit === trump;
+        const secondTrump = second.card.suit === trump;
+
+        if(firstTrump && !secondTrump){
+            winnerObj = first;
+        } else if(!firstTrump && secondTrump){
+            winnerObj = second;
+        } else if(firstTrump && secondTrump){
+            winnerObj = cardPower(first.card) > cardPower(second.card) ? first : second;
+        } else {
+            if(second.card.suit !== leadSuit){
+                winnerObj = first;
+            } else {
+                winnerObj = cardPower(first.card) > cardPower(second.card) ? first : second;
+            }
+        }
+    }
+
+    const winner = winnerObj.owner;
+
+    if(winner === "player") playerTricks++;
+    else botTricks++;
+
+    // ✅ Лог взятки с мини-картами
+    const trickCardsHTML = tableCards.map(tc => tc.card).map(c => cardsToHTML([c])).join("");
+    logMsg((winner === "player" ? "Игрок" : "Бот") + " взял взятку: " + trickCardsHTML);
+
+    // блокируем любые ходы на время показа взятки
+    phase = "play";
+    turn = null;
+    renderHands();
+
+    setTimeout(() => {
+        tableCards = [];
+        renderHands();
+
+        // конец раздачи
+        if(playerHand.length === 0 && botHand.length === 0){
+            setTimeout(endRound, 600);
+            return;
+        }
+
+        // ход получает взявший взятку
+        turn = winner;
+        if(turn === "bot"){
+            setTimeout(botPlay, 700);
+        } else {
+            renderHands();
+        }
+    }, 700);
+}
+
+// ===== Подсчёт =====
+const contractCost = { "6":2, "7":4, "8":6, "9":8, "10":10, "мизер":10 };
+
+function endRound(){
+    phase = "scoring";
+    logMsg("Раздача окончена. Игрок взял " + playerTricks + " взяток, бот взял " + botTricks + ".");
+
+    const level = contract === "мизер" ? 10 : parseInt(contract) || 10;
+    const need = {"6":2, "7":4, "8":6, "9":8, "10":10, "мизер":10}[level.toString()] || 10;
+    const declarerIsPlayer = declarer === "player";
+    const declTricks = declarerIsPlayer ? playerTricks : botTricks;
+    const defTricks  = declarerIsPlayer ? botTricks  : playerTricks;
+
+    // ИГРЫ 6–10
+    if (contract !== "мизер") {
+        if (declTricks >= level) {
+            if (declarerIsPlayer) {
+                score.pool += need;
+                logMsg("Игрок выполнил контракт: +" + need + " в пулю.");
+            } else {
+                score.pool -= need;
+                logMsg("Бот выполнил контракт: игроку -" + need + " в пулю.");
+            }
+        } else {
+            const lost = level - declTricks;
+            const hillAdd = need * 2;   // ремиз: двойная цена в гору
+            if (declarerIsPlayer) {
+                score.hill += hillAdd;
+                logMsg("Игрок ремиз: +" + hillAdd + " в гору.");
+            } else {
+                score.hill -= hillAdd;
+                logMsg("Бот ремиз: игроку -" + hillAdd + " в гору.");
+            }
+        }
+
+        // Висты: 1 взятка защитника = 2 виста
+        const whistPoints = defTricks * 2;
+        if (declarerIsPlayer) {
+            score.whist += whistPoints;
+            logMsg("Бот получил " + defTricks + " вистов (" + whistPoints + " очков).");
+        } else {
+            score.whist -= whistPoints;
+            logMsg("Игрок получил " + defTricks + " вистов (" + whistPoints + " очков).");
+        }
+    }
+
+    // МИЗЕР
+    else {
+        if (declTricks === 0) {
+            if (declarerIsPlayer) {
+                score.pool += need;
+                logMsg("Игрок выполнил мизер: +" + need + " в пулю.");
+            } else {
+                score.pool -= need;
+                logMsg("Бот выполнил мизер: игроку -" + need + " в пулю.");
+            }
+        } else {
+            const hillAdd = need * 2;
+            if (declarerIsPlayer) {
+                score.hill += hillAdd;
+                logMsg("Игрок завалил мизер: +" + hillAdd + " в гору.");
+            } else {
+                score.hill -= hillAdd;
+                logMsg("Бот завалил мизер: игроку -" + hillAdd + " в гору.");
+            }
+        }
+    }
+
+    updateScore();
+    setTimeout(startGame, 2500);
+}
+
+
+
+
+
+
+
+// ===== Вспомогательное =====
+function highlightTrick(){
+    const th = document.getElementById("tableCards");
+    for(let i=0;i<th.children.length;i++){
+        th.children[i].style.border = "1px solid #fff";
+        th.children[i].style.boxShadow = "0 0 0 black";
+    }
+    if(tableCards.length>0 && th.children.length>0){
+        th.children[th.children.length-1].style.boxShadow = "0 0 10px gold";
+    }
+}
+
+function startGame(){
+    createDeck();
+    shuffleDeck();
+    logMsg("<hr>");
+    updateScore();
+    renderHands();
+    dealHands();
+}
+
+// старт
+startGame();
+</script>
+</body>
+</html>
