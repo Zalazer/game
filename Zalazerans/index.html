@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ленинградский преферанс vs Бот</title>
+<style>
+body {
+    background: #0e5a2f;
+    color: white;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+
+h2 {
+    margin: 10px 0;
+}
+
+#scoreboardTable{
+    width: 320px;
+    margin: 10px auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cell{
+    border: 1px solid #fff;
+    padding: 6px;
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+}
+
+.header{
+    font-weight: bold;
+    background: rgba(255,255,255,0.1);
+}
+
+.label{
+    background: rgba(0,0,0,0.3);
+}
+
+.total{
+    font-weight: bold;
+    color: gold;
+}
+
+#table {
+    margin-top: 20px;
+}
+
+.hand {
+    margin: 10px 0;
+    display: flex;
+    justify-content: center;
+}
+
+#playerHand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.player-row {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    min-height: 60px;
+}
+
+
+#playerNick{
+    color: cyan;
+    font-weight: bold;
+}
+
+#botNick{
+    color: #ff6666;
+    font-weight: bold;
+}
+
+
+.card {
+    width: 42px;
+    height: 64px;
+    border-radius: 6px;
+    background: white;
+    color: black;
+    line-height: 64px;
+    font-size: 15px;
+    margin: 3px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+}
+
+.card.red {
+    color: red;
+}
+
+.card.highlight {
+    box-shadow: 0 0 10px yellow;
+}
+
+#botHand {
+    display: flex;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 2px;
+    margin-top: 0px;
+}
+
+#botHand .card {
+    width: 22px;
+    height: 34px;
+    margin: 1px;
+    border-radius: 4px;
+    background: #222;
+    color: #222;
+    cursor: default;
+}
+
+#center {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+#gameTable {
+    width: 80%;
+    max-width: 420px;
+    height: 90px;
+    background: linear-gradient(180deg,#0b6d38,#09592e);
+    border: 2px solid #0f8c4a;
+    border-radius: 12px;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#tableCards {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 9px 12px;
+    margin: 2px;
+    font-size: 14px;
+    border-radius: 10px;
+    background: linear-gradient(145deg,#1faa59,#15803d);
+    color: white;
+    border: none;
+    white-space: nowrap;
+    flex: 1;
+}
+
+#controls {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 5px auto;
+    max-width: 420px;
+}
+
+#discardControls {
+    margin-top: 5px;
+}
+
+#log {
+    height: 180px;
+    overflow-y: auto;
+    border-top: 1px solid #aaa;
+    margin-top: 10px;
+    padding: 10px;
+    background: #06341d;
+    text-align: left;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    scroll-behavior: smooth;
+}
+
+
+
+</style>
+</head>
+<body>
+
+<h2></h2>
+
+<!-- Таблица результатов -->
+<div id="scoreboardTable">
+    <div class="cell header" id="playerNick">PLAYER</div>
+    <div class="cell header"></div>
+    <div class="cell header" id="botNick">BOT</div>
+
+    <div class="cell" id="playerHill">0</div>
+    <div class="cell label">Гора</div>
+    <div class="cell" id="botHill">0</div>
+
+    <div class="cell" id="playerPool">0</div>
+    <div class="cell label">Пуля</div>
+    <div class="cell" id="botPool">0</div>
+
+    <div class="cell" id="playerWhist">0</div>
+    <div class="cell label">Висты</div>
+    <div class="cell" id="botWhist">0</div>
+
+    <div class="cell total" id="playerTotal">0</div>
+    <div class="cell label">Тотал</div>
+    <div class="cell total" id="botTotal">0</div>
+</div>
+
+<div id="table">
+    <div id="botHand" class="hand"></div>
+
+ <div id="center">
+    <div id="gameTable" style="position: relative; display: flex; align-items: center; justify-content: center;">
+        <!-- СЧЁТЧИКИ ПО БОКАМ СТОЛА -->
+        <div id="playerTricksCount" style="
+            position: absolute; 
+            left: 8px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: cyan; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); 
+            z-index: 20;
+            width: 45px;
+            text-align: center;
+        ">0</div>
+        
+        <div id="tableCards" style="position: relative; z-index: 10; display: flex; gap: 10px;"></div>
+        
+        <div id="botTricksCount" style="
+            position: absolute; 
+            right: 8px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: #ff6666; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); 
+            z-index: 20;
+            width: 45px;
+            text-align: center;
+        ">0</div>
+    </div>
+</div>
+
+
+
+
+
+    <div id="playerHand" class="hand">
+        <div id="rowSpades" class="player-row"></div>
+        <div id="rowHearts" class="player-row"></div>
+        <div id="rowDiamonds" class="player-row"></div>
+        <div id="rowClubs" class="player-row"></div>
+    </div>
+</div>
+
+<div id="controls"></div>
+<div id="discardControls"></div>
+<div id="log"></div>
+
+<script>
+// ===== Базовые данные =====
+const suits = ["♠","♥","♦","♣"];
+const ranks = ["7","8","9","10","J","Q","K","A"];
+
+let deck = [];
+let playerHand = [];
+let botHand = [];
+let talon = [];
+
+let tableCards = []; // [{card, owner}]
+
+let currentLevel = null;  // выбранный уровень игры
+let auctionStep = "level"; // "level" или "suit"
+
+
+let trump = null;           // "♠","♥","♦","♣" или null для БК
+let contract = null;        // например "6♠","7БК","мизер"
+let declarer = null;        // "player" | "bot"
+let phase = "deal";         // deal | auction | trump | discard | play | scoring
+let turn = "player";
+
+let playerTricks = 0;
+let botTricks = 0;
+
+let score = {
+    pool: 0,
+    hill: 0,
+    whist: 0
+};
+
+
+function logMsg(msg){
+    const el = document.getElementById("log");
+    const newMsg = document.createElement("div");
+    newMsg.innerHTML = msg;
+    newMsg.style.opacity = "0";
+    newMsg.style.transition = "opacity 0.3s ease";
+    
+    // НОВОЕ СООБЩЕНИЕ В ВЕРХ
+    el.insertBefore(newMsg, el.firstChild);
+    
+    // плавная анимация появления
+    requestAnimationFrame(()=>{
+        newMsg.style.opacity = "1";
+    });
+    
+    // скроллим к верху (к новому сообщению)
+    el.scrollTop = 0;
+}
+
+
+function updateScore(){
+    document.getElementById("playerHill").innerText  = score.hill;
+    document.getElementById("playerPool").innerText  = score.pool;
+    document.getElementById("playerWhist").innerText = score.whist;
+
+    // ЛЕНИНГРАДКА: 1 очко в пуле ≈ 2 очка в горе, 1 очко в горе ≈ 10 вистов
+    // переводим всё в висты, чтобы тотал был осмысленным
+    const poolInWhist = score.pool * 5;    // 1 пуля = 20 вистов
+    const hillInWhist = score.hill * 10;   // 1 гора = 10 вистов
+    const totalWhist  = poolInWhist - hillInWhist - score.whist;
+    const total       = totalWhist / 10;   // удобнее как десятые
+
+    document.getElementById("playerTotal").innerText = total.toFixed(1);
+
+    // бот зеркально
+    document.getElementById("botHill").innerText  = -score.hill;
+    document.getElementById("botPool").innerText  = -score.pool;
+    document.getElementById("botWhist").innerText = -score.whist;
+    document.getElementById("botTotal").innerText = (-total).toFixed(1);
+}
+
+
+
+// ===== Колода =====
+function createDeck(){
+    deck = [];
+    for(let s of suits){
+        for(let r of ranks){
+            deck.push({suit:s, rank:r});
+        }
+    }
+}
+
+function shuffleDeck(){
+    for(let i = deck.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+}
+
+function rankIndex(card){
+    return ranks.indexOf(card.rank);
+}
+
+function cardPower(card){
+    return rankIndex(card);
+}
+
+
+// ===== Утилита: превращаем массив карт в мини-карточки для лога =====
+function cardsToHTML(cards){
+    return cards.map(c => {
+        const color = (c.suit === "♥" || c.suit === "♦") ? "#ff4444" : "#000000";
+        return `<span style="
+            display:inline-block;
+            border:1px solid #333;
+            border-radius:4px;
+            padding:2px 4px;
+            margin-right:3px;
+            font-weight:bold;
+            color:${color};
+            background:#fff;
+            font-size:14px;
+        ">${c.rank}${c.suit}</span>`;
+    }).join("");
+}
+
+
+// ===== Отрисовка =====
+function sortPlayerHand(){
+    const suitOrder = { "♠":0, "♥":1, "♦":2, "♣":3 };
+    playerHand.sort((a,b)=>{
+        if(suitOrder[a.suit] !== suitOrder[b.suit]){
+            return suitOrder[a.suit] - suitOrder[b.suit];
+        }
+        return rankIndex(a) - rankIndex(b);
+    });
+}
+
+let selectedDiscard = [];
+
+function renderHands(){
+    // бот
+    const bh = document.getElementById("botHand");
+    bh.innerHTML = "";
+    botHand.forEach(()=>{
+        const div = document.createElement("div");
+        div.className = "card";
+        bh.appendChild(div);
+    });
+
+    // стол
+    const th = document.getElementById("tableCards");
+    th.innerHTML = "";
+    tableCards.forEach(obj=>{
+        const c = obj.card;
+        const div = document.createElement("div");
+        div.className = "card";
+        if(c.suit==="♥" || c.suit==="♦") div.classList.add("red");
+        div.innerText = c.rank + c.suit;
+        th.appendChild(div);
+    });
+    highlightTrick();
+
+    // игрок
+    sortPlayerHand();
+    const rows = {
+        "♠": document.getElementById("rowSpades"),
+        "♥": document.getElementById("rowHearts"),
+        "♦": document.getElementById("rowDiamonds"),
+        "♣": document.getElementById("rowClubs")
+    };
+    for(let s of suits){
+        rows[s].innerHTML = "";
+    }
+
+    playerHand.forEach((c,i)=>{
+        const div = document.createElement("div");
+        div.className = "card";
+        if(c.suit==="♥" || c.suit==="♦") div.classList.add("red");
+        div.innerText = c.rank + c.suit;
+
+        if(phase === "play" && turn === "player" && isLegalMove(c)) {
+            div.classList.add("highlight");
+            div.onclick = ()=> playerPlay(i);
+        } else if(phase === "discard" && declarer === "player"){
+            if(selectedDiscard.includes(i)) div.style.boxShadow = "0 0 10px cyan";
+            div.onclick = ()=> pickDiscard(i);
+        } else {
+            div.onclick = null;
+        }
+
+        rows[c.suit].appendChild(div);
+    });
+
+    // ✅ СЧЁТЧИКИ В КОНЦЕ ФУНКЦИИ — обновляются всегда!
+    document.getElementById("playerTricksCount").innerText = playerTricks;
+    document.getElementById("botTricksCount").innerText = botTricks;
+}
+
+
+
+
+// ===== Правила хода =====
+// При наличии масти хода — обязан класть её;
+// если масти нет и есть козырь (в козырной игре) — обязан козырь;
+// если нет ни масти, ни козырей, можно любую.[web:5][web:9]
+function isLegalMove(card){
+    if(tableCards.length === 0) return true;
+    const leadSuit = tableCards[0].card.suit;
+
+    const hasLead = playerHand.some(c => c.suit === leadSuit);
+    if(hasLead){
+        return card.suit === leadSuit;
+    }
+
+    if(trump){ // в бескозырке этого блока нет
+        const hasTrump = playerHand.some(c => c.suit === trump);
+        if(hasTrump){
+            return card.suit === trump;
+        }
+    }
+
+    return true;
+}
+
+// ===== Сброс игрока =====
+function pickDiscard(i){
+    const idx = selectedDiscard.indexOf(i);
+    if(idx >= 0){
+        selectedDiscard.splice(idx,1);
+    } else {
+        if(selectedDiscard.length < 2){
+            selectedDiscard.push(i);
+        }
+    }
+    renderHands();
+    const controls = document.getElementById("discardControls");
+    if(selectedDiscard.length === 2){
+        controls.innerHTML = '<button onclick="confirmDiscard()">Сбросить выбранные</button>';
+    } else {
+        controls.innerHTML = "";
+    }
+}
+
+function confirmDiscard(){
+    selectedDiscard.sort((a,b)=>b-a);
+    for(let i of selectedDiscard){
+        playerHand.splice(i,1);
+    }
+    selectedDiscard = [];
+    document.getElementById("discardControls").innerHTML = "";
+
+    logMsg("Игрок сбросил две карты и готов играть.");
+    startPlay(declarer === "player" ? "player" : "bot");
+}
+
+
+
+
+
+
+// ===== Раздача и торговля =====
+function dealHands(){
+    playerHand = [];
+    botHand = [];
+    talon = [];
+    tableCards = [];
+    playerTricks = 0;
+    botTricks = 0;
+    trump = null;
+    contract = null;
+    declarer = null;
+    selectedDiscard = [];
+
+    for(let i=0;i<10;i++){
+        playerHand.push(deck.pop());
+        botHand.push(deck.pop());
+    }
+    talon.push(deck.pop());
+    talon.push(deck.pop());
+
+    renderHands();
+
+    // ✅ Лог только с картами игрока
+    logMsg("Карты игрока: " + cardsToHTML(playerHand) + "<br>Новая сдача.");
+    startAuction();
+}
+
+
+
+// контракты: 6♠,6♥,6♦,6♣,6БК,7♠,...,10БК + мизер[web:5][web:10]
+const allBids = [
+    "пас",
+    "6♠","6♥","6♦","6♣","6БК",
+    "7♠","7♥","7♦","7♣","7БК",
+    "8♠","8♥","8♦","8♣","8БК",
+    "9♠","9♥","9♦","9♣","9БК",
+    "10♠","10♥","10♦","10♣","10БК",
+    "мизер"
+];
+
+
+
+function startAuction(){
+    phase = "auction";
+    auctionStep = "level";
+    currentLevel = null;
+    const controls = document.getElementById("controls");
+    controls.innerHTML = "";
+    logMsg("Началась торговля. Шаг 1: выберите уровень.");
+
+    // Кнопки уровней ОДИН РЯД + МИЗЕР ПОСЛЕ 10 + КОМПАКТНО
+    const levels = ["пас", "6", "7", "8", "9", "10", "мизер"];
+    controls.style.flexWrap = "nowrap";
+    controls.style.justifyContent = "space-evenly";
+    controls.style.gap = "0px"; // минимальные промежутки
+    
+    levels.forEach(level=>{
+        const btn = document.createElement("button");
+        btn.innerText = level;
+        btn.style.fontSize = "16px";        // чуть меньше
+        btn.style.padding = "10px 1px";     // минимальные отступы
+        btn.style.margin = "1px";           // ещё меньше
+        btn.style.flex = "1";
+        btn.style.minWidth = "0";           // разрешаем сжатие
+        btn.style.maxWidth = "48px";        // жёсткий лимит ширины
+        btn.style.fontWeight = "bold";
+        btn.onclick = ()=> selectLevel(level);
+        controls.appendChild(btn);
+    });
+}
+
+
+// Выбор уровня
+function selectLevel(level){
+    const controls = document.getElementById("controls");
+    controls.innerHTML = "";
+
+    if(level === "пас"){
+        logMsg("Игрок сказал: пас");
+        setTimeout(botBid, 600);
+        return;
+    }
+
+    currentLevel = level;
+    auctionStep = "suit";
+
+    logMsg("Уровень " + level + ". Шаг 2: выберите масть.");
+
+    // ===== КНОПКИ МАСТЕЙ =====
+    const suitButtons = [
+        {suit:"♠", color:"#000"},
+        {suit:"♥", color:"#ff4444"},
+        {suit:"♦", color:"#ff4444"},
+        {suit:"♣", color:"#000"},
+        {suit:"БК", color:"#fff"}
+    ];
+
+    controls.style.flexWrap = "nowrap";
+    controls.style.justifyContent = "space-evenly";
+    controls.style.gap = "0px";
+
+    suitButtons.forEach(data=>{
+        const btn = document.createElement("button");
+
+        // размер шрифта: БК чуть меньше
+        const fontSize = data.suit === "БК" ? "22px" : "28px";
+
+        btn.innerHTML = '<span style="color:'+data.color+'; font-size:'+fontSize+';">'+data.suit+'</span>';
+
+        btn.style.flex = "1";
+        btn.style.minWidth = "0";
+        btn.style.maxWidth = "48px";
+        btn.style.fontWeight = "bold";
+        btn.style.padding = "0";
+        btn.style.margin = "1px";
+        btn.style.height = "40px";
+
+        // вертикальное и горизонтальное центрирование
+        btn.style.display = "flex";
+        btn.style.alignItems = "center";
+        btn.style.justifyContent = "center";
+
+        btn.onclick = ()=> selectSuit(data.suit);
+
+        controls.appendChild(btn);
+    });
+
+    // ===== КНОПКА ПАС =====
+    const pasBtn = document.createElement("button");
+    pasBtn.innerText = "пас";
+
+    pasBtn.style.flex = "1";
+    pasBtn.style.minWidth = "0";
+    pasBtn.style.maxWidth = "48px";
+    pasBtn.style.fontWeight = "bold";
+    pasBtn.style.height = "40px";
+    pasBtn.style.margin = "1px";
+    pasBtn.style.fontSize = "16px";
+
+    pasBtn.style.display = "flex";
+    pasBtn.style.alignItems = "center";
+    pasBtn.style.justifyContent = "center";
+
+    pasBtn.onclick = ()=>{
+        logMsg("Игрок передумал и сказал: пас");
+        setTimeout(botBid, 600);
+    };
+
+    controls.appendChild(pasBtn);
+}
+
+
+
+
+
+
+
+// Финальный выбор масти
+function selectSuit(suit){
+    let fullContract;
+    if(currentLevel === "мизер"){
+        fullContract = "мизер";
+    } else {
+        fullContract = currentLevel + suit;
+    }
+
+    contract = fullContract;
+    auctionStep = "level"; // сбрасываем шаг
+
+    // Лог контракта в виде мини-кнопок
+    logContractMini(contract);
+
+    setTimeout(botBid, 600);
+}
+
+
+
+
+function evaluateHand(hand){
+    let s = 0;
+    hand.forEach(c=>{
+        s += rankIndex(c) + 1;
+        if(c.rank === "A") s += 3;
+        if(c.rank === "K") s += 2;
+    });
+    return s;
+}
+
+
+
+function playerBid(bid){
+    if(phase !== "auction") return;
+    contract = bid;
+
+    // ===== Лог игрока в стиле мини-кнопок =====
+    if(bid === "пас" || bid === "мизер"){
+        logMsg("Игрок сказал: " + bid);
+    } else {
+        let number, suit;
+        if(bid.endsWith("БК")){
+            number = bid.slice(0, bid.length - 2); // "7БК" → "7"
+            suit = "БК";
+        } else {
+            number = bid.slice(0, bid.length - 1); // "8♣" → "8"
+            suit = bid.slice(-1);                  // "8♣" → "♣"
+        }
+
+        const color = (suit === "♥" || suit === "♦") ? "#ff4444" : (suit === "БК" ? "#ffffff" : "#000000");
+
+        const miniContract = `
+            <span style="
+                display:inline-block;
+                background:#4CAF50;
+                color:#fff;
+                border-radius:4px;
+                padding:2px 6px;
+                margin-right:2px;
+                font-weight:bold;
+                font-size:14px;
+                text-align:center;
+            ">${number}</span>
+            <span style="
+                display:inline-block;
+                background:#4CAF50;
+                color:${color};
+                border-radius:4px;
+                padding:2px 6px;
+                margin-right:4px;
+                font-weight:bold;
+                font-size:14px;
+                text-align:center;
+            ">${suit}</span>
+        `;
+
+        logMsg("Игрок сказал: " + miniContract);
+    }
+
+    setTimeout(botBid, 600);
+}
+
+
+
+function handHighCardPoints(hand) {
+    let hcp = 0;
+    for (let c of hand) {
+        if (c.rank === "A") hcp += 4;
+        if (c.rank === "K") hcp += 3;
+        if (c.rank === "Q") hcp += 2;
+        if (c.rank === "J") hcp += 1;
+    }
+    return hcp;
+}
+
+
+
+
+function botBid(){
+    if(phase !== "auction") return;
+    const strength = evaluateHand(botHand);
+    const hcp = handHighCardPoints(botHand);
+    const shape = handShape(botHand);
+
+    // === сначала выберем лучшую масть по силе ===
+    let bestSuit = "♣";   // по умолчанию клевер, если все масти равны
+    let bestScore = 0;
+
+    ["♠", "♥", "♦", "♣"].forEach(suit => {
+        const cardsInSuit = botHand.filter(c => c.suit === suit);
+        const highCardsInSuit = cardsInSuit.filter(c => ["A","K","Q"].includes(c.rank)).length;
+        const score = cardsInSuit.length * 10 + highCardsInSuit * 20;
+
+        if(score > bestScore){
+            bestScore = score;
+            bestSuit = suit;
+        }
+    });
+
+    let botChoice = "пас";
+
+    // МИЗЕР: если очень слабая рука
+    if (strength < 12 && hcp < 10 && contract !== "мизер") {
+        botChoice = "мизер";
+    }
+
+    // БК: если есть сильные старшие и нет явно длинной масти
+    else if (hcp >= 22 && shape[0] <= 4) {
+        botChoice = "7БК";
+    }
+
+    // длинный козырь: 5+ карт в одной масти
+    else if (shape[0] >= 5) {
+        botChoice = "7" + bestSuit;   // 7♠
