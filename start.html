@@ -13,7 +13,7 @@
 <link rel="prefetch" href="LazerRoulette/index.html">
 <link rel="prefetch" href="Odrive/index.html">
 <link rel="prefetch" href="ZalazerWars/index.html">
-
+<link rel="prefetch" href="Zalazerans/index.html">
 
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -84,6 +84,7 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('LazerRoulette')">🎡 LazerRoulette</button>
 <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
 <button class="btn" onclick="loadGame('ZalazerWars')">💥 ZalazerWars</button>
+<button class="btn" onclick="loadGame('Zalazerans')">🎴 Zalazerans</button>
 </div>
 
 <div>
@@ -148,6 +149,7 @@ All rights reserved.
 <audio id="music-LazerRoulette" src="music-LazerRoulette.mp3" loop></audio>
 <audio id="music-Odrive" src="music-Odrive.mp3" loop></audio>
 <audio id="music-ZalazerWars" src="music-ZalazerWars.mp3" loop></audio>
+<audio id="music-Zalazerans" src="music-Zalazerans.mp3" loop></audio>
 
 <script>
 let tg=null;
@@ -199,7 +201,8 @@ StarDropper:document.getElementById('music-StarDropper'),
 ChronoMonsters:document.getElementById('music-ChronoMonsters'),
 LazerRoulette:document.getElementById('music-LazerRoulette'),
 Odrive:document.getElementById('music-Odrive'),
-ZalazerWars:document.getElementById('music-ZalazerWars')
+ZalazerWars:document.getElementById('music-ZalazerWars'),
+Zalazerans:document.getElementById('music-Zalazerans')
 };
 
 let currentGame='';
@@ -248,7 +251,6 @@ inRules=false;
 menu.style.display='none';
 gameContainer.style.display='flex';
 
-/* iframe должен быть видим */
 gameFrame.style.visibility='hidden';
 gameFrame.src='';
 
@@ -259,12 +261,10 @@ gameFrame.onload=async ()=>{
 
 gameFrame.style.visibility='visible';
 
-/* resize для canvas */
 try{
 gameFrame.contentWindow?.dispatchEvent(new Event('resize'));
 }catch(e){}
 
-/* дополнительный resize (iOS) */
 setTimeout(()=>{
 try{
 gameFrame.contentWindow?.dispatchEvent(new Event('resize'));
