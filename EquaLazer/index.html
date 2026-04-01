@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EquaLazer</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+
 <style>
 body { margin: 0; background: radial-gradient(circle at center, #020202, #000000); color: #fff; font-family: Arial, sans-serif; text-align: center; }
 h1.game-title { margin-top: 20px; font-size: 36px; color: #00ffff; text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff; } 
@@ -21,7 +25,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #00f
 </head>
 <body>
 
-<h1 class="game-title">↕️ EquaLazer
+<h1 class="game-title">
 <span class="game-subtitle">Balance the Laser Energy</span></h1>
 
 <div id="game">
@@ -32,7 +36,6 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #00f
 Score: <span id="score">0</span> |
 Time: <span id="time">30</span> |
 Level: <span id="level">1</span> |
-Mode: <span id="mode">Classic</span> |
 Core Width: <span id="core">1</span>
 </div>
 
@@ -288,7 +291,7 @@ function nextLevel(){
 // Start game
 function startGame(){
     endless=false; 
-    document.getElementById('mode').innerText='Classic'; 
+ //   document.getElementById('mode').innerText='Classic'; 
     initGame(); 
     document.getElementById('pauseBtn').style.display='inline-block';
 }
