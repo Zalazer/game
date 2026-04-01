@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EquaLazer</title>
+<style>
+body { margin: 0; background: radial-gradient(circle at center, #020202, #000000); color: #fff; font-family: Arial, sans-serif; text-align: center; }
+h1.game-title { margin-top: 20px; font-size: 36px; color: #00ffff; text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff; } 
+.game-subtitle { display: block; font-size: 16px; color: #aaa; }
+#game { width:100%; max-width:600px; margin:auto; } 
+canvas { background:#050505; border:1px solid #00ffff; margin-top:20px; box-shadow:0 0 20px #00ffff; touch-action:none; width:100%; height:auto; }
+#ui { margin-top: 10px; font-size: 18px; } 
+button { padding: 10px 20px; font-size: 16px; margin-top: 10px; background: #00ffff; border: none; cursor: pointer; margin-right: 5px; } 
+#leaderboard { margin-top: 20px; font-size: 16px; } 
+#status { margin-top: 10px; color: #00ffcc; font-size: 18px; height: 24px; }
+#popup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #020202; border: 2px solid #00ffff; padding: 20px; display: none; box-shadow: 0 0 20px #00ffff; width: 260px; } 
+#popup h2 { color:#00ffff; margin-top:0; } 
+#popup button { width:100%; margin-top:15px; }
+</style>
+</head>
+<body>
+
+<h1 class="game-title">↕️ EquaLazer
+<span class="game-subtitle">Balance the Laser Energy</span></h1>
+
+<div id="game">
+<canvas id="canvas"></canvas>
+</div>
+
+<div id="ui">
+Score: <span id="score">0</span> |
+Time: <span id="time">30</span> |
+Level: <span id="level">1</span> |
+Mode: <span id="mode">Classic</span> |
+Core Width: <span id="core">1</span>
+</div>
+
+<div id="status"></div>
+<button onclick="startGame()">Start Game</button> 
+<button id="pauseBtn" onclick="togglePause()" style="display:none;">Pause</button>
+
+<div id="leaderboard">
+🏆 Best Score: <span id="best">0</span>
+</div>
+
+<div id="popup">
+<h2 id="popupTitle"></h2>
+<div id="popupStats"></div>
+<button onclick="nextLevel()" id="continueBtn">Continue</button>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let balanceLine = 200;
+let coreWidth = 1;
+let lasers = [];
+let score = 0;
+let time = 30;
+let level = 1;
+let running = false;
+let paused = false;
+let endless = false;
+let timer;
+let bestScore = localStorage.getItem('equalazer_best') || 0;
+document.getElementById('best').innerText = bestScore;
+
+// Resize canvas +30%
+function resizeCanvas(){
+    const w = Math.min(window.innerWidth-20,600);
+    canvas.width = w;
+    canvas.height = w*0.86;
+    balanceLine = canvas.height/2;
+    draw();
+}
+window.addEventListener('resize',resizeCanvas);
+
+// Audio beep
+function beep(freq){
+    const ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctxAudio.createOscillator();
+    osc.frequency.value = freq;
+    osc.connect(ctxAudio.destination);
+    osc.start();
+    osc.stop(ctxAudio.currentTime + 0.1);
+}
+
+// Laser creation
+function createLasers() {
+    lasers = [];
+    let count = 3 + level;
+    for (let i = 0; i < count; i++) {
+        lasers.push({
+            x: 40 + i * ((canvas.width-80) / count),
+            y: Math.random() * canvas.height,
+            speed: (Math.random() * 2 + 1) + level * 0.3,
+            fixed: false
+        });
+    }
+}
+
+function laserColor() {
+    const colors = ['#00ffff','#ff00ff','#00ff00','#ff8800','#ff0000','#00aaff'];
+    return colors[level % colors.length];
+}
+
+function drawGlowLine(x1, y1, x2, y2, color, width=2) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = color;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+}
+
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawGlowLine(0,balanceLine,canvas.width,balanceLine,'#00ff00',coreWidth);
+
+    lasers.forEach(l=>{
+        let color = l.fixed ? '#ffff00' : laserColor();
+        drawGlowLine(l.x,canvas.height,l.x,l.y,color,2);
+
+        if(!l.fixed && running && !paused){
+            l.y += l.speed;
+            if(l.y>canvas.height || l.y<0) l.speed*=-1;
+        }
+    });
+}
+
+function update(){
+    if(!running) return;
+    draw();
+    requestAnimationFrame(update);
+}
+
+// Handle laser clicks
+function handleClick(x){
+    lasers.forEach(l=>{
+        if(!l.fixed && Math.abs(l.x-x)<20){
+            l.fixed=true;
+            const diff=Math.abs(l.y-balanceLine);
+            const perfectZone = coreWidth;
+
+            if(diff <= perfectZone){
+                score+=15;
+                coreWidth+=2;
+                beep(900); // звук при попадании в core
+
+                // Проверка на переполнение core
+                if(coreWidth >= canvas.width){
+                    gameOver();
+                    return;
+                }
+            }
+            else if(diff<perfectZone+10){ score+=10; beep(700); }
+            else if(diff<perfectZone+25){ score+=5; beep(500); }
+            else{ score-=3; beep(200); }
+
+            document.getElementById('score').innerText=score;
+            document.getElementById('core').innerText=coreWidth;
+        }
+    });
+
+    if(lasers.length>0 && lasers.every(l=>l.fixed)) levelCompleted();
+}
+
+canvas.addEventListener('click',function(e){
+    if(!running || paused) return;
+    const rect=canvas.getBoundingClientRect();
+    handleClick(e.clientX-rect.left);
+});
+
+canvas.addEventListener('touchstart',function(e){
+    if(!running || paused) return;
+    const rect=canvas.getBoundingClientRect();
+    const touch=e.touches[0];
+    handleClick(touch.clientX-rect.left);
+});
+
+// Popup
+function showPopup(title, stats) {
+    document.getElementById('popupTitle').innerText = title;
+    document.getElementById('popupStats').innerHTML = stats;
+    document.getElementById('popup').style.display = 'block';
+}
+function hidePopup() { document.getElementById('popup').style.display = 'none'; }
+
+// Level completion
+function levelCompleted(){
+    running=false;
+    clearInterval(timer);
+
+    let savedTime=time;
+    let bonus=savedTime*2;
+    score+=bonus;
+    document.getElementById('score').innerText=score;
+
+    setTimeout(() => {
+        showPopup(
+            'Level '+level+' Completed',
+            'Saved seconds: '+savedTime+'<br>Time bonus: '+bonus+'<br>Core width: '+coreWidth+'<br>Score: '+score
+        );
+    }, 300);
+}
+
+function timeExpired(){
+    running=false;
+    clearInterval(timer);
+
+    lasers.forEach(l=>{
+        if(!l.fixed){
+            l.fixed=true;
+            const diff=Math.abs(l.y-balanceLine);
+            const perfectZone = coreWidth;
+
+            if(diff<=perfectZone){ score+=10; coreWidth+=2; beep(900); }
+            else if(diff<perfectZone+10) { score+=6; beep(700); }
+            else if(diff<perfectZone+25) { score+=3; beep(500); }
+            else { score-=2; beep(200); }
+        }
+    });
+
+    document.getElementById('score').innerText=score;
+    document.getElementById('core').innerText=coreWidth;
+
+    setTimeout(() => {
+        showPopup(
+            'Time Over',
+            'Lasers auto-stopped<br>Core width: '+coreWidth+'<br>Score: '+score
+        );
+    }, 300);
+}
+
+// Game Over
+function gameOver(){
+    running = false;
+    clearInterval(timer);
+    setTimeout(() => {
+        showPopup(
+            'GAME OVER',
+            'Core reached maximum width!<br>Score: '+score+'<br><button onclick="restartGame()">Restart</button>'
+        );
+    }, 300);
+}
+
+// Restart game
+function restartGame(){
+    hidePopup();
+    initGame();
+}
+
+// Next level
+function nextLevel(){
+    hidePopup();
+    level++;
+    time=30;
+    running=true;
+    paused=false;
+
+    document.getElementById('level').innerText=level;
+    document.getElementById('time').innerText=time;
+    document.getElementById('status').innerText='Starting Level '+level;
+
+    createLasers();
+    update();
+
+    clearInterval(timer);
+    timer=setInterval(()=>{
+        if(!endless){
+            if(!paused){
+                time--;
+                document.getElementById('time').innerText=time;
+                if(time<=0) timeExpired();
+            }
+        }else{
+            time++;
+            document.getElementById('time').innerText=time;
+        }
+    },1000);
+}
+
+// Start game
+function startGame(){
+    endless=false; 
+    document.getElementById('mode').innerText='Classic'; 
+    initGame(); 
+    document.getElementById('pauseBtn').style.display='inline-block';
+}
+
+// Pause/Resume
+function togglePause(){
+    paused = !paused;
+    document.getElementById('pauseBtn').innerText = paused ? 'Resume' : 'Pause';
+    document.getElementById('status').innerText = paused ? 'Paused' : '';
+}
+
+// Init game
+function initGame(){
+    score=0;
+    time=30;
+    level=1;
+    running=true;
+    paused=false;
+    coreWidth=1;
+
+    document.getElementById('score').innerText=score;
+    document.getElementById('time').innerText=time;
+    document.getElementById('level').innerText=level;
+    document.getElementById('core').innerText=coreWidth;
+    document.getElementById('status').innerText='';
+
+    resizeCanvas();
+    createLasers();
+    update();
+
+    clearInterval(timer);
+    timer=setInterval(()=>{
+        if(!endless){
+            if(!paused){
+                time--;
+                document.getElementById('time').innerText=time;
+                if(time<=0) timeExpired();
+            }
+        }else{
+            time++;
+            document.getElementById('time').innerText=time;
+        }
+    },1000);
+}
+
+resizeCanvas();
+draw();
+</script>
+</body>
+</html>
