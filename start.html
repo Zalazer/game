@@ -15,6 +15,7 @@
 <link rel="prefetch" href="ZalazerWars/index.html">
 <link rel="prefetch" href="Zalazerans/index.html">
 <link rel="prefetch" href="EquaLazer/index.html">
+<link rel="prefetch" href="ZaCheckers/index.html">
 
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -78,7 +79,7 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 
 <div id="menu">
 <div id="menuContent">
-<h1>🎮 Game Console</h1>
+
 <button class="btn" onclick="loadGame('PokerLazer')">♠️ PokerLazer</button>
 <button class="btn" onclick="loadGame('StarDropper')">⭐ StarDropper</button>
 <button class="btn" onclick="loadGame('ChronoMonsters')">🧠 ChronoMonsters</button>
@@ -86,8 +87,9 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('Odrive')">🏎️ Odrive</button>
 <button class="btn" onclick="loadGame('ZalazerWars')">💥 ZalazerWars</button>
 <button class="btn" onclick="loadGame('Zalazerans')">🎴 Zalazerans</button>
-<!-- Новая кнопка EquaLazer -->
 <button class="btn" onclick="loadGame('EquaLazer')">↕️ EquaLazer</button>
+<!-- Новая кнопка ZaCheckers -->
+<button class="btn" onclick="loadGame('ZaCheckers')">♟️ ZaCheckers</button>
 </div>
 
 <div>
@@ -154,7 +156,8 @@ All rights reserved.
 <audio id="music-ZalazerWars" src="music-ZalazerWars.mp3" loop></audio>
 <audio id="music-Zalazerans" src="music-Zalazerans.mp3" loop></audio>
 <audio id="music-EquaLazer" src="music-EquaLazer.mp3" loop></audio>
-
+<!-- Новый трек ZaCheckers -->
+<audio id="music-ZaCheckers" src="music-ZaCheckers.mp3" loop></audio>
 
 <script>
 let tg=null;
@@ -208,7 +211,8 @@ LazerRoulette:document.getElementById('music-LazerRoulette'),
 Odrive:document.getElementById('music-Odrive'),
 ZalazerWars:document.getElementById('music-ZalazerWars'),
 Zalazerans:document.getElementById('music-Zalazerans'),
-EquaLazer: document.getElementById('music-EquaLazer')
+EquaLazer: document.getElementById('music-EquaLazer'),
+ZaCheckers: document.getElementById('music-ZaCheckers')
 };
 
 let currentGame='';
