@@ -1,0 +1,414 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ZaCheckers – Game Rules</title>
+
+<meta name="generator" content="ZALAZER rules engine v1">
+
+
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #020202, #000000);
+    color: #fff;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    overflow-y: auto;
+    touch-action: manipulation;
+}
+
+#touchShield {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    z-index: 0;
+    touch-action: none;
+}
+
+#content {
+    position: relative;
+    z-index: 1;
+    padding: 10px 20px 40px 20px;
+}
+
+
+
+.game-title {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.zacheckers-title span {
+    display: inline-block;
+    padding: 2px 4px;
+}
+
+.white-letter {
+    color: #ffffff;
+    text-shadow: 0 0 6px #ffffff;
+}
+
+.black-letter {
+    color: #000000;
+    background: #ffffff;
+    border-radius: 4px;
+    text-shadow: none;
+}
+
+.game-subtitle {
+    display: block;
+    font-size: 0.65em;
+    font-weight: normal;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+
+
+
+
+h2 {
+    margin-top: 40px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 6px;
+    color: #ffd36a;
+}
+
+h3 {
+    margin-top: 24px;
+    color: #9fd6ff;
+}
+
+p { margin: 10px 0; }
+ul { margin: 10px 0 20px 20px; }
+li { margin-bottom: 8px; }
+
+.note {
+    background: #151515;
+    border-left: 4px solid #ffd36a;
+    padding: 12px;
+    margin: 20px 0;
+}
+
+.rules-footer-sep {
+    margin-top: 50px;
+    border: 0;
+    border-top: 1px solid #333;
+}
+
+.rules-footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.rules-copyright {
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.rules-contact-btn {
+    background: #151515;
+    color: #ffd36a;
+    border: 1px solid #333;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.rules-contact-btn:hover {
+    background: #1e1e1e;
+    border-color: #ffd36a;
+}
+
+.rules-note {
+    margin-top: 10px;
+    font-size: 11px;
+    opacity: 0.5;
+}
+
+.doc-signature {
+    display: none;
+    opacity: 0.15;
+}
+</style>
+</head>
+
+<body>
+<canvas id="touchShield"></canvas>
+
+<div id="content">
+<div class="doc-signature">© 2026 ZALAZER · ZaCheckers · Rules Document</div>
+
+<h1 class="game-title">
+    <span class="zacheckers-title">
+        <span class="white-letter">♟️</span>
+        <span class="black-letter">Z</span>
+        <span class="white-letter">a</span>
+        <span class="black-letter">C</span>
+        <span class="white-letter">h</span>
+        <span class="black-letter">e</span>
+        <span class="white-letter">c</span>
+        <span class="black-letter">k</span>
+        <span class="white-letter">e</span>
+        <span class="black-letter">r</span>
+        <span class="white-letter">s</span>
+    </span>
+    <span class="game-subtitle">Game Rules</span>
+</h1>
+
+<h2>🇬🇧 English</h2>
+
+<h3>Goal of the Game</h3>
+<p>ZaCheckers is a strategic 10×10 checkers game against an AI opponent. Your goal is to capture all enemy pieces or block the opponent so they cannot make a legal move.</p>
+
+<h3>Game Setup</h3>
+<ul>
+<li>The board size is 10×10.</li>
+<li>Pieces move only on dark squares.</li>
+<li>The player selects a color before the game begins.</li>
+<li>The board automatically rotates so the player is always at the bottom.</li>
+<li>White always makes the first move.</li>
+<li>The game starts immediately after color selection.</li>
+<li>A move counter tracks only white moves from 0 to 60.</li>
+<li>Regular pieces move diagonally forward by one square.</li>
+<li>If a capture is available, it must be made.</li>
+<li>If multiple captures are available, the player may choose any capture.</li>
+</ul>
+
+
+<h3>Queen Piece</h3>
+<ul>
+<li>A piece becomes a queen when it reaches the last row.</li>
+<li>Queen is visually marked with an inner circle.</li>
+<li>Queen moves diagonally across multiple squares.</li>
+<li>Queen can capture pieces over distance.</li>
+<li>Queens can perform capture chains.</li>
+</ul>
+
+<h3>Winning</h3>
+<ul>
+<li>All opponent pieces are captured.</li>
+<li>Opponent has no legal moves.</li>
+<li>Opponent resigns.</li>
+</ul>
+
+<h3>Draw</h3>
+<ul>
+<li>60 black moves have been completed.</li>
+<li>No legal moves remain for both players.</li>
+</ul>
+
+
+<div class="note">
+Capturing is mandatory, but maximum capture is not required.
+</div>
+
+<h2>🇺🇦 Українською</h2>
+
+<h3>Мета гри</h3>
+<p>ZaCheckers — це стратегічна гра в шашки 10×10 проти штучного інтелекту. Мета гри — знищити всі шашки суперника або заблокувати його так, щоб він не міг зробити хід.</p>
+
+<h3>Початок гри</h3>
+<ul>
+<li>Поле має розмір 10×10.</li>
+<li>Шашки рухаються тільки по темних клітинках.</li>
+<li>Гравець обирає колір перед початком гри.</li>
+<li>Дошка автоматично обертається, щоб гравець був знизу.</li>
+<li>Білі завжди ходять першими.</li>
+<li>Гра починається одразу після вибору кольору.</li>
+<li>Лічильник рахує тільки ходи білих від 0 до 60.</li>
+<li>Звичайна шашка ходить по діагоналі вперед на одну клітинку.</li>
+<li>Якщо є можливість взяття — його потрібно виконати.</li>
+<li>Можна обирати будь-який варіант взяття.</li>
+</ul>
+
+
+<h3>Дамка</h3>
+<ul>
+<li>Шашка стає дамкою на останній лінії.</li>
+<li>Дамка позначена внутрішнім колом.</li>
+<li>Дамка рухається по діагоналі на будь-яку відстань.</li>
+<li>Дамка може бити на відстані.</li>
+<li>Можлива серія взять.</li>
+</ul>
+
+
+<h3>Перемога</h3>
+<ul>
+<li>Знищені всі шашки суперника.</li>
+<li>Суперник не має ходів.</li>
+<li>Суперник здався.</li>
+</ul>
+
+<h3>Нічия</h3>
+<ul>
+<li>60 ходів чорних завершено.</li>
+<li>Немає доступних ходів у обох гравців.</li>
+</ul>
+
+
+<div class="note">
+Білі завжди ходять першими. Взяття обов’язкове, але максимальна кількість взятих шашок не вимагається.
+</div>
+
+<h2>🇷🇺 По-русски</h2>
+
+<h3>Цель игры</h3>
+<p>ZaCheckers — это стратегическая игра в шашки 10×10 против искусственного интеллекта. Цель игры — уничтожить все шашки соперника или заблокировать его так, чтобы он не мог сделать ход.</p>
+
+<h3>Начало игры</h3>
+<ul>
+<li>Поле размером 10×10.</li>
+<li>Шашки ходят только по тёмным клеткам.</li>
+<li>Игрок выбирает цвет перед началом.</li>
+<li>Доска автоматически вращается, игрок всегда снизу.</li>
+<li>Белые всегда ходят первыми.</li>
+<li>Игра начинается сразу после выбора цвета.</li>
+<li>Счётчик считает только ходы белых от 0 до 60.</li>
+<li>Обычная шашка ходит по диагонали вперёд на одну клетку.</li>
+<li>Если есть взятие — его нужно выполнить.</li>
+<li>Можно выбрать любое доступное взятие.</li>
+</ul>
+
+
+<h3>Дамка</h3>
+<ul>
+<li>Шашка становится дамкой на последней линии.</li>
+<li>Дамка отмечена внутренним кругом.</li>
+<li>Дамка ходит по диагонали на любое расстояние.</li>
+<li>Может бить на расстоянии.</li>
+<li>Возможны серии взятий.</li>
+</ul>
+
+
+<h3>Победа</h3>
+<ul>
+<li>Уничтожены все шашки противника.</li>
+<li>Противник не может ходить.</li>
+<li>Противник сдался.</li>
+</ul>
+
+<h3>Ничья</h3>
+<ul>
+<li>Сделано 60 ходов черных.</li>
+<li>Нет доступных ходов у обоих игроков.</li>
+</ul>
+
+
+<div class="note">
+Взятие обязательно, но максимальное количество взятых шашек не требуется.
+</div>
+
+<hr class="rules-footer-sep">
+
+<div class="rules-footer">
+<div class="rules-copyright">
+© 2026 <strong>ZALAZER</strong><br>
+ZaCheckers and its source code are protected by copyright law.<br>
+All rights reserved.
+</div>
+
+<button class="rules-contact-btn" onclick="sendFeedback()">Contact / Feedback</button>
+<div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
+</div>
+
+</div>
+
+<script>
+['gesturestart','gesturechange','gestureend'].forEach(evt=>{
+    document.addEventListener(evt,e=>e.preventDefault(),{passive:false});
+});
+
+const shield = document.getElementById('touchShield');
+
+['touchstart','touchmove','touchend'].forEach(evt=>{
+    shield.addEventListener(evt,e=>{
+        if(e.touches && e.touches.length>1) e.preventDefault();
+    },{passive:false});
+});
+</script>
+
+<script>
+const __docSignature = {
+    product:"ZaCheckers",
+    type:"rules",
+    revision:"1.0",
+    year:2026
+};
+
+const tg = window.Telegram?.WebApp;
+
+async function sendFeedback(){
+    if(!tg){
+        alert("Feedback works only inside Telegram WebApp");
+        return;
+    }
+
+    const feedbackText = prompt("Please enter your feedback:");
+    if(!feedbackText) return;
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+
+    fileInput.onchange = async ()=>{
+        let fileData = null;
+
+        if(fileInput.files.length>0){
+            fileData = await fileToBase64(fileInput.files[0]);
+        }
+
+        tg.sendData(JSON.stringify({
+            type:'feedback',
+            game:'ZaCheckers',
+            page:'rules',
+            text:feedbackText,
+            screenshot:fileData,
+            platform:tg.platform,
+            lang:tg.initDataUnsafe?.user?.language_code,
+            user:tg.initDataUnsafe?.user?.id,
+            ts:Date.now()
+        }));
+
+        alert("Thank you! Your feedback has been sent ✅");
+    };
+
+    fileInput.click();
+}
+
+function fileToBase64(file){
+    return new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+if(tg){
+    console.log("Telegram WebApp доступен ✅");
+}else{
+    console.log("Telegram WebApp НЕ доступен ❌");
+}
+</script>
+
+</body>
+</html>
