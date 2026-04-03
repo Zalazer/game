@@ -204,8 +204,9 @@ document.getElementById('timer').innerText=m+':'+s
 },1000)
 }
 
+
 function updateMoveCounter(){
-document.getElementById('moveCounter').innerText='Moves: '+Math.floor(moveCounter/2)+' / 60'
+document.getElementById('moveCounter').innerText='Moves: '+moveCounter+' / 60'
 }
 
 function initBoard(){
@@ -267,8 +268,7 @@ if(move){
 applyMove(board,move)
 playMoveSound(move)
 lastMoveCells=[move.from,move.to,...(move.captures||[])]
-moveCounter++
-updateMoveCounter()
+
 
 let nextCaptures=getMoves(board,playerColor).filter(m=>m.from.r===move.to.r && m.from.c===move.to.c && m.captures)
 
@@ -282,8 +282,7 @@ return
 
 turn=botColor
 selected=null
-moveCounter++
-updateMoveCounter()
+
 
 drawBoard()
 updateStatus()
@@ -379,46 +378,73 @@ if(p.color==='black' && m.to.r===9) p.king=true
 
 function cloneBoard(b){return JSON.parse(JSON.stringify(b))}
 
-function botMove(){
-if(turn!==botColor) return
+function botMove() {
+    if (turn !== botColor) return;
 
-const moves=getMoves(board,botColor)
-if(moves.length===0){alert('You win!');location.reload();return}
+    const moves = getMoves(board, botColor);
+    if (moves.length === 0) {
+        alert('You win!'); // игрок побеждает, если у бота нет ходов
+        location.reload();
+        return;
+    }
 
-let bestMove=moves[0]
-let bestScore=-9999
+    // выбираем лучший ход бота
+    let bestMove = moves[0];
+    let bestScore = -9999;
+    for (const m of moves) {
+        const copy = cloneBoard(board);
+        applyMove(copy, m);
+        let score = evaluate(copy);
+        if (m.captures) score += 20;
+        if (score > bestScore) {
+            bestScore = score;
+            bestMove = m;
+        }
+    }
 
-for(const m of moves){
-const copy=cloneBoard(board)
-applyMove(copy,m)
-let score=evaluate(copy)
-if(m.captures) score+=20
-if(score>bestScore){bestScore=score;bestMove=m}
+    applyMove(board, bestMove);
+    playMoveSound(bestMove);
+    lastMoveCells = [bestMove.from, bestMove.to, ...(bestMove.captures || [])];
+
+    // проверка на серию взятий у бота
+    let nextCaptures = getMoves(board, botColor).filter(
+        m => m.from.r === bestMove.to.r && m.from.c === bestMove.to.c && m.captures
+    );
+    if (bestMove.captures && nextCaptures.length > 0) {
+        drawBoard();
+        setTimeout(botMove, 50);
+        return;
+    }
+
+    // после завершения хода бота проверяем конец игры
+    const playerPieces = board.flat().filter(p => p && p.color === playerColor).length;
+    const botPieces = board.flat().filter(p => p && p.color === botColor).length;
+
+    if (playerPieces === 0) {
+        alert('You lose!'); // игрок проиграл, если у него нет фигур
+        location.reload();
+        return;
+    }
+    if (botPieces === 0) {
+        alert('You win!'); // бот проиграл, если у него нет фигур
+        location.reload();
+        return;
+    }
+
+    // передача хода игроку
+    turn = playerColor;
+    moveCounter++;
+    updateMoveCounter();
+    drawBoard();
+    updateStatus();
+
+    if (moveCounter >= 60) {
+        alert('Draw by 60 moves rule');
+        location.reload();
+    }
 }
 
-applyMove(board,bestMove)
-playMoveSound(bestMove)
-lastMoveCells=[bestMove.from,bestMove.to,...(bestMove.captures||[])]
-moveCounter++
-updateMoveCounter()
 
-let nextCaptures=getMoves(board,botColor).filter(m=>m.from.r===bestMove.to.r && m.from.c===bestMove.to.c && m.captures)
-
-if(bestMove.captures && nextCaptures.length>0){
-drawBoard()
-setTimeout(botMove,50)
-return
-}
-
-turn=playerColor
-moveCounter++
-updateMoveCounter()
-
-drawBoard()
-updateStatus()
-
-if(moveCounter>120){alert('Draw by 60 moves rule');location.reload()}
-}
 
 function evaluate(b){
 let score=0
