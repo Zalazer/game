@@ -182,7 +182,6 @@ let lastMoveCells = [];
 
 const DIRS = [[1,1],[1,-1],[-1,1],[-1,-1]];
 const INF = 1000000000;
-const DRAW_MOVE_LIMIT = 60;
 
 let searchDeadline = 0;
 let searchAborted = false;
@@ -191,6 +190,11 @@ let rootBestMove = null;
 let nodeCount = 0;
 let killerMoves = {};
 let historyHeuristic = {};
+
+let positionHistory = new Map();
+let kingOnlyNoCaptureHalfMoves = 0;
+let specialEndgameHalfMoves = 0;
+let specialEndgameLimit = 0;
 
 function startGame(color){
     playerColor = color;
@@ -201,6 +205,8 @@ function startGame(color){
     document.getElementById('game').style.display = 'flex';
 
     initBoard();
+    resetDrawState();
+    recordCurrentPositionForDraw();
     startTimer();
     drawBoard();
     updateStatus();
@@ -216,14 +222,14 @@ function startTimer(){
     clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         timer++;
-        const m = Math.floor(timer / 60).toString().padStart(2, '0');
-        const s = (timer % 60).toString().padStart(2, '0');
+        let m = Math.floor(timer / 60).toString().padStart(2, '0');
+        let s = (timer % 60).toString().padStart(2, '0');
         document.getElementById('timer').innerText = m + ':' + s;
     }, 1000);
 }
 
 function updateMoveCounter(){
-    document.getElementById('moveCounter').innerText = 'Moves: ' + moveCounter + ' / ' + DRAW_MOVE_LIMIT;
+    document.getElementById('moveCounter').innerText = 'Moves: ' + moveCounter;
 }
 
 function updateStatus(){
@@ -248,11 +254,11 @@ function drawBoard(){
 
     for (let r = 0; r < 10; r++){
         for (let c = 0; c < 10; c++){
-            const vr = playerColor === 'white' ? r : 9 - r;
-            const vc = playerColor === 'white' ? c : 9 - c;
+            let vr = playerColor === 'white' ? r : 9 - r;
+            let vc = playerColor === 'white' ? c : 9 - c;
 
             const cell = document.createElement('div');
-            cell.className = 'cell ' + (((vr + vc) % 2 === 0) ? 'whiteCell' : 'blackCell');
+            cell.className = 'cell ' + ((vr + vc) % 2 === 0 ? 'whiteCell' : 'blackCell');
             cell.onclick = () => cellClick(vr, vc);
 
             if (lastMoveCells.some(m => m.r === vr && m.c === vc)) cell.classList.add('lastMove');
@@ -309,7 +315,7 @@ function cellClick(r, c){
 }
 
 function playMoveSound(move){
-    const audio = move.captures.length > 0
+    const audio = move.captures.length
         ? document.getElementById('captureSound')
         : document.getElementById('moveSound');
     audio.currentTime = 0;
@@ -382,6 +388,107 @@ function sameMove(a, b){
     return moveToKey(a) === moveToKey(b);
 }
 
+function resetDrawState(){
+    positionHistory = new Map();
+    kingOnlyNoCaptureHalfMoves = 0;
+    specialEndgameHalfMoves = 0;
+    specialEndgameLimit = 0;
+}
+
+function positionKeyForDraw(b, side){
+    let s = side === 'white' ? 'w' : 'b';
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            const p = b[r][c];
+            if (!p) s += '.';
+            else if (p.color === 'white') s += p.king ? 'W' : 'w';
+            else s += p.king ? 'B' : 'b';
+        }
+    }
+    return s;
+}
+
+function recordCurrentPositionForDraw(){
+    const key = positionKeyForDraw(board, turn);
+    positionHistory.set(key, (positionHistory.get(key) || 0) + 1);
+}
+
+function countMaterialDetail(b, color){
+    let men = 0;
+    let kings = 0;
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            const p = b[r][c];
+            if (!p || p.color !== color) continue;
+            if (p.king) kings++;
+            else men++;
+        }
+    }
+    return { men, kings, total: men + kings };
+}
+
+function detectSpecialEndgameLimit(b){
+    const white = countMaterialDetail(b, 'white');
+    const black = countMaterialDetail(b, 'black');
+
+    if (white.total === 1 && white.kings === 1){
+        if (black.total === 3 && black.kings >= 1) return 32;
+        if (black.total <= 2 && black.kings >= 1) return 10;
+    }
+
+    if (black.total === 1 && black.kings === 1){
+        if (white.total === 3 && white.kings >= 1) return 32;
+        if (white.total <= 2 && white.kings >= 1) return 10;
+    }
+
+    return 0;
+}
+
+function updateDrawCountersAfterMove(move, movedPieceBeforeMove){
+    const movedWasKing = !!movedPieceBeforeMove.king;
+    const wasCapture = move.captures.length > 0;
+
+    if (!wasCapture && movedWasKing){
+        kingOnlyNoCaptureHalfMoves++;
+    } else {
+        kingOnlyNoCaptureHalfMoves = 0;
+    }
+
+    const detectedLimit = detectSpecialEndgameLimit(board);
+
+    if (detectedLimit > 0){
+        if (specialEndgameLimit !== detectedLimit){
+            specialEndgameLimit = detectedLimit;
+            specialEndgameHalfMoves = 0;
+        } else {
+            specialEndgameHalfMoves++;
+        }
+    } else {
+        specialEndgameLimit = 0;
+        specialEndgameHalfMoves = 0;
+    }
+}
+
+function getDrawReason(){
+    const posKey = positionKeyForDraw(board, turn);
+    const repeats = positionHistory.get(posKey) || 0;
+
+    if (repeats >= 3){
+        return 'Draw by threefold repetition';
+    }
+
+    if (kingOnlyNoCaptureHalfMoves >= 50){
+        return 'Draw by 25 consecutive king moves without man move or capture';
+    }
+
+    if (specialEndgameLimit > 0 && specialEndgameHalfMoves >= specialEndgameLimit){
+        if (specialEndgameLimit === 32) return 'Draw by 16-move special endgame rule';
+        if (specialEndgameLimit === 10) return 'Draw by 5-move special endgame rule';
+    }
+
+    return null;
+}
+
 function getLegalMoves(b, color){
     let captures = [];
     let quiet = [];
@@ -433,7 +540,7 @@ function getQuietMovesForPiece(b, r, c){
                     from:{r,c},
                     path:[{r,c},{r:nr,c:nc}],
                     captures:[],
-                    promotes: (p.color === 'white' && nr === 0) || (p.color === 'black' && nr === 9)
+                    promotes:(p.color === 'white' && nr === 0) || (p.color === 'black' && nr === 9)
                 });
             }
         }
@@ -486,9 +593,9 @@ function dfsManCaptures(b, r, c, move, capturedSet){
 
         const nextMove = {
             from: move.from,
-            path: [...move.path, {r:r2, c:c2}],
-            captures: [...move.captures, {r:r1, c:c1}],
-            promotes: move.promotes
+            path:[...move.path, {r:r2,c:c2}],
+            captures:[...move.captures, {r:r1,c:c1}],
+            promotes:move.promotes
         };
 
         let becameKing = false;
@@ -545,9 +652,9 @@ function dfsKingCaptures(b, r, c, move, capturedSet){
 
             const nextMove = {
                 from: move.from,
-                path: [...move.path, {r:lr, c:lc}],
-                captures: [...move.captures, {r:nr, c:nc}],
-                promotes: move.promotes
+                path:[...move.path, {r:lr,c:lc}],
+                captures:[...move.captures, {r:nr,c:nc}],
+                promotes:move.promotes
             };
 
             const tails = dfsKingCaptures(copy, lr, lc, nextMove, newCapturedSet);
@@ -582,12 +689,18 @@ function applyMoveToBoard(b, move){
 }
 
 function makeRealMove(move, isHuman){
+    const from = move.path[0];
+    const movedPieceBeforeMove = {
+        color: board[from.r][from.c].color,
+        king: board[from.r][from.c].king
+    };
+
     applyMoveToBoard(board, move);
     playMoveSound(move);
 
     const cells = [];
-    for (const p of move.path) cells.push({r:p.r, c:p.c});
-    for (const c of move.captures) cells.push({r:c.r, c:c.c});
+    for (const p of move.path) cells.push({r:p.r,c:p.c});
+    for (const c of move.captures) cells.push({r:c.r,c:c.c});
     lastMoveCells = cells;
 
     selected = null;
@@ -596,6 +709,9 @@ function makeRealMove(move, isHuman){
     updateMoveCounter();
 
     turn = isHuman ? botColor : playerColor;
+
+    updateDrawCountersAfterMove(move, movedPieceBeforeMove);
+    recordCurrentPositionForDraw();
 
     drawBoard();
     updateStatus();
@@ -623,8 +739,9 @@ function checkGameState(){
         return;
     }
 
-    if (moveCounter >= DRAW_MOVE_LIMIT){
-        endGame('Draw by 60 moves rule');
+    const drawReason = getDrawReason();
+    if (drawReason){
+        endGame(drawReason);
     }
 }
 
@@ -705,6 +822,36 @@ function moveSafetyProfile(b, move, color){
     };
 }
 
+function landingSafetyScore(b, move, color){
+    const copy = cloneBoard(b);
+    applyMoveToBoard(copy, move);
+
+    const to = move.path[move.path.length - 1];
+    const piece = copy[to.r][to.c];
+    if (!piece) return 0;
+
+    let score = 0;
+    const ownDanger = getImmediateCaptureDanger(copy, color);
+    const oppDanger = getImmediateCaptureDanger(copy, opponent(color));
+
+    if (piece.king) {
+        score -= ownDanger.kingThreat * 220000;
+        score -= ownDanger.maxEnemyCapture * 70000;
+        score -= ownDanger.centerThreat * 45000;
+    } else {
+        score -= ownDanger.menThreat * 90000;
+        score -= ownDanger.maxEnemyCapture * 50000;
+        score -= ownDanger.centerThreat * 18000;
+    }
+
+    if (to.r >= 3 && to.r <= 6 && to.c >= 3 && to.c <= 6) score += 4000;
+    if (to.r === 0 || to.r === 9 || to.c === 0 || to.c === 9) score += 2500;
+
+    score += oppDanger.totalThreat * 2500;
+
+    return score;
+}
+
 function isBlunderishMove(b, move, color){
     if (move.captures.length > 0) return false;
 
@@ -774,7 +921,6 @@ function botMove(){
     tt.clear();
 
     let bestMove = orderMoves(board, moves, botColor, null, 0)[0];
-    let bestScore = -INF;
 
     for (let depth = 1; depth <= 64; depth++){
         if (nowMs() >= searchDeadline) break;
@@ -793,7 +939,13 @@ function botMove(){
             }
 
             const profile = moveSafetyProfile(board, move, botColor);
-            const rootSafetyBias = profile.netSafety * 2;
+            let rootSafetyBias = profile.netSafety * 2;
+
+            const from = move.path[0];
+            const movingPiece = board[from.r][from.c];
+            if (movingPiece && movingPiece.king && move.captures.length > 0) {
+                rootSafetyBias += landingSafetyScore(board, move, botColor) * 2.5;
+            }
 
             const copy = cloneBoard(board);
             applyMoveToBoard(copy, move);
@@ -815,7 +967,6 @@ function botMove(){
         if (searchAborted) break;
 
         bestMove = iterationBestMove;
-        bestScore = iterationBestScore;
         rootBestMove = bestMove;
     }
 
@@ -918,7 +1069,12 @@ function moveOrderScore(b, move, color, hashMove, ply){
     if (move.captures.length > 0){
         score += 50000000;
         score += move.captures.length * 100000;
-        if (piece && piece.king) score += 30000;
+
+        if (piece && piece.king){
+            score += 30000;
+            score += landingSafetyScore(b, move, color);
+        }
+
         if (move.promotes) score += 50000;
     } else {
         if (killerMoves[ply] && killerMoves[ply].includes(mk)) score += 2000000;
@@ -969,10 +1125,12 @@ function evaluateFast(b, aiColor, sideToMove, noMoves){
 
             if (p.king){
                 score += 325 * sign;
-                if (sign > 0) aiKings++; else opKings++;
+                if (sign > 0) aiKings++;
+                else opKings++;
             } else {
                 score += 100 * sign;
-                if (sign > 0) aiMen++; else opMen++;
+                if (sign > 0) aiMen++;
+                else opMen++;
 
                 const advance = p.color === 'white' ? (9 - r) : r;
                 score += advance * 5 * sign;
@@ -1018,6 +1176,8 @@ function evaluateFast(b, aiColor, sideToMove, noMoves){
     return score;
 }
 </script>
+
+
 
 
 </body>
