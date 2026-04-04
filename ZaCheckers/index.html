@@ -162,302 +162,863 @@
 </audio>
 <audio id="captureSound" preload="auto">
 <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-</audio><script>
-let board=[]
-let playerColor
-let botColor
-let turn='white'
-let selected=null
-let possibleMoves=[]
-let difficulty=6
-let moveCounter=0
-let timer=0
-let timerInterval
-let lastMoveCells=[]
+</audio>
+
+
+
+
+<script>
+let board = [];
+let playerColor;
+let botColor;
+let turn = 'white';
+let selected = null;
+let possibleMoves = [];
+let difficulty = 6;
+let moveCounter = 0;
+let timer = 0;
+let timerInterval;
+let lastMoveCells = [];
+
+const DIRS = [[1,1],[1,-1],[-1,1],[-1,-1]];
+const INF = 1000000000;
+const DRAW_MOVE_LIMIT = 60;
+
+let searchDeadline = 0;
+let searchAborted = false;
+let tt = new Map();
+let rootBestMove = null;
+let nodeCount = 0;
+let killerMoves = {};
+let historyHeuristic = {};
 
 function startGame(color){
-playerColor=color
-botColor=color==='white'?'black':'white'
-difficulty=parseInt(document.getElementById('difficulty').value)
+    playerColor = color;
+    botColor = color === 'white' ? 'black' : 'white';
+    difficulty = parseInt(document.getElementById('difficulty').value, 10);
 
-document.getElementById('menu').style.display='none'
-document.getElementById('game').style.display='flex'
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('game').style.display = 'flex';
 
-initBoard()
-startTimer()
-drawBoard()
-updateStatus()
-updateMoveCounter()
+    initBoard();
+    startTimer();
+    drawBoard();
+    updateStatus();
+    updateMoveCounter();
 
-if(botColor==='white') setTimeout(botMove,100)
+    if (botColor === 'white') setTimeout(botMove, 120);
 }
 
-function newGame(){location.reload()}
-function resign(){alert('You resigned');location.reload()}
+function newGame(){ location.reload(); }
+function resign(){ alert('You resigned'); location.reload(); }
 
 function startTimer(){
-timerInterval=setInterval(()=>{
-timer++
-let m=Math.floor(timer/60).toString().padStart(2,'0')
-let s=(timer%60).toString().padStart(2,'0')
-document.getElementById('timer').innerText=m+':'+s
-},1000)
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timer++;
+        const m = Math.floor(timer / 60).toString().padStart(2, '0');
+        const s = (timer % 60).toString().padStart(2, '0');
+        document.getElementById('timer').innerText = m + ':' + s;
+    }, 1000);
 }
 
-
 function updateMoveCounter(){
-document.getElementById('moveCounter').innerText='Moves: '+moveCounter+' / 60'
+    document.getElementById('moveCounter').innerText = 'Moves: ' + moveCounter + ' / ' + DRAW_MOVE_LIMIT;
+}
+
+function updateStatus(){
+    document.getElementById('status').innerText = 'Turn: ' + turn;
 }
 
 function initBoard(){
-board=[]
-for(let r=0;r<10;r++){
-board[r]=[]
-for(let c=0;c<10;c++){
-if((r+c)%2===1 && r<4) board[r][c]={color:'black',king:false}
-else if((r+c)%2===1 && r>5) board[r][c]={color:'white',king:false}
-else board[r][c]=null
-}
-}
+    board = [];
+    for (let r = 0; r < 10; r++){
+        board[r] = [];
+        for (let c = 0; c < 10; c++){
+            if ((r + c) % 2 === 1 && r < 4) board[r][c] = { color:'black', king:false };
+            else if ((r + c) % 2 === 1 && r > 5) board[r][c] = { color:'white', king:false };
+            else board[r][c] = null;
+        }
+    }
 }
 
 function drawBoard(){
-const b=document.getElementById('board')
-b.innerHTML=''
+    const b = document.getElementById('board');
+    b.innerHTML = '';
 
-for(let r=0;r<10;r++){
-for(let c=0;c<10;c++){
-let vr=playerColor==='white'?r:9-r
-let vc=playerColor==='white'?c:9-c
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            const vr = playerColor === 'white' ? r : 9 - r;
+            const vc = playerColor === 'white' ? c : 9 - c;
 
-const cell=document.createElement('div')
-cell.className='cell '+((vr+vc)%2===0?'whiteCell':'blackCell')
-cell.onclick=()=>cellClick(vr,vc)
+            const cell = document.createElement('div');
+            cell.className = 'cell ' + (((vr + vc) % 2 === 0) ? 'whiteCell' : 'blackCell');
+            cell.onclick = () => cellClick(vr, vc);
 
-if(lastMoveCells.some(m=>m.r===vr&&m.c===vc)) cell.classList.add('lastMove')
-if(selected && possibleMoves.some(m=>m.to.r===vr&&m.to.c===vc)) cell.classList.add('move')
+            if (lastMoveCells.some(m => m.r === vr && m.c === vc)) cell.classList.add('lastMove');
+            if (selected && possibleMoves.some(m => {
+                const to = m.path[m.path.length - 1];
+                return to.r === vr && to.c === vc;
+            })) cell.classList.add('move');
 
-const p=board[vr][vc]
-if(p){
-const piece=document.createElement('div')
-piece.className='piece '+(p.color==='white'?'whitePiece':'blackPiece')
-if(p.king) piece.classList.add('king')
-if(selected && selected.r===vr && selected.c===vc) piece.classList.add('selected')
-cell.appendChild(piece)
+            const p = board[vr][vc];
+            if (p){
+                const piece = document.createElement('div');
+                piece.className = 'piece ' + (p.color === 'white' ? 'whitePiece' : 'blackPiece');
+                if (p.king) piece.classList.add('king');
+                if (selected && selected.r === vr && selected.c === vc) piece.classList.add('selected');
+                cell.appendChild(piece);
+            }
+
+            b.appendChild(cell);
+        }
+    }
 }
 
-b.appendChild(cell)
-}
-}
-}
+function cellClick(r, c){
+    if (turn !== playerColor) return;
 
-function cellClick(r,c){
-if(turn!==playerColor) return
-const p=board[r][c]
+    const legalMoves = getLegalMoves(board, playerColor);
+    if (legalMoves.length === 0){
+        endGame(botColor === 'white' ? 'Black wins!' : 'White wins!');
+        return;
+    }
 
-if(p && p.color===playerColor){
-selected={r,c}
-possibleMoves=getMoves(board,playerColor).filter(m=>m.from.r===r && m.from.c===c)
-drawBoard()
-return
-}
+    const p = board[r][c];
 
-if(selected){
-const move=possibleMoves.find(m=>m.to.r===r && m.to.c===c)
-if(move){
-applyMove(board,move)
-playMoveSound(move)
-lastMoveCells=[move.from,move.to,...(move.captures||[])]
+    if (p && p.color === playerColor){
+        const pieceMoves = legalMoves.filter(m => m.from.r === r && m.from.c === c);
+        if (pieceMoves.length){
+            selected = { r, c };
+            possibleMoves = pieceMoves;
+            drawBoard();
+        }
+        return;
+    }
 
+    if (!selected) return;
 
-let nextCaptures=getMoves(board,playerColor).filter(m=>m.from.r===move.to.r && m.from.c===move.to.c && m.captures)
+    const move = possibleMoves.find(m => {
+        const to = m.path[m.path.length - 1];
+        return to.r === r && to.c === c;
+    });
 
-if(move.captures && nextCaptures.length>0){
-selected={r:move.to.r,c:move.to.c}
-possibleMoves=nextCaptures
+    if (!move) return;
 
-drawBoard()
-return
-}
-
-turn=botColor
-selected=null
-
-
-drawBoard()
-updateStatus()
-setTimeout(botMove,50)
-}
-}
+    makeRealMove(move, true);
 }
 
 function playMoveSound(move){
-let audio = move.captures ? document.getElementById('captureSound') : document.getElementById('moveSound')
-audio.currentTime = 0
-audio.play().catch(()=>{})
+    const audio = move.captures.length > 0
+        ? document.getElementById('captureSound')
+        : document.getElementById('moveSound');
+    audio.currentTime = 0;
+    audio.play().catch(()=>{});
 }
 
-function updateStatus(){document.getElementById('status').innerText='Turn: '+turn}
-function inBoard(r,c){return r>=0&&r<10&&c>=0&&c<10}
-
-function getMoves(b,color){
-let captures=[]
-let moves=[]
-
-for(let r=0;r<10;r++){
-for(let c=0;c<10;c++){
-const p=b[r][c]
-if(!p||p.color!==color) continue
-
-const pm=getPieceMoves(b,r,c,p)
-captures=captures.concat(pm.captures)
-moves=moves.concat(pm.moves)
-}
+function endGame(text){
+    clearInterval(timerInterval);
+    alert(text);
+    location.reload();
 }
 
-if(captures.length>0){
-let max=Math.max(...captures.map(m=>m.captures.length))
-return captures.filter(m=>m.captures.length===max)
+function inBoard(r, c){
+    return r >= 0 && r < 10 && c >= 0 && c < 10;
 }
 
-return moves
-}
-
-function getPieceMoves(b,r,c,p){
-let moves=[]
-let captures=[]
-const dirs=[[1,1],[1,-1],[-1,1],[-1,-1]]
-
-if(p.king){
-for(const d of dirs){
-let i=1
-while(inBoard(r+d[0]*i,c+d[1]*i) && !b[r+d[0]*i][c+d[1]*i]){
-moves.push({from:{r,c},to:{r:r+d[0]*i,c:c+d[1]*i}})
-i++
-}
-
-if(inBoard(r+d[0]*i,c+d[1]*i) && b[r+d[0]*i][c+d[1]*i] && b[r+d[0]*i][c+d[1]*i].color!==p.color){
-let j=i+1
-while(inBoard(r+d[0]*j,c+d[1]*j) && !b[r+d[0]*j][c+d[1]*j]){
-captures.push({from:{r,c},to:{r:r+d[0]*j,c:c+d[1]*j},captures:[{r:r+d[0]*i,c:c+d[1]*i}]})
-j++
-}
-}
-}
-}else{
-for(const d of dirs){
-let r1=r+d[0]
-let c1=c+d[1]
-let r2=r+d[0]*2
-let c2=c+d[1]*2
-
-if(inBoard(r1,c1)&&!b[r1][c1] && ((p.color==='white'&&d[0]==-1)||(p.color==='black'&&d[0]==1))) moves.push({from:{r,c},to:{r:r1,c:c1}})
-
-if(inBoard(r2,c2) && b[r1][c1] && b[r1][c1].color!==p.color && !b[r2][c2]) captures.push({from:{r,c},to:{r:r2,c:c2},captures:[{r:r1,c:c1}]})
-}
-}
-
-return {moves,captures}
-}
-
-function applyMove(b,m){
-const p=b[m.from.r][m.from.c]
-b[m.from.r][m.from.c]=null
-
-// звук взятия сразу при удалении
-if(m.captures){
-for(const c of m.captures){
-b[c.r][c.c]=null
-}
-}
-
-b[m.to.r][m.to.c]=p
-if(p.color==='white' && m.to.r===0) p.king=true
-if(p.color==='black' && m.to.r===9) p.king=true
-}
-
-function cloneBoard(b){return JSON.parse(JSON.stringify(b))}
-
-function botMove() {
-    if (turn !== botColor) return;
-
-    const moves = getMoves(board, botColor);
-    if (moves.length === 0) {
-        alert('You win!'); // игрок побеждает, если у бота нет ходов
-        location.reload();
-        return;
+function cloneBoard(b){
+    const nb = new Array(10);
+    for (let r = 0; r < 10; r++){
+        nb[r] = new Array(10);
+        for (let c = 0; c < 10; c++){
+            const p = b[r][c];
+            nb[r][c] = p ? { color:p.color, king:p.king } : null;
+        }
     }
+    return nb;
+}
 
-    // выбираем лучший ход бота
-    let bestMove = moves[0];
-    let bestScore = -9999;
-    for (const m of moves) {
-        const copy = cloneBoard(board);
-        applyMove(copy, m);
-        let score = evaluate(copy);
-        if (m.captures) score += 20;
-        if (score > bestScore) {
-            bestScore = score;
-            bestMove = m;
+function opponent(color){
+    return color === 'white' ? 'black' : 'white';
+}
+
+function countPieces(b, color){
+    let n = 0;
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            if (b[r][c] && b[r][c].color === color) n++;
+        }
+    }
+    return n;
+}
+
+function nowMs(){
+    return performance.now();
+}
+
+function boardKey(b, side){
+    let out = side === 'white' ? 'w' : 'b';
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            const p = b[r][c];
+            if (!p) out += '.';
+            else if (p.color === 'white') out += p.king ? 'W' : 'w';
+            else out += p.king ? 'B' : 'b';
+        }
+    }
+    return out;
+}
+
+function moveToKey(move){
+    let s = '';
+    for (const p of move.path) s += p.r + '_' + p.c + '|';
+    s += 'x';
+    for (const c of move.captures) s += c.r + '_' + c.c + '|';
+    return s;
+}
+
+function sameMove(a, b){
+    if (!a || !b) return false;
+    return moveToKey(a) === moveToKey(b);
+}
+
+function getLegalMoves(b, color){
+    let captures = [];
+    let quiet = [];
+
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            const p = b[r][c];
+            if (!p || p.color !== color) continue;
+
+            const caps = getCaptureSequencesForPiece(b, r, c);
+            if (caps.length) captures.push(...caps);
+            else quiet.push(...getQuietMovesForPiece(b, r, c));
         }
     }
 
-    applyMove(board, bestMove);
-    playMoveSound(bestMove);
-    lastMoveCells = [bestMove.from, bestMove.to, ...(bestMove.captures || [])];
-
-    // проверка на серию взятий у бота
-    let nextCaptures = getMoves(board, botColor).filter(
-        m => m.from.r === bestMove.to.r && m.from.c === bestMove.to.c && m.captures
-    );
-    if (bestMove.captures && nextCaptures.length > 0) {
-        drawBoard();
-        setTimeout(botMove, 50);
-        return;
+    if (captures.length){
+        const maxCap = Math.max(...captures.map(m => m.captures.length));
+        return captures.filter(m => m.captures.length === maxCap);
     }
 
-    // после завершения хода бота проверяем конец игры
-    const playerPieces = board.flat().filter(p => p && p.color === playerColor).length;
-    const botPieces = board.flat().filter(p => p && p.color === botColor).length;
+    return quiet;
+}
 
-    if (playerPieces === 0) {
-        alert('You lose!'); // игрок проиграл, если у него нет фигур
-        location.reload();
-        return;
-    }
-    if (botPieces === 0) {
-        alert('You win!'); // бот проиграл, если у него нет фигур
-        location.reload();
-        return;
+function getQuietMovesForPiece(b, r, c){
+    const p = b[r][c];
+    if (!p) return [];
+    const res = [];
+
+    if (p.king){
+        for (const [dr, dc] of DIRS){
+            let nr = r + dr, nc = c + dc;
+            while (inBoard(nr, nc) && !b[nr][nc]){
+                res.push({
+                    from:{r,c},
+                    path:[{r,c},{r:nr,c:nc}],
+                    captures:[],
+                    promotes:false
+                });
+                nr += dr;
+                nc += dc;
+            }
+        }
+    } else {
+        const forward = p.color === 'white' ? -1 : 1;
+        for (const dc of [-1, 1]){
+            const nr = r + forward, nc = c + dc;
+            if (inBoard(nr, nc) && !b[nr][nc]){
+                res.push({
+                    from:{r,c},
+                    path:[{r,c},{r:nr,c:nc}],
+                    captures:[],
+                    promotes: (p.color === 'white' && nr === 0) || (p.color === 'black' && nr === 9)
+                });
+            }
+        }
     }
 
-    // передача хода игроку
-    turn = playerColor;
+    return res;
+}
+
+function getCaptureSequencesForPiece(b, r, c){
+    const p = b[r][c];
+    if (!p) return [];
+
+    const startMove = {
+        from:{r,c},
+        path:[{r,c}],
+        captures:[],
+        promotes:false
+    };
+
+    return p.king
+        ? dfsKingCaptures(b, r, c, startMove, new Set())
+        : dfsManCaptures(b, r, c, startMove, new Set());
+}
+
+function dfsManCaptures(b, r, c, move, capturedSet){
+    const p = b[r][c];
+    const results = [];
+    let found = false;
+
+    for (const [dr, dc] of DIRS){
+        const r1 = r + dr, c1 = c + dc;
+        const r2 = r + dr * 2, c2 = c + dc * 2;
+
+        if (!inBoard(r2, c2)) continue;
+        if (!b[r1][c1] || b[r1][c1].color === p.color) continue;
+
+        const victimKey = r1 + ',' + c1;
+        if (capturedSet.has(victimKey)) continue;
+        if (b[r2][c2]) continue;
+
+        found = true;
+
+        const copy = cloneBoard(b);
+        const piece = copy[r][c];
+        copy[r][c] = null;
+        copy[r2][c2] = piece;
+
+        const newCapturedSet = new Set(capturedSet);
+        newCapturedSet.add(victimKey);
+
+        const nextMove = {
+            from: move.from,
+            path: [...move.path, {r:r2, c:c2}],
+            captures: [...move.captures, {r:r1, c:c1}],
+            promotes: move.promotes
+        };
+
+        let becameKing = false;
+        if (!piece.king){
+            if ((piece.color === 'white' && r2 === 0) || (piece.color === 'black' && r2 === 9)){
+                piece.king = true;
+                nextMove.promotes = true;
+                becameKing = true;
+            }
+        }
+
+        const tails = becameKing
+            ? dfsKingCaptures(copy, r2, c2, nextMove, newCapturedSet)
+            : dfsManCaptures(copy, r2, c2, nextMove, newCapturedSet);
+
+        if (tails.length) results.push(...tails);
+        else results.push(nextMove);
+    }
+
+    if (!found) return move.captures.length ? [move] : [];
+    return results;
+}
+
+function dfsKingCaptures(b, r, c, move, capturedSet){
+    const p = b[r][c];
+    const results = [];
+    let found = false;
+
+    for (const [dr, dc] of DIRS){
+        let nr = r + dr, nc = c + dc;
+
+        while (inBoard(nr, nc) && !b[nr][nc]){
+            nr += dr;
+            nc += dc;
+        }
+
+        if (!inBoard(nr, nc)) continue;
+        if (!b[nr][nc] || b[nr][nc].color === p.color) continue;
+
+        const victimKey = nr + ',' + nc;
+        if (capturedSet.has(victimKey)) continue;
+
+        let lr = nr + dr, lc = nc + dc;
+        while (inBoard(lr, lc) && !b[lr][lc]){
+            found = true;
+
+            const copy = cloneBoard(b);
+            const piece = copy[r][c];
+            copy[r][c] = null;
+            copy[lr][lc] = piece;
+
+            const newCapturedSet = new Set(capturedSet);
+            newCapturedSet.add(victimKey);
+
+            const nextMove = {
+                from: move.from,
+                path: [...move.path, {r:lr, c:lc}],
+                captures: [...move.captures, {r:nr, c:nc}],
+                promotes: move.promotes
+            };
+
+            const tails = dfsKingCaptures(copy, lr, lc, nextMove, newCapturedSet);
+            if (tails.length) results.push(...tails);
+            else results.push(nextMove);
+
+            lr += dr;
+            lc += dc;
+        }
+    }
+
+    if (!found) return move.captures.length ? [move] : [];
+    return results;
+}
+
+function applyMoveToBoard(b, move){
+    const from = move.path[0];
+    const to = move.path[move.path.length - 1];
+    const piece = b[from.r][from.c];
+
+    b[from.r][from.c] = null;
+    b[to.r][to.c] = piece;
+
+    for (const cap of move.captures){
+        b[cap.r][cap.c] = null;
+    }
+
+    if (!piece.king){
+        if (piece.color === 'white' && to.r === 0) piece.king = true;
+        if (piece.color === 'black' && to.r === 9) piece.king = true;
+    }
+}
+
+function makeRealMove(move, isHuman){
+    applyMoveToBoard(board, move);
+    playMoveSound(move);
+
+    const cells = [];
+    for (const p of move.path) cells.push({r:p.r, c:p.c});
+    for (const c of move.captures) cells.push({r:c.r, c:c.c});
+    lastMoveCells = cells;
+
+    selected = null;
+    possibleMoves = [];
     moveCounter++;
     updateMoveCounter();
+
+    turn = isHuman ? botColor : playerColor;
+
     drawBoard();
     updateStatus();
+    checkGameState();
 
-    if (moveCounter >= 60) {
-        alert('Draw by 60 moves rule');
-        location.reload();
+    if (turn === botColor) setTimeout(botMove, 80);
+}
+
+function checkGameState(){
+    const whitePieces = countPieces(board, 'white');
+    const blackPieces = countPieces(board, 'black');
+
+    if (whitePieces === 0){
+        endGame('Black wins!');
+        return;
+    }
+    if (blackPieces === 0){
+        endGame('White wins!');
+        return;
+    }
+
+    const legal = getLegalMoves(board, turn);
+    if (legal.length === 0){
+        endGame(turn === 'white' ? 'Black wins!' : 'White wins!');
+        return;
+    }
+
+    if (moveCounter >= DRAW_MOVE_LIMIT){
+        endGame('Draw by 60 moves rule');
     }
 }
 
+function getImmediateCaptureDanger(b, color){
+    const enemy = opponent(color);
+    const enemyMoves = getLegalMoves(b, enemy);
+
+    let threatened = new Set();
+    let maxEnemyCapture = 0;
+    let totalEnemyCaptureTargets = 0;
+
+    for (const m of enemyMoves){
+        if (!m.captures.length) continue;
+        maxEnemyCapture = Math.max(maxEnemyCapture, m.captures.length);
+        totalEnemyCaptureTargets += m.captures.length;
+
+        for (const cap of m.captures){
+            const p = b[cap.r][cap.c];
+            if (p && p.color === color){
+                threatened.add(cap.r + ',' + cap.c);
+            }
+        }
+    }
+
+    let menThreat = 0;
+    let kingThreat = 0;
+    let frontLineThreat = 0;
+    let centerThreat = 0;
+
+    for (const key of threatened){
+        const [r, c] = key.split(',').map(Number);
+        const p = b[r][c];
+        if (!p || p.color !== color) continue;
+
+        if (p.king) kingThreat++;
+        else menThreat++;
+
+        if (r >= 3 && r <= 6 && c >= 3 && c <= 6) centerThreat++;
+        if ((p.color === 'white' && r <= 2) || (p.color === 'black' && r >= 7)) frontLineThreat++;
+    }
+
+    return {
+        menThreat,
+        kingThreat,
+        centerThreat,
+        frontLineThreat,
+        totalThreat: menThreat + kingThreat,
+        maxEnemyCapture,
+        totalEnemyCaptureTargets
+    };
+}
+
+function moveSafetyProfile(b, move, color){
+    const copy = cloneBoard(b);
+    applyMoveToBoard(copy, move);
+
+    const ownDanger = getImmediateCaptureDanger(copy, color);
+    const oppDanger = getImmediateCaptureDanger(copy, opponent(color));
+
+    let selfLoss = ownDanger.menThreat * 100 + ownDanger.kingThreat * 320;
+    let oppLoss = oppDanger.menThreat * 100 + oppDanger.kingThreat * 320;
+
+    selfLoss += ownDanger.centerThreat * 25;
+    selfLoss += ownDanger.frontLineThreat * 18;
+    selfLoss += ownDanger.maxEnemyCapture * 70;
+    selfLoss += ownDanger.totalEnemyCaptureTargets * 12;
+
+    oppLoss += oppDanger.centerThreat * 20;
+    oppLoss += oppDanger.frontLineThreat * 12;
+    oppLoss += oppDanger.maxEnemyCapture * 55;
+
+    return {
+        ownDanger,
+        oppDanger,
+        selfLoss,
+        oppLoss,
+        netSafety: oppLoss - selfLoss
+    };
+}
+
+function isBlunderishMove(b, move, color){
+    if (move.captures.length > 0) return false;
+
+    const profile = moveSafetyProfile(b, move, color);
+
+    if (profile.ownDanger.kingThreat > 0) return true;
+    if (profile.ownDanger.maxEnemyCapture >= 2) return true;
+    if (profile.selfLoss >= 180 && profile.selfLoss > profile.oppLoss + 80) return true;
+
+    return false;
+}
+
+function filterRootMovesBySafety(b, moves, color){
+    if (!moves.length) return moves;
+
+    const areCapturesForced = moves[0].captures.length > 0;
+    if (areCapturesForced) return moves;
+
+    const profiles = moves.map(move => ({
+        move,
+        profile: moveSafetyProfile(b, move, color)
+    }));
+
+    const safe = profiles.filter(x =>
+        x.profile.ownDanger.totalThreat === 0 &&
+        x.profile.ownDanger.maxEnemyCapture === 0
+    );
+
+    if (safe.length){
+        return safe.map(x => x.move);
+    }
+
+    const nonBlunder = profiles.filter(x => !isBlunderishMove(b, x.move, color));
+    if (nonBlunder.length){
+        return nonBlunder
+            .sort((a, z) => z.profile.netSafety - a.profile.netSafety)
+            .map(x => x.move);
+    }
+
+    return profiles
+        .sort((a, z) => z.profile.netSafety - a.profile.netSafety)
+        .map(x => x.move);
+}
+
+function botMove(){
+    if (turn !== botColor) return;
+
+    let moves = getLegalMoves(board, botColor);
+    if (!moves.length){
+        endGame(playerColor === 'white' ? 'White wins!' : 'Black wins!');
+        return;
+    }
+
+    moves = filterRootMovesBySafety(board, moves, botColor);
+
+    const pieces = board.flat().filter(Boolean).length;
+    let timeLimit;
+
+    if (difficulty <= 3) timeLimit = 1000;
+    else if (difficulty <= 5) timeLimit = 2200;
+    else timeLimit = pieces <= 8 ? 9000 : pieces <= 14 ? 6500 : pieces <= 24 ? 4500 : 3000;
+
+    searchDeadline = nowMs() + timeLimit;
+    searchAborted = false;
+    nodeCount = 0;
+    rootBestMove = null;
+    tt.clear();
+
+    let bestMove = orderMoves(board, moves, botColor, null, 0)[0];
+    let bestScore = -INF;
+
+    for (let depth = 1; depth <= 64; depth++){
+        if (nowMs() >= searchDeadline) break;
+
+        let iterationBestMove = bestMove;
+        let iterationBestScore = -INF;
+        let alpha = -INF;
+        let beta = INF;
+
+        const orderedRoot = orderMoves(board, moves, botColor, rootBestMove, 0);
+
+        for (const move of orderedRoot){
+            if (nowMs() >= searchDeadline){
+                searchAborted = true;
+                break;
+            }
+
+            const profile = moveSafetyProfile(board, move, botColor);
+            const rootSafetyBias = profile.netSafety * 2;
+
+            const copy = cloneBoard(board);
+            applyMoveToBoard(copy, move);
+
+            let score = -negamax(copy, depth - 1, -beta, -alpha, opponent(botColor), 1);
+
+            if (searchAborted) break;
+
+            score += rootSafetyBias;
+
+            if (score > iterationBestScore){
+                iterationBestScore = score;
+                iterationBestMove = move;
+            }
+
+            if (score > alpha) alpha = score;
+        }
+
+        if (searchAborted) break;
+
+        bestMove = iterationBestMove;
+        bestScore = iterationBestScore;
+        rootBestMove = bestMove;
+    }
+
+    makeRealMove(bestMove, false);
+}
+
+function negamax(b, depth, alpha, beta, sideToMove, ply){
+    nodeCount++;
+
+    if ((nodeCount & 1023) === 0 && nowMs() >= searchDeadline){
+        searchAborted = true;
+        return 0;
+    }
+
+    const alphaOrig = alpha;
+    const key = boardKey(b, sideToMove);
+    const cached = tt.get(key);
+
+    if (cached && cached.depth >= depth){
+        if (cached.flag === 'EXACT') return cached.score;
+        if (cached.flag === 'LOWER') alpha = Math.max(alpha, cached.score);
+        else if (cached.flag === 'UPPER') beta = Math.min(beta, cached.score);
+        if (alpha >= beta) return cached.score;
+    }
+
+    const legal = getLegalMoves(b, sideToMove);
+
+    if (depth === 0 || legal.length === 0){
+        return evaluateFast(b, botColor, sideToMove, legal.length === 0);
+    }
+
+    let bestScore = -INF;
+    let bestMove = null;
+
+    const ordered = orderMoves(
+        b,
+        legal,
+        sideToMove,
+        cached ? cached.bestMove : null,
+        ply
+    );
+
+    for (const move of ordered){
+        const copy = cloneBoard(b);
+        applyMoveToBoard(copy, move);
+
+        const score = -negamax(copy, depth - 1, -beta, -alpha, opponent(sideToMove), ply + 1);
+
+        if (searchAborted) return 0;
+
+        if (score > bestScore){
+            bestScore = score;
+            bestMove = move;
+        }
+
+        if (score > alpha) alpha = score;
+
+        if (alpha >= beta){
+            if (move.captures.length === 0){
+                if (!killerMoves[ply]) killerMoves[ply] = [];
+                const mk = moveToKey(move);
+                if (!killerMoves[ply].includes(mk)){
+                    killerMoves[ply].unshift(mk);
+                    if (killerMoves[ply].length > 2) killerMoves[ply].pop();
+                }
+                historyHeuristic[mk] = (historyHeuristic[mk] || 0) + depth * depth;
+            }
+            break;
+        }
+    }
+
+    let flag = 'EXACT';
+    if (bestScore <= alphaOrig) flag = 'UPPER';
+    else if (bestScore >= beta) flag = 'LOWER';
+
+    tt.set(key, {
+        depth,
+        score: bestScore,
+        flag,
+        bestMove
+    });
+
+    return bestScore;
+}
+
+function orderMoves(b, moves, color, hashMove = null, ply = 0){
+    return [...moves].sort((a, z) => moveOrderScore(b, z, color, hashMove, ply) - moveOrderScore(b, a, color, hashMove, ply));
+}
+
+function moveOrderScore(b, move, color, hashMove, ply){
+    let score = 0;
+    const mk = moveToKey(move);
+
+    if (hashMove && sameMove(move, hashMove)) score += 100000000;
+
+    const from = move.path[0];
+    const to = move.path[move.path.length - 1];
+    const piece = b[from.r][from.c];
+
+    if (move.captures.length > 0){
+        score += 50000000;
+        score += move.captures.length * 100000;
+        if (piece && piece.king) score += 30000;
+        if (move.promotes) score += 50000;
+    } else {
+        if (killerMoves[ply] && killerMoves[ply].includes(mk)) score += 2000000;
+        score += historyHeuristic[mk] || 0;
+        if (move.promotes) score += 1500000;
+        if (to.r >= 3 && to.r <= 6 && to.c >= 3 && to.c <= 6) score += 3000;
+
+        if (piece && !piece.king){
+            const advance = piece.color === 'white' ? (from.r - to.r) : (to.r - from.r);
+            score += advance * 500;
+        }
+    }
+
+    const profile = moveSafetyProfile(b, move, color);
+
+    score += profile.netSafety * 1300;
+    score -= profile.ownDanger.maxEnemyCapture * 25000;
+    score -= profile.ownDanger.menThreat * 35000;
+    score -= profile.ownDanger.kingThreat * 100000;
+    score -= profile.ownDanger.centerThreat * 12000;
+
+    if (move.captures.length === 0 && profile.ownDanger.totalThreat > 0){
+        score -= 70000;
+    }
+
+    if (isBlunderishMove(b, move, color)){
+        score -= 250000;
+    }
+
+    return score;
+}
+
+function evaluateFast(b, aiColor, sideToMove, noMoves){
+    if (noMoves){
+        return sideToMove === aiColor ? -500000 : 500000;
+    }
+
+    let score = 0;
+    let aiKings = 0, opKings = 0;
+    let aiMen = 0, opMen = 0;
+
+    for (let r = 0; r < 10; r++){
+        for (let c = 0; c < 10; c++){
+            const p = b[r][c];
+            if (!p) continue;
+
+            const sign = p.color === aiColor ? 1 : -1;
+
+            if (p.king){
+                score += 325 * sign;
+                if (sign > 0) aiKings++; else opKings++;
+            } else {
+                score += 100 * sign;
+                if (sign > 0) aiMen++; else opMen++;
+
+                const advance = p.color === 'white' ? (9 - r) : r;
+                score += advance * 5 * sign;
+            }
+
+            if (r >= 3 && r <= 6 && c >= 3 && c <= 6) score += 12 * sign;
+
+            if (!p.king){
+                if ((p.color === 'white' && r === 9) || (p.color === 'black' && r === 0)){
+                    score += 8 * sign;
+                }
+                if ((p.color === 'white' && r <= 2) || (p.color === 'black' && r >= 7)){
+                    score += 10 * sign;
+                }
+            } else {
+                if (r >= 2 && r <= 7 && c >= 2 && c <= 7) score += 14 * sign;
+            }
+        }
+    }
+
+    score += (aiKings - opKings) * 40;
+
+    if (aiMen + aiKings <= 6 || opMen + opKings <= 6){
+        score += (aiKings - opKings) * 60;
+    }
+
+    const aiDanger = getImmediateCaptureDanger(b, aiColor);
+    const opDanger = getImmediateCaptureDanger(b, opponent(aiColor));
+
+    score -= aiDanger.menThreat * 170;
+    score -= aiDanger.kingThreat * 420;
+    score -= aiDanger.centerThreat * 60;
+    score -= aiDanger.frontLineThreat * 30;
+    score -= aiDanger.maxEnemyCapture * 110;
+    score -= aiDanger.totalEnemyCaptureTargets * 18;
+
+    score += opDanger.menThreat * 145;
+    score += opDanger.kingThreat * 340;
+    score += opDanger.centerThreat * 40;
+    score += opDanger.frontLineThreat * 18;
+    score += opDanger.maxEnemyCapture * 85;
+
+    return score;
+}
+</script>
 
 
-function evaluate(b){
-let score=0
-for(let r=0;r<10;r++){
-for(let c=0;c<10;c++){
-const p=b[r][c]
-if(!p) continue
-let val=p.king?8:3
-if(p.color===botColor) score+=val
-else score-=val
-}
-}
-return score
-}
-</script></body>
+</body>
 </html>
