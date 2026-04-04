@@ -174,6 +174,7 @@ li { margin-bottom: 8px; }
     <span class="game-subtitle">Game Rules</span>
 </h1>
 
+
 <h2>🇬🇧 English</h2>
 
 <h3>Goal of the Game</h3>
@@ -187,11 +188,10 @@ li { margin-bottom: 8px; }
 <li>The board automatically rotates so the player is always at the bottom.</li>
 <li>White always makes the first move.</li>
 <li>The game starts immediately after color selection.</li>
-<li>A move counter tracks only white moves from 0 to 60.</li>
+<li>The game may be drawn by repetition, queen-move limits, or special endgame limits.</li>
 <li>Regular pieces move diagonally forward by one square.</li>
 <li>If a capture is available, it must be made.</li>
 </ul>
-
 
 <h3>Queen Piece</h3>
 <ul>
@@ -210,10 +210,12 @@ li { margin-bottom: 8px; }
 
 <h3>Draw</h3>
 <ul>
-<li>60 black moves have been completed.</li>
+<li>The same position appears for the third time.</li>
+<li>25 consecutive queen moves have been completed by each player without any capture and without any man moving.</li>
+<li>In special endgames, one queen against three pieces including at least one queen is drawn after 16 moves by each player.</li>
+<li>In special endgames, one queen against two pieces or fewer including at least one queen is drawn after 5 moves by each player.</li>
 <li>No legal moves remain for both players.</li>
 </ul>
-
 
 <div class="note">
 Capturing is mandatory, and maximum capture is required.
@@ -232,11 +234,10 @@ Capturing is mandatory, and maximum capture is required.
 <li>Дошка автоматично обертається, щоб гравець був знизу.</li>
 <li>Білі завжди ходять першими.</li>
 <li>Гра починається одразу після вибору кольору.</li>
-<li>Лічильник рахує тільки ходи білих від 0 до 60.</li>
+<li>Гра може закінчитися нічиєю через повтор позиції, ліміти ходів дамками або спеціальні ендшпілі.</li>
 <li>Звичайна шашка ходить по діагоналі вперед на одну клітинку.</li>
 <li>Якщо є можливість взяття — його потрібно виконати.</li>
 </ul>
-
 
 <h3>Дамка</h3>
 <ul>
@@ -245,7 +246,6 @@ Capturing is mandatory, and maximum capture is required.
 <li>Дамка рухається по діагоналі на будь-яку відстань.</li>
 <li>Дамка може бити на відстані.</li>
 </ul>
-
 
 <h3>Перемога</h3>
 <ul>
@@ -256,10 +256,12 @@ Capturing is mandatory, and maximum capture is required.
 
 <h3>Нічия</h3>
 <ul>
-<li>60 ходів чорних завершено.</li>
+<li>Одна й та сама позиція виникає втретє.</li>
+<li>25 послідовних ходів дамками виконано кожним гравцем без взяття і без руху звичайної шашки.</li>
+<li>У спеціальних закінченнях одна дамка проти трьох фігур, серед яких є хоча б одна дамка, нічия настає після 16 ходів кожного гравця.</li>
+<li>У спеціальних закінченнях одна дамка проти двох фігур або менше, серед яких є хоча б одна дамка, нічия настає після 5 ходів кожного гравця.</li>
 <li>Немає доступних ходів у обох гравців.</li>
 </ul>
-
 
 <div class="note">
 Взяття обов’язкове, вимагається максимальна кількість взятих шашок.
@@ -278,11 +280,10 @@ Capturing is mandatory, and maximum capture is required.
 <li>Доска автоматически вращается, игрок всегда снизу.</li>
 <li>Белые всегда ходят первыми.</li>
 <li>Игра начинается сразу после выбора цвета.</li>
-<li>Счётчик считает только ходы белых от 0 до 60.</li>
+<li>Игра может завершиться ничьей из-за повторения позиции, лимитов ходов дамками или специальных окончаний.</li>
 <li>Обычная шашка ходит по диагонали вперёд на одну клетку.</li>
 <li>Если есть взятие — его нужно выполнить.</li>
 </ul>
-
 
 <h3>Дамка</h3>
 <ul>
@@ -291,7 +292,6 @@ Capturing is mandatory, and maximum capture is required.
 <li>Дамка ходит по диагонали на любое расстояние.</li>
 <li>Может бить на расстоянии.</li>
 </ul>
-
 
 <h3>Победа</h3>
 <ul>
@@ -302,10 +302,12 @@ Capturing is mandatory, and maximum capture is required.
 
 <h3>Ничья</h3>
 <ul>
-<li>Сделано 60 ходов черных.</li>
+<li>Одна и та же позиция возникает в третий раз.</li>
+<li>25 последовательных ходов дамками выполнено каждым игроком без взятий и без хода простой шашки.</li>
+<li>В специальных окончаниях одна дамка против трёх фигур, среди которых есть хотя бы одна дамка, ничья наступает после 16 ходов каждого игрока.</li>
+<li>В специальных окончаниях одна дамка против двух фигур или меньше, среди которых есть хотя бы одна дамка, ничья наступает после 5 ходов каждого игрока.</li>
 <li>Нет доступных ходов у обоих игроков.</li>
 </ul>
-
 
 <div class="note">
 Взятие обязательно, требуется максимальное количество взятых шашек.
