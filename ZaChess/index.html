@@ -1,0 +1,1884 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZaChess Full Legal Chess</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            font-family: Arial, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px 0;
+        }
+        #menu { text-align: center; }
+        button {
+            padding: 10px 18px;
+            margin: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background: #3498db;
+            color: white;
+        }
+        #game {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+        #topbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        #boardWrap {
+            position: relative;
+            width: min(95vw, 95vh);
+            height: min(95vw, 95vh);
+            margin-bottom: 8px;
+        }
+        #board {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            border: 4px solid white;
+            box-sizing: border-box;
+        }
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .whiteCell { background: #eee; }
+        .blackCell { background: #444; }
+        .piece {
+            width: 80%;
+            height: 80%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(30px, 5vw, 48px);
+            position: relative;
+            transition: 0.15s;
+            user-select: none;
+            z-index: 2;
+        }
+        .whitePiece { color: #fff; text-shadow: 0 1px 2px #000; }
+        .blackPiece { color: #000; text-shadow: 0 1px 2px #fff; }
+        .selected { outline: 4px solid yellow; outline-offset: -4px; }
+        .move { outline: 3px solid lime; outline-offset: -3px; }
+        .capture { outline: 3px solid red; outline-offset: -3px; }
+        .lastMove::after {
+            content: "";
+            position: absolute;
+            inset: 10%;
+            background: rgba(0, 255, 0, 0.22);
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .coord-file, .coord-rank {
+            position: absolute;
+            color: rgba(255,255,255,0.95);
+            font-size: clamp(10px, 1.8vw, 14px);
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 4;
+            text-shadow: 0 1px 1px #000;
+        }
+        .coord-file { bottom: 4px; right: 5px; }
+        .coord-rank { top: 4px; left: 5px; }
+        #status {
+            margin-top: 8px;
+            font-size: 18px;
+            text-align: center;
+        }
+        #moveCounter, #timer, #engineInfo {
+            font-size: 18px;
+            padding: 6px;
+        }
+        #moveLog {
+            margin-top: 8px;
+            width: min(95vw, 95vh);
+            min-height: 60px;
+            max-height: 180px;
+            overflow-y: auto;
+            background: #1b1b1b;
+            border: 1px solid #666;
+            padding: 8px 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<div id="menu">
+    <h1>ZaChess Full Legal Chess</h1>
+    <p>White always moves first</p>
+    <button onclick="startGame('white')">Play White</button>
+    <button onclick="startGame('black')">Play Black</button>
+    <br><br>
+    <select id="difficulty">
+        <option value="4">Strong</option>
+        <option value="5">Champion</option>
+        <option value="6" selected>Elite</option>
+    </select>
+</div>
+
+<div id="game">
+    <div id="topbar">
+        <button onclick="newGame()">New Game</button>
+        <button onclick="undoMove()">Undo</button>
+        <button onclick="resign()">Resign</button>
+        <div id="timer">00:00</div>
+        <div id="moveCounter">Moves: 0</div>
+        <div id="engineInfo">Engine idle</div>
+    </div>
+    <div id="boardWrap">
+        <div id="board"></div>
+    </div>
+    <div id="status"></div>
+    <div id="moveLog"></div>
+</div>
+
+<audio id="moveSound" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/foley/wood_tap.ogg" type="audio/ogg">
+</audio>
+<audio id="captureSound" preload="auto">
+    <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+</audio>
+
+<script>
+const PIECES={wp:'♙',wn:'♘',wb:'♗',wr:'♖',wq:'♕',wk:'♔',bp:'♟',bn:'♞',bb:'♝',br:'♜',bq:'♛',bk:'♚'};
+const VAL={p:100,n:320,b:330,r:500,q:900,k:0};
+const PST={
+p:[[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],
+n:[[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],
+b:[[-20,-10,-10,-10,-10,-10,-10,-20],[-10,5,0,0,0,0,5,-10],[-10,10,10,10,10,10,10,-10],[-10,0,10,10,10,10,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,5,10,10,5,0,-10],[-10,0,0,0,0,0,0,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],
+r:[[0,0,0,5,5,0,0,0],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[5,10,10,10,10,10,10,5],[0,0,0,0,0,0,0,0]],
+q:[[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],
+km:[[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]],
+ke:[[-50,-40,-30,-20,-20,-30,-40,-50],[-30,-20,-10,0,0,-10,-20,-30],[-30,-10,20,30,30,20,-10,-30],[-30,-10,30,40,40,30,-10,-30],[-30,-10,30,40,40,30,-10,-30],[-30,-10,20,30,30,20,-10,-30],[-30,-30,0,0,0,0,-30,-30],[-50,-30,-30,-30,-30,-30,-30,-50]]
+};
+
+const INF=1000000000;
+const MATE=10000000;
+const BOT_THINK_MS=15000;
+const MAX_PLY=128;
+
+/*
+Редактируемая дебютная книга.
+Ключ — строка SAN-ходов через пробел после ходов в партии.
+Примеры:
+""                 -> начальная позиция
+"e4"               -> после 1.e4
+"e4 e5 Nf3"        -> после 1.e4 e5 2.Nf3
+Значение — массив ходов { move: 'SAN', w: вес }.
+Чем больше w, тем чаще будет выбран ход.
+*/
+const OPENING_BOOK = {
+    "": [
+        { move: "e4", w: 34 },
+        { move: "d4", w: 28 },
+        { move: "Nf3", w: 14 },
+        { move: "c4", w: 14 },
+        { move: "g3", w: 10 }
+    ],
+    "e4": [
+        { move: "e5", w: 28 },
+        { move: "c5", w: 24 },
+        { move: "e6", w: 16 },
+        { move: "c6", w: 14 },
+        { move: "d5", w: 10 },
+        { move: "Nf6", w: 8 }
+    ],
+    "d4": [
+        { move: "d5", w: 28 },
+        { move: "Nf6", w: 24 },
+        { move: "e6", w: 18 },
+        { move: "g6", w: 14 },
+        { move: "f5", w: 6 },
+        { move: "d6", w: 4 }
+    ],
+    "Nf3": [
+        { move: "Nf6", w: 28 },
+        { move: "d5", w: 22 },
+        { move: "g6", w: 18 },
+        { move: "c5", w: 18 },
+        { move: "e6", w: 14 }
+    ],
+    "c4": [
+        { move: "e5", w: 18 },
+        { move: "Nf6", w: 28 },
+        { move: "e6", w: 22 },
+        { move: "c5", w: 12 },
+        { move: "g6", w: 20 }
+    ],
+    "e4 e5": [
+        { move: "Nf3", w: 42 },
+        { move: "Bc4", w: 24 },
+        { move: "Nc3", w: 18 },
+        { move: "d4", w: 16 }
+    ],
+    "e4 c5": [
+        { move: "Nf3", w: 38 },
+        { move: "c3", w: 12 },
+        { move: "Nc3", w: 22 },
+        { move: "d4", w: 28 }
+    ],
+    "e4 e6": [
+        { move: "d4", w: 54 },
+        { move: "Nf3", w: 18 },
+        { move: "Nc3", w: 28 }
+    ],
+    "e4 c6": [
+        { move: "d4", w: 56 },
+        { move: "Nc3", w: 24 },
+        { move: "Nf3", w: 20 }
+    ],
+    "e4 e5 Nf3": [
+        { move: "Nc6", w: 52 },
+        { move: "Nf6", w: 18 },
+        { move: "d6", w: 12 },
+        { move: "Bc5", w: 18 }
+    ],
+    "e4 e5 Bc4": [
+        { move: "Nf6", w: 16 },
+        { move: "Bc5", w: 34 },
+        { move: "Nc6", w: 34 },
+        { move: "c6", w: 8 },
+        { move: "d6", w: 8 }
+    ],
+    "e4 e5 Nf3 Nc6": [
+        { move: "Bc4", w: 30 },
+        { move: "Bb5", w: 34 },
+        { move: "d4", w: 16 },
+        { move: "Nc3", w: 20 }
+    ],
+    "e4 e5 Nf3 Nc6 Bc4": [
+        { move: "Bc5", w: 30 },
+        { move: "Nf6", w: 26 },
+        { move: "Be7", w: 12 },
+        { move: "d6", w: 12 },
+        { move: "h6", w: 2 },
+        { move: "g6", w: 18 }
+    ],
+    "e4 e5 Bc4 Nf6": [
+        { move: "Nc3", w: 30 },
+        { move: "d3", w: 18 },
+        { move: "Nf3", w: 42 },
+        { move: "Qf3", w: 10 }
+    ],
+    "e4 e5 Bc4 Nc6": [
+        { move: "Nf3", w: 44 },
+        { move: "Nc3", w: 20 },
+        { move: "Qf3", w: 10 },
+        { move: "d3", w: 16 },
+        { move: "d4", w: 10 }
+    ],
+    "e4 e5 Bc4 Nc6 Qh5": [
+        { move: "g6", w: 42 },
+        { move: "Qe7", w: 12 },
+        { move: "Nf6", w: 22 },
+        { move: "Nh6", w: 1 },
+        { move: "d5", w: 23 }
+    ],
+    "e4 e5 Bc4 Nf6 Qh5": [
+        { move: "Nxh5", w: 50 },
+        { move: "Qe7", w: 16 },
+        { move: "d5", w: 22 },
+        { move: "g6", w: 12 }
+    ],
+    "e4 e5 Qh5": [
+        { move: "Nc6", w: 36 },
+        { move: "Nf6", w: 18 },
+        { move: "d6", w: 22 },
+        { move: "Qe7", w: 12 },
+        { move: "g6", w: 12 }
+    ],
+    "e4 e5 Qh5 Nc6 Bc4": [
+        { move: "g6", w: 34 },
+        { move: "Qe7", w: 10 },
+        { move: "Nh6", w: 1 },
+        { move: "Nf6", w: 30 },
+        { move: "d5", w: 25 }
+    ]
+};
+
+let board=[];
+let playerColor='white';
+let botColor='black';
+let turn='white';
+let selected=null;
+let possibleMoves=[];
+let timer=0;
+let timerInterval;
+let lastMoveCells=[];
+let moveList=[];
+let castling;
+let enPassant=null;
+let halfmoveClock=0;
+let fullmoveNumber=1;
+let positionCounts=new Map();
+let historyStack=[];
+let searchDeadline=0;
+let searchAborted=false;
+let nodeCount=0;
+let tt=new Map();
+let killerMoves=Array.from({length:MAX_PLY},()=>[null,null]);
+let historyHeuristic={white:new Map(),black:new Map()};
+
+function startGame(color){
+    playerColor=color;
+    botColor=color==='white'?'black':'white';
+    document.getElementById('menu').style.display='none';
+    document.getElementById('game').style.display='flex';
+    initBoard();
+    startTimer();
+    drawBoard();
+    updateStatus();
+    updateMoveCounter();
+    updateMoveLog();
+    recordPosition();
+    if(botColor==='white') setTimeout(botMove,120);
+}
+
+function newGame(){ location.reload(); }
+function resign(){ alert('You resigned'); location.reload(); }
+
+function undoMove(){
+    if(historyStack.length===0) return;
+    const prev=historyStack.pop();
+    restoreSnapshot(prev);
+    drawBoard();
+    updateMoveCounter();
+    updateStatus();
+    updateMoveLog();
+    document.getElementById('engineInfo').innerText='Engine idle';
+}
+
+function startTimer(){
+    clearInterval(timerInterval);
+    timer=0;
+    timerInterval=setInterval(()=>{
+        timer++;
+        let m=String(Math.floor(timer/60)).padStart(2,'0');
+        let s=String(timer%60).padStart(2,'0');
+        document.getElementById('timer').innerText=m+':'+s;
+    },1000);
+}
+
+function updateMoveCounter(){
+    document.getElementById('moveCounter').innerText='Moves: '+(fullmoveNumber-1+(turn==='black'?1:0));
+}
+
+function updateStatus(msg){
+    document.getElementById('status').innerText=msg||('Turn: '+turn);
+}
+
+function updateMoveLog(){
+    let out='';
+    for(let i=0;i<moveList.length;i+=2){
+        const num=Math.floor(i/2)+1;
+        out+=num+'. '+moveList[i];
+        if(moveList[i+1]) out+=' '+moveList[i+1];
+        if(i+2<moveList.length) out+='\n';
+    }
+    const el=document.getElementById('moveLog');
+    el.innerText=out||'Move log will appear here.';
+    el.scrollTop=el.scrollHeight;
+}
+
+function initBoard(){
+    board=Array.from({length:8},()=>Array(8).fill(null));
+    const back=['r','n','b','q','k','b','n','r'];
+    for(let c=0;c<8;c++){
+        board[0][c]={color:'black',type:back[c]};
+        board[1][c]={color:'black',type:'p'};
+        board[6][c]={color:'white',type:'p'};
+        board[7][c]={color:'white',type:back[c]};
+    }
+    castling={white:{k:true,q:true},black:{k:true,q:true}};
+    enPassant=null;
+    halfmoveClock=0;
+    fullmoveNumber=1;
+    positionCounts=new Map();
+    historyStack=[];
+    lastMoveCells=[];
+    selected=null;
+    possibleMoves=[];
+    moveList=[];
+    tt=new Map();
+    killerMoves=Array.from({length:MAX_PLY},()=>[null,null]);
+    historyHeuristic={white:new Map(),black:new Map()};
+}
+
+function drawBoard(){
+    const b=document.getElementById('board');
+    b.innerHTML='';
+    for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            let vr=playerColor==='white'?r:7-r;
+            let vc=playerColor==='white'?c:7-c;
+
+            const cell=document.createElement('div');
+            cell.className='cell '+(((vr+vc)%2===0)?'whiteCell':'blackCell');
+            cell.onclick=()=>cellClick(vr,vc);
+
+            if(lastMoveCells.some(m=>m.r===vr&&m.c===vc)) cell.classList.add('lastMove');
+            if(selected&&selected.r===vr&&selected.c===vc) cell.classList.add('selected');
+
+            const pm=possibleMoves.find(m=>m.to.r===vr&&m.to.c===vc);
+            if(pm) cell.classList.add(pm.captured?'capture':'move');
+
+            if(vr===7){
+                const file=document.createElement('div');
+                file.className='coord-file';
+                file.textContent=playerColor==='white'?'abcdefgh'[vc]:'hgfedcba'[vc];
+                cell.appendChild(file);
+            }
+
+            if(vc===0){
+                const rank=document.createElement('div');
+                rank.className='coord-rank';
+                rank.textContent=playerColor==='white'?String(8-vr):String(vr+1);
+                cell.appendChild(rank);
+            }
+
+            const p=board[vr][vc];
+            if(p){
+                const piece=document.createElement('div');
+                piece.className='piece '+(p.color==='white'?'whitePiece':'blackPiece');
+                piece.textContent=PIECES[(p.color==='white'?'w':'b')+p.type];
+                cell.appendChild(piece);
+            }
+
+            b.appendChild(cell);
+        }
+    }
+}
+
+function cellClick(r,c){
+    if(turn!==playerColor) return;
+
+    const legal=getLegalMoves(getState(),playerColor);
+    const p=board[r][c];
+
+    if(p&&p.color===playerColor){
+        const pieceMoves=legal.filter(m=>m.from.r===r&&m.from.c===c);
+        if(pieceMoves.length){
+            selected={r,c};
+            possibleMoves=pieceMoves;
+            drawBoard();
+        }
+        return;
+    }
+
+    if(!selected) return;
+    const move=possibleMoves.find(m=>m.to.r===r&&m.to.c===c);
+    if(!move) return;
+
+    makeRealMove(move,true);
+}
+
+function playMoveSound(move){
+    const a=move.captured?document.getElementById('captureSound'):document.getElementById('moveSound');
+    a.currentTime=0;
+    a.play().catch(()=>{});
+}
+
+function cloneBoard(b){
+    return b.map(row=>row.map(p=>p?{color:p.color,type:p.type}:null));
+}
+
+function cloneState(s){
+    return {
+        board:cloneBoard(s.board),
+        turn:s.turn,
+        castling:JSON.parse(JSON.stringify(s.castling)),
+        enPassant:s.enPassant?{r:s.enPassant.r,c:s.enPassant.c}:null,
+        halfmoveClock:s.halfmoveClock,
+        fullmoveNumber:s.fullmoveNumber
+    };
+}
+
+function snapshot(){
+    return {
+        state:cloneState(getState()),
+        lastMoveCells:JSON.parse(JSON.stringify(lastMoveCells)),
+        selected:selected?{r:selected.r,c:selected.c}:null,
+        possibleMoves:JSON.parse(JSON.stringify(possibleMoves)),
+        moveList:[...moveList],
+        positionCounts:new Map(positionCounts)
+    };
+}
+
+function restoreSnapshot(snap){
+    setState(cloneState(snap.state));
+    lastMoveCells=JSON.parse(JSON.stringify(snap.lastMoveCells));
+    selected=snap.selected?{r:snap.selected.r,c:snap.selected.c}:null;
+    possibleMoves=JSON.parse(JSON.stringify(snap.possibleMoves));
+    moveList=[...snap.moveList];
+    positionCounts=new Map(snap.positionCounts);
+}
+
+function getState(){
+    return {board,turn,castling,enPassant,halfmoveClock,fullmoveNumber};
+}
+
+function setState(s){
+    board=s.board;
+    turn=s.turn;
+    castling=s.castling;
+    enPassant=s.enPassant;
+    halfmoveClock=s.halfmoveClock;
+    fullmoveNumber=s.fullmoveNumber;
+}
+
+function inBoard(r,c){ return r>=0&&r<8&&c>=0&&c<8; }
+function opponent(color){ return color==='white'?'black':'white'; }
+
+function stateKey(s){
+    let out=s.turn==='white'?'w':'b';
+    out+='|'+(s.castling.white.k?'K':'')+(s.castling.white.q?'Q':'')+(s.castling.black.k?'k':'')+(s.castling.black.q?'q':'');
+    out+='|'+(s.enPassant?`${s.enPassant.r},${s.enPassant.c}`:'-');
+    out+='|'+s.halfmoveClock+'|'+s.fullmoveNumber;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        out+=p?(p.color[0]+p.type):'..';
+    }
+    return out;
+}
+
+function recordPosition(){
+    const k=stateKey(getState());
+    positionCounts.set(k,(positionCounts.get(k)||0)+1);
+}
+
+function isThreefold(){
+    const k=stateKey(getState());
+    return (positionCounts.get(k)||0)>=3;
+}
+
+function isInsufficientMaterial(s){
+    let pieces=[];
+    let bishops=[];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(p){
+            pieces.push(p);
+            if(p.type==='b') bishops.push((r+c)%2);
+        }
+    }
+    const nonKings=pieces.filter(p=>p.type!=='k');
+    if(nonKings.length===0) return true;
+    if(nonKings.length===1&&['b','n'].includes(nonKings[0].type)) return true;
+    if(nonKings.length===2 && nonKings.every(p=>p.type==='b') && bishops.length===2 && bishops[0]===bishops[1]) return true;
+    return false;
+}
+
+function findKing(s,color){
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(p&&p.color===color&&p.type==='k') return {r,c};
+    }
+    return null;
+}
+
+function findPiece(s,color,type){
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(p&&p.color===color&&p.type===type) return {r,c};
+    }
+    return null;
+}
+
+function findPieces(s,color,type){
+    const out=[];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(p&&p.color===color&&p.type===type) out.push({r,c});
+    }
+    return out;
+}
+
+
+
+function isSquareAttacked(s,r,c,by){
+    const b=s.board;
+    const pawnDir=by==='white'?-1:1;
+
+    for(const dc of[-1,1]){
+        const pr=r-pawnDir, pc=c+dc;
+        if(inBoard(pr,pc)){
+            const p=b[pr][pc];
+            if(p&&p.color===by&&p.type==='p') return true;
+        }
+    }
+
+    for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+        const nr=r+dr,nc=c+dc;
+        if(inBoard(nr,nc)){
+            const p=b[nr][nc];
+            if(p&&p.color===by&&p.type==='n') return true;
+        }
+    }
+
+    for(const[dr,dc]of[[-1,-1],[-1,1],[1,-1],[1,1]]){
+        let nr=r+dr,nc=c+dc;
+        while(inBoard(nr,nc)){
+            const p=b[nr][nc];
+            if(p){
+                if(p.color===by&&(p.type==='b'||p.type==='q')) return true;
+                break;
+            }
+            nr+=dr; nc+=dc;
+        }
+    }
+
+    for(const[dr,dc]of[[-1,0],[1,0],[0,-1],[0,1]]){
+        let nr=r+dr,nc=c+dc;
+        while(inBoard(nr,nc)){
+            const p=b[nr][nc];
+            if(p){
+                if(p.color===by&&(p.type==='r'||p.type==='q')) return true;
+                break;
+            }
+            nr+=dr; nc+=dc;
+        }
+    }
+
+    for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+        const nr=r+dr,nc=c+dc;
+        if(inBoard(nr,nc)){
+            const p=b[nr][nc];
+            if(p&&p.color===by&&p.type==='k') return true;
+        }
+    }
+    return false;
+}
+
+function inCheck(s,color){
+    const k=findKing(s,color);
+    return !k||isSquareAttacked(s,k.r,k.c,opponent(color));
+}
+
+function pushMove(list,from,to,piece,captured=null,flags={}){
+    list.push({from,to,piece,captured,flags,promotion:flags.promotion||null});
+}
+
+function generatePseudoMoves(s,color){
+    const moves=[];
+    const b=s.board;
+
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=b[r][c];
+        if(!p||p.color!==color) continue;
+        const from={r,c};
+
+        if(p.type==='p'){
+            const dir=color==='white'?-1:1;
+            const start=color==='white'?6:1;
+            const promo=color==='white'?0:7;
+            const nr=r+dir;
+
+            if(inBoard(nr,c)&&!b[nr][c]){
+                if(nr===promo){
+                    for(const pr of['q','r','b','n']) pushMove(moves,from,{r:nr,c},'p',null,{promotion:pr});
+                } else {
+                    pushMove(moves,from,{r:nr,c},'p');
+                }
+                if(r===start&&!b[r+dir*2][c]) pushMove(moves,from,{r:r+dir*2,c},'p',null,{double:true});
+            }
+
+            for(const dc of[-1,1]){
+                const cr=r+dir,cc=c+dc;
+                if(!inBoard(cr,cc)) continue;
+                const t=b[cr][cc];
+                if(t&&t.color!==color){
+                    if(cr===promo){
+                        for(const pr of['q','r','b','n']) pushMove(moves,from,{r:cr,c:cc},'p',t.type,{promotion:pr});
+                    } else {
+                        pushMove(moves,from,{r:cr,c:cc},'p',t.type);
+                    }
+                }
+            }
+
+            if(s.enPassant){
+                if(r+dir===s.enPassant.r&&Math.abs(c-s.enPassant.c)===1){
+                    pushMove(moves,from,{r:s.enPassant.r,c:s.enPassant.c},'p','p',{enPassant:true});
+                }
+            }
+        } else if(p.type==='n'){
+            for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+                const nr=r+dr,nc=c+dc;
+                if(!inBoard(nr,nc)) continue;
+                const t=b[nr][nc];
+                if(!t||t.color!==color) pushMove(moves,from,{r:nr,c:nc},'n',t&&t.color!==color?t.type:null);
+            }
+        } else if(['b','r','q'].includes(p.type)){
+            const dirs=[];
+            if(p.type!=='r') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
+            if(p.type!=='b') dirs.push([-1,0],[1,0],[0,-1],[0,1]);
+
+            for(const[dr,dc]of dirs){
+                let nr=r+dr,nc=c+dc;
+                while(inBoard(nr,nc)){
+                    const t=b[nr][nc];
+                    if(!t){
+                        pushMove(moves,from,{r:nr,c:nc},p.type);
+                    } else {
+                        if(t.color!==color) pushMove(moves,from,{r:nr,c:nc},p.type,t.type);
+                        break;
+                    }
+                    nr+=dr; nc+=dc;
+                }
+            }
+        } else if(p.type==='k'){
+            for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+                const nr=r+dr,nc=c+dc;
+                if(!inBoard(nr,nc)) continue;
+                const t=b[nr][nc];
+                if(!t||t.color!==color) pushMove(moves,from,{r:nr,c:nc},'k',t&&t.color!==color?t.type:null);
+            }
+
+            if(!inCheck(s,color)){
+                if(color==='white'&&r===7&&c===4){
+                    if(s.castling.white.k&&!b[7][5]&&!b[7][6]&&!isSquareAttacked(s,7,5,'black')&&!isSquareAttacked(s,7,6,'black')){
+                        pushMove(moves,from,{r:7,c:6},'k',null,{castle:'k'});
+                    }
+                    if(s.castling.white.q&&!b[7][3]&&!b[7][2]&&!b[7][1]&&!isSquareAttacked(s,7,3,'black')&&!isSquareAttacked(s,7,2,'black')){
+                        pushMove(moves,from,{r:7,c:2},'k',null,{castle:'q'});
+                    }
+                }
+                if(color==='black'&&r===0&&c===4){
+                    if(s.castling.black.k&&!b[0][5]&&!b[0][6]&&!isSquareAttacked(s,0,5,'white')&&!isSquareAttacked(s,0,6,'white')){
+                        pushMove(moves,from,{r:0,c:6},'k',null,{castle:'k'});
+                    }
+                    if(s.castling.black.q&&!b[0][3]&&!b[0][2]&&!b[0][1]&&!isSquareAttacked(s,0,3,'white')&&!isSquareAttacked(s,0,2,'white')){
+                        pushMove(moves,from,{r:0,c:2},'k',null,{castle:'q'});
+                    }
+                }
+            }
+        }
+    }
+    return moves;
+}
+
+function applyMove(s,m){
+    const b=s.board;
+    const piece=b[m.from.r][m.from.c];
+    const target=b[m.to.r][m.to.c];
+
+    b[m.from.r][m.from.c]=null;
+
+    if(m.flags.enPassant){
+        const capR=piece.color==='white'?m.to.r+1:m.to.r-1;
+        b[capR][m.to.c]=null;
+    }
+
+    b[m.to.r][m.to.c]={color:piece.color,type:m.promotion||piece.type};
+
+    if(m.flags.castle){
+        if(m.to.c===6){
+            b[m.to.r][5]=b[m.to.r][7];
+            b[m.to.r][7]=null;
+        } else if(m.to.c===2){
+            b[m.to.r][3]=b[m.to.r][0];
+            b[m.to.r][0]=null;
+        }
+    }
+
+    if(piece.type==='k'){
+        s.castling[piece.color].k=false;
+        s.castling[piece.color].q=false;
+    }
+
+    if(piece.type==='r'){
+        if(piece.color==='white'&&m.from.r===7&&m.from.c===0) s.castling.white.q=false;
+        if(piece.color==='white'&&m.from.r===7&&m.from.c===7) s.castling.white.k=false;
+        if(piece.color==='black'&&m.from.r===0&&m.from.c===0) s.castling.black.q=false;
+        if(piece.color==='black'&&m.from.r===0&&m.from.c===7) s.castling.black.k=false;
+    }
+
+    if(target&&target.type==='r'){
+        if(target.color==='white'&&m.to.r===7&&m.to.c===0) s.castling.white.q=false;
+        if(target.color==='white'&&m.to.r===7&&m.to.c===7) s.castling.white.k=false;
+        if(target.color==='black'&&m.to.r===0&&m.to.c===0) s.castling.black.q=false;
+        if(target.color==='black'&&m.to.r===0&&m.to.c===7) s.castling.black.k=false;
+    }
+
+    s.enPassant=null;
+    if(piece.type==='p'&&m.flags.double) s.enPassant={r:(m.from.r+m.to.r)/2,c:m.from.c};
+
+    s.halfmoveClock=(piece.type==='p'||m.captured)?0:s.halfmoveClock+1;
+    if(s.turn==='black') s.fullmoveNumber++;
+    s.turn=opponent(s.turn);
+}
+
+function getLegalMoves(s,color){
+    const pseudo=generatePseudoMoves(s,color);
+    const legal=[];
+    for(const m of pseudo){
+        const c=cloneState(s);
+        applyMove(c,m);
+        if(!inCheck(c,color)) legal.push(m);
+    }
+    return legal;
+}
+
+
+function squareName(sq){
+    return 'abcdefgh'[sq.c]+(8-sq.r);
+}
+
+function moveText(m,sAfter){
+    if(m.flags.castle==='k') return 'O-O';
+    if(m.flags.castle==='q') return 'O-O-O';
+
+    const pieceLetter=m.piece==='p'?'':m.piece.toUpperCase();
+    const capture=m.captured?'x':'';
+    const to=squareName(m.to);
+    const promo=m.promotion?'='+m.promotion.toUpperCase():'';
+    let text='';
+
+    if(m.piece==='p'&&m.captured) text='abcdefgh'[m.from.c]+'x'+to+promo;
+    else text=pieceLetter+capture+to+promo;
+
+    const enemy=sAfter.turn;
+    const legal=getLegalMoves(sAfter,enemy);
+    if(legal.length===0){
+        if(inCheck(sAfter,enemy)) text+='#';
+    } else if(inCheck(sAfter,enemy)){
+        text+='+';
+    }
+
+    return text;
+}
+
+function applyMoveToBoardUI(move){
+    const s=getState();
+    applyMove(s,move);
+    const notation=moveText(move,s);
+    setState(s);
+    moveList.push(notation);
+    lastMoveCells=[{r:move.from.r,c:move.from.c},{r:move.to.r,c:move.to.c}];
+    selected=null;
+    possibleMoves=[];
+}
+
+function makeRealMove(move,isHuman){
+    historyStack.push(snapshot());
+    applyMoveToBoardUI(move);
+    playMoveSound(move);
+    recordPosition();
+    drawBoard();
+    updateMoveCounter();
+    updateMoveLog();
+
+    const s=getState();
+    const draw=isThreefold()||s.halfmoveClock>=100||isInsufficientMaterial(s);
+    if(draw){
+        updateStatus('Draw');
+        setTimeout(()=>endGame('Draw'),50);
+        return;
+    }
+
+    const sideToMove=turn;
+    const oppMoves=getLegalMoves(s,sideToMove);
+
+    if(oppMoves.length===0){
+        if(inCheck(s,sideToMove)) endGame(sideToMove==='white'?'Checkmate! Black wins!':'Checkmate! White wins!');
+        else endGame('Stalemate');
+        return;
+    }
+
+    updateStatus((inCheck(s,sideToMove)?'Check! ':'')+'Turn: '+turn);
+
+    if(turn===botColor) setTimeout(botMove,80);
+}
+
+function endGame(text){
+    clearInterval(timerInterval);
+    alert(text);
+    location.reload();
+}
+
+function gamePhase(s){
+    let material=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(!p||p.type==='k'||p.type==='p') continue;
+        material+=VAL[p.type];
+    }
+    if(material<=1400) return 'end';
+    if(material<=2600) return 'lateMid';
+    return 'mid';
+}
+
+function pstValue(piece,r,c,phase){
+    const rr=piece.color==='white'?r:7-r;
+    if(piece.type==='k') return PST[phase==='end'?'ke':'km'][rr][c];
+    return PST[piece.type][rr][c]||0;
+}
+
+function pawnFileCounts(s,color){
+    const cnt=Array(8).fill(0);
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(p&&p.color===color&&p.type==='p') cnt[c]++;
+    }
+    return cnt;
+}
+
+function isPassedPawn(s,r,c,color){
+    const dir=color==='white'?-1:1;
+    for(let fc=c-1;fc<=c+1;fc++){
+        if(fc<0||fc>7) continue;
+        let rr=r+dir;
+        while(inBoard(rr,fc)){
+            const p=s.board[rr][fc];
+            if(p&&p.color!==color&&p.type==='p') return false;
+            rr+=dir;
+        }
+    }
+    return true;
+}
+
+function isOpenFile(s,c){
+    for(let r=0;r<8;r++){
+        const p=s.board[r][c];
+        if(p&&p.type==='p') return false;
+    }
+    return true;
+}
+
+function isSemiOpenFile(s,c,color){
+    for(let r=0;r<8;r++){
+        const p=s.board[r][c];
+        if(p&&p.type==='p'&&p.color===color) return false;
+    }
+    return true;
+}
+
+function pieceSafetyMap(s,color){
+    const out=[];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(!p||p.color!==color||p.type==='k') continue;
+
+        const attacked=isSquareAttacked(s,r,c,opponent(color));
+        const defended=isSquareAttacked(s,r,c,color);
+        const value=VAL[p.type];
+
+        let danger=0;
+        if(attacked&&!defended) danger=value*2.4;
+        else if(attacked&&defended) danger=value*0.65;
+        else if(!attacked&&!defended) danger=value*0.20;
+
+        out.push({r,c,type:p.type,value,attacked,defended,danger});
+    }
+    return out;
+}
+
+function hangingPenalty(s,color){
+    const info=pieceSafetyMap(s,color);
+    let penalty=0;
+
+    for(const x of info){
+        if(x.attacked&&!x.defended){
+            penalty+=Math.floor(x.value*2.2);
+            if(x.type==='q') penalty+=1400;
+            if(x.type==='r') penalty+=700;
+            if(x.type==='b'||x.type==='n') penalty+=520;
+            if(x.type==='p') penalty+=140;
+        } else if(x.attacked&&x.defended){
+            penalty+=Math.floor(x.value*0.55);
+        } else if(!x.attacked&&!x.defended){
+            penalty+=Math.floor(x.value*0.12);
+        }
+    }
+
+    return penalty;
+}
+
+function overprotectionBonus(s,color){
+    const info=pieceSafetyMap(s,color);
+    let bonus=0;
+
+    for(const x of info){
+        if(x.defended&&!x.attacked) bonus+=Math.floor(x.value*0.05);
+    }
+    return bonus;
+}
+
+function kingSafety(s,color){
+    const k=findKing(s,color);
+    if(!k) return -1000;
+
+    let score=0;
+    const home=color==='white'?7:0;
+
+    if(k.r===home&&(k.c===6||k.c===2)) score+=70;
+    if(k.r===home&&k.c===4) score-=35;
+
+    for(const dc of[-1,0,1]){
+        const r1=color==='white'?k.r-1:k.r+1, c1=k.c+dc;
+        if(inBoard(r1,c1)){
+            const p=s.board[r1][c1];
+            if(p&&p.color===color&&p.type==='p') score+=18;
+            else score-=18;
+        } else {
+            score-=12;
+        }
+    }
+
+    let ringAttacks=0;
+    let ringDefenders=0;
+    for(const dr of[-1,0,1]) for(const dc of[-1,0,1]){
+        if(dr===0&&dc===0) continue;
+        const nr=k.r+dr,nc=k.c+dc;
+        if(inBoard(nr,nc)){
+            if(isSquareAttacked(s,nr,nc,opponent(color))) ringAttacks++;
+            if(isSquareAttacked(s,nr,nc,color)) ringDefenders++;
+        }
+    }
+
+    score-=ringAttacks*14;
+    score+=ringDefenders*5;
+
+    if(isSquareAttacked(s,k.r,k.c,opponent(color))) score-=60;
+    return score;
+}
+
+function mobilityScore(s,color){
+    const moves=getLegalMoves(s,color);
+    let score=0;
+    for(const m of moves){
+        score+=2;
+        if(m.captured) score+=8+Math.floor(VAL[m.captured]/40);
+        if(m.flags.castle) score+=10;
+        if(m.promotion) score+=30;
+    }
+    return score;
+}
+
+function openingPrincipleBonus(s,color){
+    let score=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(!p||p.color!==color) continue;
+
+        if(p.type==='p'){
+            if((color==='white'&&r===4&&c===4)||(color==='black'&&r===3&&c===4)) score+=18;
+            if((color==='white'&&r===4&&c===3)||(color==='black'&&r===3&&c===3)) score+=18;
+        }
+
+        if(p.type==='n'){
+            if(color==='white'){
+                if(r===5&&(c===2||c===5)) score+=22;
+                if(r===7&&(c===0||c===7)) score-=34;
+            } else {
+                if(r===2&&(c===2||c===5)) score+=22;
+                if(r===0&&(c===0||c===7)) score-=34;
+            }
+        }
+
+        if(p.type==='b'){
+            if(color==='white'&&r<7) score+=8;
+            if(color==='black'&&r>0) score+=8;
+        }
+    }
+    return score;
+}
+
+
+function evaluateFor(s,pov){
+    const phase=gamePhase(s);
+    let score=0;
+    let bishops={white:0,black:0};
+    const pawnCounts={
+        white:pawnFileCounts(s,'white'),
+        black:pawnFileCounts(s,'black')
+    };
+
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(!p) continue;
+
+        let v=VAL[p.type]+pstValue(p,r,c,phase);
+
+        if(p.type==='p'){
+            const advance=p.color==='white'?(6-r):(r-1);
+            v+=advance*5;
+
+            const isolated=[c-1,c+1].every(fc=>fc<0||fc>7||pawnCounts[p.color][fc]===0);
+            if(isolated) v-=16;
+
+            if(pawnCounts[p.color][c]>1) v-=14*(pawnCounts[p.color][c]-1);
+
+            if(isPassedPawn(s,r,c,p.color)){
+                const bonus=[0,8,14,24,42,65,100,0][advance]||0;
+                v+=bonus;
+            }
+
+            if((p.color==='white'&&r===6)||(p.color==='black'&&r===1)) v+=8;
+            if((p.color==='white'&&r===4)||(p.color==='black'&&r===3)) v+=12;
+        }
+
+        if(p.type==='n'){
+            const centerDist=Math.abs(3.5-r)+Math.abs(3.5-c);
+            v+=Math.round((7-centerDist)*4);
+            if((p.color==='white'&&r<6)||(p.color==='black'&&r>1)) v+=8;
+        }
+
+        if(p.type==='b'){
+            bishops[p.color]++;
+            v+=8;
+        }
+
+        if(p.type==='r'){
+            if(isOpenFile(s,c)) v+=30;
+            else if(isSemiOpenFile(s,c,p.color)) v+=18;
+            if((p.color==='white'&&r===1)||(p.color==='black'&&r===6)) v+=20;
+        }
+
+        if(p.type==='q'){
+            if(isSquareAttacked(s,r,c,opponent(p.color))&&!isSquareAttacked(s,r,c,p.color)) v-=120;
+        }
+
+        score+=p.color===pov?v:-v;
+    }
+
+    if(bishops.white>=2) score+=pov==='white'?42:-42;
+    if(bishops.black>=2) score+=pov==='black'?42:-42;
+
+    score+=mobilityScore(s,pov)-mobilityScore(s,opponent(pov));
+    score+=kingSafety(s,pov)-kingSafety(s,opponent(pov));
+    score-=hangingPenalty(s,pov);
+    score+=hangingPenalty(s,opponent(pov));
+    score+=overprotectionBonus(s,pov);
+    score-=overprotectionBonus(s,opponent(pov));
+
+    const moveCount=(s.fullmoveNumber-1)*2+(s.turn==='black'?1:0);
+    if(moveCount<=12){
+        score+=openingPrincipleBonus(s,pov)-openingPrincipleBonus(s,opponent(pov));
+    }
+
+    return score;
+}
+
+function evaluate(s){
+    const legal=getLegalMoves(s,s.turn);
+    if(legal.length===0){
+        if(inCheck(s,s.turn)) return s.turn===botColor?-MATE:MATE;
+        return 0;
+    }
+    return evaluateFor(s,botColor);
+}
+
+function moveKey(m){
+    return `${m.from.r}${m.from.c}${m.to.r}${m.to.c}${m.piece}${m.captured||'-'}${m.promotion||'-'}${m.flags.castle||'-'}${m.flags.enPassant?'e':'-'}`;
+}
+
+function sameMove(a,b){
+    if(!a||!b) return false;
+    return moveKey(a)===moveKey(b);
+}
+
+function seeLikeScore(m){
+    if(!m.captured) return 0;
+    return 18*VAL[m.captured]-10*VAL[m.piece];
+}
+
+function isMoveSafeAfter(c,m,color){
+    const landed=c.board[m.to.r][m.to.c];
+    if(!landed) return true;
+    const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
+    const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+    if(!attacked) return true;
+    if(landed.type==='k') return false;
+    return defended;
+}
+
+function moveLeavesMovedPieceHanging(c,m,color){
+    const landed=c.board[m.to.r][m.to.c];
+    if(!landed||landed.type==='k') return false;
+    const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
+    const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+    return attacked&&!defended;
+}
+
+function immediateOpponentPunishScore(c,color){
+    const enemy=opponent(color);
+    let best=0;
+    const oppMoves=getLegalMoves(c,enemy);
+
+    for(const om of oppMoves){
+        let val=0;
+        if(om.captured) val+=VAL[om.captured]*14-VAL[om.piece];
+        if(om.promotion) val+=VAL[om.promotion]*8;
+
+        const cc=cloneState(c);
+        applyMove(cc,om);
+        if(inCheck(cc,color)) val+=120;
+
+        const landed=cc.board[om.to.r][om.to.c];
+        if(landed && landed.color===enemy){
+            const attacked=isSquareAttacked(cc,om.to.r,om.to.c,color);
+            const defended=isSquareAttacked(cc,om.to.r,om.to.c,enemy);
+            if(!attacked || defended) val+=40;
+        }
+
+        if(val>best) best=val;
+    }
+    return best;
+}
+
+function isEarlyPhase(s){
+    const ply=(s.fullmoveNumber-1)*2+(s.turn==='black'?1:0);
+    return ply<=12;
+}
+
+function antiBadOpeningPenalty(s,m,color){
+    if(!isEarlyPhase(s)) return 0;
+
+    const piece=s.board[m.from.r][m.from.c];
+    if(!piece||piece.color!==color) return 0;
+
+    let pen=0;
+
+    if(piece.type==='p'){
+        const fromFile=m.from.c;
+        const toRank=m.to.r;
+        const fromRank=m.from.r;
+
+        if(color==='black'){
+            if(fromRank===1 && toRank===2 && (fromFile===5||fromFile===6||fromFile===7)) pen+=2600;
+            if(fromRank===1 && toRank===3 && (fromFile===5||fromFile===6||fromFile===7)) pen+=3200;
+            if(fromRank===1 && (fromFile===0||fromFile===7) && !m.captured) pen+=1400;
+        } else {
+            if(fromRank===6 && toRank===5 && (fromFile===5||fromFile===6||fromFile===7)) pen+=2600;
+            if(fromRank===6 && toRank===4 && (fromFile===5||fromFile===6||fromFile===7)) pen+=3200;
+        }
+    }
+
+    if(piece.type==='n'){
+        if(color==='black'){
+            if(m.from.r===0&&m.from.c===6&&m.to.r===2&&m.to.c===7) pen+=4200; // Nh6
+            if(m.from.r===0&&m.from.c===1&&m.to.r===2&&m.to.c===0) pen+=3800; // Na6
+        } else {
+            if(m.from.r===7&&m.from.c===6&&m.to.r===5&&m.to.c===7) pen+=4200;
+            if(m.from.r===7&&m.from.c===1&&m.to.r===5&&m.to.c===0) pen+=3800;
+        }
+    }
+
+    if(piece.type==='q' && !m.captured){
+        pen+=1600;
+    }
+
+    return pen;
+}
+
+function antiScholarThreatBonus(s,m,color){
+    const enemy=opponent(color);
+    const c=cloneState(s);
+    applyMove(c,m);
+
+    const enemyQueenSquare=findPiece(c,enemy,'q');
+    const enemyBishops=findPieces(c,enemy,'b');
+    let bonus=0;
+
+    const sensitive=color==='black'?{r:1,c:5}:{r:6,c:5};
+
+    const queenPress = enemyQueenSquare && (
+        (enemyQueenSquare.r===3&&enemyQueenSquare.c===7) ||
+        (enemyQueenSquare.r===4&&enemyQueenSquare.c===7) ||
+        (enemyQueenSquare.r===3&&enemyQueenSquare.c===4) ||
+        (enemyQueenSquare.r===4&&enemyQueenSquare.c===4)
+    );
+
+    const bishopPressure = enemyBishops.some(b =>
+        Math.abs(b.r-sensitive.r)===Math.abs(b.c-sensitive.c)
+    );
+
+    if(queenPress || bishopPressure){
+        if(m.flags.castle) bonus+=1400;
+        const landed=c.board[m.to.r][m.to.c];
+        if(landed){
+            if(color==='black'){
+                if(landed.type==='p' && m.to.r===2 && m.to.c===6) bonus+=2600; // g6
+                if(landed.type==='n' && m.to.r===2 && (m.to.c===2||m.to.c===5)) bonus+=1800; // Nc6/Nf6
+                if(landed.type==='p' && m.to.r===2 && m.to.c===3) bonus+=1300; // d6
+            } else {
+                if(landed.type==='p' && m.to.r===5 && m.to.c===6) bonus+=2600;
+                if(landed.type==='n' && m.to.r===5 && (m.to.c===2||m.to.c===5)) bonus+=1800;
+                if(landed.type==='p' && m.to.r===5 && m.to.c===3) bonus+=1300;
+            }
+        }
+    }
+
+    return bonus;
+}
+
+
+function badExchangePenaltyAfterMove(s,m,color){
+    const c=cloneState(s);
+    applyMove(c,m);
+
+    const landed=c.board[m.to.r][m.to.c];
+    if(!landed||landed.color!==color||landed.type==='k'||landed.type==='p') return 0;
+
+    const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
+    const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+    if(!attacked) return 0;
+
+    let pen=0;
+    const pieceValue=VAL[landed.type];
+    const gainNow=m.captured?VAL[m.captured]:0;
+
+    if(!defended){
+        pen += pieceValue*16;
+        if(gainNow < pieceValue-150) pen += (pieceValue-gainNow)*14;
+    } else {
+        pen += pieceValue*4;
+        if(gainNow < pieceValue-220) pen += (pieceValue-gainNow)*5;
+    }
+
+    if(landed.type==='q') pen+=2400;
+    if(landed.type==='r') pen+=1200;
+    if(landed.type==='n'||landed.type==='b') pen+=900;
+
+    return pen;
+}
+
+function openingBlunderPenalty(s,m,color){
+    const moveCount=(s.fullmoveNumber-1)*2+(s.turn==='black'?1:0);
+    const c=cloneState(s);
+    applyMove(c,m);
+
+    const landed=c.board[m.to.r][m.to.c];
+    if(!landed||landed.type==='k') return 0;
+
+    const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
+    const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+
+    if(moveCount<=8 && attacked && !defended){
+        let pen=Math.floor(VAL[landed.type]*22);
+        if(landed.type==='p') pen+=2800;
+        if(landed.type==='n'||landed.type==='b') pen+=4600;
+        if(landed.type==='r') pen+=7200;
+        if(landed.type==='q') pen+=14000;
+        return pen;
+    }
+    return 0;
+}
+
+function rootSafetyGate(s,m,color){
+    const c=cloneState(s);
+    applyMove(c,m);
+
+    const punish=immediateOpponentPunishScore(c,color);
+    const openingPenalty=openingBlunderPenalty(s,m,color);
+    const badOpening=antiBadOpeningPenalty(s,m,color);
+    const badExchange=badExchangePenaltyAfterMove(s,m,color);
+
+    let selfLoose=0;
+    for(let r=0;r<8;r++) for(let cc=0;cc<8;cc++){
+        const p=c.board[r][cc];
+        if(!p||p.color!==color||p.type==='k') continue;
+        const attacked=isSquareAttacked(c,r,cc,opponent(color));
+        const defended=isSquareAttacked(c,r,cc,color);
+        if(attacked&&!defended) selfLoose=Math.max(selfLoose,VAL[p.type]);
+    }
+
+    let ownGain=0;
+    if(m.captured) ownGain+=VAL[m.captured]*7;
+    if(m.promotion) ownGain+=VAL[m.promotion]*6;
+    if(inCheck(c,opponent(color))) ownGain+=80;
+
+    const net=ownGain-punish-openingPenalty-badOpening-badExchange-selfLoose*14;
+
+    return {
+        safe: net>=-80,
+        net,
+        punish,
+        openingPenalty,
+        badOpening,
+        badExchange,
+        selfLoose
+    };
+}
+
+function classifyMovePriority(s,m,color){
+    const enemy=opponent(color);
+    const c=cloneState(s);
+    applyMove(c,m);
+
+    let category=4;
+    let score=0;
+
+    if(m.captured){
+        const capturedValue=VAL[m.captured];
+        const movingValue=VAL[m.piece];
+        if(capturedValue>=movingValue){
+            category=1;
+            score+=2000000 + capturedValue*500;
+        } else {
+            category=3;
+            score+=200000 + capturedValue*100;
+        }
+    }
+
+    if(m.flags.castle){
+        category=Math.min(category,3);
+        score+=140000;
+    }
+
+    if(m.promotion){
+        category=1;
+        score+=2500000;
+    }
+
+    const gate=rootSafetyGate(s,m,color);
+    score += gate.net*160;
+    score -= antiBadOpeningPenalty(s,m,color)*140;
+    score += antiScholarThreatBonus(s,m,color)*100;
+
+    const landed=c.board[m.to.r][m.to.c];
+    if(landed){
+        const attacked=isSquareAttacked(c,m.to.r,m.to.c,enemy);
+        const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+
+        if(attacked&&!defended){
+            if(landed.type==='q') score-=2200000;
+            else if(landed.type==='r') score-=1400000;
+            else if(landed.type==='b'||landed.type==='n') score-=1100000;
+            else score-=180000;
+        } else if(attacked&&defended){
+            score-=VAL[landed.type]*280;
+        } else if(!attacked&&defended){
+            score+=VAL[landed.type]*18;
+        }
+    }
+
+    score += evaluateFor(c,color)-evaluateFor(s,color);
+
+    return {category,score,gate};
+}
+
+function ttLookup(s,depth,alpha,beta){
+    const entry=tt.get(stateKey(s));
+    if(!entry||entry.depth<depth) return null;
+    if(entry.flag==='EXACT') return entry.score;
+    if(entry.flag==='LOWER'&&entry.score>=beta) return entry.score;
+    if(entry.flag==='UPPER'&&entry.score<=alpha) return entry.score;
+    return null;
+}
+
+function ttBestMove(s){
+    const entry=tt.get(stateKey(s));
+    return entry&&entry.bestMove?entry.bestMove:null;
+}
+
+function storeTT(s,depth,score,flag,bestMove){
+    tt.set(stateKey(s),{depth,score,flag,bestMove});
+}
+
+function orderMoves(s,color,moves,ply,ttMove=null){
+    const killers=killerMoves[ply]||[null,null];
+    const hist=historyHeuristic[color];
+
+    return moves
+        .map(m=>{
+            const info=classifyMovePriority(s,m,color);
+            let ord=0;
+
+            ord += (5-info.category)*10000000;
+            ord += info.score;
+
+            if(info.gate && !info.gate.safe) ord -= 900000000;
+
+            if(ttMove&&sameMove(m,ttMove)) ord+=900000000;
+            if(m.captured) ord+=2200000+seeLikeScore(m);
+            if(m.promotion) ord+=1800000;
+            if(killers[0]&&sameMove(m,killers[0])) ord+=900000;
+            else if(killers[1]&&sameMove(m,killers[1])) ord+=700000;
+
+            if(!m.captured){
+                ord+=(hist.get(moveKey(m))||0);
+            }
+
+            ord += Math.random()*0.1;
+            return {m,ord};
+        })
+        .sort((a,b)=>b.ord-a.ord)
+        .map(x=>x.m);
+}
+
+function quiescence(s,alpha,beta,ply){
+    const stand=evaluate(s);
+    if(stand>=beta) return beta;
+    if(alpha<stand) alpha=stand;
+
+    let tactical=getLegalMoves(s,s.turn).filter(m=>{
+        if(m.captured||m.promotion) return true;
+        const info=classifyMovePriority(s,m,s.turn);
+        return info.category<=3;
+    });
+
+    tactical=orderMoves(s,s.turn,tactical,ply,ttBestMove(s));
+
+    for(const m of tactical){
+        if(performance.now()>=searchDeadline){
+            searchAborted=true;
+            break;
+        }
+
+        const c=cloneState(s);
+        applyMove(c,m);
+        const score=-quiescence(c,-beta,-alpha,ply+1);
+
+        if(score>=beta) return beta;
+        if(score>alpha) alpha=score;
+    }
+    return alpha;
+}
+
+function addKiller(ply,m){
+    if(m.captured) return;
+    const arr=killerMoves[ply];
+    if(arr[0]&&sameMove(arr[0],m)) return;
+    arr[1]=arr[0];
+    arr[0]=m;
+}
+
+function addHistory(color,m,depth){
+    if(m.captured) return;
+    const key=moveKey(m);
+    const hist=historyHeuristic[color];
+    hist.set(key,(hist.get(key)||0)+depth*depth*18);
+}
+
+function nullMoveAllowed(s,depth){
+    if(depth<3) return false;
+    if(inCheck(s,s.turn)) return false;
+    let nonPawn=0;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+        const p=s.board[r][c];
+        if(p&&p.color===s.turn&&p.type!=='p'&&p.type!=='k') nonPawn++;
+    }
+    return nonPawn>0;
+}
+
+function makeNullMove(s){
+    const c=cloneState(s);
+    c.turn=opponent(c.turn);
+    c.enPassant=null;
+    c.halfmoveClock++;
+    if(s.turn==='black') c.fullmoveNumber++;
+    return c;
+}
+
+
+function negamax(s,depth,alpha,beta,ply){
+    nodeCount++;
+
+    if((nodeCount&1023)===0&&performance.now()>=searchDeadline){
+        searchAborted=true;
+        return 0;
+    }
+
+    const originalAlpha=alpha;
+    const ttScore=ttLookup(s,depth,alpha,beta);
+    if(ttScore!==null) return ttScore;
+
+    if(depth<=0) return quiescence(s,alpha,beta,ply);
+
+    const legalRaw=getLegalMoves(s,s.turn);
+    if(legalRaw.length===0){
+        if(inCheck(s,s.turn)) return -MATE+ply;
+        return 0;
+    }
+
+    if(nullMoveAllowed(s,depth)){
+        const ns=makeNullMove(s);
+        const R=depth>=5?3:2;
+        const score=-negamax(ns,depth-1-R,-beta,-beta+1,ply+1);
+        if(searchAborted) return 0;
+        if(score>=beta) return beta;
+    }
+
+    const ttMove=ttBestMove(s);
+    const legal=orderMoves(s,s.turn,legalRaw,ply,ttMove);
+
+    let best=-INF;
+    let bestMove=null;
+    let moveIndex=0;
+
+    for(const m of legal){
+        const c=cloneState(s);
+        applyMove(c,m);
+
+        let score;
+        const givesCheck=inCheck(c,c.turn);
+        const info=classifyMovePriority(s,m,s.turn);
+        const forcingMove=info.category<=3 || m.captured || m.promotion || givesCheck;
+
+        if(moveIndex>3 && depth>=3 && !forcingMove){
+            const reduced=depth>=5?2:1;
+            score=-negamax(c,depth-1-reduced,-alpha-1,-alpha,ply+1);
+            if(searchAborted) return 0;
+            if(score>alpha){
+                score=-negamax(c,depth-1,-beta,-alpha,ply+1);
+            }
+        } else {
+            score=-negamax(c,depth-1,-beta,-alpha,ply+1);
+        }
+
+        if(searchAborted) return 0;
+
+        if(score>best){
+            best=score;
+            bestMove=m;
+        }
+        if(score>alpha) alpha=score;
+
+        if(alpha>=beta){
+            addKiller(ply,m);
+            addHistory(s.turn,m,depth);
+            storeTT(s,depth,beta,'LOWER',m);
+            return beta;
+        }
+        moveIndex++;
+    }
+
+    let flag='EXACT';
+    if(best<=originalAlpha) flag='UPPER';
+    else if(best>=beta) flag='LOWER';
+
+    storeTT(s,depth,best,flag,bestMove);
+    return best;
+}
+
+function chooseAmongNearBest(scored,rootState){
+    if(!scored.length) return null;
+
+    scored.sort((a,b)=>b.score-a.score);
+    const best=scored[0].score;
+
+    const pool=scored.filter(x=>{
+        const info=classifyMovePriority(rootState,x.move,botColor);
+        if(info.gate && !info.gate.safe) return false;
+        return x.score >= best-12;
+    });
+
+    const candidates=pool.length?pool:scored;
+    const weighted=candidates.map(x=>{
+        const diff=Math.max(0,best-x.score);
+        const weight=Math.max(1,Math.round(100-diff*4));
+        return {move:x.move,weight};
+    });
+
+    let total=weighted.reduce((a,b)=>a+b.weight,0);
+    let rnd=Math.random()*total;
+    for(const item of weighted){
+        rnd-=item.weight;
+        if(rnd<=0) return item.move;
+    }
+    return weighted[0].move;
+}
+
+function filterRootMovesBySafety(root,moves,color){
+    const scored=moves.map(m=>{
+        const gate=rootSafetyGate(root,m,color);
+        return {move:m,gate};
+    });
+
+    const safe=scored.filter(x=>x.gate.safe).sort((a,b)=>b.gate.net-a.gate.net).map(x=>x.move);
+    if(safe.length) return safe;
+
+    return scored.sort((a,b)=>b.gate.net-a.gate.net).map(x=>x.move);
+}
+
+function currentBookKey(){
+    return moveList.join(' ').trim();
+}
+
+function weightedBookChoice(entries){
+    const filtered=entries.filter(x=>x.w>0);
+    if(!filtered.length) return null;
+    const total=filtered.reduce((a,b)=>a+b.w,0);
+    let rnd=Math.random()*total;
+    for(const e of filtered){
+        rnd-=e.w;
+        if(rnd<=0) return e.move;
+    }
+    return filtered[0].move;
+}
+
+function tryBookMove(state,color){
+    const ply=(state.fullmoveNumber-1)*2+(state.turn==='black'?1:0);
+    if(ply>16) return null;
+
+    const key=currentBookKey();
+    const entries=OPENING_BOOK[key];
+    if(!entries||!entries.length) return null;
+
+    const legal=getLegalMoves(state,color);
+    const scoredBookMoves=[];
+
+    for(const entry of entries){
+        const candidate=legal.find(m=>{
+            const c=cloneState(state);
+            applyMove(c,m);
+            return moveText(m,c)===entry.move;
+        });
+
+        if(!candidate) continue;
+
+        const gate=rootSafetyGate(state,candidate,color);
+        if(!gate.safe) continue;
+
+        const badOpening=antiBadOpeningPenalty(state,candidate,color);
+        if(badOpening>=3000) continue;
+
+        scoredBookMoves.push({move:candidate,w:entry.w});
+    }
+
+    if(!scoredBookMoves.length) return null;
+
+    const san=weightedBookChoice(scoredBookMoves.map(x=>({move:x.move,w:x.w})));
+    const found=scoredBookMoves.find(x=>x.move===san || sameMove(x.move,san));
+    if(found) return found.move;
+
+    let total=scoredBookMoves.reduce((a,b)=>a+b.w,0);
+    let rnd=Math.random()*total;
+    for(const item of scoredBookMoves){
+        rnd-=item.w;
+        if(rnd<=0) return item.move;
+    }
+    return scoredBookMoves[0].move;
+}
+
+function botMove(){
+    if(turn!==botColor) return;
+
+    searchDeadline=performance.now()+BOT_THINK_MS;
+    searchAborted=false;
+    nodeCount=0;
+    tt.clear();
+
+    const root=cloneState(getState());
+
+    const bookMove=tryBookMove(root,botColor);
+    if(bookMove){
+        document.getElementById('engineInfo').innerText='Book move';
+        makeRealMove(bookMove,false);
+        return;
+    }
+
+    let bestMove=null;
+    let bestScore=-INF;
+    const maxDepth=parseInt(document.getElementById('difficulty').value,10)+6;
+    let previousScore=0;
+
+    let rootMoves=getLegalMoves(root,botColor);
+    rootMoves=filterRootMovesBySafety(root,rootMoves,botColor);
+    rootMoves=orderMoves(root,botColor,rootMoves,0,ttBestMove(root));
+
+    for(let depth=1;depth<=maxDepth;depth++){
+        if(performance.now()>=searchDeadline) break;
+
+        let window=depth>=3?40:INF;
+        let alpha=window===INF?-INF:previousScore-window;
+        let beta=window===INF?INF:previousScore+window;
+        let scored=[];
+
+        while(true){
+            if(performance.now()>=searchDeadline){
+                searchAborted=true;
+                break;
+            }
+
+            const ttMove=ttBestMove(root);
+            let moves=getLegalMoves(root,botColor);
+            moves=filterRootMovesBySafety(root,moves,botColor);
+            moves=orderMoves(root,botColor,moves,0,ttMove);
+
+            scored=[];
+            let localAlpha=alpha;
+
+            for(const m of moves){
+                const gate=rootSafetyGate(root,m,botColor);
+                if(!gate.safe && moves.length>1) continue;
+
+                const c=cloneState(root);
+                applyMove(c,m);
+                const score=-negamax(c,depth-1,-beta,-localAlpha,1);
+
+                if(searchAborted) break;
+                scored.push({move:m,score});
+                if(score>localAlpha) localAlpha=score;
+            }
+
+            if(searchAborted) break;
+            if(!scored.length) break;
+
+            scored.sort((a,b)=>b.score-a.score);
+            const top=scored[0].score;
+
+            if(window!==INF && top<=alpha){
+                alpha-=window*2;
+                beta=top+window;
+                window*=2;
+                continue;
+            }
+            if(window!==INF && top>=beta){
+                beta+=window*2;
+                alpha=top-window;
+                window*=2;
+                continue;
+            }
+
+            bestScore=top;
+            bestMove=chooseAmongNearBest(scored,root);
+            previousScore=top;
+            document.getElementById('engineInfo').innerText=`Depth ${depth} | Eval ${(bestScore/100).toFixed(2)} | Nodes ${nodeCount} | 15s`;
+            break;
+        }
+
+        if(searchAborted) break;
+    }
+
+    if(!bestMove){
+        let fallback=getLegalMoves(root,botColor);
+        fallback=filterRootMovesBySafety(root,fallback,botColor);
+        fallback=orderMoves(root,botColor,fallback,0,ttBestMove(root));
+        if(!fallback.length) return;
+        bestMove=fallback[0];
+    }
+
+    makeRealMove(bestMove,false);
+}
+</script>
+</body>
+</html>
