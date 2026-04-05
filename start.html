@@ -16,6 +16,7 @@
 <link rel="prefetch" href="Zalazerans/index.html">
 <link rel="prefetch" href="EquaLazer/index.html">
 <link rel="prefetch" href="ZaCheckers/index.html">
+<link rel="prefetch" href="ZaChess/index.html">
 
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -24,7 +25,7 @@ html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial,sans-serif
 #menu{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:20px 0;}
 #menuContent{display:flex;flex-direction:column;align-items:center;}
 h1{font-size:28px;margin-bottom:24px;text-align:center;}
-.btn{width:260px;padding:14px;margin:8px;font-size:18px;border:none;border-radius:10px;background:#1c1c1c;color:#fff;cursor:pointer;}
+.btn{width:260px;padding:12px;margin:4px;font-size:18px;border:none;border-radius:10px;background:#1c1c1c;color:#fff;cursor:pointer;}
 .btn:hover{background:#2c2c2c;}
 
 #gameContainer{display:none;flex-direction:column;width:100%;height:100%;position:relative;transform:translateZ(0);}
@@ -88,8 +89,8 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('ZalazerWars')">💥 ZalazerWars</button>
 <button class="btn" onclick="loadGame('Zalazerans')">🎴 Zalazerans</button>
 <button class="btn" onclick="loadGame('EquaLazer')">↕️ EquaLazer</button>
-<!-- Новая кнопка ZaCheckers -->
 <button class="btn" onclick="loadGame('ZaCheckers')">♟️ ZaCheckers</button>
+<button class="btn" onclick="loadGame('ZaChess')">♚ ZaChess</button>
 </div>
 
 <div>
@@ -156,8 +157,8 @@ All rights reserved.
 <audio id="music-ZalazerWars" src="music-ZalazerWars.mp3" loop></audio>
 <audio id="music-Zalazerans" src="music-Zalazerans.mp3" loop></audio>
 <audio id="music-EquaLazer" src="music-EquaLazer.mp3" loop></audio>
-<!-- Новый трек ZaCheckers -->
 <audio id="music-ZaCheckers" src="music-ZaCheckers.mp3" loop></audio>
+<audio id="music-ZaChess" src="music-ZaChess.mp3" loop></audio>
 
 <script>
 let tg=null;
@@ -212,7 +213,8 @@ Odrive:document.getElementById('music-Odrive'),
 ZalazerWars:document.getElementById('music-ZalazerWars'),
 Zalazerans:document.getElementById('music-Zalazerans'),
 EquaLazer: document.getElementById('music-EquaLazer'),
-ZaCheckers: document.getElementById('music-ZaCheckers')
+ZaCheckers: document.getElementById('music-ZaCheckers'),
+ZaChess: document.getElementById('music-ZaChess')
 };
 
 let currentGame='';
