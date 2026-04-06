@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZaChess</title>
-      
+
+    
 <!-- TELEGRAM SDK -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 
     <style>
         body {
@@ -200,131 +202,282 @@ const MAX_PLY=128;
 const OPENING_BOOK = {
     "": [
         { move: "e4", w: 34 },
-        { move: "d4", w: 28 },
-        { move: "Nf3", w: 14 },
+        { move: "d4", w: 30 },
+        { move: "Nf3", w: 16 },
         { move: "c4", w: 14 },
-        { move: "g3", w: 10 }
+        { move: "g3", w: 6 }
     ],
+
     "e4": [
         { move: "e5", w: 28 },
         { move: "c5", w: 24 },
-        { move: "e6", w: 16 },
-        { move: "c6", w: 14 },
+        { move: "e6", w: 18 },
+        { move: "c6", w: 16 },
         { move: "d5", w: 10 },
         { move: "Nf6", w: 8 }
     ],
     "d4": [
-        { move: "d5", w: 28 },
-        { move: "Nf6", w: 24 },
+        { move: "d5", w: 30 },
+        { move: "Nf6", w: 28 },
         { move: "e6", w: 18 },
         { move: "g6", w: 14 },
-        { move: "f5", w: 6 },
-        { move: "d6", w: 4 }
+        { move: "d6", w: 6 },
+        { move: "f5", w: 4 }
     ],
     "Nf3": [
         { move: "Nf6", w: 28 },
-        { move: "d5", w: 22 },
-        { move: "g6", w: 18 },
-        { move: "c5", w: 18 },
+        { move: "d5", w: 24 },
+        { move: "g6", w: 16 },
+        { move: "c5", w: 16 },
         { move: "e6", w: 14 }
     ],
     "c4": [
-        { move: "e5", w: 18 },
         { move: "Nf6", w: 28 },
+        { move: "e5", w: 18 },
         { move: "e6", w: 22 },
-        { move: "c5", w: 12 },
-        { move: "g6", w: 20 }
+        { move: "c5", w: 14 },
+        { move: "g6", w: 18 }
     ],
+    "g3": [
+        { move: "d5", w: 30 },
+        { move: "Nf6", w: 24 },
+        { move: "e5", w: 14 },
+        { move: "g6", w: 16 },
+        { move: "c5", w: 16 }
+    ],
+
     "e4 e5": [
-        { move: "Nf3", w: 42 },
-        { move: "Bc4", w: 24 },
+        { move: "Nf3", w: 44 },
+        { move: "Bc4", w: 20 },
         { move: "Nc3", w: 18 },
-        { move: "d4", w: 16 }
+        { move: "d4", w: 18 }
     ],
     "e4 c5": [
-        { move: "Nf3", w: 38 },
-        { move: "c3", w: 12 },
+        { move: "Nf3", w: 42 },
         { move: "Nc3", w: 22 },
-        { move: "d4", w: 28 }
+        { move: "c3", w: 14 },
+        { move: "d4", w: 22 }
     ],
     "e4 e6": [
-        { move: "d4", w: 54 },
-        { move: "Nf3", w: 18 },
-        { move: "Nc3", w: 28 }
-    ],
-    "e4 c6": [
         { move: "d4", w: 56 },
         { move: "Nc3", w: 24 },
+        { move: "Nf3", w: 18 }
+    ],
+    "e4 c6": [
+        { move: "d4", w: 58 },
+        { move: "Nc3", w: 22 },
         { move: "Nf3", w: 20 }
     ],
+    "e4 d5": [
+        { move: "exd5", w: 24 },
+        { move: "Nc3", w: 22 },
+        { move: "d4", w: 30 },
+        { move: "e5", w: 10 },
+        { move: "Nf3", w: 14 }
+    ],
+
+    "d4 d5": [
+        { move: "c4", w: 48 },
+        { move: "Nf3", w: 30 },
+        { move: "e3", w: 18 },
+        { move: "g3", w: 14 },
+        { move: "Bf4", w: 10 }
+    ],
+    "d4 Nf6": [
+        { move: "c4", w: 44 },
+        { move: "Nf3", w: 26 },
+        { move: "g3", w: 16 },
+        { move: "Bf4", w: 12 },
+        { move: "e3", w: 18 }
+    ],
+    "d4 e6": [
+        { move: "c4", w: 42 },
+        { move: "Nf3", w: 26 },
+        { move: "e4", w: 18 },
+        { move: "g3", w: 14 }
+    ],
+    "d4 g6": [
+        { move: "c4", w: 40 },
+        { move: "Nf3", w: 28 },
+        { move: "e4", w: 18 },
+        { move: "g3", w: 14 }
+    ],
+
     "e4 e5 Nf3": [
-        { move: "Nc6", w: 52 },
+        { move: "Nc6", w: 54 },
         { move: "Nf6", w: 18 },
-        { move: "d6", w: 12 },
-        { move: "Bc5", w: 18 }
+        { move: "d6", w: 14 },
+        { move: "Bc5", w: 14 }
     ],
-    "e4 e5 Bc4": [
-        { move: "Nf6", w: 16 },
-        { move: "Bc5", w: 34 },
-        { move: "Nc6", w: 34 },
-        { move: "c6", w: 8 },
-        { move: "d6", w: 8 }
+    "e4 e5 Nc3": [
+        { move: "Nc6", w: 48 },
+        { move: "Nf6", w: 20 },
+        { move: "g6", w: 10 },
+        { move: "d6", w: 14 }
     ],
+    "e4 c5 Nf3": [
+        { move: "d6", w: 38 },
+        { move: "Nc6", w: 28 },
+        { move: "e6", w: 18 },
+        { move: "g6", w: 16 }
+    ],
+    "e4 e6 d4": [
+        { move: "d5", w: 48 },
+        { move: "Nf6", w: 22 },
+        { move: "b6", w: 8 },
+        { move: "c5", w: 22 }
+    ],
+    "e4 c6 d4": [
+        { move: "d5", w: 54 },
+        { move: "Nf6", w: 18 },
+        { move: "e6", w: 14 },
+        { move: "g6", w: 14 }
+    ],
+    "e4 d5 exd5": [
+        { move: "Qxd5", w: 18 },
+        { move: "Nf6", w: 42 },
+        { move: "c6", w: 18 },
+        { move: "e6", w: 22 }
+    ],
+
+    "d4 d5 c4": [
+        { move: "e6", w: 38 },
+        { move: "c6", w: 24 },
+        { move: "dxc4", w: 20 },
+        { move: "Nf6", w: 18 }
+    ],
+    "d4 Nf6 c4": [
+        { move: "e6", w: 34 },
+        { move: "g6", w: 28 },
+        { move: "c5", w: 22 },
+        { move: "e5", w: 10 }
+    ],
+    "d4 e6 c4": [
+        { move: "Nf6", w: 34 },
+        { move: "d5", w: 30 },
+        { move: "c5", w: 18 },
+        { move: "g6", w: 12 }
+    ],
+    "d4 g6 c4": [
+        { move: "Bg7", w: 44 },
+        { move: "Nf6", w: 28 },
+        { move: "d6", w: 16 }
+    ],
+
     "e4 e5 Nf3 Nc6": [
-        { move: "Bc4", w: 30 },
-        { move: "Bb5", w: 34 },
-        { move: "d4", w: 16 },
-        { move: "Nc3", w: 20 }
+        { move: "Bb5", w: 30 },
+        { move: "Bc4", w: 24 },
+        { move: "Nc3", w: 20 },
+        { move: "d4", w: 18 }
+    ],
+    "e4 e5 Nf3 Nc6 Bb5": [
+        { move: "a6", w: 34 },
+        { move: "Nf6", w: 28 },
+        { move: "Bc5", w: 12 },
+        { move: "d6", w: 14 }
     ],
     "e4 e5 Nf3 Nc6 Bc4": [
         { move: "Bc5", w: 30 },
-        { move: "Nf6", w: 26 },
-        { move: "Be7", w: 12 },
-        { move: "d6", w: 12 },
-        { move: "h6", w: 2 },
-        { move: "g6", w: 18 }
+        { move: "Nf6", w: 28 },
+        { move: "Be7", w: 14 },
+        { move: "d6", w: 14 },
+        { move: "g6", w: 14 }
     ],
-    "e4 e5 Bc4 Nf6": [
+    "e4 e5 Nf3 Nc6 Bc4 Nf6": [
         { move: "Nc3", w: 30 },
-        { move: "d3", w: 18 },
-        { move: "Nf3", w: 42 },
-        { move: "Qf3", w: 10 }
+        { move: "O-O", w: 34 },
+        { move: "d3", w: 18 }
     ],
-    "e4 e5 Bc4 Nc6": [
-        { move: "Nf3", w: 44 },
-        { move: "Nc3", w: 20 },
-        { move: "Qf3", w: 10 },
-        { move: "d3", w: 16 },
+
+    "d4 d5 Nf3": [
+        { move: "Nf6", w: 34 },
+        { move: "e6", w: 24 },
+        { move: "c6", w: 18 },
+        { move: "g6", w: 12 }
+    ],
+    "d4 Nf6 Nf3": [
+        { move: "e6", w: 30 },
+        { move: "d5", w: 30 },
+        { move: "g6", w: 18 },
+        { move: "c5", w: 14 }
+    ],
+    "d4 d5 c4 e6": [
+        { move: "Nc3", w: 36 },
+        { move: "Nf3", w: 24 },
+        { move: "g3", w: 14 },
+        { move: "cxd5", w: 10 }
+    ],
+    "d4 Nf6 c4 e6": [
+        { move: "Nc3", w: 34 },
+        { move: "Nf3", w: 28 },
+        { move: "g3", w: 16 },
+        { move: "e4", w: 14 }
+    ],
+
+    "e4 e5 Nf3 Nc6 Bb5 a6": [
+        { move: "Ba4", w: 46 },
+        { move: "Bxc6", w: 24 },
+        { move: "Bc4", w: 8 },
         { move: "d4", w: 10 }
     ],
-    "e4 e5 Bc4 Nc6 Qh5": [
-        { move: "g6", w: 42 },
-        { move: "Qe7", w: 12 },
-        { move: "Nf6", w: 22 },
-        { move: "Nh6", w: 1 },
-        { move: "d5", w: 23 }
+    "e4 e5 Nf3 Nc6 Bb5 Nf6": [
+        { move: "O-O", w: 46 },
+        { move: "Nc3", w: 22 },
+        { move: "d3", w: 16 },
+        { move: "Bxc6", w: 10 }
     ],
-    "e4 e5 Bc4 Nf6 Qh5": [
-        { move: "Nxh5", w: 50 },
-        { move: "Qe7", w: 16 },
-        { move: "d5", w: 22 },
-        { move: "g6", w: 12 }
+    "e4 e5 Nf3 Nc6 Bb5 a6 Ba4": [
+        { move: "Nf6", w: 34 },
+        { move: "Bc5", w: 14 },
+        { move: "b5", w: 24 },
+        { move: "d6", w: 14 }
     ],
-    "e4 e5 Qh5": [
-        { move: "Nc6", w: 36 },
-        { move: "Nf6", w: 18 },
-        { move: "d6", w: 22 },
-        { move: "Qe7", w: 12 },
-        { move: "g6", w: 12 }
+
+    "e4 e5 Nf3 Nc6 Bc4 Bc5": [
+        { move: "c3", w: 24 },
+        { move: "O-O", w: 34 },
+        { move: "d3", w: 18 },
+        { move: "Nc3", w: 18 }
     ],
-    "e4 e5 Qh5 Nc6 Bc4": [
-        { move: "g6", w: 34 },
-        { move: "Qe7", w: 10 },
-        { move: "Nh6", w: 1 },
+    "e4 e5 Nf3 Nc6 Bc4 Nf6": [
+        { move: "Nc3", w: 28 },
+        { move: "O-O", w: 38 },
+        { move: "d3", w: 18 }
+    ],
+    "e4 e5 Nf3 Nc6 Bc4 Bc5 O-O": [
         { move: "Nf6", w: 30 },
-        { move: "d5", w: 25 }
+        { move: "d6", w: 18 },
+        { move: "O-O", w: 22 }
+    ],
+
+    "d4 d5 c4 e6 Nc3": [
+        { move: "Nf6", w: 32 },
+        { move: "c6", w: 24 },
+        { move: "Be7", w: 18 },
+        { move: "Bb4", w: 14 }
+    ],
+    "d4 Nf6 c4 e6 Nc3": [
+        { move: "Bb4", w: 26 },
+        { move: "d5", w: 28 },
+        { move: "c5", w: 18 },
+        { move: "Be7", w: 18 }
+    ],
+    "d4 d5 c4 c6": [
+        { move: "Nc3", w: 36 },
+        { move: "Nf3", w: 26 },
+        { move: "e3", w: 18 },
+        { move: "cxd5", w: 10 }
+    ],
+    "d4 Nf6 c4 g6": [
+        { move: "Nc3", w: 34 },
+        { move: "Nf3", w: 28 },
+        { move: "g3", w: 24 },
+        { move: "e4", w: 12 }
     ]
 };
+
+
+
 
 let board=[];
 let playerColor='white';
@@ -982,6 +1135,7 @@ function isSemiOpenFile(s,c,color){
     return true;
 }
 
+
 function pieceSafetyMap(s,color){
     const out=[];
     for(let r=0;r<8;r++) for(let c=0;c<8;c++){
@@ -993,14 +1147,16 @@ function pieceSafetyMap(s,color){
         const value=VAL[p.type];
 
         let danger=0;
-        if(attacked&&!defended) danger=value*2.4;
-        else if(attacked&&defended) danger=value*0.65;
-        else if(!attacked&&!defended) danger=value*0.20;
+        if(attacked&&!defended) danger=value*1.7;
+        else if(attacked&&defended) danger=value*0.18;
+        else if(!attacked&&!defended) danger=value*0.05;
 
         out.push({r,c,type:p.type,value,attacked,defended,danger});
     }
     return out;
 }
+
+
 
 function hangingPenalty(s,color){
     const info=pieceSafetyMap(s,color);
@@ -1008,20 +1164,23 @@ function hangingPenalty(s,color){
 
     for(const x of info){
         if(x.attacked&&!x.defended){
-            penalty+=Math.floor(x.value*2.2);
-            if(x.type==='q') penalty+=1400;
-            if(x.type==='r') penalty+=700;
-            if(x.type==='b'||x.type==='n') penalty+=520;
-            if(x.type==='p') penalty+=140;
+            penalty+=Math.floor(x.value*1.55);
+            if(x.type==='q') penalty+=900;
+            if(x.type==='r') penalty+=420;
+            if(x.type==='b'||x.type==='n') penalty+=260;
+            if(x.type==='p') penalty+=70;
         } else if(x.attacked&&x.defended){
-            penalty+=Math.floor(x.value*0.55);
-        } else if(!x.attacked&&!x.defended){
             penalty+=Math.floor(x.value*0.12);
+        } else if(!x.attacked&&!x.defended){
+            penalty+=Math.floor(x.value*0.03);
         }
     }
 
     return penalty;
 }
+
+
+
 
 function overprotectionBonus(s,color){
     const info=pieceSafetyMap(s,color);
@@ -1212,6 +1371,59 @@ function seeLikeScore(m){
     return 18*VAL[m.captured]-10*VAL[m.piece];
 }
 
+
+function simpleSEEAfterMove(s,m,color){
+    const c=cloneState(s);
+    applyMove(c,m);
+
+    const landed=c.board[m.to.r][m.to.c];
+    if(!landed) return 0;
+
+    const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
+    const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+
+    let gain=0;
+    if(m.captured) gain+=VAL[m.captured];
+    if(m.promotion) gain+=VAL[m.promotion]-VAL['p'];
+
+    if(!attacked) return gain;
+    if(defended) return gain-Math.floor(VAL[landed.type]*0.15);
+    return gain-VAL[landed.type];
+}
+
+
+
+function captureTradePenalty(s,m,color){
+    if(!m.captured) return 0;
+
+    const attackerValue=VAL[m.piece];
+    const victimValue=VAL[m.captured];
+    const see=simpleSEEAfterMove(s,m,color);
+
+    let pen=0;
+
+    if(see<0){
+        pen += Math.abs(see)*16;
+
+        if(attackerValue>victimValue){
+            pen += (attackerValue-victimValue)*18;
+        }
+
+        if(m.piece==='q') pen+=2200;
+        else if(m.piece==='r') pen+=1100;
+        else if(m.piece==='b'||m.piece==='n') pen+=650;
+        else pen+=120;
+    } else {
+        if(attackerValue>victimValue && see<attackerValue-victimValue){
+            pen += (attackerValue-victimValue-see)*8;
+        }
+    }
+
+    return pen;
+}
+
+
+
 function isMoveSafeAfter(c,m,color){
     const landed=c.board[m.to.r][m.to.c];
     if(!landed) return true;
@@ -1256,10 +1468,93 @@ function immediateOpponentPunishScore(c,color){
     return best;
 }
 
+
+function nextMoveThreatPenalty(c,color){
+    const enemy=opponent(color);
+    const oppMoves=getLegalMoves(c,enemy);
+    let worst=0;
+
+    for(const om of oppMoves){
+        let threat=0;
+
+        if(om.captured){
+            threat += VAL[om.captured]*18 - VAL[om.piece]*2;
+        }
+
+        const cc=cloneState(c);
+        applyMove(cc,om);
+
+        if(inCheck(cc,color)) threat+=120;
+
+        for(let r=0;r<8;r++) for(let col=0;col<8;col++){
+            const p=cc.board[r][col];
+            if(!p||p.color!==color||p.type==='k') continue;
+
+            const attacked=isSquareAttacked(cc,r,col,enemy);
+            const defended=isSquareAttacked(cc,r,col,color);
+
+            if(attacked&&!defended){
+                threat += VAL[p.type]*6;
+                if(p.type==='q') threat+=1200;
+                if(p.type==='r') threat+=700;
+                if(p.type==='b'||p.type==='n') threat+=420;
+            }
+        }
+
+        if(threat>worst) worst=threat;
+    }
+
+    return worst;
+}
+
+
+function chasedPiecePenalty(c,color){
+    let penalty=0;
+
+    for(let r=0;r<8;r++) for(let c2=0;c2<8;c2++){
+        const p=c.board[r][c2];
+        if(!p||p.color!==color) continue;
+        if(p.type!=='b'&&p.type!=='n') continue;
+
+        const enemy=opponent(color);
+
+        if(p.type==='b'){
+            const pawnDir = enemy==='white' ? -1 : 1;
+
+            for(const dc of[-1,1]){
+                const pr=r-pawnDir, pc=c2+dc;
+                if(inBoard(pr,pc)){
+                    const ep=c.board[pr][pc];
+                    if(ep&&ep.color===enemy&&ep.type==='p'){
+                        const attacked=isSquareAttacked(c,r,c2,enemy);
+                        if(attacked){
+                            penalty+=220;
+                            if(!isSquareAttacked(c,r,c2,color)) penalty+=260;
+                        }
+                    }
+                }
+            }
+        }
+
+        if(p.type==='n'){
+            const attacked=isSquareAttacked(c,r,c2,enemy);
+            const defended=isSquareAttacked(c,r,c2,color);
+            if(attacked&&!defended) penalty+=180;
+        }
+    }
+
+    return penalty;
+}
+
+
+
 function isEarlyPhase(s){
     const ply=(s.fullmoveNumber-1)*2+(s.turn==='black'?1:0);
     return ply<=12;
 }
+
+
+
 
 function antiBadOpeningPenalty(s,m,color){
     if(!isEarlyPhase(s)) return 0;
@@ -1268,6 +1563,22 @@ function antiBadOpeningPenalty(s,m,color){
     if(!piece||piece.color!==color) return 0;
 
     let pen=0;
+
+    if(piece.type==='k'){
+        if(!m.flags.castle){
+            pen+=9000;
+
+            const c=cloneState(s);
+            applyMove(c,m);
+
+            if(!inCheck(s,color)) pen+=2500;
+            if(inCheck(c,color)) pen+=4000;
+
+            const home=color==='white'?7:0;
+            if(m.to.r!==home || m.to.c!==4) pen+=1800;
+        }
+        return pen;
+    }
 
     if(piece.type==='p'){
         const fromFile=m.from.c;
@@ -1281,13 +1592,14 @@ function antiBadOpeningPenalty(s,m,color){
         } else {
             if(fromRank===6 && toRank===5 && (fromFile===5||fromFile===6||fromFile===7)) pen+=2600;
             if(fromRank===6 && toRank===4 && (fromFile===5||fromFile===6||fromFile===7)) pen+=3200;
+            if(fromRank===6 && (fromFile===0||fromFile===7) && !m.captured) pen+=1400;
         }
     }
 
     if(piece.type==='n'){
         if(color==='black'){
-            if(m.from.r===0&&m.from.c===6&&m.to.r===2&&m.to.c===7) pen+=4200; // Nh6
-            if(m.from.r===0&&m.from.c===1&&m.to.r===2&&m.to.c===0) pen+=3800; // Na6
+            if(m.from.r===0&&m.from.c===6&&m.to.r===2&&m.to.c===7) pen+=4200;
+            if(m.from.r===0&&m.from.c===1&&m.to.r===2&&m.to.c===0) pen+=3800;
         } else {
             if(m.from.r===7&&m.from.c===6&&m.to.r===5&&m.to.c===7) pen+=4200;
             if(m.from.r===7&&m.from.c===1&&m.to.r===5&&m.to.c===0) pen+=3800;
@@ -1298,8 +1610,25 @@ function antiBadOpeningPenalty(s,m,color){
         pen+=1600;
     }
 
+    for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++){
+        const q=s.board[rr][cc];
+        if(!q||q.color!==color) continue;
+
+        if(q.type==='b'||q.type==='n'){
+            const attacked=isSquareAttacked(s,rr,cc,opponent(color));
+            const defended=isSquareAttacked(s,rr,cc,color);
+
+            if(attacked&&!defended){
+                pen+=900;
+            }
+        }
+    }
+
     return pen;
 }
+
+
+
 
 function antiScholarThreatBonus(s,m,color){
     const enemy=opponent(color);
@@ -1348,30 +1677,33 @@ function badExchangePenaltyAfterMove(s,m,color){
     applyMove(c,m);
 
     const landed=c.board[m.to.r][m.to.c];
-    if(!landed||landed.color!==color||landed.type==='k'||landed.type==='p') return 0;
+    if(!landed||landed.color!==color||landed.type==='k') return 0;
 
     const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
     const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
-    if(!attacked) return 0;
+    const see=simpleSEEAfterMove(s,m,color);
 
     let pen=0;
-    const pieceValue=VAL[landed.type];
-    const gainNow=m.captured?VAL[m.captured]:0;
 
-    if(!defended){
-        pen += pieceValue*16;
-        if(gainNow < pieceValue-150) pen += (pieceValue-gainNow)*14;
-    } else {
-        pen += pieceValue*4;
-        if(gainNow < pieceValue-220) pen += (pieceValue-gainNow)*5;
+    if(m.captured){
+        pen += captureTradePenalty(s,m,color);
     }
 
-    if(landed.type==='q') pen+=2400;
-    if(landed.type==='r') pen+=1200;
-    if(landed.type==='n'||landed.type==='b') pen+=900;
+    if(attacked&&!defended){
+        if(landed.type==='q') pen+=2600;
+        else if(landed.type==='r') pen+=1400;
+        else if(landed.type==='b'||landed.type==='n') pen+=900;
+        else pen+=180;
+
+        if(see<0) pen+=Math.abs(see)*10;
+    } else if(attacked&&defended){
+        if(see<0) pen+=Math.abs(see)*5;
+    }
 
     return pen;
 }
+
+
 
 function openingBlunderPenalty(s,m,color){
     const moveCount=(s.fullmoveNumber-1)*2+(s.turn==='black'?1:0);
@@ -1383,26 +1715,38 @@ function openingBlunderPenalty(s,m,color){
 
     const attacked=isSquareAttacked(c,m.to.r,m.to.c,opponent(color));
     const defended=isSquareAttacked(c,m.to.r,m.to.c,color);
+    const see=simpleSEEAfterMove(s,m,color);
 
     if(moveCount<=8 && attacked && !defended){
-        let pen=Math.floor(VAL[landed.type]*22);
-        if(landed.type==='p') pen+=2800;
-        if(landed.type==='n'||landed.type==='b') pen+=4600;
-        if(landed.type==='r') pen+=7200;
-        if(landed.type==='q') pen+=14000;
+        if(landed.type==='p'){
+            return see<0 ? 220 : 0;
+        }
+
+        let pen=0;
+        if(landed.type==='n'||landed.type==='b') pen=see<0?1600:0;
+        if(landed.type==='r') pen=see<0?3200:0;
+        if(landed.type==='q') pen=see<0?7000:0;
         return pen;
     }
+
     return 0;
 }
+
+
+
 
 function rootSafetyGate(s,m,color){
     const c=cloneState(s);
     applyMove(c,m);
 
     const punish=immediateOpponentPunishScore(c,color);
+    const nextThreat=nextMoveThreatPenalty(c,color);
+    const chasedPenalty=chasedPiecePenalty(c,color);
     const openingPenalty=openingBlunderPenalty(s,m,color);
     const badOpening=antiBadOpeningPenalty(s,m,color);
     const badExchange=badExchangePenaltyAfterMove(s,m,color);
+    const tradePenalty=captureTradePenalty(s,m,color);
+    const see=simpleSEEAfterMove(s,m,color);
 
     let selfLoose=0;
     for(let r=0;r<8;r++) for(let cc=0;cc<8;cc++){
@@ -1413,23 +1757,74 @@ function rootSafetyGate(s,m,color){
         if(attacked&&!defended) selfLoose=Math.max(selfLoose,VAL[p.type]);
     }
 
-    let ownGain=0;
-    if(m.captured) ownGain+=VAL[m.captured]*7;
-    if(m.promotion) ownGain+=VAL[m.promotion]*6;
-    if(inCheck(c,opponent(color))) ownGain+=80;
+    let sacPenalty=0;
+    const materialDrop=(m.captured ? VAL[m.captured] : 0) - VAL[m.piece];
+    const givesCheck=inCheck(c,opponent(color));
 
-    const net=ownGain-punish-openingPenalty-badOpening-badExchange-selfLoose*14;
+    if(materialDrop < 0){
+        sacPenalty += Math.abs(materialDrop)*10;
+
+        if(see < 0){
+            sacPenalty += Math.abs(see)*14;
+        }
+
+        if(!givesCheck){
+            sacPenalty += 500;
+        }
+
+        if(nextThreat < 700){
+            sacPenalty += 600;
+        }
+    } else if(see < 0 && m.captured){
+        sacPenalty += Math.abs(see)*8;
+    }
+
+    let ownGain=0;
+    if(m.captured) ownGain+=VAL[m.captured]*8;
+    if(m.promotion) ownGain+=VAL[m.promotion]*7;
+    if(givesCheck) ownGain+=80;
+    ownGain+=Math.max(-160, see)*4;
+
+    const net=ownGain
+        - punish
+        - Math.floor(nextThreat*0.9)
+        - chasedPenalty
+        - openingPenalty
+        - badOpening
+        - badExchange
+        - tradePenalty
+        - sacPenalty
+        - selfLoose*10;
+
+    let safe=true;
+
+    if(selfLoose>=900) safe=false;
+    else if(nextThreat>=1400) safe=false;
+    else if(m.piece==='k' && !m.flags.castle && isEarlyPhase(s)) safe=false;
+    else if(m.captured && tradePenalty>=900) safe=false;
+    else if(sacPenalty>=1600) safe=false;
+    else if((m.piece==='q'||m.piece==='r') && see<-180) safe=false;
+    else if((m.piece==='n'||m.piece==='b') && see<-160) safe=false;
+    else if(m.piece==='p' && see<-140) safe=false;
+    else if(chasedPenalty>=420 && !m.captured) safe=false;
 
     return {
-        safe: net>=-80,
+        safe,
         net,
         punish,
+        nextThreat,
+        chasedPenalty,
         openingPenalty,
         badOpening,
         badExchange,
-        selfLoose
+        tradePenalty,
+        sacPenalty,
+        selfLoose,
+        see
     };
 }
+
+
 
 function classifyMovePriority(s,m,color){
     const enemy=opponent(color);
@@ -1462,8 +1857,12 @@ function classifyMovePriority(s,m,color){
     }
 
     const gate=rootSafetyGate(s,m,color);
+
     score += gate.net*160;
-    score -= antiBadOpeningPenalty(s,m,color)*140;
+    score -= (gate.nextThreat||0)*120;
+    score -= (gate.chasedPenalty||0)*90;
+    score -= (gate.tradePenalty||0)*150;
+    score -= (gate.sacPenalty||0)*130;
     score += antiScholarThreatBonus(s,m,color)*100;
 
     const landed=c.board[m.to.r][m.to.c];
@@ -1477,7 +1876,7 @@ function classifyMovePriority(s,m,color){
             else if(landed.type==='b'||landed.type==='n') score-=1100000;
             else score-=180000;
         } else if(attacked&&defended){
-            score-=VAL[landed.type]*280;
+            score-=VAL[landed.type]*55;
         } else if(!attacked&&defended){
             score+=VAL[landed.type]*18;
         }
@@ -1487,6 +1886,8 @@ function classifyMovePriority(s,m,color){
 
     return {category,score,gate};
 }
+
+
 
 function ttLookup(s,depth,alpha,beta){
     const entry=tt.get(stateKey(s));
@@ -1537,15 +1938,34 @@ function orderMoves(s,color,moves,ply,ttMove=null){
         .map(x=>x.m);
 }
 
+
 function quiescence(s,alpha,beta,ply){
     const stand=evaluate(s);
+
     if(stand>=beta) return beta;
     if(alpha<stand) alpha=stand;
 
     let tactical=getLegalMoves(s,s.turn).filter(m=>{
-        if(m.captured||m.promotion) return true;
-        const info=classifyMovePriority(s,m,s.turn);
-        return info.category<=3;
+        if(m.promotion) return true;
+
+        if(m.captured){
+            const see=simpleSEEAfterMove(s,m,s.turn);
+
+            if(see >= 0) return true;
+
+            const victim=VAL[m.captured]||0;
+            const attacker=VAL[m.piece]||0;
+            const givesCheckState=cloneState(s);
+            applyMove(givesCheckState,m);
+            const givesCheck=inCheck(givesCheckState,opponent(s.turn));
+
+            if(givesCheck && see>=-120) return true;
+            if(victim>=attacker && see>=-160) return true;
+
+            return false;
+        }
+
+        return false;
     });
 
     tactical=orderMoves(s,s.turn,tactical,ply,ttBestMove(s));
@@ -1563,8 +1983,11 @@ function quiescence(s,alpha,beta,ply){
         if(score>=beta) return beta;
         if(score>alpha) alpha=score;
     }
+
     return alpha;
 }
+
+
 
 function addKiller(ply,m){
     if(m.captured) return;
