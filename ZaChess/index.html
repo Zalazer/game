@@ -24,8 +24,8 @@
         padding: 12px 0;
     }
 
-    #menu { 
-        text-align: center; 
+    #menu {
+        text-align: center;
     }
 
     button {
@@ -64,6 +64,53 @@
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
+    }
+
+    #timers {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    #playerTimer,
+    #botTimer {
+        font-size: 18px;
+        padding: 8px 12px;
+        color: #f0f0f0;
+        min-width: 128px;
+        text-align: center;
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 8px 18px rgba(0,0,0,0.18);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    #playerTimer.active,
+    #botTimer.active {
+        border-color: rgba(124,255,107,0.85);
+        background: linear-gradient(180deg, rgba(124,255,107,0.16) 0%, rgba(124,255,107,0.08) 100%);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.08),
+            0 0 0 1px rgba(124,255,107,0.18),
+            0 10px 24px rgba(0,0,0,0.24),
+            0 0 18px rgba(124,255,107,0.14);
+        transform: translateY(-1px);
+    }
+
+    #playerTimer.low,
+    #botTimer.low {
+        border-color: rgba(255,109,109,0.88);
+        background: linear-gradient(180deg, rgba(255,109,109,0.16) 0%, rgba(255,109,109,0.08) 100%);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            0 0 0 1px rgba(255,109,109,0.18),
+            0 10px 24px rgba(0,0,0,0.24),
+            0 0 18px rgba(255,109,109,0.14);
     }
 
     #boardWrap {
@@ -117,48 +164,41 @@
         transform: translateY(-1px) scale(1.03);
     }
 
+    .whitePiece {
+        color: #fffdf8;
+        text-shadow:
+            0 1px 0 rgba(96, 68, 30, 0.88),
+            0 2px 0 rgba(70, 48, 22, 0.82),
+            0 3px 0 rgba(42, 28, 14, 0.68),
+            0 4px 6px rgba(0,0,0,0.46),
+            0 1px 2px rgba(0,0,0,0.55),
+            1px 0 1px rgba(0,0,0,0.34),
+            -1px 0 1px rgba(0,0,0,0.34),
+            0 0 2px rgba(0,0,0,0.50),
+            0 0 8px rgba(255,255,255,0.14);
+        filter:
+            brightness(1.08)
+            contrast(1.08)
+            drop-shadow(0 2px 2px rgba(0,0,0,0.30))
+            drop-shadow(0 4px 7px rgba(0,0,0,0.22))
+            drop-shadow(0 0 2px rgba(255,255,255,0.10));
+    }
 
-
-
-.whitePiece {
-    color: #fffdf8;
-    text-shadow:
-        0 1px 0 rgba(96, 68, 30, 0.88),
-        0 2px 0 rgba(70, 48, 22, 0.82),
-        0 3px 0 rgba(42, 28, 14, 0.68),
-        0 4px 6px rgba(0,0,0,0.46),
-        0 1px 2px rgba(0,0,0,0.55),
-        1px 0 1px rgba(0,0,0,0.34),
-        -1px 0 1px rgba(0,0,0,0.34),
-        0 0 2px rgba(0,0,0,0.50),
-        0 0 8px rgba(255,255,255,0.14);
-    filter:
-        brightness(1.08)
-        contrast(1.08)
-        drop-shadow(0 2px 2px rgba(0,0,0,0.30))
-        drop-shadow(0 4px 7px rgba(0,0,0,0.22))
-        drop-shadow(0 0 2px rgba(255,255,255,0.10));
-}
-
-
-
-.blackPiece {
-    color: #181818;
-    text-shadow:
-        0 1px 0 rgba(255,255,255,0.22),
-        0 0 1px rgba(255,255,255,0.28),
-        0 0 3px rgba(255,255,255,0.18),
-        0 2px 4px rgba(0,0,0,0.42),
-        0 4px 6px rgba(0,0,0,0.22);
-    filter:
-        brightness(1.02)
-        contrast(1.08)
-        drop-shadow(0 0 2px rgba(255,255,255,0.20))
-        drop-shadow(0 0 5px rgba(255,255,255,0.10))
-        drop-shadow(0 2px 2px rgba(0,0,0,0.18));
-}
-
-
+    .blackPiece {
+        color: #181818;
+        text-shadow:
+            0 1px 0 rgba(255,255,255,0.22),
+            0 0 1px rgba(255,255,255,0.28),
+            0 0 3px rgba(255,255,255,0.18),
+            0 2px 4px rgba(0,0,0,0.42),
+            0 4px 6px rgba(0,0,0,0.22);
+        filter:
+            brightness(1.02)
+            contrast(1.08)
+            drop-shadow(0 0 2px rgba(255,255,255,0.20))
+            drop-shadow(0 0 5px rgba(255,255,255,0.10))
+            drop-shadow(0 2px 2px rgba(0,0,0,0.18));
+    }
 
     .selected {
         outline: 4px solid #ffd54d;
@@ -211,11 +251,23 @@
         color: #f4f4f4;
     }
 
-    #moveCounter, #timer, #engineInfo {
-        font-size: 18px;
-        padding: 6px;
-        color: #f0f0f0;
-    }
+
+#moveCounter,
+#engineInfo {
+    font-size: 18px;
+    padding: 6px;
+    color: #f0f0f0;
+}
+
+#engineInfo {
+    min-height: 1.6em;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+
 
     #moveLog {
         margin-top: 8px;
@@ -232,6 +284,25 @@
         line-height: 1.5;
         white-space: pre-wrap;
         box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+    }
+
+    @media (max-width: 640px) {
+        #topbar {
+            gap: 8px;
+        }
+
+        #playerTimer,
+        #botTimer {
+            min-width: 112px;
+            font-size: 17px;
+            padding: 7px 10px;
+        }
+
+        #moveCounter,
+        #engineInfo,
+        #status {
+            font-size: 16px;
+        }
     }
 </style>
 
@@ -278,22 +349,30 @@
 </script>
 
 
-
 <div id="game">
     <div id="topbar">
         <button onclick="newGame()">New Game</button>
         <button onclick="undoMove()">Undo</button>
         <button onclick="resign()">Resign</button>
-        <div id="timer">00:00</div>
+
+        <div id="timers">
+            <div id="playerTimer" class="active">Player 10:00</div>
+            <div id="botTimer">Bot 10:00</div>
+        </div>
+
         <div id="moveCounter">Moves: 0</div>
         <div id="engineInfo">Engine idle</div>
     </div>
+
     <div id="boardWrap">
         <div id="board"></div>
     </div>
+
     <div id="status"></div>
     <div id="moveLog"></div>
 </div>
+
+
 
 
 
@@ -917,8 +996,13 @@ let botColor='black';
 let turn='white';
 let selected=null;
 let possibleMoves=[];
-let timer=0;
-let timerInterval;
+
+let playerTimeMs = 10 * 60 * 1000;
+let botTimeMs = 10 * 60 * 1000;
+let activeClock = 'player';
+let timerInterval = null;
+let lastClockTs = 0;
+
 let lastMoveCells=[];
 let moveList=[];
 let bookHistory=[];
@@ -935,7 +1019,7 @@ let tt=new Map();
 let killerMoves=Array.from({length:MAX_PLY},()=>[null,null]);
 let historyHeuristic={white:new Map(),black:new Map()};
 let moveAudioCtx=null;
-
+let gameOver = false;
 
 
 function coordMoveText(m) {
@@ -1002,6 +1086,8 @@ function resign() {
     location.reload();
 }
 
+
+
 function undoMove() {
     if (historyStack.length === 0) return;
 
@@ -1013,22 +1099,96 @@ function undoMove() {
     updateStatus();
     updateMoveLog();
 
+    activeClock = (turn === playerColor) ? 'player' : 'bot';
+    updateTimers();
+
     document.getElementById('engineInfo').innerText = 'Engine idle';
+}
+
+
+
+function formatClock(ms) {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const s = String(totalSec % 60).padStart(2, '0');
+    return m + ':' + s;
+}
+
+function consumeActiveClock() {
+    if (!activeClock || !lastClockTs) return;
+
+    const now = performance.now();
+    const elapsed = now - lastClockTs;
+    lastClockTs = now;
+
+    if (activeClock === 'player') {
+        playerTimeMs = Math.max(0, playerTimeMs - elapsed);
+    } else if (activeClock === 'bot') {
+        botTimeMs = Math.max(0, botTimeMs - elapsed);
+    }
+}
+
+function updateTimers() {
+    consumeActiveClock();
+
+    const playerEl = document.getElementById('playerTimer');
+    const botEl = document.getElementById('botTimer');
+
+    if (playerEl) {
+        playerEl.innerText = 'Player ' + formatClock(playerTimeMs);
+        playerEl.classList.toggle('active', activeClock === 'player');
+        playerEl.classList.toggle('low', playerTimeMs <= 30000);
+    }
+
+    if (botEl) {
+        botEl.innerText = 'Bot ' + formatClock(botTimeMs);
+        botEl.classList.toggle('active', activeClock === 'bot');
+        botEl.classList.toggle('low', botTimeMs <= 30000);
+    }
+
+    if (playerTimeMs <= 0) {
+        playerTimeMs = 0;
+        activeClock = null;
+        clearInterval(timerInterval);
+        if (playerEl) {
+            playerEl.innerText = 'Player 00:00';
+            playerEl.classList.remove('active');
+            playerEl.classList.add('low');
+        }
+        alert('Player time is over');
+        return;
+    }
+
+    if (botTimeMs <= 0) {
+        botTimeMs = 0;
+        activeClock = null;
+        clearInterval(timerInterval);
+        if (botEl) {
+            botEl.innerText = 'Bot 00:00';
+            botEl.classList.remove('active');
+            botEl.classList.add('low');
+        }
+        alert('Bot time is over');
+    }
 }
 
 function startTimer() {
     clearInterval(timerInterval);
-    timer = 0;
+
+    playerTimeMs = 10 * 60 * 1000;
+    botTimeMs = 10 * 60 * 1000;
+    activeClock = (turn === playerColor) ? 'player' : 'bot';
+    lastClockTs = performance.now();
+
+    updateTimers();
 
     timerInterval = setInterval(() => {
-        timer++;
-
-        let m = String(Math.floor(timer / 60)).padStart(2, '0');
-        let s = String(timer % 60).padStart(2, '0');
-
-        document.getElementById('timer').innerText = m + ':' + s;
-    }, 1000);
+        updateTimers();
+    }, 200);
 }
+
+
+
 
 function updateMoveCounter() {
     document.getElementById('moveCounter').innerText =
@@ -1846,7 +2006,12 @@ function applyMoveToBoardUI(move) {
     possibleMoves = [];
 }
 
+
+
 function makeRealMove(move, isHuman) {
+    if (gameOver) return;
+    consumeActiveClock();
+
     historyStack.push(snapshot());
     applyMoveToBoardUI(move);
     playMoveSound(move);
@@ -1862,8 +2027,11 @@ function makeRealMove(move, isHuman) {
         isInsufficientMaterial(s);
 
     if (draw) {
+        activeClock = null;
+        clearInterval(timerInterval);
+        updateTimers();
         updateStatus('Draw');
-        setTimeout(() => endGame('Draw'), 50);
+        endGame('Draw');
         return;
     }
 
@@ -1871,6 +2039,10 @@ function makeRealMove(move, isHuman) {
     const oppMoves = getLegalMoves(s, sideToMove);
 
     if (oppMoves.length === 0) {
+        activeClock = null;
+        clearInterval(timerInterval);
+        updateTimers();
+
         if (inCheck(s, sideToMove)) {
             endGame(
                 sideToMove === 'white'
@@ -1885,13 +2057,32 @@ function makeRealMove(move, isHuman) {
 
     updateStatus((inCheck(s, sideToMove) ? 'Check! ' : '') + 'Turn: ' + turn);
 
-    if (turn === botColor) setTimeout(botMove, 80);
+    activeClock = (turn === playerColor) ? 'player' : 'bot';
+    lastClockTs = performance.now();
+    updateTimers();
+
+    if (turn === botColor && !gameOver) {
+        setTimeout(() => {
+            if (!gameOver) botMove();
+        }, 80);
+    }
 }
 
+
+
+
+
 function endGame(text) {
+    gameOver = true;
+    activeClock = null;
     clearInterval(timerInterval);
+    updateTimers();
+    updateStatus(text);
+
+    const engineInfoEl = document.getElementById('engineInfo');
+    if (engineInfoEl) engineInfoEl.innerText = text;
+
     alert(text);
-    location.reload();
 }
 
 
@@ -3547,9 +3738,21 @@ function tryBookMove(state, color) {
 
 
 
+function uiYield() {
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
 
-function botMove(){
-    if(turn !== botColor) return;
+
+async function botMove() {
+    if (turn !== botColor || gameOver) return;
+
+    const engineInfoEl = document.getElementById('engineInfo');
+    if (!engineInfoEl) return;
+
+    consumeActiveClock();
+    activeClock = 'bot';
+    lastClockTs = performance.now();
+    updateTimers();
 
     searchDeadline = performance.now() + BOT_THINK_MS;
     searchAborted = false;
@@ -3557,18 +3760,15 @@ function botMove(){
     tt.clear();
 
     const root = cloneState(getState());
-    const dbgKey = currentBookKey();
 
     const bookMove = tryBookMove(root, botColor);
-    if(bookMove){
-        document.getElementById('engineInfo').innerText =
-            `Book ${dbgKey || '(start)'} -> ${coordMoveText(bookMove)}`;
+    if (bookMove) {
+        engineInfoEl.innerText = 'Book';
         makeRealMove(bookMove, false);
         return;
-    } else {
-        document.getElementById('engineInfo').innerText =
-            `No book ${dbgKey || '(start)'}`;
     }
+
+    engineInfoEl.innerText = 'Thinking...';
 
     const maxDepth = parseInt(document.getElementById('difficulty').value, 10) + 6;
 
@@ -3579,11 +3779,14 @@ function botMove(){
     let lastCompletedBestScore = -INF;
 
     let rootMoves = getLegalMoves(root, botColor);
-    if(!rootMoves.length) return;
+    if (!rootMoves.length) {
+        engineInfoEl.innerText = 'Your move';
+        return;
+    }
 
     rootMoves = filterRootMovesBySafety(root, rootMoves, botColor);
 
-    if(!rootMoves.length){
+    if (!rootMoves.length) {
         rootMoves = getLegalMoves(root, botColor)
             .map(m => ({
                 move: m,
@@ -3593,39 +3796,59 @@ function botMove(){
             .slice(0, 8)
             .map(x => x.move);
 
-        if(!rootMoves.length) return;
+        if (!rootMoves.length) {
+            engineInfoEl.innerText = 'Your move';
+            return;
+        }
     }
 
     rootMoves = orderMoves(root, botColor, rootMoves, 0, ttBestMove(root));
 
-    for(let depth = 1; depth <= maxDepth; depth++){
-        if(performance.now() >= searchDeadline) break;
+    let lastYieldTs = performance.now();
+
+    for (let depth = 1; depth <= maxDepth; depth++) {
+        if (performance.now() >= searchDeadline) break;
 
         let window = depth >= 4 ? 24 : (depth >= 2 ? 40 : INF);
         let alpha = window === INF ? -INF : previousScore - window;
-        let beta  = window === INF ?  INF : previousScore + window;
+        let beta = window === INF ? INF : previousScore + window;
 
         let completedThisDepth = false;
         let scored = [];
 
-        while(true){
-            if(performance.now() >= searchDeadline){
+        while (true) {
+            if (performance.now() >= searchDeadline) {
                 searchAborted = true;
                 break;
             }
 
             const ttMove = ttBestMove(root);
             let moves = rootMoves.slice();
-            if(ttMove) moves = orderMoves(root, botColor, moves, 0, ttMove);
+            if (ttMove) moves = orderMoves(root, botColor, moves, 0, ttMove);
 
             scored = [];
             let localAlpha = alpha;
             let moveIndex = 0;
 
-            for(const m of moves){
-                if(performance.now() >= searchDeadline){
+            for (const m of moves) {
+                const now = performance.now();
+
+                if (now >= searchDeadline) {
                     searchAborted = true;
                     break;
+                }
+
+                if (now - lastYieldTs >= 25) {
+                    updateTimers();
+                    await uiYield();
+                    lastYieldTs = performance.now();
+
+                    if (gameOver) return;
+                    if (turn !== botColor) return;
+                    if (performance.now() >= searchDeadline) {
+                        searchAborted = true;
+                        break;
+                    }
                 }
 
                 const gate = rootSafetyGate(root, m, botColor) || { safe: true, selfLoose: 0, see: 0, penalty: 0 };
@@ -3650,19 +3873,19 @@ function botMove(){
                     gate.selfLoose >= 0 &&
                     safetyPenalty >= 80;
 
-                if(terribleMaterialGiveaway){
+                if (terribleMaterialGiveaway) {
                     scored.push({ move: m, score: -INF / 4, safetyPenalty });
                     moveIndex++;
                     continue;
                 }
 
-                if(badMaterialGiveaway && !m.captured){
+                if (badMaterialGiveaway && !m.captured) {
                     scored.push({ move: m, score: -INF / 5, safetyPenalty });
                     moveIndex++;
                     continue;
                 }
 
-                if(junkWingPawn && !gate.safe){
+                if (junkWingPawn && !gate.safe) {
                     scored.push({ move: m, score: -INF / 6, safetyPenalty });
                     moveIndex++;
                     continue;
@@ -3672,32 +3895,32 @@ function botMove(){
                 applyMove(c, m);
 
                 let score;
-                if(moveIndex === 0){
+                if (moveIndex === 0) {
                     score = -negamax(c, depth - 1, -beta, -localAlpha, 1);
                 } else {
                     score = -negamax(c, depth - 1, -localAlpha - 1, -localAlpha, 1);
-                    if(searchAborted) break;
-                    if(score > localAlpha && score < beta){
+                    if (searchAborted) break;
+                    if (score > localAlpha && score < beta) {
                         score = -negamax(c, depth - 1, -beta, -localAlpha, 1);
                     }
                 }
 
-                if(searchAborted) break;
+                if (searchAborted) break;
 
-                if(!Number.isFinite(score)) score = -INF / 2;
+                if (!Number.isFinite(score)) score = -INF / 2;
 
                 let rootAdjust = 0;
 
-                if(!gate.safe){
-                    if(gate.selfLoose >= 900) rootAdjust -= 2600;
-                    else if(gate.selfLoose >= 500) rootAdjust -= 1200;
-                    else if(gate.selfLoose >= 320) rootAdjust -= 500;
+                if (!gate.safe) {
+                    if (gate.selfLoose >= 900) rootAdjust -= 2600;
+                    else if (gate.selfLoose >= 500) rootAdjust -= 1200;
+                    else if (gate.selfLoose >= 320) rootAdjust -= 500;
                     else rootAdjust -= 120;
                 }
 
                 rootAdjust -= Math.min(220, Math.floor(safetyPenalty * 0.03));
 
-                if(m.captured){
+                if (m.captured) {
                     const victim = VAL[m.captured] || 0;
                     const attacker = VAL[m.piece] || 0;
                     const see = typeof gate.see === 'number' ? gate.see : 0;
@@ -3705,39 +3928,39 @@ function botMove(){
                     rootAdjust += Math.max(-30, Math.min(60, Math.floor(see / 5)));
                     rootAdjust += Math.max(0, victim - attacker) * 0.25;
 
-                    if(m.captured === 'q') rootAdjust += 140;
-                    else if(m.captured === 'r') rootAdjust += 70;
-                    else if(m.captured === 'b' || m.captured === 'n') rootAdjust += 28;
+                    if (m.captured === 'q') rootAdjust += 140;
+                    else if (m.captured === 'r') rootAdjust += 70;
+                    else if (m.captured === 'b' || m.captured === 'n') rootAdjust += 28;
                 }
 
-                if(m.piece === 'k' && !(m.flags && m.flags.castle)){
+                if (m.piece === 'k' && !(m.flags && m.flags.castle)) {
                     rootAdjust -= isEarlyPhase(root) ? 2200 : 700;
                 }
 
-                if(isQuietPawn){
-                    if(isWingPawn) rootAdjust -= isEarly ? 90 : 40;
-                    else if(m.to.c !== 3 && m.to.c !== 4) rootAdjust -= isEarly ? 30 : 10;
+                if (isQuietPawn) {
+                    if (isWingPawn) rootAdjust -= isEarly ? 90 : 40;
+                    else if (m.to.c !== 3 && m.to.c !== 4) rootAdjust -= isEarly ? 30 : 10;
                 }
 
                 score += Math.round(rootAdjust);
 
                 scored.push({ move: m, score, safetyPenalty });
-                if(score > localAlpha) localAlpha = score;
+                if (score > localAlpha) localAlpha = score;
                 moveIndex++;
             }
 
-            if(searchAborted || !scored.length) break;
+            if (searchAborted || !scored.length) break;
 
             scored.sort((a, b) => b.score - a.score);
             const top = scored[0].score;
 
-            if(window !== INF && top <= alpha){
+            if (window !== INF && top <= alpha) {
                 alpha -= window * 2;
                 window *= 2;
                 continue;
             }
 
-            if(window !== INF && top >= beta){
+            if (window !== INF && top >= beta) {
                 beta += window * 2;
                 window *= 2;
                 continue;
@@ -3756,21 +3979,25 @@ function botMove(){
             const chosen = scored.find(x => sameMove(x.move, bestMove));
             const bestPenalty = chosen ? chosen.safetyPenalty : 0;
 
-            document.getElementById('engineInfo').innerText =
-                `No book ${dbgKey || '(start)'} | Depth ${depth} | Eval ${(bestScore / 100).toFixed(2)} | Safe ${bestPenalty} | Nodes ${nodeCount}`;
+            engineInfoEl.innerText =
+                `D${depth} | Score ${(bestScore / 100).toFixed(2)} | Risk ${bestPenalty} | N ${nodeCount}`;
 
             break;
         }
 
-        if(searchAborted || !completedThisDepth) break;
+        updateTimers();
+        await uiYield();
+        lastYieldTs = performance.now();
+
+        if (searchAborted || !completedThisDepth) break;
     }
 
-    if(!bestMove && lastCompletedBestMove){
+    if (!bestMove && lastCompletedBestMove) {
         bestMove = lastCompletedBestMove;
         bestScore = lastCompletedBestScore;
     }
 
-    if(!bestMove){
+    if (!bestMove) {
         let fallback = getLegalMoves(root, botColor);
         fallback = fallback
             .map(m => ({
@@ -3779,12 +4006,18 @@ function botMove(){
             }))
             .sort((a, b) => a.cost - b.cost);
 
-        if(!fallback.length) return;
+        if (!fallback.length) {
+            engineInfoEl.innerText = 'Your move';
+            return;
+        }
         bestMove = fallback[0].move;
     }
 
+    consumeActiveClock();
+    engineInfoEl.innerText = 'Your move';
     makeRealMove(bestMove, false);
 }
+
 
 
 </script>
