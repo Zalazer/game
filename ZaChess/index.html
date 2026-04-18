@@ -459,7 +459,7 @@ const PST = {
 
 const INF = 1000000000;
 const MATE = 10000000;
-const BOT_THINK_MS = 15000;
+const BOT_THINK_MS = 30000;
 
 let gameOver = false;
 
@@ -467,36 +467,1801 @@ let engineWorker = null;
 let engineRequestId = 0;
 let engineActiveRequestId = 0;
 
+
+
 const OPENING_BOOK = {
   "": [
-    { move: "e2e4", w: 340 },
-    { move: "d2d4", w: 320 },
-    { move: "c2c4", w: 180 },
-    { move: "g1f3", w: 90 }
+    { move: "e2e4", w: 560 },
+    { move: "d2d4", w: 540 },
+    { move: "c2c4", w: 330 },
+    { move: "g1f3", w: 290 },
+    { move: "b1c3", w: 150 },
+    { move: "g2g3", w: 110 },
+    { move: "f2f4", w: 90 },
+    { move: "b2b3", w: 60 },
+    { move: "b2b4", w: 45 },
+    { move: "a2a4", w: 25 }
   ],
+
   "e2e4": [
-    { move: "e7e5", w: 280 },
-    { move: "c7c5", w: 240 },
-    { move: "e7e6", w: 100 },
-    { move: "c7c6", w: 90 }
+    { move: "e7e5", w: 650 },
+    { move: "c7c5", w: 640 },
+    { move: "e7e6", w: 370 },
+    { move: "c7c6", w: 340 },
+    { move: "g8f6", w: 250 },
+    { move: "d7d6", w: 210 },
+    { move: "g7g6", w: 100 },
+    { move: "f7f5", w: 55 },
+    { move: "b8c6", w: 40 }
   ],
   "d2d4": [
-    { move: "d7d5", w: 260 },
-    { move: "g8f6", w: 220 },
-    { move: "e7e6", w: 120 },
-    { move: "f7f5", w: 40 }
+    { move: "d7d5", w: 620 },
+    { move: "g8f6", w: 600 },
+    { move: "e7e6", w: 360 },
+    { move: "g7g6", w: 240 },
+    { move: "f7f5", w: 190 },
+    { move: "c7c5", w: 110 },
+    { move: "b7b6", w: 50 }
   ],
   "c2c4": [
-    { move: "e7e5", w: 200 },
-    { move: "g8f6", w: 200 },
-    { move: "c7c5", w: 120 }
+    { move: "e7e5", w: 550 },
+    { move: "g8f6", w: 470 },
+    { move: "c7c5", w: 290 },
+    { move: "d7d5", w: 250 },
+    { move: "e7e6", w: 140 }
   ],
   "g1f3": [
-    { move: "d7d5", w: 160 },
-    { move: "g8f6", w: 180 },
-    { move: "c7c5", w: 120 }
+    { move: "d7d5", w: 460 },
+    { move: "g8f6", w: 450 },
+    { move: "c7c5", w: 290 },
+    { move: "e7e6", w: 240 },
+    { move: "g7g6", w: 120 }
+  ],
+  "b1c3": [
+    { move: "e7e5", w: 480 },
+    { move: "d7d5", w: 390 },
+    { move: "g8f6", w: 260 },
+    { move: "c7c5", w: 140 }
+  ],
+  "g2g3": [
+    { move: "d7d5", w: 420 },
+    { move: "g8f6", w: 350 },
+    { move: "c7c5", w: 180 },
+    { move: "e7e5", w: 160 }
+  ],
+  "f2f4": [
+    { move: "d7d5", w: 540 },
+    { move: "e7e5", w: 410 },
+    { move: "g8f6", w: 230 },
+    { move: "c7c5", w: 110 }
+  ],
+  "b2b3": [
+    { move: "e7e5", w: 370 },
+    { move: "d7d5", w: 330 },
+    { move: "g8f6", w: 200 },
+    { move: "c7c5", w: 140 }
+  ],
+  "b2b4": [
+    { move: "e7e5", w: 560 },
+    { move: "d7d5", w: 350 },
+    { move: "c7c5", w: 210 }
+  ],
+
+  "e2e4 e7e5": [
+    { move: "g1f3", w: 770 },
+    { move: "f1c4", w: 150 },
+    { move: "b1c3", w: 120 },
+    { move: "d2d4", w: 90 },
+    { move: "f2f4", w: 60 }
+  ],
+  "e2e4 c7c5": [
+    { move: "g1f3", w: 790 },
+    { move: "b1c3", w: 260 },
+    { move: "c2c3", w: 220 },
+    { move: "g2g3", w: 130 },
+    { move: "f2f4", w: 90 }
+  ],
+  "e2e4 e7e6": [
+    { move: "d2d4", w: 800 },
+    { move: "g1f3", w: 230 },
+    { move: "b1c3", w: 160 },
+    { move: "f1d3", w: 90 }
+  ],
+  "e2e4 c7c6": [
+    { move: "d2d4", w: 770 },
+    { move: "g1f3", w: 260 },
+    { move: "b1c3", w: 140 },
+    { move: "d2d3", w: 70 }
+  ],
+  "e2e4 g8f6": [
+    { move: "e4e5", w: 710 },
+    { move: "d2d4", w: 240 },
+    { move: "g1f3", w: 160 }
+  ],
+  "e2e4 d7d6": [
+    { move: "d2d4", w: 670 },
+    { move: "g1f3", w: 310 },
+    { move: "b1c3", w: 180 }
+  ],
+  "e2e4 g7g6": [
+    { move: "d2d4", w: 680 },
+    { move: "g1f3", w: 280 },
+    { move: "b1c3", w: 150 }
+  ],
+  "e2e4 f7f5": [
+    { move: "e4e5", w: 640 },
+    { move: "d2d4", w: 290 },
+    { move: "g1f3", w: 180 }
+  ],
+
+  "d2d4 d7d5": [
+    { move: "c2c4", w: 790 },
+    { move: "g1f3", w: 190 },
+    { move: "e2e3", w: 130 },
+    { move: "b1c3", w: 110 }
+  ],
+  "d2d4 g8f6": [
+    { move: "c2c4", w: 720 },
+    { move: "g1f3", w: 330 },
+    { move: "b1c3", w: 140 },
+    { move: "e2e3", w: 110 }
+  ],
+  "d2d4 e7e6": [
+    { move: "c2c4", w: 660 },
+    { move: "g1f3", w: 280 },
+    { move: "b1c3", w: 150 },
+    { move: "e2e3", w: 130 }
+  ],
+  "d2d4 g7g6": [
+    { move: "c2c4", w: 670 },
+    { move: "g1f3", w: 280 },
+    { move: "b1c3", w: 120 }
+  ],
+  "d2d4 f7f5": [
+    { move: "g1f3", w: 640 },
+    { move: "c2c4", w: 330 },
+    { move: "e2e3", w: 180 }
+  ],
+  "d2d4 c7c5": [
+    { move: "d4d5", w: 570 },
+    { move: "c2c4", w: 310 },
+    { move: "g1f3", w: 210 }
+  ],
+  "d2d4 b7b6": [
+    { move: "c2c4", w: 490 },
+    { move: "g1f3", w: 280 },
+    { move: "e2e4", w: 190 }
+  ],
+
+  "c2c4 e7e5": [
+    { move: "g1f3", w: 690 },
+    { move: "b1c3", w: 370 },
+    { move: "g2g3", w: 280 },
+    { move: "d2d3", w: 130 },
+    { move: "e2e3", w: 90 }
+  ],
+  "c2c4 g8f6": [
+    { move: "g1f3", w: 610 },
+    { move: "b1c3", w: 300 },
+    { move: "g2g3", w: 250 },
+    { move: "d2d4", w: 160 }
+  ],
+  "c2c4 c7c5": [
+    { move: "g1f3", w: 650 },
+    { move: "b1c3", w: 290 },
+    { move: "g2g3", w: 200 }
+  ],
+  "c2c4 d7d5": [
+    { move: "c4d5", w: 660 },
+    { move: "g1f3", w: 290 },
+    { move: "b1c3", w: 150 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 570 },
+    { move: "b1c3", w: 280 },
+    { move: "g2g3", w: 220 }
+  ],
+
+  "g1f3 d7d5": [
+    { move: "g2g3", w: 440 },
+    { move: "c2c4", w: 350 },
+    { move: "d2d4", w: 240 },
+    { move: "e2e3", w: 140 }
+  ],
+  "g1f3 g8f6": [
+    { move: "g2g3", w: 370 },
+    { move: "c2c4", w: 360 },
+    { move: "d2d4", w: 260 },
+    { move: "b1c3", w: 130 }
+  ],
+  "g1f3 c7c5": [
+    { move: "c2c4", w: 380 },
+    { move: "g2g3", w: 290 },
+    { move: "d2d4", w: 240 }
+  ],
+  "g1f3 e7e6": [
+    { move: "g2g3", w: 400 },
+    { move: "c2c4", w: 310 },
+    { move: "d2d4", w: 220 }
+  ],
+
+  "e2e4 e7e5 g1f3": [
+    { move: "b8c6", w: 760 },
+    { move: "g8f6", w: 240 },
+    { move: "d7d6", w: 160 },
+    { move: "f7f5", w: 70 }
+  ],
+  "e2e4 c7c5 g1f3": [
+    { move: "d7d6", w: 670 },
+    { move: "b8c6", w: 560 },
+    { move: "e7e6", w: 470 },
+    { move: "g7g6", w: 270 },
+    { move: "e7e5", w: 130 }
+  ],
+  "e2e4 e7e6 d2d4": [
+    { move: "d7d5", w: 790 },
+    { move: "c7c5", w: 210 },
+    { move: "g8f6", w: 150 }
+  ],
+  "e2e4 c7c6 d2d4": [
+    { move: "d7d5", w: 780 },
+    { move: "g8f6", w: 140 },
+    { move: "e7e6", w: 110 }
+  ],
+  "e2e4 g8f6 e4e5": [
+    { move: "f6d5", w: 750 },
+    { move: "f6g4", w: 130 },
+    { move: "f6e4", w: 120 }
+  ],
+  "e2e4 d7d6 d2d4": [
+    { move: "g8f6", w: 720 },
+    { move: "g7g6", w: 320 },
+    { move: "e7e5", w: 140 }
+  ],
+  "e2e4 g7g6 d2d4": [
+    { move: "f8g7", w: 790 },
+    { move: "d7d6", w: 190 }
+  ],
+  "e2e4 f7f5 e4e5": [
+    { move: "d7d6", w: 540 },
+    { move: "d7d5", w: 320 },
+    { move: "g8f6", w: 180 }
+  ],
+
+  "d2d4 d7d5 c2c4": [
+    { move: "e7e6", w: 680 },
+    { move: "c7c6", w: 520 },
+    { move: "d5c4", w: 280 },
+    { move: "g8f6", w: 140 }
+  ],
+  "d2d4 g8f6 c2c4": [
+    { move: "e7e6", w: 650 },
+    { move: "g7g6", w: 610 },
+    { move: "c7c5", w: 310 },
+    { move: "d7d6", w: 230 },
+    { move: "e7e5", w: 90 }
+  ],
+  "d2d4 e7e6 c2c4": [
+    { move: "g8f6", w: 680 },
+    { move: "d7d5", w: 570 },
+    { move: "f7f5", w: 200 }
+  ],
+  "d2d4 g7g6 c2c4": [
+    { move: "f8g7", w: 810 },
+    { move: "g8f6", w: 240 }
+  ],
+  "d2d4 f7f5 g1f3": [
+    { move: "g8f6", w: 610 },
+    { move: "e7e6", w: 300 },
+    { move: "g7g6", w: 160 }
+  ],
+  "d2d4 c7c5 d4d5": [
+    { move: "e7e5", w: 460 },
+    { move: "g8f6", w: 380 },
+    { move: "b7b5", w: 160 }
+  ],
+  "d2d4 b7b6 c2c4": [
+    { move: "g8f6", w: 360 },
+    { move: "f8b7", w: 320 },
+    { move: "e7e6", w: 150 }
+  ],
+
+  "c2c4 e7e5 g1f3": [
+    { move: "b8c6", w: 530 },
+    { move: "g8f6", w: 470 },
+    { move: "d7d6", w: 200 }
+  ],
+  "c2c4 g8f6 g1f3": [
+    { move: "e7e6", w: 450 },
+    { move: "g7g6", w: 420 },
+    { move: "c7c5", w: 260 },
+    { move: "d7d5", w: 140 }
+  ],
+  "c2c4 c7c5 g1f3": [
+    { move: "d7d6", w: 480 },
+    { move: "b8c6", w: 330 },
+    { move: "e7e6", w: 250 }
+  ],
+  "c2c4 d7d5 c4d5": [
+    { move: "d8d5", w: 390 },
+    { move: "g8f6", w: 270 },
+    { move: "e7e6", w: 170 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 570 },
+    { move: "b1c3", w: 280 },
+    { move: "g2g3", w: 220 }
+  ],
+  "c2c4 g7g6": [
+    { move: "g1f3", w: 390 },
+    { move: "b1c3", w: 270 },
+    { move: "g2g3", w: 250 }
+  ],
+
+  "g1f3 d7d5 g2g3": [
+    { move: "g8f6", w: 400 },
+    { move: "c7c5", w: 280 },
+    { move: "e7e6", w: 220 }
+  ],
+  "g1f3 g8f6 g2g3": [
+    { move: "g7g6", w: 470 },
+    { move: "e7e6", w: 270 },
+    { move: "d7d5", w: 200 }
+  ],
+  "g1f3 c7c5 g2g3": [
+    { move: "g8f6", w: 330 },
+    { move: "d7d5", w: 250 },
+    { move: "g7g6", w: 220 }
+  ],
+  "g1f3 e7e6 g2g3": [
+    { move: "g8f6", w: 370 },
+    { move: "d7d5", w: 300 },
+    { move: "c7c5", w: 180 }
+  ],
+
+  "e2e4 e7e5 g1f3 b8c6": [
+    { move: "f1b5", w: 760 },
+    { move: "f1c4", w: 160 },
+    { move: "b1c3", w: 120 },
+    { move: "d2d4", w: 80 }
+  ],
+  "e2e4 e7e5 g1f3 g8f6": [
+    { move: "f3e5", w: 480 },
+    { move: "b1c3", w: 360 },
+    { move: "d2d4", w: 240 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5": [
+    { move: "a7a6", w: 720 },
+    { move: "g8f6", w: 310 },
+    { move: "f8c5", w: 130 },
+    { move: "d7d6", w: 110 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6": [
+    { move: "b5a4", w: 740 },
+    { move: "b5c6", w: 160 },
+    { move: "f1a4", w: 110 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4": [
+    { move: "g8f6", w: 600 },
+    { move: "f8c5", w: 200 },
+    { move: "b7b5", w: 140 },
+    { move: "d7d6", w: 100 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 g8f6": [
+    { move: "e1g1", w: 670 },
+    { move: "d2d3", w: 200 },
+    { move: "b1c3", w: 150 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4": [
+    { move: "f8c5", w: 640 },
+    { move: "g8f6", w: 360 },
+    { move: "d7d6", w: 160 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 d2d4": [
+    { move: "e5d4", w: 670 },
+    { move: "f8c5", w: 290 },
+    { move: "d7d6", w: 160 }
+  ],
+  "e2e4 e7e5 g1f3 d7d6": [
+    { move: "d2d4", w: 680 },
+    { move: "b1c3", w: 270 },
+    { move: "f1c4", w: 190 }
+  ],
+  "e2e4 e7e5 b1c3": [
+    { move: "g8f6", w: 560 },
+    { move: "b8c6", w: 450 },
+    { move: "d7d6", w: 190 }
+  ],
+  "e2e4 e7e5 f2f4": [
+    { move: "d7d5", w: 550 },
+    { move: "e5f4", w: 430 },
+    { move: "g8f6", w: 240 }
+  ],
+  "e2e4 e7e5 d2d4": [
+    { move: "e5d4", w: 730 },
+    { move: "b8c6", w: 270 },
+    { move: "d7d6", w: 150 }
+  ],
+  "e2e4 e7e5 d2d4 e5d4 c2c3": [
+    { move: "d4c3", w: 650 },
+    { move: "d7d5", w: 270 },
+    { move: "b8c6", w: 200 }
+  ],
+  "e2e4 e7e5 f1c4": [
+    { move: "f8c5", w: 550 },
+    { move: "g8f6", w: 300 },
+    { move: "b8c6", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6": [
+    { move: "d2d3", w: 450 },
+    { move: "d2d4", w: 270 },
+    { move: "e1g1", w: 200 }
+  ],
+
+  "e2e4 c7c5 g1f3 d7d6": [
+    { move: "d2d4", w: 730 },
+    { move: "b1c3", w: 200 },
+    { move: "f1b5", w: 130 }
+  ],
+  "e2e4 c7c5 g1f3 b8c6": [
+    { move: "d2d4", w: 710 },
+    { move: "b1c3", w: 210 },
+    { move: "f1b5", w: 140 }
+  ],
+  "e2e4 c7c5 g1f3 e7e6": [
+    { move: "d2d4", w: 750 },
+    { move: "b1c3", w: 190 },
+    { move: "c2c4", w: 150 }
+  ],
+  "e2e4 c7c5 g1f3 g7g6": [
+    { move: "d2d4", w: 720 },
+    { move: "b1c3", w: 200 },
+    { move: "c2c4", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4": [
+    { move: "g8f6", w: 560 },
+    { move: "a7a6", w: 400 },
+    { move: "g7g6", w: 250 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6": [
+    { move: "b1c3", w: 750 },
+    { move: "f1e2", w: 210 },
+    { move: "f1c4", w: 140 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3": [
+    { move: "a7a6", w: 560 },
+    { move: "g7g6", w: 350 },
+    { move: "b8c6", w: 220 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6": [
+    { move: "f1e2", w: 540 },
+    { move: "f2f3", w: 300 },
+    { move: "f1c4", w: 200 },
+    { move: "g2g4", w: 100 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2": [
+    { move: "e7e5", w: 420 },
+    { move: "b8c6", w: 280 },
+    { move: "e6", w: 140 },
+    { move: "g7g6", w: 100 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5": [
+    { move: "d4b3", w: 450 },
+    { move: "d4f3", w: 210 },
+    { move: "d4b5", w: 160 },
+    { move: "d4d5", w: 100 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3": [
+    { move: "f8e6", w: 270 },
+    { move: "f8e7", w: 230 },
+    { move: "b8c6", w: 190 }
+  ],
+
+  "e2e4 c7c5 b1c3": [
+    { move: "g8f6", w: 480 },
+    { move: "b8c6", w: 380 },
+    { move: "e7e6", w: 190 },
+    { move: "d7d6", w: 110 }
+  ],
+  "e2e4 c7c5 c2c3": [
+    { move: "d7d5", w: 670 },
+    { move: "g8f6", w: 230 },
+    { move: "e7e6", w: 180 }
+  ],
+  "e2e4 c7c5 g2g3": [
+    { move: "d7d5", w: 450 },
+    { move: "g8f6", w: 440 },
+    { move: "b8c6", w: 200 }
+  ],
+  "e2e4 c7c5 f2f4": [
+    { move: "d7d5", w: 490 },
+    { move: "g8f6", w: 320 },
+    { move: "b8c6", w: 170 }
+  ],
+
+  "e2e4 e7e6 d2d4 d7d5": [
+    { move: "b1c3", w: 560 },
+    { move: "e4e5", w: 270 },
+    { move: "f1d3", w: 130 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3": [
+    { move: "g1f3", w: 670 },
+    { move: "e4e5", w: 260 },
+    { move: "f1d3", w: 120 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6": [
+    { move: "e4e5", w: 450 },
+    { move: "f1d3", w: 100 },
+    { move: "e5", w: 140 }
+  ],
+
+  "d2d4 d7d5 c2c4": [
+    { move: "e7e6", w: 690 },
+    { move: "c7c6", w: 530 },
+    { move: "d5c4", w: 290 },
+    { move: "g8f6", w: 150 }
+  ],
+  "d2d4 g8f6 c2c4": [
+    { move: "e7e6", w: 660 },
+    { move: "g7g6", w: 620 },
+    { move: "c7c5", w: 320 },
+    { move: "d7d6", w: 240 },
+    { move: "e7e5", w: 100 }
+  ],
+  "d2d4 e7e6 c2c4": [
+    { move: "g8f6", w: 690 },
+    { move: "d7d5", w: 580 },
+    { move: "f7f5", w: 210 }
+  ],
+  "d2d4 g7g6 c2c4": [
+    { move: "f8g7", w: 820 },
+    { move: "g8f6", w: 250 }
+  ],
+  "d2d4 f7f5 g1f3": [
+    { move: "g8f6", w: 620 },
+    { move: "e7e6", w: 310 },
+    { move: "g7g6", w: 170 }
+  ],
+  "d2d4 c7c5 d4d5": [
+    { move: "e7e5", w: 470 },
+    { move: "g8f6", w: 390 },
+    { move: "b7b5", w: 170 }
+  ],
+  "d2d4 b7b6 c2c4": [
+    { move: "g8f6", w: 370 },
+    { move: "f8b7", w: 330 },
+    { move: "e7e6", w: 160 }
+  ],
+
+
+
+
+
+
+  "c2c4 e7e5 g1f3": [
+    { move: "b8c6", w: 540 },
+    { move: "g8f6", w: 480 },
+    { move: "d7d6", w: 210 }
+  ],
+  "c2c4 g8f6 g1f3": [
+    { move: "e7e6", w: 460 },
+    { move: "g7g6", w: 430 },
+    { move: "c7c5", w: 270 },
+    { move: "d7d5", w: 150 }
+  ],
+  "c2c4 c7c5 g1f3": [
+    { move: "d7d6", w: 490 },
+    { move: "b8c6", w: 340 },
+    { move: "e7e6", w: 260 }
+  ],
+  "c2c4 d7d5 c4d5": [
+    { move: "d8d5", w: 400 },
+    { move: "g8f6", w: 280 },
+    { move: "e7e6", w: 180 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 580 },
+    { move: "b1c3", w: 290 },
+    { move: "g2g3", w: 230 }
+  ],
+  "c2c4 g7g6": [
+    { move: "g1f3", w: 400 },
+    { move: "b1c3", w: 280 },
+    { move: "g2g3", w: 260 }
+  ],
+
+  "g1f3 d7d5 g2g3": [
+    { move: "g8f6", w: 410 },
+    { move: "c7c5", w: 290 },
+    { move: "e7e6", w: 230 }
+  ],
+  "g1f3 g8f6 g2g3": [
+    { move: "g7g6", w: 480 },
+    { move: "e7e6", w: 280 },
+    { move: "d7d5", w: 210 }
+  ],
+  "g1f3 c7c5 g2g3": [
+    { move: "g8f6", w: 340 },
+    { move: "d7d5", w: 260 },
+    { move: "g7g6", w: 230 }
+  ],
+  "g1f3 e7e6 g2g3": [
+    { move: "g8f6", w: 380 },
+    { move: "d7d5", w: 310 },
+    { move: "c7c5", w: 190 }
+  ],
+
+  "e2e4 e7e5 g1f3 b8c6": [
+    { move: "f1b5", w: 770 },
+    { move: "f1c4", w: 170 },
+    { move: "b1c3", w: 120 },
+    { move: "d2d4", w: 80 }
+  ],
+  "e2e4 e7e5 g1f3 g8f6": [
+    { move: "f3e5", w: 490 },
+    { move: "b1c3", w: 370 },
+    { move: "d2d4", w: 250 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5": [
+    { move: "a7a6", w: 730 },
+    { move: "g8f6", w: 320 },
+    { move: "f8c5", w: 140 },
+    { move: "d7d6", w: 110 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6": [
+    { move: "b5a4", w: 750 },
+    { move: "b5c6", w: 170 },
+    { move: "f1a4", w: 110 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4": [
+    { move: "g8f6", w: 620 },
+    { move: "f8c5", w: 210 },
+    { move: "b7b5", w: 150 },
+    { move: "d7d6", w: 100 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 g8f6": [
+    { move: "e1g1", w: 680 },
+    { move: "d2d3", w: 210 },
+    { move: "b1c3", w: 160 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4": [
+    { move: "f8c5", w: 650 },
+    { move: "g8f6", w: 370 },
+    { move: "d7d6", w: 170 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 d2d4": [
+    { move: "e5d4", w: 680 },
+    { move: "f8c5", w: 300 },
+    { move: "d7d6", w: 170 }
+  ],
+  "e2e4 e7e5 g1f3 d7d6": [
+    { move: "d2d4", w: 690 },
+    { move: "b1c3", w: 280 },
+    { move: "f1c4", w: 190 }
+  ],
+  "e2e4 e7e5 b1c3": [
+    { move: "g8f6", w: 570 },
+    { move: "b8c6", w: 460 },
+    { move: "d7d6", w: 200 }
+  ],
+  "e2e4 e7e5 f2f4": [
+    { move: "d7d5", w: 560 },
+    { move: "e5f4", w: 440 },
+    { move: "g8f6", w: 250 }
+  ],
+  "e2e4 e7e5 d2d4": [
+    { move: "e5d4", w: 740 },
+    { move: "b8c6", w: 280 },
+    { move: "d7d6", w: 150 }
+  ],
+  "e2e4 e7e5 d2d4 e5d4 c2c3": [
+    { move: "d4c3", w: 660 },
+    { move: "d7d5", w: 280 },
+    { move: "b8c6", w: 210 }
+  ],
+  "e2e4 e7e5 f1c4": [
+    { move: "f8c5", w: 560 },
+    { move: "g8f6", w: 310 },
+    { move: "b8c6", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6": [
+    { move: "d2d3", w: 460 },
+    { move: "d2d4", w: 280 },
+    { move: "e1g1", w: 210 }
+  ],
+
+  "e2e4 c7c5 g1f3 d7d6": [
+    { move: "d2d4", w: 740 },
+    { move: "b1c3", w: 210 },
+    { move: "f1b5", w: 130 }
+  ],
+  "e2e4 c7c5 g1f3 b8c6": [
+    { move: "d2d4", w: 720 },
+    { move: "b1c3", w: 220 },
+    { move: "f1b5", w: 150 }
+  ],
+  "e2e4 c7c5 g1f3 e7e6": [
+    { move: "d2d4", w: 760 },
+    { move: "b1c3", w: 200 },
+    { move: "c2c4", w: 150 }
+  ],
+  "e2e4 c7c5 g1f3 g7g6": [
+    { move: "d2d4", w: 730 },
+    { move: "b1c3", w: 210 },
+    { move: "c2c4", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4": [
+    { move: "g8f6", w: 580 },
+    { move: "a7a6", w: 410 },
+    { move: "g7g6", w: 260 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6": [
+    { move: "b1c3", w: 760 },
+    { move: "f1e2", w: 220 },
+    { move: "f1c4", w: 140 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3": [
+    { move: "a7a6", w: 580 },
+    { move: "g7g6", w: 360 },
+    { move: "b8c6", w: 230 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6": [
+    { move: "f1e2", w: 560 },
+    { move: "f2f3", w: 320 },
+    { move: "f1c4", w: 210 },
+    { move: "g2g4", w: 100 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2": [
+    { move: "e7e5", w: 430 },
+    { move: "b8c6", w: 290 },
+    { move: "e6", w: 150 },
+    { move: "g7g6", w: 100 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5": [
+    { move: "d4b3", w: 460 },
+    { move: "d4f3", w: 220 },
+    { move: "d4b5", w: 170 },
+    { move: "d4d5", w: 110 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3": [
+    { move: "f8e6", w: 280 },
+    { move: "f8e7", w: 240 },
+    { move: "b8c6", w: 200 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3 f8e6": [
+    { move: "e1g1", w: 430 },
+    { move: "f2f3", w: 200 },
+    { move: "g2g4", w: 120 }
+  ],
+
+  "e2e4 c7c5 b1c3": [
+    { move: "g8f6", w: 490 },
+    { move: "b8c6", w: 390 },
+    { move: "e7e6", w: 200 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 c7c5 c2c3": [
+    { move: "d7d5", w: 680 },
+    { move: "g8f6", w: 240 },
+    { move: "e7e6", w: 190 }
+  ],
+  "e2e4 c7c5 g2g3": [
+    { move: "d7d5", w: 460 },
+    { move: "g8f6", w: 450 },
+    { move: "b8c6", w: 210 }
+  ],
+  "e2e4 c7c5 f2f4": [
+    { move: "d7d5", w: 500 },
+    { move: "g8f6", w: 330 },
+    { move: "b8c6", w: 180 }
+  ],
+
+  "e2e4 e7e6 d2d4 d7d5": [
+    { move: "b1c3", w: 570 },
+    { move: "e4e5", w: 280 },
+    { move: "f1d3", w: 140 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3": [
+    { move: "g1f3", w: 680 },
+    { move: "e4e5", w: 270 },
+    { move: "f1d3", w: 130 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6": [
+    { move: "e4e5", w: 460 },
+    { move: "f1d3", w: 110 },
+    { move: "e5", w: 150 }
+  ],
+
+  "d2d4 d7d5 c2c4": [
+    { move: "e7e6", w: 700 },
+    { move: "c7c6", w: 540 },
+    { move: "d5c4", w: 300 },
+    { move: "g8f6", w: 160 }
+  ],
+  "d2d4 g8f6 c2c4": [
+    { move: "e7e6", w: 670 },
+    { move: "g7g6", w: 630 },
+    { move: "c7c5", w: 330 },
+    { move: "d7d6", w: 250 },
+    { move: "e7e5", w: 100 }
+  ],
+  "d2d4 e7e6 c2c4": [
+    { move: "g8f6", w: 700 },
+    { move: "d7d5", w: 590 },
+    { move: "f7f5", w: 220 }
+  ],
+  "d2d4 g7g6 c2c4": [
+    { move: "f8g7", w: 830 },
+    { move: "g8f6", w: 260 }
+  ],
+  "d2d4 f7f5 g1f3": [
+    { move: "g8f6", w: 630 },
+    { move: "e7e6", w: 320 },
+    { move: "g7g6", w: 180 }
+  ],
+  "d2d4 c7c5 d4d5": [
+    { move: "e7e5", w: 480 },
+    { move: "g8f6", w: 400 },
+    { move: "b7b5", w: 180 }
+  ],
+  "d2d4 b7b6 c2c4": [
+    { move: "g8f6", w: 380 },
+    { move: "f8b7", w: 340 },
+    { move: "e7e6", w: 170 }
+  ],
+
+
+
+  "c2c4 e7e5 g1f3": [
+    { move: "b8c6", w: 550 },
+    { move: "g8f6", w: 490 },
+    { move: "d7d6", w: 220 }
+  ],
+  "c2c4 g8f6 g1f3": [
+    { move: "e7e6", w: 470 },
+    { move: "g7g6", w: 440 },
+    { move: "c7c5", w: 280 },
+    { move: "d7d5", w: 160 }
+  ],
+  "c2c4 c7c5 g1f3": [
+    { move: "d7d6", w: 500 },
+    { move: "b8c6", w: 350 },
+    { move: "e7e6", w: 270 }
+  ],
+  "c2c4 d7d5 c4d5": [
+    { move: "d8d5", w: 410 },
+    { move: "g8f6", w: 290 },
+    { move: "e7e6", w: 190 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 590 },
+    { move: "b1c3", w: 300 },
+    { move: "g2g3", w: 240 }
+  ],
+  "c2c4 g7g6": [
+    { move: "g1f3", w: 410 },
+    { move: "b1c3", w: 290 },
+    { move: "g2g3", w: 270 }
+  ],
+
+  "g1f3 d7d5 g2g3": [
+    { move: "g8f6", w: 420 },
+    { move: "c7c5", w: 300 },
+    { move: "e7e6", w: 240 }
+  ],
+  "g1f3 g8f6 g2g3": [
+    { move: "g7g6", w: 490 },
+    { move: "e7e6", w: 290 },
+    { move: "d7d5", w: 220 }
+  ],
+  "g1f3 c7c5 g2g3": [
+    { move: "g8f6", w: 350 },
+    { move: "d7d5", w: 270 },
+    { move: "g7g6", w: 240 }
+  ],
+  "g1f3 e7e6 g2g3": [
+    { move: "g8f6", w: 390 },
+    { move: "d7d5", w: 320 },
+    { move: "c7c5", w: 200 }
+  ],
+
+
+
+
+  "e2e4 e7e5 g1f3 b8c6": [
+    { move: "f1b5", w: 780 },
+    { move: "f1c4", w: 170 },
+    { move: "b1c3", w: 120 },
+    { move: "d2d4", w: 80 }
+  ],
+  "e2e4 e7e5 g1f3 g8f6": [
+    { move: "f3e5", w: 500 },
+    { move: "b1c3", w: 380 },
+    { move: "d2d4", w: 250 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5": [
+    { move: "a7a6", w: 740 },
+    { move: "g8f6", w: 330 },
+    { move: "f8c5", w: 140 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6": [
+    { move: "b5a4", w: 760 },
+    { move: "b5c6", w: 170 },
+    { move: "f1a4", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4": [
+    { move: "g8f6", w: 630 },
+    { move: "f8c5", w: 220 },
+    { move: "b7b5", w: 150 },
+    { move: "d7d6", w: 110 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 g8f6": [
+    { move: "e1g1", w: 690 },
+    { move: "d2d3", w: 220 },
+    { move: "b1c3", w: 170 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4": [
+    { move: "f8c5", w: 660 },
+    { move: "g8f6", w: 380 },
+    { move: "d7d6", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 d2d4": [
+    { move: "e5d4", w: 690 },
+    { move: "f8c5", w: 310 },
+    { move: "d7d6", w: 170 }
+  ],
+  "e2e4 e7e5 g1f3 d7d6": [
+    { move: "d2d4", w: 700 },
+    { move: "b1c3", w: 290 },
+    { move: "f1c4", w: 200 }
+  ],
+  "e2e4 e7e5 b1c3": [
+    { move: "g8f6", w: 580 },
+    { move: "b8c6", w: 470 },
+    { move: "d7d6", w: 210 }
+  ],
+  "e2e4 e7e5 f2f4": [
+    { move: "d7d5", w: 570 },
+    { move: "e5f4", w: 450 },
+    { move: "g8f6", w: 260 }
+  ],
+  "e2e4 e7e5 d2d4": [
+    { move: "e5d4", w: 750 },
+    { move: "b8c6", w: 290 },
+    { move: "d7d6", w: 160 }
+  ],
+  "e2e4 e7e5 d2d4 e5d4 c2c3": [
+    { move: "d4c3", w: 670 },
+    { move: "d7d5", w: 290 },
+    { move: "b8c6", w: 220 }
+  ],
+  "e2e4 e7e5 f1c4": [
+    { move: "f8c5", w: 570 },
+    { move: "g8f6", w: 320 },
+    { move: "b8c6", w: 190 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6": [
+    { move: "d2d3", w: 470 },
+    { move: "d2d4", w: 290 },
+    { move: "e1g1", w: 220 }
+  ],
+
+  "e2e4 c7c5 g1f3 d7d6": [
+    { move: "d2d4", w: 750 },
+    { move: "b1c3", w: 220 },
+    { move: "f1b5", w: 140 }
+  ],
+  "e2e4 c7c5 g1f3 b8c6": [
+    { move: "d2d4", w: 730 },
+    { move: "b1c3", w: 230 },
+    { move: "f1b5", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 e7e6": [
+    { move: "d2d4", w: 770 },
+    { move: "b1c3", w: 210 },
+    { move: "c2c4", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 g7g6": [
+    { move: "d2d4", w: 740 },
+    { move: "b1c3", w: 220 },
+    { move: "c2c4", w: 170 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4": [
+    { move: "g8f6", w: 600 },
+    { move: "a7a6", w: 420 },
+    { move: "g7g6", w: 280 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6": [
+    { move: "b1c3", w: 770 },
+    { move: "f1e2", w: 220 },
+    { move: "f1c4", w: 150 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3": [
+    { move: "a7a6", w: 590 },
+    { move: "g7g6", w: 370 },
+    { move: "b8c6", w: 240 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6": [
+    { move: "f1e2", w: 570 },
+    { move: "f2f3", w: 330 },
+    { move: "f1c4", w: 220 },
+    { move: "g2g4", w: 110 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2": [
+    { move: "e7e5", w: 440 },
+    { move: "b8c6", w: 300 },
+    { move: "e6", w: 160 },
+    { move: "g7g6", w: 110 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5": [
+    { move: "d4b3", w: 470 },
+    { move: "d4f3", w: 230 },
+    { move: "d4b5", w: 180 },
+    { move: "d4d5", w: 120 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3": [
+    { move: "f8e6", w: 290 },
+    { move: "f8e7", w: 250 },
+    { move: "b8c6", w: 220 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3 f8e6": [
+    { move: "e1g1", w: 440 },
+    { move: "f2f3", w: 210 },
+    { move: "g2g4", w: 130 }
+  ],
+
+  "e2e4 c7c5 b1c3": [
+    { move: "g8f6", w: 500 },
+    { move: "b8c6", w: 400 },
+    { move: "e7e6", w: 200 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 c7c5 c2c3": [
+    { move: "d7d5", w: 690 },
+    { move: "g8f6", w: 250 },
+    { move: "e7e6", w: 190 }
+  ],
+  "e2e4 c7c5 g2g3": [
+    { move: "d7d5", w: 470 },
+    { move: "g8f6", w: 460 },
+    { move: "b8c6", w: 220 }
+  ],
+  "e2e4 c7c5 f2f4": [
+    { move: "d7d5", w: 510 },
+    { move: "g8f6", w: 340 },
+    { move: "b8c6", w: 190 }
+  ],
+
+  "e2e4 e7e6 d2d4 d7d5": [
+    { move: "b1c3", w: 580 },
+    { move: "e4e5", w: 290 },
+    { move: "f1d3", w: 140 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3": [
+    { move: "g1f3", w: 690 },
+    { move: "e4e5", w: 280 },
+    { move: "f1d3", w: 130 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6": [
+    { move: "e4e5", w: 470 },
+    { move: "f1d3", w: 120 },
+    { move: "e5", w: 150 }
+  ],
+
+  "d2d4 d7d5 c2c4": [
+    { move: "e7e6", w: 710 },
+    { move: "c7c6", w: 550 },
+    { move: "d5c4", w: 310 },
+    { move: "g8f6", w: 170 }
+  ],
+  "d2d4 g8f6 c2c4": [
+    { move: "e7e6", w: 680 },
+    { move: "g7g6", w: 640 },
+    { move: "c7c5", w: 340 },
+    { move: "d7d6", w: 260 },
+    { move: "e7e5", w: 110 }
+  ],
+  "d2d4 e7e6 c2c4": [
+    { move: "g8f6", w: 710 },
+    { move: "d7d5", w: 600 },
+    { move: "f7f5", w: 230 }
+  ],
+  "d2d4 g7g6 c2c4": [
+    { move: "f8g7", w: 840 },
+    { move: "g8f6", w: 270 }
+  ],
+  "d2d4 f7f5 g1f3": [
+    { move: "g8f6", w: 640 },
+    { move: "e7e6", w: 330 },
+    { move: "g7g6", w: 180 }
+  ],
+  "d2d4 c7c5 d4d5": [
+    { move: "e7e5", w: 490 },
+    { move: "g8f6", w: 410 },
+    { move: "b7b5", w: 190 }
+  ],
+  "d2d4 b7b6 c2c4": [
+    { move: "g8f6", w: 390 },
+    { move: "f8b7", w: 350 },
+    { move: "e7e6", w: 180 }
+  ],
+
+  "c2c4 e7e5 g1f3": [
+    { move: "b8c6", w: 560 },
+    { move: "g8f6", w: 500 },
+    { move: "d7d6", w: 230 }
+  ],
+  "c2c4 g8f6 g1f3": [
+    { move: "e7e6", w: 480 },
+    { move: "g7g6", w: 450 },
+    { move: "c7c5", w: 290 },
+    { move: "d7d5", w: 170 }
+  ],
+  "c2c4 c7c5 g1f3": [
+    { move: "d7d6", w: 510 },
+    { move: "b8c6", w: 360 },
+    { move: "e7e6", w: 280 }
+  ],
+  "c2c4 d7d5 c4d5": [
+    { move: "d8d5", w: 420 },
+    { move: "g8f6", w: 300 },
+    { move: "e7e6", w: 200 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 600 },
+    { move: "b1c3", w: 300 },
+    { move: "g2g3", w: 250 }
+  ],
+  "c2c4 g7g6": [
+    { move: "g1f3", w: 420 },
+    { move: "b1c3", w: 300 },
+    { move: "g2g3", w: 280 }
+  ],
+
+  "g1f3 d7d5 g2g3": [
+    { move: "g8f6", w: 430 },
+    { move: "c7c5", w: 310 },
+    { move: "e7e6", w: 240 }
+  ],
+  "g1f3 g8f6 g2g3": [
+    { move: "g7g6", w: 500 },
+    { move: "e7e6", w: 300 },
+    { move: "d7d5", w: 220 }
+  ],
+  "g1f3 c7c5 g2g3": [
+    { move: "g8f6", w: 350 },
+    { move: "d7d5", w: 280 },
+    { move: "g7g6", w: 250 }
+  ],
+  "g1f3 e7e6 g2g3": [
+    { move: "g8f6", w: 400 },
+    { move: "d7d5", w: 330 },
+    { move: "c7c5", w: 210 }
+  ],
+
+  "e2e4 e7e5 g1f3 b8c6": [
+    { move: "f1b5", w: 790 },
+    { move: "f1c4", w: 170 },
+    { move: "b1c3", w: 130 },
+    { move: "d2d4", w: 90 }
+  ],
+  "e2e4 e7e5 g1f3 g8f6": [
+    { move: "f3e5", w: 510 },
+    { move: "b1c3", w: 390 },
+    { move: "d2d4", w: 260 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5": [
+    { move: "a7a6", w: 750 },
+    { move: "g8f6", w: 330 },
+    { move: "f8c5", w: 150 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6": [
+    { move: "b5a4", w: 770 },
+    { move: "b5c6", w: 180 },
+    { move: "f1a4", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4": [
+    { move: "g8f6", w: 640 },
+    { move: "f8c5", w: 230 },
+    { move: "b7b5", w: 160 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 g8f6": [
+    { move: "e1g1", w: 700 },
+    { move: "d2d3", w: 230 },
+    { move: "b1c3", w: 170 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4": [
+    { move: "f8c5", w: 670 },
+    { move: "g8f6", w: 390 },
+    { move: "d7d6", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 d2d4": [
+    { move: "e5d4", w: 700 },
+    { move: "f8c5", w: 320 },
+    { move: "d7d6", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 d7d6": [
+    { move: "d2d4", w: 710 },
+    { move: "b1c3", w: 300 },
+    { move: "f1c4", w: 210 }
+  ],
+  "e2e4 e7e5 b1c3": [
+    { move: "g8f6", w: 590 },
+    { move: "b8c6", w: 480 },
+    { move: "d7d6", w: 220 }
+  ],
+  "e2e4 e7e5 f2f4": [
+    { move: "d7d5", w: 580 },
+    { move: "e5f4", w: 460 },
+    { move: "g8f6", w: 270 }
+  ],
+  "e2e4 e7e5 d2d4": [
+    { move: "e5d4", w: 760 },
+    { move: "b8c6", w: 300 },
+    { move: "d7d6", w: 170 }
+  ],
+  "e2e4 e7e5 d2d4 e5d4 c2c3": [
+    { move: "d4c3", w: 680 },
+    { move: "d7d5", w: 300 },
+    { move: "b8c6", w: 230 }
+  ],
+  "e2e4 e7e5 f1c4": [
+    { move: "f8c5", w: 580 },
+    { move: "g8f6", w: 330 },
+    { move: "b8c6", w: 200 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6": [
+    { move: "d2d3", w: 480 },
+    { move: "d2d4", w: 300 },
+    { move: "e1g1", w: 230 }
+  ],
+
+  "e2e4 c7c5 g1f3 d7d6": [
+    { move: "d2d4", w: 760 },
+    { move: "b1c3", w: 230 },
+    { move: "f1b5", w: 150 }
+  ],
+  "e2e4 c7c5 g1f3 b8c6": [
+    { move: "d2d4", w: 740 },
+    { move: "b1c3", w: 240 },
+    { move: "f1b5", w: 170 }
+  ],
+  "e2e4 c7c5 g1f3 e7e6": [
+    { move: "d2d4", w: 780 },
+    { move: "b1c3", w: 220 },
+    { move: "c2c4", w: 170 }
+  ],
+  "e2e4 c7c5 g1f3 g7g6": [
+    { move: "d2d4", w: 750 },
+    { move: "b1c3", w: 230 },
+    { move: "c2c4", w: 180 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4": [
+    { move: "g8f6", w: 620 },
+    { move: "a7a6", w: 430 },
+    { move: "g7g6", w: 290 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6": [
+    { move: "b1c3", w: 780 },
+    { move: "f1e2", w: 230 },
+    { move: "f1c4", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3": [
+    { move: "a7a6", w: 600 },
+    { move: "g7g6", w: 380 },
+    { move: "b8c6", w: 250 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6": [
+    { move: "f1e2", w: 580 },
+    { move: "f2f3", w: 340 },
+    { move: "f1c4", w: 230 },
+    { move: "g2g4", w: 120 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2": [
+    { move: "e7e5", w: 450 },
+    { move: "b8c6", w: 310 },
+    { move: "e6", w: 170 },
+    { move: "g7g6", w: 120 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5": [
+    { move: "d4b3", w: 480 },
+    { move: "d4f3", w: 240 },
+    { move: "d4b5", w: 190 },
+    { move: "d4d5", w: 130 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3": [
+    { move: "f8e6", w: 300 },
+    { move: "f8e7", w: 260 },
+    { move: "b8c6", w: 230 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3 f8e6": [
+    { move: "e1g1", w: 450 },
+    { move: "f2f3", w: 220 },
+    { move: "g2g4", w: 140 }
+  ],
+
+
+
+
+  "e2e4 c7c5 b1c3": [
+    { move: "g8f6", w: 510 },
+    { move: "b8c6", w: 410 },
+    { move: "e7e6", w: 210 },
+    { move: "d7d6", w: 130 }
+  ],
+  "e2e4 c7c5 c2c3": [
+    { move: "d7d5", w: 700 },
+    { move: "g8f6", w: 260 },
+    { move: "e7e6", w: 200 }
+  ],
+  "e2e4 c7c5 g2g3": [
+    { move: "d7d5", w: 480 },
+    { move: "g8f6", w: 470 },
+    { move: "b8c6", w: 230 }
+  ],
+  "e2e4 c7c5 f2f4": [
+    { move: "d7d5", w: 520 },
+    { move: "g8f6", w: 350 },
+    { move: "b8c6", w: 200 }
+  ],
+
+  "e2e4 e7e6 d2d4 d7d5": [
+    { move: "b1c3", w: 590 },
+    { move: "e4e5", w: 300 },
+    { move: "f1d3", w: 150 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3": [
+    { move: "g1f3", w: 700 },
+    { move: "e4e5", w: 290 },
+    { move: "f1d3", w: 140 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6": [
+    { move: "e4e5", w: 480 },
+    { move: "f1d3", w: 120 },
+    { move: "e5", w: 160 }
+  ],
+
+  "d2d4 d7d5 c2c4": [
+    { move: "e7e6", w: 720 },
+    { move: "c7c6", w: 560 },
+    { move: "d5c4", w: 320 },
+    { move: "g8f6", w: 180 }
+  ],
+  "d2d4 g8f6 c2c4": [
+    { move: "e7e6", w: 690 },
+    { move: "g7g6", w: 650 },
+    { move: "c7c5", w: 350 },
+    { move: "d7d6", w: 270 },
+    { move: "e7e5", w: 120 }
+  ],
+  "d2d4 e7e6 c2c4": [
+    { move: "g8f6", w: 720 },
+    { move: "d7d5", w: 610 },
+    { move: "f7f5", w: 240 }
+  ],
+  "d2d4 g7g6 c2c4": [
+    { move: "f8g7", w: 850 },
+    { move: "g8f6", w: 280 }
+  ],
+  "d2d4 f7f5 g1f3": [
+    { move: "g8f6", w: 650 },
+    { move: "e7e6", w: 340 },
+    { move: "g7g6", w: 190 }
+  ],
+  "d2d4 c7c5 d4d5": [
+    { move: "e7e5", w: 500 },
+    { move: "g8f6", w: 420 },
+    { move: "b7b5", w: 190 }
+  ],
+  "d2d4 b7b6 c2c4": [
+    { move: "g8f6", w: 400 },
+    { move: "f8b7", w: 360 },
+    { move: "e7e6", w: 180 }
+  ],
+
+  "c2c4 e7e5 g1f3": [
+    { move: "b8c6", w: 570 },
+    { move: "g8f6", w: 510 },
+    { move: "d7d6", w: 240 }
+  ],
+  "c2c4 g8f6 g1f3": [
+    { move: "e7e6", w: 490 },
+    { move: "g7g6", w: 460 },
+    { move: "c7c5", w: 300 },
+    { move: "d7d5", w: 180 }
+  ],
+  "c2c4 c7c5 g1f3": [
+    { move: "d7d6", w: 520 },
+    { move: "b8c6", w: 370 },
+    { move: "e7e6", w: 290 }
+  ],
+  "c2c4 d7d5 c4d5": [
+    { move: "d8d5", w: 430 },
+    { move: "g8f6", w: 310 },
+    { move: "e7e6", w: 200 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 610 },
+    { move: "b1c3", w: 310 },
+    { move: "g2g3", w: 260 }
+  ],
+  "c2c4 g7g6": [
+    { move: "g1f3", w: 430 },
+    { move: "b1c3", w: 310 },
+    { move: "g2g3", w: 290 }
+  ],
+
+  "g1f3 d7d5 g2g3": [
+    { move: "g8f6", w: 440 },
+    { move: "c7c5", w: 320 },
+    { move: "e7e6", w: 250 }
+  ],
+  "g1f3 g8f6 g2g3": [
+    { move: "g7g6", w: 500 },
+    { move: "e7e6", w: 310 },
+    { move: "d7d5", w: 230 }
+  ],
+  "g1f3 c7c5 g2g3": [
+    { move: "g8f6", w: 360 },
+    { move: "d7d5", w: 290 },
+    { move: "g7g6", w: 260 }
+  ],
+  "g1f3 e7e6 g2g3": [
+    { move: "g8f6", w: 410 },
+    { move: "d7d5", w: 340 },
+    { move: "c7c5", w: 220 }
+  ],
+
+  "e2e4 e7e5 g1f3 b8c6": [
+    { move: "f1b5", w: 800 },
+    { move: "f1c4", w: 180 },
+    { move: "b1c3", w: 130 },
+    { move: "d2d4", w: 90 }
+  ],
+  "e2e4 e7e5 g1f3 g8f6": [
+    { move: "f3e5", w: 520 },
+    { move: "b1c3", w: 400 },
+    { move: "d2d4", w: 270 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5": [
+    { move: "a7a6", w: 760 },
+    { move: "g8f6", w: 340 },
+    { move: "f8c5", w: 150 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6": [
+    { move: "b5a4", w: 780 },
+    { move: "b5c6", w: 180 },
+    { move: "f1a4", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4": [
+    { move: "g8f6", w: 650 },
+    { move: "f8c5", w: 240 },
+    { move: "b7b5", w: 160 },
+    { move: "d7d6", w: 120 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 g8f6": [
+    { move: "e1g1", w: 710 },
+    { move: "d2d3", w: 230 },
+    { move: "b1c3", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4": [
+    { move: "f8c5", w: 680 },
+    { move: "g8f6", w: 400 },
+    { move: "d7d6", w: 190 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 d2d4": [
+    { move: "e5d4", w: 710 },
+    { move: "f8c5", w: 330 },
+    { move: "d7d6", w: 180 }
+  ],
+  "e2e4 e7e5 g1f3 d7d6": [
+    { move: "d2d4", w: 720 },
+    { move: "b1c3", w: 300 },
+    { move: "f1c4", w: 220 }
+  ],
+  "e2e4 e7e5 b1c3": [
+    { move: "g8f6", w: 600 },
+    { move: "b8c6", w: 490 },
+    { move: "d7d6", w: 220 }
+  ],
+  "e2e4 e7e5 f2f4": [
+    { move: "d7d5", w: 590 },
+    { move: "e5f4", w: 470 },
+    { move: "g8f6", w: 280 }
+  ],
+  "e2e4 e7e5 d2d4": [
+    { move: "e5d4", w: 770 },
+    { move: "b8c6", w: 300 },
+    { move: "d7d6", w: 180 }
+  ],
+  "e2e4 e7e5 d2d4 e5d4 c2c3": [
+    { move: "d4c3", w: 690 },
+    { move: "d7d5", w: 300 },
+    { move: "b8c6", w: 230 }
+  ],
+  "e2e4 e7e5 f1c4": [
+    { move: "f8c5", w: 590 },
+    { move: "g8f6", w: 340 },
+    { move: "b8c6", w: 200 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1c4 g8f6": [
+    { move: "d2d3", w: 490 },
+    { move: "d2d4", w: 310 },
+    { move: "e1g1", w: 230 }
+  ],
+
+  "e2e4 c7c5 g1f3 d7d6": [
+    { move: "d2d4", w: 770 },
+    { move: "b1c3", w: 240 },
+    { move: "f1b5", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 b8c6": [
+    { move: "d2d4", w: 750 },
+    { move: "b1c3", w: 250 },
+    { move: "f1b5", w: 180 }
+  ],
+  "e2e4 c7c5 g1f3 e7e6": [
+    { move: "d2d4", w: 790 },
+    { move: "b1c3", w: 220 },
+    { move: "c2c4", w: 170 }
+  ],
+  "e2e4 c7c5 g1f3 g7g6": [
+    { move: "d2d4", w: 760 },
+    { move: "b1c3", w: 230 },
+    { move: "c2c4", w: 180 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4": [
+    { move: "g8f6", w: 630 },
+    { move: "a7a6", w: 440 },
+    { move: "g7g6", w: 300 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6": [
+    { move: "b1c3", w: 790 },
+    { move: "f1e2", w: 230 },
+    { move: "f1c4", w: 160 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3": [
+    { move: "a7a6", w: 610 },
+    { move: "g7g6", w: 390 },
+    { move: "b8c6", w: 260 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6": [
+    { move: "f1e2", w: 590 },
+    { move: "f2f3", w: 350 },
+    { move: "f1c4", w: 240 },
+    { move: "g2g4", w: 120 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2": [
+    { move: "e7e5", w: 460 },
+    { move: "b8c6", w: 320 },
+    { move: "e6", w: 170 },
+    { move: "g7g6", w: 120 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5": [
+    { move: "d4b3", w: 490 },
+    { move: "d4f3", w: 250 },
+    { move: "d4b5", w: 200 },
+    { move: "d4d5", w: 130 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3": [
+    { move: "f8e6", w: 310 },
+    { move: "f8e7", w: 270 },
+    { move: "b8c6", w: 240 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3 f8e6": [
+    { move: "e1g1", w: 460 },
+    { move: "f2f3", w: 230 },
+    { move: "g2g4", w: 150 }
+  ],
+
+  "e2e4 c7c5 b1c3": [
+    { move: "g8f6", w: 520 },
+    { move: "b8c6", w: 420 },
+    { move: "e7e6", w: 220 },
+    { move: "d7d6", w: 130 }
+  ],
+  "e2e4 c7c5 c2c3": [
+    { move: "d7d5", w: 710 },
+    { move: "g8f6", w: 270 },
+    { move: "e7e6", w: 210 }
+  ],
+  "e2e4 c7c5 g2g3": [
+    { move: "d7d5", w: 490 },
+    { move: "g8f6", w: 480 },
+    { move: "b8c6", w: 240 }
+  ],
+  "e2e4 c7c5 f2f4": [
+    { move: "d7d5", w: 530 },
+    { move: "g8f6", w: 350 },
+    { move: "b8c6", w: 210 }
+  ],
+
+  "e2e4 e7e6 d2d4 d7d5": [
+    { move: "b1c3", w: 600 },
+    { move: "e4e5", w: 310 },
+    { move: "f1d3", w: 160 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3": [
+    { move: "g1f3", w: 710 },
+    { move: "e4e5", w: 300 },
+    { move: "f1d3", w: 140 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6": [
+    { move: "e4e5", w: 490 },
+    { move: "f1d3", w: 130 },
+    { move: "e5", w: 170 }
+  ],
+
+  "d2d4 d7d5 c2c4": [
+    { move: "e7e6", w: 730 },
+    { move: "c7c6", w: 570 },
+    { move: "d5c4", w: 330 },
+    { move: "g8f6", w: 180 }
+  ],
+  "d2d4 g8f6 c2c4": [
+    { move: "e7e6", w: 700 },
+    { move: "g7g6", w: 660 },
+    { move: "c7c5", w: 360 },
+    { move: "d7d6", w: 280 },
+    { move: "e7e5", w: 120 }
+  ],
+  "d2d4 e7e6 c2c4": [
+    { move: "g8f6", w: 730 },
+    { move: "d7d5", w: 620 },
+    { move: "f7f5", w: 250 }
+  ],
+  "d2d4 g7g6 c2c4": [
+    { move: "f8g7", w: 860 },
+    { move: "g8f6", w: 290 }
+  ],
+  "d2d4 f7f5 g1f3": [
+    { move: "g8f6", w: 650 },
+    { move: "e7e6", w: 350 },
+    { move: "g7g6", w: 200 }
+  ],
+  "d2d4 c7c5 d4d5": [
+    { move: "e7e5", w: 510 },
+    { move: "g8f6", w: 430 },
+    { move: "b7b5", w: 200 }
+  ],
+
+
+
+  "d2d4 b7b6 c2c4": [
+    { move: "g8f6", w: 410 },
+    { move: "f8b7", w: 370 },
+    { move: "e7e6", w: 190 }
+  ],
+
+  "c2c4 e7e5 g1f3": [
+    { move: "b8c6", w: 580 },
+    { move: "g8f6", w: 520 },
+    { move: "d7d6", w: 250 }
+  ],
+  "c2c4 g8f6 g1f3": [
+    { move: "e7e6", w: 500 },
+    { move: "g7g6", w: 470 },
+    { move: "c7c5", w: 310 },
+    { move: "d7d5", w: 180 }
+  ],
+  "c2c4 c7c5 g1f3": [
+    { move: "d7d6", w: 530 },
+    { move: "b8c6", w: 380 },
+    { move: "e7e6", w: 300 }
+  ],
+  "c2c4 d7d5 c4d5": [
+    { move: "d8d5", w: 440 },
+    { move: "g8f6", w: 320 },
+    { move: "e7e6", w: 200 }
+  ],
+  "c2c4 e7e6": [
+    { move: "g1f3", w: 620 },
+    { move: "b1c3", w: 320 },
+    { move: "g2g3", w: 260 }
+  ],
+  "c2c4 g7g6": [
+    { move: "g1f3", w: 440 },
+    { move: "b1c3", w: 320 },
+    { move: "g2g3", w: 300 }
+  ],
+
+  "g1f3 d7d5 g2g3": [
+    { move: "g8f6", w: 450 },
+    { move: "c7c5", w: 330 },
+    { move: "e7e6", w: 250 }
+  ],
+  "g1f3 g8f6 g2g3": [
+    { move: "g7g6", w: 510 },
+    { move: "e7e6", w: 320 },
+    { move: "d7d5", w: 240 }
+  ],
+  "g1f3 c7c5 g2g3": [
+    { move: "g8f6", w: 370 },
+    { move: "d7d5", w: 300 },
+    { move: "g7g6", w: 270 }
+  ],
+  "g1f3 e7e6 g2g3": [
+    { move: "g8f6", w: 420 },
+    { move: "d7d5", w: 350 },
+    { move: "c7c5", w: 230 }
+  ],
+
+  // additional deeper main lines
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7": [
+    { move: "f1e1", w: 450 },
+    { move: "c2c3", w: 280 },
+    { move: "d2d4", w: 170 }
+  ],
+  "e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 g8f6 e1g1 f8e7 f1e1": [
+    { move: "b7b5", w: 270 },
+    { move: "d7d6", w: 260 },
+    { move: "b5b4", w: 130 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3 f8e6 e1g1": [
+    { move: "e8g8", w: 520 },
+    { move: "d6", w: 110 }
+  ],
+  "e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 f1e2 e7e5 d4b3 f8e6 e1g1 e8g8": [
+    { move: "f2f4", w: 260 },
+    { move: "g2g4", w: 140 },
+    { move: "f1e1", w: 120 }
+  ],
+  "d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 g1f3": [
+    { move: "e8g8", w: 640 },
+    { move: "c7c5", w: 260 },
+    { move: "e5", w: 120 }
+  ],
+  "d2d4 g8f6 c2c4 g7g6 b1c3 f8g7 e2e4 d7d6 g1f3 e8g8": [
+    { move: "f1e2", w: 430 },
+    { move: "h2h3", w: 170 },
+    { move: "b1c3", w: 120 }
+  ],
+  "d2d4 g8f6 c2c4 e7e6 b1c3 f8b4 g1f3 e8g8": [
+    { move: "e2e3", w: 420 },
+    { move: "f1d3", w: 160 },
+    { move: "g2g3", w: 120 }
+  ],
+  "d2d4 g8f6 c2c4 e7e6 b1c3 f8b4 g1f3 e8g8 e2e3": [
+    { move: "c7c5", w: 390 },
+    { move: "d7d5", w: 280 },
+    { move: "b7b6", w: 150 }
+  ],
+  "d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 f8b4": [
+    { move: "e2e3", w: 460 },
+    { move: "f1d3", w: 180 },
+    { move: "c4d5", w: 120 }
+  ],
+  "d2d4 d7d5 c2c4 c7c6 b1c3 g8f6 g1f3 d5c4": [
+    { move: "e2e4", w: 210 },
+    { move: "e2e3", w: 180 },
+    { move: "a4", w: 90 }
+  ],
+  "e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 e4e5": [
+    { move: "f6fd7", w: 410 },
+    { move: "g8d7", w: 240 },
+    { move: "c7c5", w: 140 }
+  ],
+  "e2e4 c7c6 d2d4 d7d5 e4e5 f5": [
+    { move: "g1f3", w: 260 },
+    { move: "c2c4", w: 180 },
+    { move: "h2h4", w: 90 }
   ]
 };
+
+
+
+
+
+
+
+
+
+
+
 
 let board;
 let playerColor = 'white';
@@ -1091,8 +2856,8 @@ function updateTimers() {
 
 function startTimer() {
   clearInterval(timerInterval);
-  playerTimeMs = 10 * 60 * 1000;
-  botTimeMs = 10 * 60 * 1000;
+  playerTimeMs = 30 * 60 * 1000;
+  botTimeMs = 30 * 60 * 1000;
   activeClock = turn === playerColor ? 'player' : 'bot';
   lastClockTs = performance.now();
   updateTimers();
@@ -1931,6 +3696,8 @@ function createEngineWorkerSource() {
       const legal = getLegalMoves(s, s.turn);
       return legal.find(m => moveKey(m) === key) || null;
     }
+
+
     function searchRoot(state, maxDepth, thinkMs) {
   searchDeadline = now() + thinkMs;
   nodes = 0;
@@ -2000,9 +3767,13 @@ function createEngineWorkerSource() {
       alpha = bestScore - 60;
       beta = bestScore + 60;
 
-      if (bestScore >= MATE - 200) break;
-      if (stableCount >= 1 && previousScore !== null && Math.abs(bestScore - previousScore) <= 8) break;
-      if (depth >= 5 && stableCount >= 1 && Math.abs(bestScore - previousScore) <= 12) break;
+
+// Для "максимум силы, но без лишнего ожидания"
+
+if (stableCount >= 1 && previousScore !== null && Math.abs(bestScore - previousScore) <= 12) break;
+if (depth >= 6 && stableCount >= 2) break;
+if (Math.abs(bestScore) > 400) break; 
+
 
       previousScore = bestScore;
     } else {
