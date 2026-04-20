@@ -313,15 +313,25 @@
 <div id="menu">
     <h1>ZaChess</h1>
     <p>Select your color</p>
+
     <button id="playWhiteBtn" type="button">Play White</button>
     <button id="playBlackBtn" type="button">Play Black</button>
+
     <br><br>
+
     <select id="difficulty">
         <option value="4">Strong</option>
         <option value="5">Champion</option>
         <option value="6" selected>Elite</option>
     </select>
+
+    <br><br>
+
+    <a href="solver.html" style="text-decoration:none;">
+        <button id="positionSolverBtn" type="button">Position solver</button>
+    </a>
 </div>
+
 
 <script>
 const menu = document.getElementById('menu');
