@@ -1,0 +1,307 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Generator – Game Rules</title>
+<meta name="generator" content="ZALAZER rules engine v1">
+
+<!-- TELEGRAM SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, #020202, #000000);
+    color: #fff;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    overflow-y: auto;
+    touch-action: manipulation;
+}
+#touchShield {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    z-index: 0;
+    touch-action: none;
+}
+#content {
+    position: relative;
+    z-index: 1;
+    padding: 10px 20px 40px 20px;
+}
+.game-title {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+.zachess-title span {
+    display: inline-block;
+    padding: 2px 4px;
+}
+.white-letter { color: #ffffff; text-shadow: 0 0 6px #ffffff; }
+.black-letter { color: #000000; background: #ffffff; border-radius: 4px; text-shadow: none; }
+.game-subtitle { display: block; font-size: 0.65em; font-weight: normal; opacity: 0.7; margin-top: 6px; }
+h2 { margin-top: 40px; border-bottom: 1px solid #333; padding-bottom: 6px; color: #ffd36a; }
+h3 { margin-top: 24px; color: #9fd6ff; }
+p { margin: 10px 0; }
+ul { margin: 10px 0 20px 20px; }
+li { margin-bottom: 8px; }
+.note {
+    background: #151515;
+    border-left: 4px solid #ffd36a;
+    padding: 12px;
+    margin: 20px 0;
+}
+.rules-footer-sep { margin-top: 50px; border: 0; border-top: 1px solid #333; }
+.rules-footer { margin-top: 20px; text-align: center; font-size: 12px; opacity: 0.7; }
+.rules-copyright { line-height: 1.5; margin-bottom: 16px; }
+.rules-contact-btn {
+    background: #151515;
+    color: #ffd36a;
+    border: 1px solid #333;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+.rules-contact-btn:hover { background: #1e1e1e; border-color: #ffd36a; }
+.rules-note { margin-top: 10px; font-size: 11px; opacity: 0.5; }
+.doc-signature { display: none; opacity: 0.15; }
+</style>
+</head>
+
+<body>
+<canvas id="touchShield"></canvas>
+
+<div id="content">
+<div class="doc-signature">© 2026 ZALAZER · Generator · Rules Document</div>
+
+<h1 class="game-title">
+    <span class="zachess-title">
+        <span class="white-letter">♚</span>
+        <span class="black-letter">G</span>
+        <span class="white-letter">e</span>
+        <span class="black-letter">n</span>
+        <span class="white-letter">e</span>
+        <span class="black-letter">r</span>
+        <span class="white-letter">a</span>
+        <span class="black-letter">t</span>
+        <span class="white-letter">o</span>
+        <span class="black-letter">r</span>
+    </span>
+    <span class="game-subtitle">Game Rules</span>
+</h1>
+
+<!-- ===================== EN ===================== -->
+<h2>🇬🇧 English</h2>
+
+<p>
+Base58Check adds “1” characters for each leading zero byte, which is required behavior for legacy Bitcoin addresses. That is why a legacy address with version byte 0x00 can start with 1.
+</p>
+
+<p>
+P2SH is now handled correctly: first a redeem script of the form 0014{HASH160(pubkey)} is built, then HASH160 is applied to this script, and only after that it is encoded using Base58Check with prefix 0x05.
+</p>
+
+<p>
+Bech32 is created as witness version 0 plus a 20-byte pubkey hash converted from 8-bit bytes into 5-bit groups, so a valid native SegWit address starts with bc1q.
+</p>
+
+<h3>What reverse validation does</h3>
+<p>
+For 1... addresses, the code decodes Base58Check, verifies checksum, checks version byte 0x00, and compares embedded pubKeyHash with HASH160(pubkey), since this is how P2PKH is constructed.
+</p>
+
+<p>
+For 3... addresses, the code rebuilds the redeem script 0014 + HASH160(pubkey), then computes HASH160(redeemScript) and compares it with the Base58Check payload, matching the P2SH-P2WPKH scheme.
+</p>
+
+<p>
+For bc1... addresses, the code parses Bech32, validates checksum, HRP bc, witness version, and witness program length, then compares the program with HASH160(pubkey) for v0 P2WPKH.
+</p>
+
+<h3>Conclusion</h3>
+<p>
+If the final output shows ALL CHECKS PASSED: YES, it means the address is structurally valid, the private key matches the public key, and the address can be fully reconstructed from that key without inconsistencies.
+</p>
+
+<div class="note">
+Generator verification logic strictly follows Bitcoin address derivation rules and checksum validation standards.
+</div>
+
+<!-- ===================== UA ===================== -->
+<h2>🇺🇦 Українською</h2>
+
+<p>
+Base58Check додає символ “1” за кожен початковий нульовий байт, що є обов’язковою поведінкою для старих Bitcoin-адрес. Саме тому legacy-адреса з version byte 0x00 може починатися з 1.
+</p>
+
+<p>
+P2SH тепер обробляється правильно: спочатку створюється redeem script формату 0014{HASH160(pubkey)}, потім застосовується HASH160, і лише після цього виконується кодування Base58Check з префіксом 0x05.
+</p>
+
+<p>
+Bech32 створюється як witness version 0 плюс 20-байтовий pubkey hash, переведений із 8-бітних байтів у 5-бітні групи, тому коректна SegWit-адреса починається з bc1q.
+</p>
+
+<h3>Що робить зворотня перевірка</h3>
+<p>
+Для 1... адрес код декодує Base58Check, перевіряє checksum, version byte 0x00 і порівнює pubKeyHash з HASH160(pubkey), як це визначено в P2PKH.
+</p>
+
+<p>
+Для 3... адрес код відтворює redeem script 0014 + HASH160(pubkey), обчислює HASH160(redeemScript) і порівнює з Base58Check payload згідно P2SH-P2WPKH.
+</p>
+
+<p>
+Для bc1... адрес код розбирає Bech32, перевіряє checksum, HRP bc, witness version і program, після чого порівнює з HASH160(pubkey).
+</p>
+
+<h3>Висновок</h3>
+<p>
+Якщо вивід містить ALL CHECKS PASSED: YES, це означає, що адреса коректна, ключі відповідають один одному, і адреса повністю відновлюється з публічного ключа.
+</p>
+
+<div class="note">
+Generator повністю дотримується стандартів Bitcoin-адресації та криптографічної перевірки.
+</div>
+
+<!-- ===================== RU ===================== -->
+<h2>🇷🇺 По-русски</h2>
+
+<p>
+Base58Check добавляет символ “1” за каждый ведущий нулевой байт, что является обязательным поведением для старых Bitcoin-адресов. Поэтому legacy-адрес с version byte 0x00 может начинаться с 1.
+</p>
+
+<p>
+P2SH теперь обрабатывается корректно: сначала собирается redeem script вида 0014{HASH160(pubkey)}, затем применяется HASH160, и только после этого выполняется Base58Check-кодирование с префиксом 0x05.
+</p>
+
+<p>
+Bech32 формируется как witness version 0 плюс 20-байтовый pubkey hash, преобразованный из 8-битных байтов в 5-битные группы, поэтому корректный SegWit-адрес начинается с bc1q.
+</p>
+
+<h3>Что делает обратная проверка</h3>
+<p>
+Для адресов 1... код декодирует Base58Check, проверяет checksum, version byte 0x00 и сравнивает pubKeyHash с HASH160(pubkey), как в P2PKH.
+</p>
+
+<p>
+Для адресов 3... код пересобирает redeem script 0014 + HASH160(pubkey), затем вычисляет HASH160(redeemScript) и сравнивает с Base58Check payload по схеме P2SH-P2WPKH.
+</p>
+
+<p>
+Для bc1... адресов код парсит Bech32, проверяет checksum, HRP bc, witness version и program, затем сравнивает program с HASH160(pubkey).
+</p>
+
+<h3>Итог</h3>
+<p>
+Если вывод показывает ALL CHECKS PASSED: YES, это означает, что адрес валиден, ключи совпадают, и адрес полностью восстанавливается из публичного ключа без расхождений.
+</p>
+
+<div class="note">
+Generator строго следует стандартам Bitcoin-адресов и криптографической проверки.
+</div>
+
+<hr class="rules-footer-sep">
+
+<div class="rules-footer">
+<div class="rules-copyright">
+© 2026 <strong>ZALAZER</strong><br>
+Generator and its source code are protected by copyright law.<br>
+All rights reserved.
+</div>
+
+<button class="rules-contact-btn" onclick="sendFeedback()">Contact / Feedback</button>
+<div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
+</div>
+
+</div>
+
+<script>
+['gesturestart','gesturechange','gestureend'].forEach(evt=>{
+    document.addEventListener(evt,e=>e.preventDefault(),{passive:false});
+});
+const shield = document.getElementById('touchShield');
+['touchstart','touchmove','touchend'].forEach(evt=>{
+    shield.addEventListener(evt,e=>{
+        if(e.touches && e.touches.length>1) e.preventDefault();
+    },{passive:false});
+});
+</script>
+
+<script>
+const __docSignature = {
+    product:"Generator",
+    type:"rules",
+    revision:"1.0",
+    year:2026
+};
+
+const tg = window.Telegram?.WebApp;
+
+async function sendFeedback(){
+    if(!tg){
+        alert("Feedback works only inside Telegram WebApp");
+        return;
+    }
+
+    const feedbackText = prompt("Please enter your feedback:");
+    if(!feedbackText) return;
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+
+    fileInput.onchange = async ()=>{
+        let fileData = null;
+        if(fileInput.files.length>0){
+            fileData = await fileToBase64(fileInput.files[0]);
+        }
+
+        tg.sendData(JSON.stringify({
+            type:'feedback',
+            game:'Generator',
+            page:'rules',
+            text:feedbackText,
+            screenshot:fileData,
+            platform:tg.platform,
+            lang:tg.initDataUnsafe?.user?.language_code,
+            user:tg.initDataUnsafe?.user?.id,
+            ts:Date.now()
+        }));
+
+        alert("Thank you! Your feedback has been sent ✅");
+    };
+
+    fileInput.click();
+}
+
+function fileToBase64(file){
+    return new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+if(tg){
+    console.log("Telegram WebApp доступен ✅");
+}else{
+    console.log("Telegram WebApp НЕ доступен ❌");
+}
+</script>
+
+</body>
+</html>
