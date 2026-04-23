@@ -1,1 +1,178 @@
- 
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>REAL Bitcoin secp256k1</title>
+
+<script src="secp256k1.js"></script>
+
+<style>
+body {
+    font-family: monospace;
+    background: #0f172a;
+    color: #e2e8f0;
+    text-align: center;
+    padding: 40px;
+}
+button {
+    padding: 15px 25px;
+    font-size: 18px;
+    background: #22c55e;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+#log {
+    margin-top: 20px;
+    text-align: left;
+    max-width: 900px;
+    margin: auto;
+    background: #020617;
+    padding: 15px;
+    border-radius: 10px;
+    word-break: break-all;
+}
+</style>
+</head>
+<body>
+
+<h1>₿ REAL secp256k1 Bitcoin Generator</h1>
+<button onclick="generate()">Generate</button>
+
+<div id="log"></div>
+
+<script>
+
+// =========================
+// RANDOM PRIVATE KEY
+// =========================
+function getPrivateKey() {
+    const arr = new Uint8Array(32);
+    crypto.getRandomValues(arr);
+    return arr;
+}
+
+// =========================
+// SHA256
+// =========================
+async function sha256(data) {
+    return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+}
+
+// =========================
+// Base58
+// =========================
+const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+function base58Encode(buffer) {
+    let num = BigInt("0x" + [...buffer].map(b => b.toString(16).padStart(2,'0')).join(''));
+    let out = '';
+    while (num > 0n) {
+        let mod = num % 58n;
+        num = num / 58n;
+        out = ALPHABET[Number(mod)] + out;
+    }
+    return out;
+}
+
+// =========================
+// RIPEMD160 (clean)
+// =========================
+function ripemd160(msg) {
+    function f(j,x,y,z){
+        return j<16?x^y^z:
+               j<32?(x&y)|(~x&z):
+               j<48?(x|~y)^z:
+               j<64?(x&z)|(y&~z):
+               x^(y|~z);
+    }
+
+    function rol(x,n){ return (x<<n)|(x>>>(32-n)); }
+
+    let h0=0x67452301, h1=0xEFCDAB89, h2=0x98BADCFE, h3=0x10325476, h4=0xC3D2E1F0;
+
+    let m = new Uint8Array(msg);
+    let ml = m.length * 8;
+
+    let padded = new Uint8Array(((m.length+8>>6)+1)<<6);
+    padded.set(m);
+    padded[m.length]=0x80;
+
+    let view = new DataView(padded.buffer);
+    view.setUint32(padded.length-4, ml, true);
+
+    for(let i=0;i<padded.length;i+=64){
+        let w=new Uint32Array(16);
+        for(let j=0;j<16;j++)
+            w[j]=view.getUint32(i+j*4,true);
+
+        let a1=h0,b1=h1,c1=h2,d1=h3,e1=h4;
+        let a2=h0,b2=h1,c2=h2,d2=h3,e2=h4;
+
+        for(let j=0;j<80;j++){
+            let t=rol(a1+f(j,b1,c1,d1)+w[j%16],11)+e1;
+            a1=e1;e1=d1;d1=rol(c1,10);c1=b1;b1=a1;a1=t;
+
+            t=rol(a2+f(79-j,b2,c2,d2)+w[(j*7)%16],10)+e2;
+            a2=e2;e2=d2;d2=rol(c2,10);c2=b2;b2=a2;a2=t;
+        }
+
+        let t=h1+c1+d2;
+        h1=h2+d1+e2;
+        h2=h3+e1+a2;
+        h3=h4+a1+b2;
+        h4=h0+b1+c2;
+        h0=t;
+    }
+
+    let out=new Uint8Array(20);
+    new DataView(out.buffer).setUint32(0,h0,true);
+    new DataView(out.buffer).setUint32(4,h1,true);
+    new DataView(out.buffer).setUint32(8,h2,true);
+    new DataView(out.buffer).setUint32(12,h3,true);
+    new DataView(out.buffer).setUint32(16,h4,true);
+
+    return out;
+}
+
+// =========================
+// MAIN
+// =========================
+async function generate() {
+
+    const priv = getPrivateKey();
+
+    // WIF
+    let extended = new Uint8Array(34);
+    extended[0]=0x80;
+    extended.set(priv,1);
+    extended[33]=0x01;
+
+    const h1 = await sha256(extended);
+    const h2 = await sha256(h1);
+
+    let full = new Uint8Array(38);
+    full.set(extended);
+    full.set(h2.slice(0,4),34);
+
+    const wif = base58Encode(full);
+
+    // 🔥 REAL secp256k1 public key
+    const pub = nobleSecp256k1.getPublicKey(priv, true);
+
+    const sha = await sha256(pub);
+    const hash160 = ripemd160(sha);
+
+    const address = "bc1" + base58Encode(hash160).slice(0,30);
+
+    document.getElementById("log").innerHTML =
+        `<b>WIF:</b><br>${wif}<br><br>
+         <b>PUBLIC (secp256k1):</b><br>${[...pub].map(b=>b.toString(16).padStart(2,'0')).join('')}<br><br>
+         <b>ADDRESS:</b><br>${address}<hr>` +
+        document.getElementById("log").innerHTML;
+}
+
+</script>
+
+</body>
+</html>
