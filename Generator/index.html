@@ -549,9 +549,9 @@ ${mnemonic}
 ROOT CHECK:
 Master seed generated: YES
 
-==================================================
+=====================================
 LEGACY / P2PKH
-==================================================
+=====================================
 
 DERIVATION:
 m/44'/0'/0'/0/0
@@ -581,9 +581,9 @@ ${safeJson({
 REBUILT ADDRESS:
 ${legacyCheck.rebuiltAddress}
 
-==================================================
+=====================================
 P2SH-P2WPKH
-==================================================
+=====================================
 
 DERIVATION:
 m/49'/0'/0'/0/0
@@ -613,9 +613,9 @@ ${safeJson({
 REBUILT ADDRESS:
 ${p2shCheck.rebuiltAddress}
 
-==================================================
+=====================================
 NATIVE SEGWIT / P2WPKH
-==================================================
+=====================================
 
 DERIVATION:
 m/84'/0'/0'/0/0
@@ -646,9 +646,9 @@ ${safeJson({
 REBUILT ADDRESS:
 ${segwitCheck.rebuiltAddress}
 
-==================================================
+=====================================
 GLOBAL RESULT
-==================================================
+=====================================
 
 LEGACY VALID: ${yesNo(legacyCheck.keyMatch && legacyCheck.addressMatchesPub && legacyCheck.rebuiltMatches)}
 P2SH VALID: ${yesNo(p2shCheck.keyMatch && p2shCheck.addressMatchesPub && p2shCheck.rebuiltMatches)}
