@@ -2,176 +2,662 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>REAL Bitcoin secp256k1</title>
-
-<script src="secp256k1.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitcoin CORE ACCURACY MODE</title>
 
 <style>
-body {
+body{
     font-family: monospace;
-    background: #0f172a;
-    color: #e2e8f0;
-    text-align: center;
-    padding: 40px;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:25px;
 }
-button {
-    padding: 15px 25px;
-    font-size: 18px;
-    background: #22c55e;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
+button{
+    padding:12px 18px;
+    background:#22c55e;
+    border:0;
+    border-radius:10px;
+    cursor:pointer;
+    color:#052e16;
+    font-weight:bold;
 }
-#log {
-    margin-top: 20px;
-    text-align: left;
-    max-width: 900px;
-    margin: auto;
-    background: #020617;
-    padding: 15px;
-    border-radius: 10px;
-    word-break: break-all;
+button:disabled{
+    opacity:.7;
+    cursor:wait;
 }
+pre{
+    background:#020617;
+    padding:15px;
+    border-radius:10px;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+}
+.ok{ color:#4ade80; }
+.bad{ color:#f87171; }
+.warn{ color:#facc15; }
 </style>
 </head>
+
 <body>
 
-<h1>₿ REAL secp256k1 Bitcoin Generator</h1>
-<button onclick="generate()">Generate</button>
+<h2>₿ CORE ACCURACY MODE (Bitcoin Reference Level)</h2>
+<button id="generateBtn" type="button">Generate</button>
 
-<div id="log"></div>
+<pre id="out">Ready.</pre>
 
-<script>
+<script type="module">
+import { generateMnemonic, mnemonicToSeedSync } from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/+esm";
+import { wordlist } from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/wordlists/english/+esm";
+import { HDKey } from "https://cdn.jsdelivr.net/npm/@scure/bip32@1.3.1/+esm";
+import { sha256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
+import { ripemd160 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
+import { secp256k1 } from "https://cdn.jsdelivr.net/npm/@noble/curves@1.4.2/secp256k1/+esm";
 
-// =========================
-// RANDOM PRIVATE KEY
-// =========================
-function getPrivateKey() {
-    const arr = new Uint8Array(32);
-    crypto.getRandomValues(arr);
-    return arr;
+const out = document.getElementById("out");
+const btn = document.getElementById("generateBtn");
+
+// -------------------- utils --------------------
+function hex(u8){
+    return Array.from(u8, b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// =========================
-// SHA256
-// =========================
-async function sha256(data) {
-    return new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+function bytesToHex(u8){
+    return hex(u8);
 }
 
-// =========================
-// Base58
-// =========================
-const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-
-function base58Encode(buffer) {
-    let num = BigInt("0x" + [...buffer].map(b => b.toString(16).padStart(2,'0')).join(''));
-    let out = '';
-    while (num > 0n) {
-        let mod = num % 58n;
-        num = num / 58n;
-        out = ALPHABET[Number(mod)] + out;
+function hexToBytes(hexStr){
+    if(typeof hexStr !== "string" || hexStr.length % 2 !== 0){
+        throw new Error("Invalid hex string");
+    }
+    const out = new Uint8Array(hexStr.length / 2);
+    for(let i = 0; i < out.length; i++){
+        out[i] = parseInt(hexStr.slice(i * 2, i * 2 + 2), 16);
     }
     return out;
 }
 
-// =========================
-// RIPEMD160 (clean)
-// =========================
-function ripemd160(msg) {
-    function f(j,x,y,z){
-        return j<16?x^y^z:
-               j<32?(x&y)|(~x&z):
-               j<48?(x|~y)^z:
-               j<64?(x&z)|(y&~z):
-               x^(y|~z);
+function concatBytes(...arrays){
+    const total = arrays.reduce((sum, arr) => sum + arr.length, 0);
+    const res = new Uint8Array(total);
+    let offset = 0;
+    for(const arr of arrays){
+        res.set(arr, offset);
+        offset += arr.length;
+    }
+    return res;
+}
+
+function bytesEqual(a, b){
+    if(!a || !b || a.length !== b.length) return false;
+    for(let i = 0; i < a.length; i++){
+        if(a[i] !== b[i]) return false;
+    }
+    return true;
+}
+
+function safeJson(obj){
+    return JSON.stringify(obj, null, 2);
+}
+
+// -------------------- hash helpers --------------------
+function hash160(data){
+    return ripemd160(sha256(data));
+}
+
+function doubleSha256(data){
+    return sha256(sha256(data));
+}
+
+// -------------------- BASE58CHECK --------------------
+const ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const BASE58_MAP = Object.fromEntries([...ALPH].map((c, i) => [c, i]));
+
+function base58Encode(bytes){
+    let zeros = 0;
+    while(zeros < bytes.length && bytes[zeros] === 0) zeros++;
+
+    let value = 0n;
+    for(const b of bytes){
+        value = (value << 8n) + BigInt(b);
     }
 
-    function rol(x,n){ return (x<<n)|(x>>>(32-n)); }
+    let encoded = "";
+    while(value > 0n){
+        const mod = value % 58n;
+        value /= 58n;
+        encoded = ALPH[Number(mod)] + encoded;
+    }
 
-    let h0=0x67452301, h1=0xEFCDAB89, h2=0x98BADCFE, h3=0x10325476, h4=0xC3D2E1F0;
+    for(let i = 0; i < zeros; i++){
+        encoded = "1" + encoded;
+    }
 
-    let m = new Uint8Array(msg);
-    let ml = m.length * 8;
+    return encoded || "1";
+}
 
-    let padded = new Uint8Array(((m.length+8>>6)+1)<<6);
-    padded.set(m);
-    padded[m.length]=0x80;
+function base58Decode(str){
+    if(!str || typeof str !== "string") throw new Error("Empty Base58 string");
 
-    let view = new DataView(padded.buffer);
-    view.setUint32(padded.length-4, ml, true);
+    let value = 0n;
+    for(const ch of str){
+        const digit = BASE58_MAP[ch];
+        if(digit === undefined) throw new Error("Invalid Base58 character");
+        value = value * 58n + BigInt(digit);
+    }
 
-    for(let i=0;i<padded.length;i+=64){
-        let w=new Uint32Array(16);
-        for(let j=0;j<16;j++)
-            w[j]=view.getUint32(i+j*4,true);
+    const bytes = [];
+    while(value > 0n){
+        bytes.push(Number(value & 0xffn));
+        value >>= 8n;
+    }
+    bytes.reverse();
 
-        let a1=h0,b1=h1,c1=h2,d1=h3,e1=h4;
-        let a2=h0,b2=h1,c2=h2,d2=h3,e2=h4;
+    let leadingZeros = 0;
+    for(const ch of str){
+        if(ch === "1") leadingZeros++;
+        else break;
+    }
 
-        for(let j=0;j<80;j++){
-            let t=rol(a1+f(j,b1,c1,d1)+w[j%16],11)+e1;
-            a1=e1;e1=d1;d1=rol(c1,10);c1=b1;b1=a1;a1=t;
+    return new Uint8Array([
+        ...new Array(leadingZeros).fill(0),
+        ...bytes
+    ]);
+}
 
-            t=rol(a2+f(79-j,b2,c2,d2)+w[(j*7)%16],10)+e2;
-            a2=e2;e2=d2;d2=rol(c2,10);c2=b2;b2=a2;a2=t;
+function base58check(version, payload){
+    const body = concatBytes(new Uint8Array([version]), payload);
+    const checksum = doubleSha256(body).slice(0, 4);
+    return base58Encode(concatBytes(body, checksum));
+}
+
+function decodeBase58Check(address){
+    const decoded = base58Decode(address);
+    if(decoded.length < 5) throw new Error("Base58Check too short");
+
+    const payload = decoded.slice(0, -4);
+    const checksum = decoded.slice(-4);
+    const expected = doubleSha256(payload).slice(0, 4);
+
+    if(!bytesEqual(checksum, expected)){
+        throw new Error("Invalid Base58 checksum");
+    }
+
+    return {
+        version: payload[0],
+        data: payload.slice(1),
+        raw: decoded
+    };
+}
+
+// -------------------- BECH32 --------------------
+const CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+const BECH32_MAP = Object.fromEntries([...CHARSET].map((c, i) => [c, i]));
+
+function polymod(values){
+    let chk = 1;
+    const gen = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+
+    for(const v of values){
+        const top = chk >> 25;
+        chk = ((chk & 0x1ffffff) << 5) ^ v;
+        for(let i = 0; i < 5; i++){
+            if((top >> i) & 1) chk ^= gen[i];
+        }
+    }
+    return chk;
+}
+
+function hrpExpand(hrp){
+    const out = [];
+    for(let i = 0; i < hrp.length; i++) out.push(hrp.charCodeAt(i) >> 5);
+    out.push(0);
+    for(let i = 0; i < hrp.length; i++) out.push(hrp.charCodeAt(i) & 31);
+    return out;
+}
+
+function createChecksum(hrp, data){
+    const values = [...hrpExpand(hrp), ...data, 0, 0, 0, 0, 0, 0];
+    const mod = polymod(values) ^ 1;
+    const ret = [];
+    for(let p = 0; p < 6; p++){
+        ret.push((mod >> (5 * (5 - p))) & 31);
+    }
+    return ret;
+}
+
+function bech32VerifyChecksum(hrp, data){
+    return polymod([...hrpExpand(hrp), ...data]) === 1;
+}
+
+function bech32Encode(hrp, data){
+    const combined = [...data, ...createChecksum(hrp, data)];
+    let out = hrp + "1";
+    for(const d of combined) out += CHARSET[d];
+    return out;
+}
+
+function bech32Decode(address){
+    if(address !== address.toLowerCase() && address !== address.toUpperCase()){
+        throw new Error("Mixed-case Bech32 address");
+    }
+
+    address = address.toLowerCase();
+
+    const pos = address.lastIndexOf("1");
+    if(pos < 1 || pos + 7 > address.length){
+        throw new Error("Invalid Bech32 separator position");
+    }
+
+    const hrp = address.slice(0, pos);
+    const dataPart = address.slice(pos + 1);
+
+    const data = [];
+    for(const ch of dataPart){
+        const v = BECH32_MAP[ch];
+        if(v === undefined) throw new Error("Invalid Bech32 character");
+        data.push(v);
+    }
+
+    if(!bech32VerifyChecksum(hrp, data)){
+        throw new Error("Invalid Bech32 checksum");
+    }
+
+    return {
+        hrp,
+        data: data.slice(0, -6)
+    };
+}
+
+function convertBits(data, fromBits, toBits, pad = true){
+    let acc = 0;
+    let bits = 0;
+    const ret = [];
+    const maxv = (1 << toBits) - 1;
+
+    for(const v of data){
+        if(v < 0 || (v >> fromBits) !== 0){
+            throw new Error("Invalid convertBits input");
         }
 
-        let t=h1+c1+d2;
-        h1=h2+d1+e2;
-        h2=h3+e1+a2;
-        h3=h4+a1+b2;
-        h4=h0+b1+c2;
-        h0=t;
+        acc = (acc << fromBits) | v;
+        bits += fromBits;
+
+        while(bits >= toBits){
+            bits -= toBits;
+            ret.push((acc >> bits) & maxv);
+        }
     }
 
-    let out=new Uint8Array(20);
-    new DataView(out.buffer).setUint32(0,h0,true);
-    new DataView(out.buffer).setUint32(4,h1,true);
-    new DataView(out.buffer).setUint32(8,h2,true);
-    new DataView(out.buffer).setUint32(12,h3,true);
-    new DataView(out.buffer).setUint32(16,h4,true);
+    if(pad){
+        if(bits > 0){
+            ret.push((acc << (toBits - bits)) & maxv);
+        }
+    }else{
+        if(bits >= fromBits) throw new Error("Excess padding");
+        if(((acc << (toBits - bits)) & maxv) !== 0) throw new Error("Non-zero padding");
+    }
 
-    return out;
+    return ret;
 }
 
-// =========================
-// MAIN
-// =========================
-async function generate() {
-
-    const priv = getPrivateKey();
-
-    // WIF
-    let extended = new Uint8Array(34);
-    extended[0]=0x80;
-    extended.set(priv,1);
-    extended[33]=0x01;
-
-    const h1 = await sha256(extended);
-    const h2 = await sha256(h1);
-
-    let full = new Uint8Array(38);
-    full.set(extended);
-    full.set(h2.slice(0,4),34);
-
-    const wif = base58Encode(full);
-
-    // 🔥 REAL secp256k1 public key
-    const pub = nobleSecp256k1.getPublicKey(priv, true);
-
-    const sha = await sha256(pub);
-    const hash160 = ripemd160(sha);
-
-    const address = "bc1" + base58Encode(hash160).slice(0,30);
-
-    document.getElementById("log").innerHTML =
-        `<b>WIF:</b><br>${wif}<br><br>
-         <b>PUBLIC (secp256k1):</b><br>${[...pub].map(b=>b.toString(16).padStart(2,'0')).join('')}<br><br>
-         <b>ADDRESS:</b><br>${address}<hr>` +
-        document.getElementById("log").innerHTML;
+// -------------------- validators --------------------
+function ensureNode(node, label){
+    if(!node || !node.privateKey || !node.publicKey){
+        throw new Error(`Invalid node: ${label}`);
+    }
+    if(node.privateKey.length !== 32){
+        throw new Error(`Invalid private key length: ${label}`);
+    }
+    if(node.publicKey.length !== 33 && node.publicKey.length !== 65){
+        throw new Error(`Invalid public key length: ${label}`);
+    }
+    return node;
 }
 
+function verifyPrivPubMatch(privKey, pubKey){
+    const derivedCompressed = secp256k1.getPublicKey(privKey, true);
+    return bytesEqual(derivedCompressed, pubKey);
+}
+
+// -------------------- address builders --------------------
+function legacyFromPubkey(pub){
+    const pubKeyHash = hash160(pub);
+    return base58check(0x00, pubKeyHash);
+}
+
+function p2shP2wpkhFromPubkey(pub){
+    const pubKeyHash = hash160(pub);
+    const redeemScript = concatBytes(new Uint8Array([0x00, 0x14]), pubKeyHash);
+    const redeemScriptHash = hash160(redeemScript);
+    return base58check(0x05, redeemScriptHash);
+}
+
+function bech32FromPubkey(pub){
+    const pubKeyHash = hash160(pub);
+    const prog = convertBits(pubKeyHash, 8, 5, true);
+    return bech32Encode("bc", [0, ...prog]);
+}
+
+// -------------------- reverse validation --------------------
+function validateLegacyAddress(address){
+    const decoded = decodeBase58Check(address);
+    if(decoded.version !== 0x00){
+        throw new Error("Legacy version byte must be 0x00");
+    }
+    if(decoded.data.length !== 20){
+        throw new Error("Legacy payload must be 20 bytes");
+    }
+    return {
+        type: "P2PKH",
+        network: "mainnet",
+        pubKeyHash: decoded.data
+    };
+}
+
+function validateP2SHAddress(address){
+    const decoded = decodeBase58Check(address);
+    if(decoded.version !== 0x05){
+        throw new Error("P2SH version byte must be 0x05");
+    }
+    if(decoded.data.length !== 20){
+        throw new Error("P2SH payload must be 20 bytes");
+    }
+    return {
+        type: "P2SH-P2WPKH",
+        network: "mainnet",
+        scriptHash: decoded.data
+    };
+}
+
+function validateBech32Address(address){
+    const decoded = bech32Decode(address);
+
+    if(decoded.hrp !== "bc"){
+        throw new Error("Bech32 HRP must be bc");
+    }
+
+    if(decoded.data.length < 1){
+        throw new Error("Missing witness version");
+    }
+
+    const version = decoded.data[0];
+    if(version < 0 || version > 16){
+        throw new Error("Invalid witness version");
+    }
+
+    const program = Uint8Array.from(convertBits(decoded.data.slice(1), 5, 8, false));
+
+    if(program.length < 2 || program.length > 40){
+        throw new Error("Witness program length out of range");
+    }
+
+    if(version === 0 && program.length !== 20 && program.length !== 32){
+        throw new Error("Witness v0 must be 20 or 32 bytes");
+    }
+
+    return {
+        type: version === 0 && program.length === 20 ? "P2WPKH" :
+              version === 0 && program.length === 32 ? "P2WSH" :
+              `SegWit v${version}`,
+        network: "mainnet",
+        version,
+        program
+    };
+}
+
+function validateAddressFormat(address){
+    if(address.startsWith("1")){
+        return validateLegacyAddress(address);
+    }
+    if(address.startsWith("3")){
+        return validateP2SHAddress(address);
+    }
+    if(address.toLowerCase().startsWith("bc1")){
+        return validateBech32Address(address);
+    }
+    throw new Error("Unknown address format");
+}
+
+function verifyLegacyAgainstPubkey(address, pub){
+    const parsed = validateLegacyAddress(address);
+    const expectedHash = hash160(pub);
+    return bytesEqual(parsed.pubKeyHash, expectedHash);
+}
+
+function verifyP2SHAgainstPubkey(address, pub){
+    const parsed = validateP2SHAddress(address);
+    const pubKeyHash = hash160(pub);
+    const redeemScript = concatBytes(new Uint8Array([0x00, 0x14]), pubKeyHash);
+    const expectedScriptHash = hash160(redeemScript);
+    return bytesEqual(parsed.scriptHash, expectedScriptHash);
+}
+
+function verifyBech32AgainstPubkey(address, pub){
+    const parsed = validateBech32Address(address);
+    const expectedProgram = hash160(pub);
+    return parsed.version === 0 && bytesEqual(parsed.program, expectedProgram);
+}
+
+// -------------------- high-level reverse checks --------------------
+function fullCheckLegacy(priv, pub, address){
+    const keyMatch = verifyPrivPubMatch(priv, pub);
+    const formatInfo = validateLegacyAddress(address);
+    const rebuilt = legacyFromPubkey(pub);
+    const addressMatchesPub = verifyLegacyAgainstPubkey(address, pub);
+
+    return {
+        keyMatch,
+        formatValid: true,
+        addressMatchesPub,
+        rebuiltMatches: rebuilt === address,
+        rebuiltAddress: rebuilt,
+        formatInfo
+    };
+}
+
+function fullCheckP2SH(priv, pub, address){
+    const keyMatch = verifyPrivPubMatch(priv, pub);
+    const formatInfo = validateP2SHAddress(address);
+    const rebuilt = p2shP2wpkhFromPubkey(pub);
+    const addressMatchesPub = verifyP2SHAgainstPubkey(address, pub);
+
+    return {
+        keyMatch,
+        formatValid: true,
+        addressMatchesPub,
+        rebuiltMatches: rebuilt === address,
+        rebuiltAddress: rebuilt,
+        formatInfo
+    };
+}
+
+function fullCheckBech32(priv, pub, address){
+    const keyMatch = verifyPrivPubMatch(priv, pub);
+    const formatInfo = validateBech32Address(address);
+    const rebuilt = bech32FromPubkey(pub);
+    const addressMatchesPub = verifyBech32AgainstPubkey(address, pub);
+
+    return {
+        keyMatch,
+        formatValid: true,
+        addressMatchesPub,
+        rebuiltMatches: rebuilt === address,
+        rebuiltAddress: rebuilt,
+        formatInfo
+    };
+}
+
+// -------------------- output helpers --------------------
+function yesNo(ok){
+    return ok ? "YES" : "NO";
+}
+
+function must(ok, message){
+    if(!ok) throw new Error(message);
+}
+
+// -------------------- MAIN --------------------
+async function gen(){
+    btn.disabled = true;
+    out.textContent = "Generating...";
+
+    try{
+        const mnemonic = generateMnemonic(wordlist);
+        const seed = mnemonicToSeedSync(mnemonic);
+        const root = HDKey.fromMasterSeed(seed);
+
+        const legacyNode = ensureNode(root.derive("m/44'/0'/0'/0/0"), "legacy");
+        const p2shNode   = ensureNode(root.derive("m/49'/0'/0'/0/0"), "p2sh");
+        const segwitNode = ensureNode(root.derive("m/84'/0'/0'/0/0"), "segwit");
+
+        const legacy = legacyFromPubkey(legacyNode.publicKey);
+        const p2sh = p2shP2wpkhFromPubkey(p2shNode.publicKey);
+        const witness = bech32FromPubkey(segwitNode.publicKey);
+
+        must(legacy.startsWith("1"), "Legacy format mismatch");
+        must(p2sh.startsWith("3"), "P2SH format mismatch");
+        must(witness.startsWith("bc1q"), "Bech32 format mismatch");
+
+        // reverse validation
+        const legacyCheck = fullCheckLegacy(legacyNode.privateKey, legacyNode.publicKey, legacy);
+        const p2shCheck = fullCheckP2SH(p2shNode.privateKey, p2shNode.publicKey, p2sh);
+        const segwitCheck = fullCheckBech32(segwitNode.privateKey, segwitNode.publicKey, witness);
+
+        must(legacyCheck.keyMatch, "Legacy priv/pub mismatch");
+        must(legacyCheck.addressMatchesPub, "Legacy address/pub mismatch");
+        must(legacyCheck.rebuiltMatches, "Legacy rebuild mismatch");
+
+        must(p2shCheck.keyMatch, "P2SH priv/pub mismatch");
+        must(p2shCheck.addressMatchesPub, "P2SH address/pub mismatch");
+        must(p2shCheck.rebuiltMatches, "P2SH rebuild mismatch");
+
+        must(segwitCheck.keyMatch, "SegWit priv/pub mismatch");
+        must(segwitCheck.addressMatchesPub, "SegWit address/pub mismatch");
+        must(segwitCheck.rebuiltMatches, "SegWit rebuild mismatch");
+
+        out.textContent =
+`MNEMONIC:
+${mnemonic}
+
+ROOT CHECK:
+Master seed generated: YES
+
+==================================================
+LEGACY / P2PKH
+==================================================
+
+DERIVATION:
+m/44'/0'/0'/0/0
+
+PRIVATE KEY:
+${bytesToHex(legacyNode.privateKey)}
+
+PUBLIC KEY:
+${bytesToHex(legacyNode.publicKey)}
+
+ADDRESS:
+${legacy}
+
+REVERSE VALIDATION:
+Format valid: ${yesNo(legacyCheck.formatValid)}
+Private key matches public key: ${yesNo(legacyCheck.keyMatch)}
+Address matches public key hash: ${yesNo(legacyCheck.addressMatchesPub)}
+Rebuilt address matches original: ${yesNo(legacyCheck.rebuiltMatches)}
+
+PARSED FORMAT INFO:
+${safeJson({
+  type: legacyCheck.formatInfo.type,
+  network: legacyCheck.formatInfo.network,
+  pubKeyHash: bytesToHex(legacyCheck.formatInfo.pubKeyHash)
+})}
+
+REBUILT ADDRESS:
+${legacyCheck.rebuiltAddress}
+
+==================================================
+P2SH-P2WPKH
+==================================================
+
+DERIVATION:
+m/49'/0'/0'/0/0
+
+PRIVATE KEY:
+${bytesToHex(p2shNode.privateKey)}
+
+PUBLIC KEY:
+${bytesToHex(p2shNode.publicKey)}
+
+ADDRESS:
+${p2sh}
+
+REVERSE VALIDATION:
+Format valid: ${yesNo(p2shCheck.formatValid)}
+Private key matches public key: ${yesNo(p2shCheck.keyMatch)}
+Address matches redeem script hash: ${yesNo(p2shCheck.addressMatchesPub)}
+Rebuilt address matches original: ${yesNo(p2shCheck.rebuiltMatches)}
+
+PARSED FORMAT INFO:
+${safeJson({
+  type: p2shCheck.formatInfo.type,
+  network: p2shCheck.formatInfo.network,
+  scriptHash: bytesToHex(p2shCheck.formatInfo.scriptHash)
+})}
+
+REBUILT ADDRESS:
+${p2shCheck.rebuiltAddress}
+
+==================================================
+NATIVE SEGWIT / P2WPKH
+==================================================
+
+DERIVATION:
+m/84'/0'/0'/0/0
+
+PRIVATE KEY:
+${bytesToHex(segwitNode.privateKey)}
+
+PUBLIC KEY:
+${bytesToHex(segwitNode.publicKey)}
+
+ADDRESS:
+${witness}
+
+REVERSE VALIDATION:
+Format valid: ${yesNo(segwitCheck.formatValid)}
+Private key matches public key: ${yesNo(segwitCheck.keyMatch)}
+Address matches witness program: ${yesNo(segwitCheck.addressMatchesPub)}
+Rebuilt address matches original: ${yesNo(segwitCheck.rebuiltMatches)}
+
+PARSED FORMAT INFO:
+${safeJson({
+  type: segwitCheck.formatInfo.type,
+  network: segwitCheck.formatInfo.network,
+  version: segwitCheck.formatInfo.version,
+  program: bytesToHex(segwitCheck.formatInfo.program)
+})}
+
+REBUILT ADDRESS:
+${segwitCheck.rebuiltAddress}
+
+==================================================
+GLOBAL RESULT
+==================================================
+
+LEGACY VALID: ${yesNo(legacyCheck.keyMatch && legacyCheck.addressMatchesPub && legacyCheck.rebuiltMatches)}
+P2SH VALID: ${yesNo(p2shCheck.keyMatch && p2shCheck.addressMatchesPub && p2shCheck.rebuiltMatches)}
+SEGWIT VALID: ${yesNo(segwitCheck.keyMatch && segwitCheck.addressMatchesPub && segwitCheck.rebuiltMatches)}
+
+ALL CHECKS PASSED: YES`;
+    }catch(err){
+        out.textContent = `ERROR:
+${err?.message || err}`;
+        console.error(err);
+    }finally{
+        btn.disabled = false;
+    }
+}
+
+btn.addEventListener("click", gen);
 </script>
 
 </body>
