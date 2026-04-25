@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ethereum HD GAP Scanner</title>
+<title>Ethereum HD GAP Scanner (RPC)</title>
 <style>
 :root{
   --bg:#0f172a;
@@ -18,35 +18,93 @@
   --blue:#38bdf8;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);color:var(--text);padding:20px}
+body{
+  margin:0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--bg);
+  color:var(--text);
+  padding:20px
+}
 .wrap{max-width:1100px;margin:0 auto}
 h1{font-size:22px;margin:0 0 16px}
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-button{padding:10px 14px;background:var(--green);color:#04130a;border:0;border-radius:10px;font-weight:700;cursor:pointer}
-button.secondary{background:#1e293b;color:var(--text);border:1px solid var(--line)}
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:14px
+}
+button{
+  padding:10px 14px;
+  background:var(--green);
+  color:#04130a;
+  border:0;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer
+}
+button.secondary{
+  background:#1e293b;
+  color:var(--text);
+  border:1px solid var(--line)
+}
 button:disabled{opacity:.55;cursor:not-allowed}
-input,select{padding:10px 12px;background:#1e293b;color:#fff;border:1px solid var(--line);border-radius:10px}
+input,select{
+  padding:10px 12px;
+  background:#1e293b;
+  color:#fff;
+  border:1px solid var(--line);
+  border-radius:10px
+}
 input[type="text"]{width:min(100%,680px)}
 label{color:var(--muted);font-size:13px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
-pre{background:var(--panel2);border:1px solid var(--line);padding:15px;height:68vh;overflow:auto;white-space:pre-wrap;word-break:break-word;border-radius:12px}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  margin-bottom:14px
+}
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px
+}
+pre{
+  background:var(--panel2);
+  border:1px solid var(--line);
+  padding:15px;
+  height:68vh;
+  overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border-radius:12px
+}
 .used{color:var(--green)}
 .empty{color:#64748b}
 .zeroUsed{color:var(--yellow)}
 .error{color:var(--red)}
 .info{color:var(--blue)}
 .small{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#1e293b;
+  border:1px solid var(--line);
+  font-size:12px;
+  color:var(--muted)
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Ethereum HD GAP Scanner</h1>
+  <h1>Ethereum HD GAP Scanner (RPC)</h1>
 
   <div class="controls">
     <button id="gen">Generate Mnemonic</button>
     <input id="mnemonic" type="text" placeholder="paste mnemonic" autocomplete="off" spellcheck="false" />
-    <input id="apiKey" type="text" placeholder="Etherscan API Key" autocomplete="off" spellcheck="false" />
     <button id="load" class="secondary">Load</button>
     <button id="scan" disabled>Scan</button>
     <button id="stop" class="secondary" disabled>Stop</button>
@@ -60,18 +118,32 @@ pre{background:var(--panel2);border:1px solid var(--line);padding:15px;height:68
     </div>
     <div class="card">
       <label for="delayMs">Delay between requests (ms)</label><br />
-      <input id="delayMs" type="number" min="0" max="5000" value="250" />
+      <input id="delayMs" type="number" min="0" max="5000" value="200" />
     </div>
     <div class="card">
-      <div class="small">Checking derivation paths:</div>
+      <div class="small">RPC fallback order:</div>
+      <div class="small">1) Cloudflare</div>
+      <div class="small">2) PublicNode</div>
+      <div class="small">3) 1RPC</div>
+      <div class="small">4) MyCrypto</div>
+      <div class="small">5) Ethereumnodes</div>
+      <div class="small">6) Ankr public</div>
+      <div class="small">7) BlockPI public</div>
+      <div class="small">8) Blast public</div>
+    </div>
+    <div class="card">
+      <div class="small">Standard derivation paths:</div>
       <div class="small">1) m/44'/60'/0'/0/{i}</div>
       <div class="small">2) m/44'/60'/0'/{i}</div>
       <div class="small">3) m/44'/60'/{i}'/0/0</div>
     </div>
-    <div class="card">
-      <div class="small">Balance output is precise</div>
-      <div class="small">Wei -> ETH via string math</div>
-    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:12px">
+    <span class="badge">Status: <span id="statusText">Ready</span></span>
+    <span class="badge">RPC: <span id="rpcText">-</span></span>
+    <span class="badge">Cooldown: <span id="coolText">0 ms</span></span>
+    <span class="badge">Delay countdown: <span id="delayText">0 ms</span></span>
   </div>
 
   <pre id="out">Ready...</pre>
@@ -84,11 +156,35 @@ import { HDKey } from "https://cdn.jsdelivr.net/npm/@scure/bip32/+esm";
 import { keccak_256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes/sha3/+esm";
 
 const out = document.getElementById('out');
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const statusText = document.getElementById('statusText');
+const rpcText = document.getElementById('rpcText');
+const coolText = document.getElementById('coolText');
+const delayText = document.getElementById('delayText');
 
 let root = null;
 let stopRequested = false;
-let apiKey = "";
+let controller = null;
+let activeRpcIndex = 0;
+
+const RPCS = [
+  "https://cloudflare-eth.com",
+  "https://ethereum-rpc.publicnode.com",
+  "https://1rpc.io/eth",
+  "https://rpc.mycryptoapi.com/eth",
+  "https://ethereumnodes.com",
+  "https://rpc.ankr.com/eth_public",
+  "https://ethereum.blockpi.network/v1/rpc/public",
+  "https://eth-mainnet.public.blastapi.io"
+];
+
+const rpcState = RPCS.map(() => ({ failUntil: 0, failCount: 0 }));
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function now(){ return Date.now(); }
+
+function setStatus(t){ statusText.textContent = t; }
+function setRpc(t){ rpcText.textContent = t || '-'; }
+function setCool(t){ coolText.textContent = `${t} ms`; }
 
 function log(text, cls=''){
   const div = document.createElement('div');
@@ -98,9 +194,7 @@ function log(text, cls=''){
   out.scrollTop = out.scrollHeight;
 }
 
-function resetLog(){
-  out.innerHTML = '';
-}
+function resetLog(){ out.innerHTML = ''; }
 
 function bytesToHex(bytes){
   return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -132,50 +226,232 @@ function formatWei(wei){
 }
 
 function normalizeMnemonic(m){
-  return m.trim().replace(/s+/g, ' ');
+  return m.trim().replace(/\s+/g, ' ');
+}
+
+function normalizeRpcUrl(url){
+  return String(url || '').trim().replace(/\/+$/, '');
+}
+
+function parseRetryAfterMs(err){
+  const s = String(err || '');
+  const m = s.match(/rate-limited until .*?(([^)]+)s)/i);
+  if (m) return 5000;
+  if (/429/.test(s)) return 7000;
+  if (/internal error|header not found|missing data/i.test(s)) return 1500;
+  return 2000;
+}
+
+function isBadRpcError(errText){
+  const t = String(errText || '').toLowerCase();
+  return (
+    t.includes('internal error') ||
+    t.includes('timeout') ||
+    t.includes('timed out') ||
+    t.includes('failed to fetch') ||
+    t.includes('networkerror') ||
+    t.includes('fetch') ||
+    t.includes('429') ||
+    t.includes('rate-limited') ||
+    t.includes('server error') ||
+    t.includes('unauthorized') ||
+    t.includes('header not found') ||
+    t.includes('missing data')
+  );
+}
+
+function markRpcBad(idx, errText){
+  const penalty = parseRetryAfterMs(errText);
+  rpcState[idx].failCount += 1;
+  rpcState[idx].failUntil = now() + penalty * Math.min(6, rpcState[idx].failCount);
+}
+
+function getNextRpcIndex(startIdx=0){
+  const t = now();
+  for (let step = 0; step < RPCS.length; step++){
+    const idx = (startIdx + step) % RPCS.length;
+    if (rpcState[idx].failUntil <= t) return idx;
+  }
+  return -1;
+}
+
+async function sleepWithCountdown(ms){
+  if (ms <= 0) return;
+  const started = now();
+  while (!stopRequested){
+    const left = Math.max(0, ms - (now() - started));
+    delayText.textContent = `${left} ms`;
+    if (left <= 0) break;
+    await sleep(Math.min(200, left));
+  }
+  delayText.textContent = '0 ms';
+}
+
+async function probeRpc(rpcUrl){
+  try{
+    const c = new AbortController();
+    const r = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: c.signal,
+      body: JSON.stringify({ jsonrpc:'2.0', method:'eth_blockNumber', params:[], id:1 })
+    });
+    const j = await r.json().catch(() => null);
+    return !!(r.ok && j && !j.error && typeof j.result === 'string');
+  }catch{
+    return false;
+  }
+}
+
+async function pickLiveRpc(){
+  for (let i = 0; i < RPCS.length; i++){
+    const idx = getNextRpcIndex(i);
+    if (idx < 0) break;
+    const ok = await probeRpc(RPCS[idx]);
+    if (ok){
+      activeRpcIndex = idx;
+      setRpc(RPCS[idx]);
+      return idx;
+    }
+    markRpcBad(idx, 'probe failed');
+  }
+  activeRpcIndex = 0;
+  setRpc(RPCS[0]);
+  return 0;
+}
+
+async function fetchBalanceFromRpc(rpcUrl, addr){
+  controller = new AbortController();
+  let r;
+  try{
+    r = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_getBalance',
+        params: [addr, 'latest'],
+        id: Date.now()
+      })
+    });
+  }catch(e){
+    if (e?.name === 'AbortError') return { ok:false, aborted:true, retryable:false, error:'ABORTED', rpcUrl };
+    return { ok:false, retryable:true, error:String(e), rpcUrl };
+  }
+
+  let j;
+  try{
+    j = await r.json();
+  }catch{
+    return { ok:false, retryable:true, error:`Bad JSON / HTTP ${r.status}`, rpcUrl };
+  }
+
+  if (!r.ok){
+    return { ok:false, retryable:true, error:`HTTP ${r.status}`, rpcUrl };
+  }
+
+  if (j?.error){
+    const errText = JSON.stringify(j.error);
+    return { ok:false, retryable:isBadRpcError(errText), error:errText, rpcUrl };
+  }
+
+  const balanceWei = BigInt(j?.result || '0x0');
+  return {
+    ok:true,
+    balanceWei,
+    balanceEth:formatWei(balanceWei),
+    used: balanceWei > 0n,
+    error:'',
+    rpcUrl
+  };
 }
 
 async function getBalance(addr){
-  try{
-    const url = new URL('https://api.etherscan.io/v2/api');
-    url.searchParams.set('chainid', '1');
-    url.searchParams.set('module', 'account');
-    url.searchParams.set('action', 'balance');
-    url.searchParams.set('address', addr);
-    url.searchParams.set('tag', 'latest');
-    url.searchParams.set('apikey', apiKey);
+  const rpcUrlFromInput = normalizeRpcUrl(document.getElementById('rpcUrl')?.value || '');
+  const preferred = rpcUrlFromInput ? RPCS.filter(x => x === rpcUrlFromInput).concat(RPCS.filter(x => x !== rpcUrlFromInput)) : RPCS.slice();
+  const ordered = preferred.filter((x, i, a) => a.indexOf(x) === i);
 
-    const r = await fetch(url.toString());
-    const j = await r.json();
+  let lastError = '';
+  let startIndex = activeRpcIndex;
 
-    const result = String(j.result ?? '0');
-    const balanceWei = result ? BigInt(result) : 0n;
+  for (let pass = 0; pass < ordered.length; pass++){
+    const idx = getNextRpcIndex(startIndex);
+    startIndex = (idx < 0 ? 0 : idx + 1);
+    if (idx < 0){
+      await sleep(5000);
+      continue;
+    }
 
-    return {
-      balanceWei,
-      balanceEth: formatWei(balanceWei),
-      used: balanceWei > 0n,
-      error: j.status === '0' ? (j.message || 'API error') : ''
-    };
-  }catch(e){
-    return { balanceWei: 0n, balanceEth: '0', used: false, error: String(e) };
+    const rpcUrl = ordered.includes(RPCS[idx]) ? RPCS[idx] : ordered[0];
+    if (rpcState[idx].failUntil > now()) continue;
+
+    try{
+      const res = await fetchBalanceFromRpc(rpcUrl, addr);
+
+      if (res.aborted) return res;
+
+      if (res.ok){
+        activeRpcIndex = idx;
+        setRpc(rpcUrl);
+        if (rpcUrlFromInput && rpcUrl !== rpcUrlFromInput){
+          const el = document.getElementById('rpcUrl');
+          if (el) el.value = rpcUrl;
+        }
+        rpcState[idx].failCount = 0;
+        rpcState[idx].failUntil = 0;
+        return res;
+      }
+
+      lastError = res.error || 'Unknown RPC error';
+
+      if (!res.retryable){
+        markRpcBad(idx, lastError);
+        return { balanceWei:0n, balanceEth:'0', used:false, error:lastError, rpcUrl };
+      }
+
+      markRpcBad(idx, lastError);
+      log(`RPC error on ${rpcUrl}: ${lastError}`, 'error');
+      setCool(Math.max(0, rpcState[idx].failUntil - now()));
+    }catch(e){
+      lastError = String(e);
+      markRpcBad(idx, lastError);
+      log(`RPC fetch failed on ${rpcUrl}: ${lastError}`, 'error');
+      setCool(Math.max(0, rpcState[idx].failUntil - now()));
+    }
   }
+
+  const fallbackIdx = getNextRpcIndex(activeRpcIndex);
+  if (fallbackIdx >= 0) {
+    activeRpcIndex = fallbackIdx;
+    setRpc(RPCS[fallbackIdx]);
+  }
+
+  return {
+    balanceWei: 0n,
+    balanceEth: '0',
+    used: false,
+    error: lastError || 'All RPCs failed',
+    rpcUrl: ''
+  };
 }
 
 function deriveAddressFromPath(path){
   const node = root.derive(path);
+  if (!node?.publicKey) throw new Error('No public key derived');
   return pubToAddress(node.publicKey);
 }
 
 const PATH_VARIANTS = [
   { name: "BIP44 external", getPath: (i) => `m/44'/60'/0'/0/${i}` },
-  { name: "No change", getPath: (i) => `m/44'/60'/0'/${i}` },
+  { name: "BIP44 account", getPath: (i) => `m/44'/60'/0'/${i}` },
   { name: "Alt legacy", getPath: (i) => `m/44'/60'/${i}'/0/0` }
 ];
 
 async function scanVariant(variant, gapLimit, delayMs){
   log(`
 === ${variant.name} ===`, 'info');
+  setStatus(`Scanning ${variant.name}`);
   let gap = 0;
   let i = 0;
 
@@ -186,13 +462,17 @@ async function scanVariant(variant, gapLimit, delayMs){
       const addr = deriveAddressFromPath(path);
       const info = await getBalance(addr);
 
-      const status = info.used ? '[USED]' : '[empty]';
+      if (stopRequested) break;
+      if (info.error === 'ABORTED') break;
+
+      const hasBalance = info.used;
+      const status = hasBalance ? '[USED]' : '[empty]';
       log(`${status} #${i} ${path}
 ${addr}
-BAL: ${info.balanceEth} ETH`, info.used ? 'used' : 'empty');
+BAL: ${info.balanceEth} ETH`, hasBalance ? 'used' : 'empty');
       if (info.error) log(`ERR: ${info.error}`, 'error');
 
-      gap = info.used ? 0 : gap + 1;
+      gap = hasBalance ? 0 : gap + 1;
     }catch(e){
       log(`[ERROR] #${i} ${path}
 ${String(e)}`, 'error');
@@ -200,7 +480,9 @@ ${String(e)}`, 'error');
     }
 
     i++;
-    if (delayMs) await sleep(delayMs);
+    if (delayMs > 0 && !stopRequested){
+      await sleepWithCountdown(delayMs);
+    }
   }
 
   if (gap >= gapLimit) log(`Gap limit ${gapLimit} reached for ${variant.name}`, 'info');
@@ -217,51 +499,54 @@ async function scan(){
   const delayMs = Math.max(0, Math.min(5000, Number(document.getElementById('delayMs').value) || 0));
 
   stopRequested = false;
+  controller?.abort();
+  controller = null;
+
+  await pickLiveRpc();
+
   document.getElementById('scan').disabled = true;
   document.getElementById('stop').disabled = false;
   document.getElementById('load').disabled = true;
   document.getElementById('gen').disabled = true;
 
   resetLog();
+  setStatus('Scanning...');
   log('Scanning...', 'info');
+  delayText.textContent = '0 ms';
 
   for (const variant of PATH_VARIANTS){
     if (stopRequested) break;
     await scanVariant(variant, gapLimit, delayMs);
   }
 
+  setStatus(stopRequested ? 'Stopped' : 'Done');
   log(stopRequested ? 'Stopped.' : 'DONE', 'info');
+
   document.getElementById('scan').disabled = false;
   document.getElementById('stop').disabled = true;
   document.getElementById('load').disabled = false;
   document.getElementById('gen').disabled = false;
+  delayText.textContent = '0 ms';
 }
 
 document.getElementById('gen').addEventListener('click', () => {
-  try{
-    const m = bip39.generateMnemonic(wordlist);
-    document.getElementById('mnemonic').value = m;
-    resetLog();
-    log('Mnemonic generated', 'used');
-    log('Ready to load', 'info');
-  }catch(e){
-    resetLog();
-    log(`Mnemonic generation failed: ${String(e)}`, 'error');
-  }
+  const m = bip39.generateMnemonic(wordlist);
+  document.getElementById('mnemonic').value = m;
+  resetLog();
+  log('Mnemonic generated', 'used');
+  log('Ready to load', 'info');
+  setStatus('Mnemonic generated');
 });
 
 document.getElementById('load').addEventListener('click', () => {
   const m = normalizeMnemonic(document.getElementById('mnemonic').value);
-  apiKey = document.getElementById('apiKey').value.trim();
   resetLog();
 
   if (!bip39.validateMnemonic(m, wordlist)){
+    root = null;
+    document.getElementById('scan').disabled = true;
     log('Invalid mnemonic', 'error');
-    return;
-  }
-
-  if (!apiKey){
-    log('Insert Etherscan API key', 'error');
+    setStatus('Invalid mnemonic');
     return;
   }
 
@@ -272,16 +557,32 @@ document.getElementById('load').addEventListener('click', () => {
     log(`Seed bytes: ${seed.length}`, 'info');
     log('Ready to scan', 'used');
     document.getElementById('scan').disabled = false;
+    setStatus('Ready to scan');
   }catch(e){
     root = null;
     document.getElementById('scan').disabled = true;
     log(`Load failed: ${String(e)}`, 'error');
+    setStatus('Load failed');
   }
 });
 
 document.getElementById('scan').addEventListener('click', scan);
-document.getElementById('stop').addEventListener('click', () => { stopRequested = true; });
-document.getElementById('clear').addEventListener('click', () => resetLog());
+
+document.getElementById('stop').addEventListener('click', () => {
+  stopRequested = true;
+  controller?.abort();
+  setStatus('Stopping...');
+});
+
+document.getElementById('clear').addEventListener('click', () => {
+  resetLog();
+  log('Cleared', 'info');
+  setRpc('-');
+  setCool('0 ms');
+});
+
+setRpc('-');
+setCool('0 ms');
 </script>
 </body>
 </html>
