@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ethereum HD GAP Scanner</title>
+<style>
+:root{
+  --bg:#0f172a;
+  --panel:#111827;
+  --panel2:#020617;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --line:#334155;
+  --green:#22c55e;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+  --blue:#38bdf8;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);color:var(--text);padding:20px}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:22px;margin:0 0 16px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+button{padding:10px 14px;background:var(--green);color:#04130a;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+button.secondary{background:#1e293b;color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.55;cursor:not-allowed}
+input,select{padding:10px 12px;background:#1e293b;color:#fff;border:1px solid var(--line);border-radius:10px}
+input[type="text"]{width:min(100%,680px)}
+label{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+pre{background:var(--panel2);border:1px solid var(--line);padding:15px;height:68vh;overflow:auto;white-space:pre-wrap;word-break:break-word;border-radius:12px}
+.used{color:var(--green)}
+.empty{color:#64748b}
+.zeroUsed{color:var(--yellow)}
+.error{color:var(--red)}
+.info{color:var(--blue)}
+.small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ethereum HD GAP Scanner</h1>
+
+  <div class="controls">
+    <button id="gen">Generate Mnemonic</button>
+    <input id="mnemonic" type="text" placeholder="paste mnemonic" autocomplete="off" spellcheck="false" />
+    <input id="apiKey" type="text" placeholder="Etherscan API Key" autocomplete="off" spellcheck="false" />
+    <button id="load" class="secondary">Load</button>
+    <button id="scan" disabled>Scan</button>
+    <button id="stop" class="secondary" disabled>Stop</button>
+    <button id="clear" class="secondary">Clear Log</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <label for="gapLimit">Gap limit</label><br />
+      <input id="gapLimit" type="number" min="1" max="100" value="20" />
+    </div>
+    <div class="card">
+      <label for="delayMs">Delay between requests (ms)</label><br />
+      <input id="delayMs" type="number" min="0" max="5000" value="250" />
+    </div>
+    <div class="card">
+      <div class="small">Checking derivation paths:</div>
+      <div class="small">1) m/44'/60'/0'/0/{i}</div>
+      <div class="small">2) m/44'/60'/0'/{i}</div>
+      <div class="small">3) m/44'/60'/{i}'/0/0</div>
+    </div>
+    <div class="card">
+      <div class="small">Balance output is precise</div>
+      <div class="small">Wei -> ETH via string math</div>
+    </div>
+  </div>
+
+  <pre id="out">Ready...</pre>
+</div>
+
+<script type="module">
+import * as bip39 from "https://cdn.jsdelivr.net/npm/@scure/bip39/+esm";
+import { wordlist } from "https://cdn.jsdelivr.net/npm/@scure/bip39/wordlists/english/+esm";
+import { HDKey } from "https://cdn.jsdelivr.net/npm/@scure/bip32/+esm";
+import { keccak_256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes/sha3/+esm";
+
+const out = document.getElementById('out');
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+let root = null;
+let stopRequested = false;
+let apiKey = "";
+
+function log(text, cls=''){
+  const div = document.createElement('div');
+  if (cls) div.className = cls;
+  div.textContent = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function resetLog(){
+  out.innerHTML = '';
+}
+
+function bytesToHex(bytes){
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function toChecksumAddress(address){
+  const addr = address.toLowerCase().replace(/^0x/, '');
+  const hashHex = bytesToHex(keccak_256(new TextEncoder().encode(addr)));
+  let ret = '0x';
+  for (let i = 0; i < addr.length; i++){
+    ret += parseInt(hashHex[i], 16) >= 8 ? addr[i].toUpperCase() : addr[i];
+  }
+  return ret;
+}
+
+function pubToAddress(pub){
+  const uncompressed = pub[0] === 4 ? pub.slice(1) : pub;
+  const hash = keccak_256(uncompressed);
+  const addrBytes = hash.slice(-20);
+  return toChecksumAddress('0x' + bytesToHex(addrBytes));
+}
+
+function formatWei(wei){
+  wei = BigInt(wei);
+  const base = 1000000000000000000n;
+  const whole = wei / base;
+  const frac = (wei % base).toString().padStart(18, '0').replace(/0+$/, '');
+  return frac ? `${whole.toString()}.${frac}` : whole.toString();
+}
+
+function normalizeMnemonic(m){
+  return m.trim().replace(/s+/g, ' ');
+}
+
+async function getBalance(addr){
+  try{
+    const url = new URL('https://api.etherscan.io/v2/api');
+    url.searchParams.set('chainid', '1');
+    url.searchParams.set('module', 'account');
+    url.searchParams.set('action', 'balance');
+    url.searchParams.set('address', addr);
+    url.searchParams.set('tag', 'latest');
+    url.searchParams.set('apikey', apiKey);
+
+    const r = await fetch(url.toString());
+    const j = await r.json();
+
+    const result = String(j.result ?? '0');
+    const balanceWei = result ? BigInt(result) : 0n;
+
+    return {
+      balanceWei,
+      balanceEth: formatWei(balanceWei),
+      used: balanceWei > 0n,
+      error: j.status === '0' ? (j.message || 'API error') : ''
+    };
+  }catch(e){
+    return { balanceWei: 0n, balanceEth: '0', used: false, error: String(e) };
+  }
+}
+
+function deriveAddressFromPath(path){
+  const node = root.derive(path);
+  return pubToAddress(node.publicKey);
+}
+
+const PATH_VARIANTS = [
+  { name: "BIP44 external", getPath: (i) => `m/44'/60'/0'/0/${i}` },
+  { name: "No change", getPath: (i) => `m/44'/60'/0'/${i}` },
+  { name: "Alt legacy", getPath: (i) => `m/44'/60'/${i}'/0/0` }
+];
+
+async function scanVariant(variant, gapLimit, delayMs){
+  log(`
+=== ${variant.name} ===`, 'info');
+  let gap = 0;
+  let i = 0;
+
+  while (gap < gapLimit && !stopRequested){
+    const path = variant.getPath(i);
+
+    try{
+      const addr = deriveAddressFromPath(path);
+      const info = await getBalance(addr);
+
+      const status = info.used ? '[USED]' : '[empty]';
+      log(`${status} #${i} ${path}
+${addr}
+BAL: ${info.balanceEth} ETH`, info.used ? 'used' : 'empty');
+      if (info.error) log(`ERR: ${info.error}`, 'error');
+
+      gap = info.used ? 0 : gap + 1;
+    }catch(e){
+      log(`[ERROR] #${i} ${path}
+${String(e)}`, 'error');
+      gap++;
+    }
+
+    i++;
+    if (delayMs) await sleep(delayMs);
+  }
+
+  if (gap >= gapLimit) log(`Gap limit ${gapLimit} reached for ${variant.name}`, 'info');
+}
+
+async function scan(){
+  if (!root){
+    resetLog();
+    log('Load mnemonic first', 'error');
+    return;
+  }
+
+  const gapLimit = Math.max(1, Math.min(100, Number(document.getElementById('gapLimit').value) || 20));
+  const delayMs = Math.max(0, Math.min(5000, Number(document.getElementById('delayMs').value) || 0));
+
+  stopRequested = false;
+  document.getElementById('scan').disabled = true;
+  document.getElementById('stop').disabled = false;
+  document.getElementById('load').disabled = true;
+  document.getElementById('gen').disabled = true;
+
+  resetLog();
+  log('Scanning...', 'info');
+
+  for (const variant of PATH_VARIANTS){
+    if (stopRequested) break;
+    await scanVariant(variant, gapLimit, delayMs);
+  }
+
+  log(stopRequested ? 'Stopped.' : 'DONE', 'info');
+  document.getElementById('scan').disabled = false;
+  document.getElementById('stop').disabled = true;
+  document.getElementById('load').disabled = false;
+  document.getElementById('gen').disabled = false;
+}
+
+document.getElementById('gen').addEventListener('click', () => {
+  try{
+    const m = bip39.generateMnemonic(wordlist);
+    document.getElementById('mnemonic').value = m;
+    resetLog();
+    log('Mnemonic generated', 'used');
+    log('Ready to load', 'info');
+  }catch(e){
+    resetLog();
+    log(`Mnemonic generation failed: ${String(e)}`, 'error');
+  }
+});
+
+document.getElementById('load').addEventListener('click', () => {
+  const m = normalizeMnemonic(document.getElementById('mnemonic').value);
+  apiKey = document.getElementById('apiKey').value.trim();
+  resetLog();
+
+  if (!bip39.validateMnemonic(m, wordlist)){
+    log('Invalid mnemonic', 'error');
+    return;
+  }
+
+  if (!apiKey){
+    log('Insert Etherscan API key', 'error');
+    return;
+  }
+
+  try{
+    const seed = bip39.mnemonicToSeedSync(m);
+    root = HDKey.fromMasterSeed(seed);
+    log('Mnemonic loaded', 'used');
+    log(`Seed bytes: ${seed.length}`, 'info');
+    log('Ready to scan', 'used');
+    document.getElementById('scan').disabled = false;
+  }catch(e){
+    root = null;
+    document.getElementById('scan').disabled = true;
+    log(`Load failed: ${String(e)}`, 'error');
+  }
+});
+
+document.getElementById('scan').addEventListener('click', scan);
+document.getElementById('stop').addEventListener('click', () => { stopRequested = true; });
+document.getElementById('clear').addEventListener('click', () => resetLog());
+</script>
+</body>
+</html>

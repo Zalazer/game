@@ -1,0 +1,350 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitcoin CORE GAP SCANNER</title>
+
+<style>
+body{font-family:monospace;background:#0f172a;color:#e2e8f0;padding:25px}
+button{padding:12px 18px;background:#22c55e;border:0;border-radius:10px;cursor:pointer;color:#052e16;font-weight:bold;margin:5px}
+button:disabled{opacity:.7;cursor:wait;background:#64748b}
+
+
+input{padding:8px 10px;background:#1e293b;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-family:monospace;width:300px;font-size:12px;margin:5px}
+
+
+pre{background:#020617;padding:15px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere;height:70vh;overflow:auto}
+.used{ color: #22c55e; font-weight: bold; }
+.empty{ color: #64748b }
+</style>
+</head>
+
+<body>
+
+<div style="margin-bottom:20px">
+  <button id="generateBtn">🔀 Generate Random Mnemonic</button>
+  <input id="mnemonicInput" placeholder="or paste your own seed (12/24 words)">
+  <button id="loadBtn" disabled>Load Mnemonic</button>
+</div>
+
+<button id="legacyBtn" disabled>Scan Legacy</button>
+<button id="p2shBtn" disabled>Scan P2SH</button>
+<button id="segwitBtn" disabled>Scan SegWit</button>
+<pre id="out">Ready. Click Generate or enter your mnemonic.</pre>
+
+<script type="module">
+
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/+esm";
+import { wordlist } from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/wordlists/english/+esm";
+import { HDKey } from "https://cdn.jsdelivr.net/npm/@scure/bip32@1.3.1/+esm";
+import { sha256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
+import { ripemd160 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
+
+const out = document.getElementById("out");
+const mnemonicInput = document.getElementById("mnemonicInput");
+const loadBtn = document.getElementById("loadBtn");
+
+
+function updateLoadButton() {
+    loadBtn.disabled = mnemonicInput.value.trim().length === 0;
+}
+
+mnemonicInput.addEventListener("input", updateLoadButton);
+updateLoadButton();
+
+
+let mnemonic = '';
+let seed = null;
+let root = null;
+
+const API = "https://mempool.space/api/address/";
+const GAP_LIMIT = 20;
+
+function updateButtons() {
+    const legacyBtn = document.getElementById('legacyBtn');
+    const p2shBtn = document.getElementById('p2shBtn');
+    const segwitBtn = document.getElementById('segwitBtn');
+    const hasRoot = !!root;
+    legacyBtn.disabled = !hasRoot;
+    p2shBtn.disabled = !hasRoot;
+    segwitBtn.disabled = !hasRoot;
+}
+
+async function loadMnemonic(mnemo) {
+    out.textContent = "Validating mnemonic...";
+    
+    if(!validateMnemonic(mnemo, wordlist)) {
+        out.textContent = "❌ Invalid mnemonic! Check spelling and word count (12/24 words).";
+        return false;
+    }
+    
+    mnemonic = mnemo.trim();
+    seed = mnemonicToSeedSync(mnemonic);
+    root = HDKey.fromMasterSeed(seed);
+    
+    out.textContent = `✅ Loaded: "${mnemonic}"
+
+Ready to scan chains.`;
+    updateButtons();
+    return true;
+}
+
+// Generate Random
+document.getElementById('generateBtn').onclick = async () => {
+    out.textContent = "Generating random mnemonic...";
+    const mnemo = generateMnemonic(wordlist);
+    await loadMnemonic(mnemo);
+};
+
+// Load from input
+mnemonicInput.onkeypress = async (e) => {
+    if(e.key === 'Enter') {
+        const mnemo = mnemonicInput.value.trim();
+        if(mnemo) {
+            loadBtn.disabled = true;
+            await loadMnemonic(mnemo);
+            loadBtn.disabled = false;
+        }
+    }
+};
+
+document.getElementById('loadBtn').onclick = async () => {
+    const mnemo = mnemonicInput.value.trim();
+    if(mnemo) await loadMnemonic(mnemo);
+};
+
+
+
+
+function concatBytes(...arrays){
+    const len = arrays.reduce((s,a)=>s+a.length,0);
+    const out = new Uint8Array(len);
+    let off = 0;
+    for(const a of arrays){out.set(a,off);off+=a.length}
+    return out;
+}
+
+function hash160(data){
+    return ripemd160(sha256(data));
+}
+
+const ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+
+
+
+
+function base58Encode(bytes){
+    let zeros = 0;
+    for(const b of bytes){ if(b===0) zeros++; else break; }
+    let value = 0n;
+    for(const b of bytes) value = (value<<8n) + BigInt(b);
+    let out = "";
+    while(value>0n){
+        out = ALPH[Number(value % 58n)] + out;
+        value /= 58n;
+    }
+    return "1".repeat(zeros) + (out || "");
+}
+
+function doubleSha256(a){return sha256(sha256(a))}
+
+function base58check(version,payload){
+    const body = concatBytes(new Uint8Array([version]), payload);
+    const checksum = doubleSha256(body).slice(0,4);
+    return base58Encode(concatBytes(body,checksum));
+}
+
+const CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+
+
+function polymod(values){
+    let chk = 1;
+    const gen=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];
+    for(const v of values){
+        const top = chk>>25;
+        chk = ((chk&0x1ffffff)<<5)^v;
+        for(let i=0;i<5;i++) if((top>>i)&1) chk^=gen[i];
+    }
+    return chk;
+}
+
+
+function hrpExpand(hrp){
+    const out=[];
+    for(let i=0;i<hrp.length;i++) out.push(hrp.charCodeAt(i)>>5);
+    out.push(0);
+    for(let i=0;i<hrp.length;i++) out.push(hrp.charCodeAt(i)&31);
+    return out;
+}
+
+function createChecksum(hrp,data){
+    const values = [...hrpExpand(hrp),...data,0,0,0,0,0,0];
+    const mod = polymod(values)^1;
+    const ret=[];
+    for(let i=0;i<6;i++) ret.push((mod>>(5*(5-i)))&31);
+    return ret;
+}
+
+function bech32Encode(hrp,data){
+    const combined = [...data, ...createChecksum(hrp,data)];
+    let out = hrp+"1";
+    for(const d of combined) out+=CHARSET[d];
+    return out;
+}
+
+function convertBits(data,from,to,pad=true){
+    let acc=0,bits=0,ret=[];
+    const maxv=(1<<to)-1;
+    for(const v of data){
+        acc=(acc<<from)|v;
+        bits+=from;
+        while(bits>=to){
+            bits-=to;
+            ret.push((acc>>bits)&maxv);
+        }
+    }
+    if(pad&&bits>0){
+        ret.push((acc<<(to-bits))&maxv);
+    }
+    return ret;
+}
+
+// ADDRESSES
+function p2pkh(pub){
+    return base58check(0x00, hash160(pub));
+}
+
+function p2sh(pub){
+    const redeem = concatBytes(new Uint8Array([0x00,0x14]), hash160(pub));
+    return base58check(0x05, hash160(redeem));
+}
+
+function bech32(pub){
+    const h = hash160(pub);
+    return bech32Encode("bc",[0,...convertBits(h,8,5,true)]);
+}
+
+// API
+async function getBalance(addr){
+    try{
+        const r = await fetch(API + addr);
+        if(!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+
+        const funded = (j.chain_stats?.funded_txo_sum ?? 0) + (j.mempool_stats?.funded_txo_sum ?? 0);
+        const spent = (j.chain_stats?.spent_txo_sum ?? 0) + (j.mempool_stats?.spent_txo_sum ?? 0);
+        const fundedCount = (j.chain_stats?.funded_txo_count ?? 0) + (j.mempool_stats?.funded_txo_count ?? 0);
+        const spentCount = (j.chain_stats?.spent_txo_count ?? 0) + (j.mempool_stats?.spent_txo_count ?? 0);
+
+        const balance = funded - spent;
+        const txCount = fundedCount + spentCount;
+
+        return {balance, funded, spent, txCount, used: txCount > 0};
+    }catch(e){
+        return {balance:0, funded:0, spent:0, txCount:0, used:false, error:String(e)};
+    }
+}
+
+
+
+// GAP SCAN с receiving/change
+
+
+async function scan(root, type){
+    const types = {legacy:44, p2sh:49, segwit:84};
+    let result = [];
+    
+    for(let chain=0; chain<2; chain++){
+        let index=0;
+        let gap=0;
+        const chainName = chain === 0 ? "receiving" : "change";
+        
+        while(gap < GAP_LIMIT){
+            const path = `m/${types[type]}'/0'/0'/${chain}/${index}`;
+            const node = root.derive(path);
+            const pub = node.publicKey;
+            
+            let addr = type==="legacy" ? p2pkh(pub) : type==="p2sh" ? p2sh(pub) : bech32(pub);
+            
+            const info = await getBalance(addr);
+            result.push({index, chain, chainName, path, addr, ...info});
+            
+            if(info.used) gap=0;
+            else gap++;
+            
+            index++;
+            
+            // КРИТИЧНО: задержка между запросами!
+            await new Promise(r=>setTimeout(r, 900));
+        }
+    }
+    return result;
+}
+
+
+
+// FORMAT как в твоем оригинале
+function format(title,data){
+    let s = `
+==== ${title} ====
+`;
+    for(const d of data){
+        const status = d.used ? "[USED]" : "[empty]";
+        s += `
+#${d.index} ${status} ${d.chainName}
+${d.addr}
+BAL: ${d.balance} (funded:${d.funded} spent:${d.spent} tx:${d.txCount})
+`;
+    }
+    return s;
+}
+
+
+// MAIN
+
+// Генерация только mnemonic
+document.getElementById('generateBtn').onclick = async () => {
+    out.textContent = "Generating mnemonic...";
+    mnemonic = generateMnemonic(wordlist);
+    seed = mnemonicToSeedSync(mnemonic);
+    root = HDKey.fromMasterSeed(seed);
+    
+    out.textContent = `MNEMONIC:
+${mnemonic}
+
+Ready to scan chains.`;
+    
+    document.getElementById('legacyBtn').disabled = false;
+    document.getElementById('p2shBtn').disabled = false;
+    document.getElementById('segwitBtn').disabled = false;
+};
+
+// Отдельный сканер для каждого типа
+async function scanChain(type) {
+    const btn = document.getElementById(type + 'Btn');
+    btn.disabled = true;
+    btn.textContent = 'Scanning...';
+
+    out.textContent += `
+
+Scanning ${type.toUpperCase()}...
+`;
+    const result = await scan(root, type);
+    out.textContent += format(type.toUpperCase() + ' GAP SCAN', result);
+
+    btn.textContent = `${type.toUpperCase()} ✓`;
+}
+
+
+// Кнопки
+document.getElementById('legacyBtn').onclick = () => scanChain('legacy');
+document.getElementById('p2shBtn').onclick = () => scanChain('p2sh');
+document.getElementById('segwitBtn').onclick = () => scanChain('segwit');
+
+
+</script>
+
+</body>
+</html>

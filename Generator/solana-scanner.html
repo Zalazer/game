@@ -1,0 +1,326 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Solana HD GAP Scanner</title>
+<style>
+:root{
+  --bg:#0f172a;
+  --panel:#111827;
+  --panel2:#020617;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --line:#334155;
+  --green:#22c55e;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+  --blue:#38bdf8;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);color:var(--text);padding:20px}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:22px;margin:0 0 16px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+button{padding:10px 14px;background:var(--green);color:#04130a;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+button.secondary{background:#1e293b;color:var(--text);border:1px solid var(--line)}
+button:disabled{opacity:.55;cursor:not-allowed}
+input,select{padding:10px 12px;background:#1e293b;color:#fff;border:1px solid var(--line);border-radius:10px}
+input[type="text"]{width:min(100%,680px)}
+label{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+pre{background:var(--panel2);border:1px solid var(--line);padding:15px;height:68vh;overflow:auto;white-space:pre-wrap;word-break:break-word;border-radius:12px}
+.used{color:var(--green)}
+.empty{color:#64748b}
+.zeroUsed{color:var(--yellow)}
+.error{color:var(--red)}
+.info{color:var(--blue)}
+.small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Solana HD GAP Scanner</h1>
+
+  <div class="controls">
+    <button id="gen">Generate Mnemonic</button>
+    <input id="mnemonic" type="text" placeholder="paste mnemonic" autocomplete="off" spellcheck="false" />
+    <button id="load" class="secondary">Load</button>
+    <button id="scan" disabled>Scan</button>
+    <button id="stop" class="secondary" disabled>Stop</button>
+    <button id="clear" class="secondary">Clear Log</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <label for="gapLimit">Gap limit</label><br />
+      <input id="gapLimit" type="number" min="1" max="100" value="20" />
+    </div>
+    <div class="card">
+      <label for="delayMs">Delay between requests (ms)</label><br />
+      <input id="delayMs" type="number" min="0" max="5000" value="250" />
+    </div>
+    <div class="card">
+      <label for="sigLimit">Signature probe limit</label><br />
+      <input id="sigLimit" type="number" min="1" max="20" value="1" />
+    </div>
+    <div class="card">
+      <div class="small">Checking derivation paths:</div>
+      <div class="small">1) m/44'/501'/{i}'</div>
+      <div class="small">2) m/44'/501'/{i}'/0'</div>
+      <div class="small">3) m/44'/501'/{i}'/0'/{j}'</div>
+    </div>
+  </div>
+
+  <pre id="out">Ready...</pre>
+</div>
+
+<script type="module">
+import { generateMnemonic, mnemonicToSeedSync, validateMnemonic } from "https://cdn.jsdelivr.net/npm/@scure/bip39/+esm";
+import { wordlist } from "https://cdn.jsdelivr.net/npm/@scure/bip39/wordlists/english/+esm";
+import nacl from "https://cdn.jsdelivr.net/npm/tweetnacl/+esm";
+import bs58 from "https://cdn.jsdelivr.net/npm/bs58/+esm";
+import { hmac } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.8.0/hmac.js/+esm";
+import { sha512 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.8.0/sha2.js/+esm";
+
+const out = document.getElementById('out');
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const enc = new TextEncoder();
+
+let bip39Seed = null;
+let stopRequested = false;
+
+function log(text, cls=''){
+  const div = document.createElement('div');
+  if (cls) div.className = cls;
+  div.textContent = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function resetLog(){
+  out.innerHTML = '';
+}
+
+function bytesToHex(bytes){
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function ser32(i){
+  const b = new Uint8Array(4);
+  new DataView(b.buffer).setUint32(0, i >>> 0, false);
+  return b;
+}
+
+function concatBytes(...arrays){
+  const len = arrays.reduce((sum, a) => sum + a.length, 0);
+  const out = new Uint8Array(len);
+  let pos = 0;
+  for (const arr of arrays){
+    out.set(arr, pos);
+    pos += arr.length;
+  }
+  return out;
+}
+
+function parsePath(path){
+  if (!/^m(\/[0-9]+'?)+$/.test(path)) throw new Error('Invalid derivation path');
+  const segments = path.split('/').slice(1).map(seg => {
+    const hardened = seg.endsWith("'");
+    const n = Number(seg.replace("'", ''));
+    if (!Number.isInteger(n) || n < 0) throw new Error('Invalid path index');
+    if (!hardened) throw new Error('ed25519 SLIP-0010 supports hardened indices only');
+    return (n + 0x80000000) >>> 0;
+  });
+  return segments;
+}
+
+function getMasterKeyFromSeed(seed){
+  const I = hmac(sha512, enc.encode('ed25519 seed'), seed);
+  return {
+    key: I.slice(0, 32),
+    chainCode: I.slice(32, 64)
+  };
+}
+
+function deriveEd25519Slip10(path, seed){
+  const segments = parsePath(path);
+  let { key, chainCode } = getMasterKeyFromSeed(seed);
+
+  for (const index of segments){
+    const data = concatBytes(new Uint8Array([0]), key, ser32(index));
+    const I = hmac(sha512, chainCode, data);
+    key = I.slice(0, 32);
+    chainCode = I.slice(32, 64);
+  }
+
+  return { key, chainCode };
+}
+
+function getSolAddressFromSeed32(seed32){
+  const kp = nacl.sign.keyPair.fromSeed(seed32);
+  return bs58.encode(kp.publicKey);
+}
+
+async function rpc(method, params){
+  const r = await fetch('https://api.mainnet-beta.solana.com', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method, params })
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+  return j.result;
+}
+
+async function probeAddress(addr, sigLimit=1){
+  try {
+    const [balanceResult, accountInfo, signatures] = await Promise.all([
+      rpc('getBalance', [addr, { commitment: 'finalized' }]),
+      rpc('getAccountInfo', [addr, { commitment: 'finalized', encoding: 'base64' }]),
+      rpc('getSignaturesForAddress', [addr, { commitment: 'finalized', limit: Math.max(1, Math.min(1000, sigLimit)) }])
+    ]);
+
+    const lamports = balanceResult?.value ?? 0;
+    const hasAccount = accountInfo?.value !== null;
+    const sigCount = Array.isArray(signatures) ? signatures.length : 0;
+    const hasHistory = sigCount > 0;
+
+    return {
+      lamports,
+      balance: lamports / 1e9,
+      hasAccount,
+      hasHistory,
+      used: hasAccount || hasHistory || lamports > 0,
+      status: lamports > 0 ? 'FUNDED' : (hasAccount || hasHistory ? 'USED_ZERO' : 'EMPTY')
+    };
+  } catch (e) {
+    return {
+      lamports: 0,
+      balance: 0,
+      hasAccount: false,
+      hasHistory: false,
+      used: false,
+      status: 'ERROR',
+      error: String(e)
+    };
+  }
+}
+
+const PATH_VARIANTS = [
+  {
+    name: "CLI/root-like accounts",
+    getPath: (i) => `m/44'/501'/${i}'`
+  },
+  {
+    name: "Solflare-style accounts",
+    getPath: (i) => `m/44'/501'/${i}'/0'`
+  },
+  {
+    name: "Phantom/Sollet-style accounts",
+    getPath: (i) => `m/44'/501'/${i}'/0'/0'`
+  }
+];
+
+async function scanVariant(variant, gapLimit, delayMs, sigLimit){
+  log(`\n=== ${variant.name} ===`, 'info');
+  let gap = 0;
+  let i = 0;
+
+  while (gap < gapLimit && !stopRequested){
+    const path = variant.getPath(i);
+    let addr = '';
+    let probe;
+
+    try {
+      const { key } = deriveEd25519Slip10(path, bip39Seed);
+      addr = getSolAddressFromSeed32(key);
+      probe = await probeAddress(addr, sigLimit);
+    } catch (e) {
+      log(`[ERROR] #${i} ${path}\n${String(e)}\n`, 'error');
+      gap++;
+      i++;
+      if (delayMs) await sleep(delayMs);
+      continue;
+    }
+
+    let cls = 'empty';
+    let tag = '[EMPTY]';
+    if (probe.status === 'FUNDED') { cls = 'used'; tag = '[FUNDED]'; }
+    else if (probe.status === 'USED_ZERO') { cls = 'zeroUsed'; tag = '[USED 0]'; }
+    else if (probe.status === 'ERROR') { cls = 'error'; tag = '[ERROR]'; }
+
+    log(`${tag} #${i} ${path}\n${addr}\nBAL: ${probe.balance} SOL | account:${probe.hasAccount} | history:${probe.hasHistory}`, cls);
+
+    if (probe.status === 'FUNDED' || probe.status === 'USED_ZERO') gap = 0;
+    else gap++;
+
+    i++;
+    if (delayMs) await sleep(delayMs);
+  }
+
+  if (gap >= gapLimit) log(`Gap limit ${gapLimit} reached for ${variant.name}`, 'info');
+}
+
+async function scan(){
+  if (!bip39Seed){
+    resetLog();
+    log('Load mnemonic first', 'error');
+    return;
+  }
+
+  const gapLimit = Math.max(1, Math.min(100, Number(document.getElementById('gapLimit').value) || 20));
+  const delayMs = Math.max(0, Math.min(5000, Number(document.getElementById('delayMs').value) || 0));
+  const sigLimit = Math.max(1, Math.min(20, Number(document.getElementById('sigLimit').value) || 1));
+
+  stopRequested = false;
+  document.getElementById('scan').disabled = true;
+  document.getElementById('stop').disabled = false;
+  document.getElementById('load').disabled = true;
+  document.getElementById('gen').disabled = true;
+
+  resetLog();
+  log('Scanning...', 'info');
+
+  for (const variant of PATH_VARIANTS){
+    if (stopRequested) break;
+    await scanVariant(variant, gapLimit, delayMs, sigLimit);
+  }
+
+  log(stopRequested ? '\nStopped.' : '\nDONE', 'info');
+  document.getElementById('scan').disabled = false;
+  document.getElementById('stop').disabled = true;
+  document.getElementById('load').disabled = false;
+  document.getElementById('gen').disabled = false;
+}
+
+document.getElementById('gen').onclick = () => {
+  const m = generateMnemonic(wordlist);
+  document.getElementById('mnemonic').value = m;
+};
+
+document.getElementById('load').onclick = () => {
+  const m = document.getElementById('mnemonic').value.trim().replace(/\s+/g, ' ');
+  resetLog();
+
+  if (!validateMnemonic(m, wordlist)){
+    log('Invalid mnemonic', 'error');
+    return;
+  }
+
+  bip39Seed = mnemonicToSeedSync(m);
+  const master = getMasterKeyFromSeed(bip39Seed);
+  log('Mnemonic loaded', 'used');
+  log(`BIP39 seed bytes: ${bip39Seed.length}`, 'info');
+  log(`Master key fingerprint: ${bytesToHex(master.key.slice(0, 8))}...`, 'info');
+  log('Ready to scan', 'used');
+  document.getElementById('scan').disabled = false;
+};
+
+document.getElementById('scan').onclick = scan;
+document.getElementById('stop').onclick = () => { stopRequested = true; };
+document.getElementById('clear').onclick = () => resetLog();
+</script>
+</body>
+</html>

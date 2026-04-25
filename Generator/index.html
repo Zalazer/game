@@ -1,77 +1,39 @@
-<!DOCTYPE html>
-<html lang="ru">
+﻿<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bitcoin CORE ACCURACY MODE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Random wallets generator</title>
 
 
-    
-<!-- TELEGRAM SDK -->
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 
-
 <style>
-body{font-family:monospace;background:#0f172a;color:#e2e8f0;padding:25px}
-button{padding:12px 18px;background:#22c55e;border:0;border-radius:10px;cursor:pointer;color:#052e16;font-weight:bold}
-button:disabled{opacity:.7;cursor:wait}
-pre{background:#020617;padding:15px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}
-.row{margin:12px 0;padding:12px;border:1px solid #334155;border-radius:10px;background:#0b1220}
-.ok{color:#4ade80}.bad{color:#f87171}.muted{color:#94a3b8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#0b0b0b;color:#eaeaea;overflow:hidden;position:fixed;touch-action:manipulation;}
+
+#menu{display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:20px 0;}
+#menuContent{display:flex;flex-direction:column;align-items:center;}
+h1{font-size:28px;margin-bottom:24px;text-align:center;}
+.btn{width:260px;padding:10px;margin:3px;font-size:18px;border:none;border-radius:10px;background:#1c1c1c;color:#fff;cursor:pointer;}
+.btn:hover{background:#2c2c2c;}
 </style>
 </head>
 <body>
 
-<button id="generateBtn" type="button">Generate random phrase with 3 bitcoin wallets</button>
-<pre id="out">Ready.</pre>
-<script type="module">
-import { generateMnemonic, mnemonicToSeedSync } from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/+esm";
-import { wordlist } from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/wordlists/english/+esm";
-import { HDKey } from "https://cdn.jsdelivr.net/npm/@scure/bip32@1.3.1/+esm";
-import { sha256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
-import { ripemd160 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
-import { secp256k1 } from "https://cdn.jsdelivr.net/npm/@noble/curves@1.4.2/secp256k1/+esm";
-const out=document.getElementById('out'); const btn=document.getElementById('generateBtn');
-const API='https://mempool.space/api/address/';
-function hex(u8){return Array.from(u8,b=>b.toString(16).padStart(2,'0')).join('')}
-function concatBytes(...arrays){const len=arrays.reduce((s,a)=>s+a.length,0);const out=new Uint8Array(len);let off=0;for(const arr of arrays){out.set(arr,off);off+=arr.length}return out}
-function bytesEqual(a,b){if(!a||!b||a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true}
-function hash160(data){return ripemd160(sha256(data))}
-function doubleSha256(data){return sha256(sha256(data))}
-const ALPH='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-function base58Encode(bytes){let zeros=0;while(zeros<bytes.length&&bytes[zeros]===0)zeros++;let value=0n;for(const b of bytes)value=(value<<8n)+BigInt(b);let encoded='';while(value>0n){const mod=value%58n;value/=58n;encoded=ALPH[Number(mod)]+encoded}for(let i=0;i<zeros;i++)encoded='1'+encoded;return encoded||'1'}
-function base58check(version,payload){const body=concatBytes(new Uint8Array([version]),payload);const checksum=doubleSha256(body).slice(0,4);return base58Encode(concatBytes(body,checksum))}
-const CHARSET='qpzry9x8gf2tvdw0s3jn54khce6mua7l';
-function polymod(values){let chk=1;const gen=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];for(const v of values){const top=chk>>25;chk=((chk&0x1ffffff)<<5)^v;for(let i=0;i<5;i++)if((top>>i)&1)chk^=gen[i]}return chk}
-function hrpExpand(hrp){const out=[];for(let i=0;i<hrp.length;i++)out.push(hrp.charCodeAt(i)>>5);out.push(0);for(let i=0;i<hrp.length;i++)out.push(hrp.charCodeAt(i)&31);return out}
-function createChecksum(hrp,data){const values=[...hrpExpand(hrp),...data,0,0,0,0,0,0];const mod=polymod(values)^1;const ret=[];for(let p=0;p<6;p++)ret.push((mod>>(5*(5-p)))&31);return ret}
-function bech32Encode(hrp,data){const combined=[...data,...createChecksum(hrp,data)];let out=hrp+'1';for(const d of combined)out+=CHARSET[d];return out}
-function convertBits(data,fromBits,toBits,pad=true){let acc=0,bits=0;const ret=[];const maxv=(1<<toBits)-1;for(const v of data){acc=(acc<<fromBits)|v;bits+=fromBits;while(bits>=toBits){bits-=toBits;ret.push((acc>>bits)&maxv)}}if(pad&&bits>0)ret.push((acc<<(toBits-bits))&maxv);return ret}
-function p2pkhFromPubkey(pub){return base58check(0x00,hash160(pub))}
-function p2shP2wpkhFromPubkey(pub){const keyHash=hash160(pub);const redeemScript=concatBytes(new Uint8Array([0x00,0x14]),keyHash);return base58check(0x05,hash160(redeemScript))}
-function bech32FromPubkey(pub){const keyHash=hash160(pub);return bech32Encode('bc',[0,...convertBits(keyHash,8,5,true)])}
-async function getBalance(address){const r=await fetch(API+encodeURIComponent(address)); if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json(); return {confirmed:(j.chain_stats.funded_txo_sum-j.chain_stats.spent_txo_sum), mempool:(j.mempool_stats.funded_txo_sum-j.mempool_stats.spent_txo_sum)}}
-function btc(sat){return (sat/1e8).toFixed(8)+' BTC'}
-function ensureNode(node){if(!node.privateKey||!node.publicKey)throw new Error('Invalid node'); if(!bytesEqual(secp256k1.getPublicKey(node.privateKey,true), node.publicKey)) throw new Error('Private/public key mismatch'); return node}
-async function render(){btn.disabled=true; out.textContent='Generating...'; try{const mnemonic=generateMnemonic(wordlist); const seed=mnemonicToSeedSync(mnemonic); const root=HDKey.fromMasterSeed(seed); const legacyNode=ensureNode(root.derive("m/44'/0'/0'/0/0")); const p2shNode=ensureNode(root.derive("m/49'/0'/0'/0/0")); const segwitNode=ensureNode(root.derive("m/84'/0'/0'/0/0")); const items=[
-{label:'LEGACY / P2PKH', path:"m/44'/0'/0'/0/0", priv:legacyNode.privateKey, pub:legacyNode.publicKey, address:p2pkhFromPubkey(legacyNode.publicKey)},
-{label:'P2SH-P2WPKH', path:"m/49'/0'/0'/0/0", priv:p2shNode.privateKey, pub:p2shNode.publicKey, address:p2shP2wpkhFromPubkey(p2shNode.publicKey)},
-{label:'NATIVE SEGWIT / P2WPKH', path:"m/84'/0'/0'/0/0", priv:segwitNode.privateKey, pub:segwitNode.publicKey, address:bech32FromPubkey(segwitNode.publicKey)}];
-let html=`MNEMONIC:\n${mnemonic}`;
-for(const item of items){html += `\n=====================================\n${item.label}\n=====================================\n\nDERIVATION:\n${item.path}\n\nPRIVATE KEY:\n${hex(item.priv)}\n\nPUBLIC KEY:\n${hex(item.pub)}\n\nADDRESS:\n${item.address}\n\nBALANCE:\nLoading...\n`}
-out.textContent=html;
-const balances = await Promise.all(items.map(i=>getBalance(i.address).catch(e=>({error:e.message}))));
-let final=`MNEMONIC:\n${mnemonic}\n`;
-for(let idx=0; idx<items.length; idx++){
-  const item=items[idx], b=balances[idx];
-  const bal = b.error ? `ERROR: ${b.error}` : `confirmed: ${btc(b.confirmed)}\nmempool: ${btc(b.mempool)}\ntotal: ${btc(b.confirmed+b.mempool)}`;
-  final += `\n=====================================\n${item.label}\n=====================================\n\nDERIVATION:\n${item.path}\n\nPRIVATE KEY:\n${hex(item.priv)}\n\nPUBLIC KEY:\n${hex(item.pub)}\n\nADDRESS:\n${item.address}\n\nBALANCE:\n${bal}\n`;
-}
-final += `\n`;
-out.textContent=final;
-}catch(err){out.textContent='ERROR:\n'+(err?.message||err); console.error(err);} finally{btn.disabled=false;}}
-btn.addEventListener('click', render);
-</script>
+<div id="menu">
+<div id="menuContent">
+
+<button class="btn" onclick="location.href='random-bitcoin.html'">Random Bitcoin wallets by mnemonic</button>
+<br>
+<button class="btn" onclick="location.href='bitcoin-scanner.html'">Bitcoin wallet scanner</button>
+<button class="btn" onclick="location.href='ethereum-scanner.html'">Ethereum wallet scanner</button>
+<button class="btn" onclick="location.href='solana-scanner.html'">Solana wallet scanner</button>
+
+</div>
+</div>
+
 </body>
 </html>
