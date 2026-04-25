@@ -219,16 +219,30 @@ async function checkWallet(client, candidate) {
   }
 }
 
-btnGen.addEventListener("click", () => {
+
+
+
+btnGen.addEventListener('click', async () => {
   try {
-    mnemonicInput.value = generateMnemonic(wordlist);
+    const mnemonic = generateMnemonic(wordlist);
+    mnemonicInput.value = mnemonic;
     resetLog();
-    log("Mnemonic generated", "info");
+    log('Mnemonic generated (12 words)', 'info');
+    
+    // Нормализация
+    const words = mnemonic.trim().toLowerCase().split(/\s+/);
+    keyPair = await mnemonicToWalletKey(words);
+    
+    btnScan.disabled = false;
+    log('KeyPair loaded successfully, ready to scan!', 'used');
   } catch (e) {
     resetLog();
-    log(`Generate error: ${String(e)}`, "error");
+    log('Generate/Load error: ' + String(e), 'error');
+    console.error('Full error:', e);
   }
 });
+
+
 
 btnLoad.addEventListener("click", async () => {
   try {
