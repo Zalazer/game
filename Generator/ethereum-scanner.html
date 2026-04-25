@@ -100,7 +100,7 @@ pre{
 </head>
 <body>
 <div class="wrap">
-  <h1>Ethereum HD GAP Scanner (RPC)</h1>
+  <h1>Ethereum HD GAP Scanner</h1>
 
   <div class="controls">
     <button id="gen">Generate Mnemonic</button>
@@ -122,14 +122,12 @@ pre{
     </div>
     <div class="card">
       <div class="small">RPC fallback order:</div>
-      <div class="small">1) Cloudflare</div>
-      <div class="small">2) PublicNode</div>
-      <div class="small">3) 1RPC</div>
-      <div class="small">4) MyCrypto</div>
-      <div class="small">5) Ethereumnodes</div>
-      <div class="small">6) Ankr public</div>
-      <div class="small">7) BlockPI public</div>
-      <div class="small">8) Blast public</div>
+      <div class="small">https://ethereum-rpc.publicnode.com</div>
+      <div class="small">https://1rpc.io/eth</div>
+      <div class="small">https://rpc.mycryptoapi.com/eth</div>
+      <div class="small">https://ethereumnodes.com</div>
+      <div class="small">https://ethereum.blockpi.network/v1/rpc/public</div>
+      <div class="small">https://eth-mainnet.public.blastapi.io</div>
     </div>
     <div class="card">
       <div class="small">Standard derivation paths:</div>
@@ -167,12 +165,10 @@ let controller = null;
 let activeRpcIndex = 0;
 
 const RPCS = [
-  "https://cloudflare-eth.com",
   "https://ethereum-rpc.publicnode.com",
   "https://1rpc.io/eth",
   "https://rpc.mycryptoapi.com/eth",
   "https://ethereumnodes.com",
-  "https://rpc.ankr.com/eth_public",
   "https://ethereum.blockpi.network/v1/rpc/public",
   "https://eth-mainnet.public.blastapi.io"
 ];
@@ -406,22 +402,17 @@ async function getBalance(addr){
 
       lastError = res.error || 'Unknown RPC error';
       if (idx >= 0) markRpcBad(idx, lastError);
-      if (!res.retryable){
-        return { balanceWei: 0n, balanceEth: '0', used: false, error: lastError, rpcUrl };
-      }
 
-      log(`RPC error on ${rpcUrl}: ${lastError}`, 'error');
-      setCool(`${Math.max(0, rpcState[idx].failUntil - now())} ms`);
     }catch(e){
       lastError = String(e);
       if (idx >= 0) markRpcBad(idx, lastError);
-      log(`RPC fetch failed on ${rpcUrl}: ${lastError}`, 'error');
-      setCool(`${Math.max(0, rpcState[idx].failUntil - now())} ms`);
     }
   }
 
   const fallbackIdx = getNextRpcIndex(activeRpcIndex);
   if (fallbackIdx >= 0) setRpc(RPCS[fallbackIdx]);
+
+  log(`All RPCs failed: ${lastError}`, 'error');
 
   return {
     balanceWei: 0n,
@@ -431,6 +422,7 @@ async function getBalance(addr){
     rpcUrl: ''
   };
 }
+
 
 
 
