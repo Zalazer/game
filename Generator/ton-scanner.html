@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TON Wallet Recovery Tool</title>
+<style>
+:root{
+  --bg:#0f172a;
+  --panel:#111827;
+  --panel2:#020617;
+  --text:#e2e8f0;
+  --muted:#94a3b8;
+  --line:#334155;
+  --green:#22c55e;
+  --red:#ef4444;
+  --blue:#38bdf8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--bg);
+  color:var(--text);
+  padding:20px
+}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:22px;margin:0 0 16px}
+.controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:14px
+}
+button{
+  padding:10px 14px;
+  background:var(--green);
+  color:#04130a;
+  border:0;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer
+}
+button.secondary{
+  background:#1e293b;
+  color:var(--text);
+  border:1px solid var(--line)
+}
+button:disabled{opacity:.55;cursor:not-allowed}
+input,select{
+  padding:10px 12px;
+  background:#1e293b;
+  color:#fff;
+  border:1px solid var(--line);
+  border-radius:10px
+}
+input[type="text"]{width:min(100%,720px)}
+label{color:var(--muted);font-size:13px}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+  margin-bottom:14px
+}
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px
+}
+pre{
+  background:var(--panel2);
+  border:1px solid var(--line);
+  padding:15px;
+  height:68vh;
+  overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border-radius:12px
+}
+.used{color:var(--green)}
+.empty{color:#64748b}
+.error{color:var(--red)}
+.info{color:var(--blue)}
+.small{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>TON Wallet Recovery</h1>
+
+  <div class="controls">
+    <button id="gen">Generate Mnemonic</button>
+    <input id="mnemonic" type="text" placeholder="paste mnemonic" autocomplete="off" spellcheck="false" />
+    <button id="load" class="secondary">Load</button>
+    <button id="scan" disabled>Scan</button>
+    <button id="clear" class="secondary">Clear Log</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <label for="network">Network</label><br />
+      <select id="network">
+        <option value="mainnet" selected>Mainnet</option>
+        <option value="testnet">Testnet</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="small">Checks wallet versions:</div>
+      <div class="small">V1R1, V1R2, V1R3</div>
+      <div class="small">V2R1, V2R2</div>
+      <div class="small">V3R1, V3R2</div>
+      <div class="small">V4R1, V4R2, V5R1</div>
+    </div>
+  </div>
+
+  <pre id="out">Ready...</pre>
+</div>
+
+<script type="module">
+import { generateMnemonic, validateMnemonic } from "https://cdn.jsdelivr.net/npm/@scure/bip39/+esm";
+import { wordlist } from "https://cdn.jsdelivr.net/npm/@scure/bip39/wordlists/english/+esm";
+import { mnemonicToWalletKey } from "https://cdn.jsdelivr.net/npm/@ton/crypto/+esm";
+import { TonClient, WalletContractV1R1, WalletContractV1R2, WalletContractV1R3, WalletContractV2R1, WalletContractV2R2, WalletContractV3R1, WalletContractV3R2, WalletContractV4, WalletContractV5R1 } from "https://cdn.jsdelivr.net/npm/@ton/ton/+esm";
+
+const out = document.getElementById("out");
+const mnemonicInput = document.getElementById("mnemonic");
+const networkSelect = document.getElementById("network");
+const btnGen = document.getElementById("gen");
+const btnLoad = document.getElementById("load");
+const btnScan = document.getElementById("scan");
+const btnClear = document.getElementById("clear");
+
+let keyPair = null;
+let busy = false;
+
+const clients = {
+  mainnet: new TonClient({ endpoint: "https://toncenter.com/api/v2/jsonRPC" }),
+  testnet: new TonClient({ endpoint: "https://testnet.toncenter.com/api/v2/jsonRPC" })
+};
+
+function log(text, cls = "") {
+  const div = document.createElement("div");
+  if (cls) div.className = cls;
+  div.textContent = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function resetLog() {
+  out.innerHTML = "";
+}
+
+function setBusy(state) {
+  busy = state;
+  btnGen.disabled = state;
+  btnLoad.disabled = state;
+  btnScan.disabled = state;
+  networkSelect.disabled = state;
+}
+
+function normalizeMnemonic(text) {
+  return String(text || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function uniqueByAddress(items) {
+  const seen = new Set();
+  return items.filter(x => {
+    if (seen.has(x.address)) return false;
+    seen.add(x.address);
+    return true;
+  });
+}
+
+function buildCandidates() {
+  if (!keyPair) throw new Error("No keyPair loaded");
+  const pub = keyPair.publicKey;
+  const isTestnet = networkSelect.value === "testnet";
+
+  const candidates = [
+    { name: "Wallet V1R1", create: () => WalletContractV1R1.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V1R2", create: () => WalletContractV1R2.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V1R3", create: () => WalletContractV1R3.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V2R1", create: () => WalletContractV2R1.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V2R2", create: () => WalletContractV2R2.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V3R1", create: () => WalletContractV3R1.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V3R2", create: () => WalletContractV3R2.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V4R1", create: () => WalletContractV4.create({ publicKey: pub, workchain: 0 }) },
+    { name: "Wallet V4R2", create: () => WalletContractV4.create({ publicKey: pub, workchain: 0, walletId: 0x29a9a317 }) },
+    { name: "Wallet V5R1", create: () => WalletContractV5R1.create({ publicKey: pub, workchain: 0, walletId: { networkGlobalId: isTestnet ? -3 : -239 } }) }
+  ];
+
+  return uniqueByAddress(candidates.map(c => {
+    const wallet = c.create();
+    return { ...c, wallet, address: wallet.address.toString({ urlSafe: true, bounceable: true, testOnly: isTestnet }) };
+  }));
+}
+
+async function checkWallet(client, candidate) {
+  try {
+    const balance = await client.getBalance(candidate.wallet.address);
+    const ton = Number(balance) / 1e9;
+    if (balance > 0n) {
+      log(`[FOUND] ${candidate.name}`, "used");
+      log(candidate.address);
+      log(`Balance: ${ton} TON`, "used");
+      log("");
+    } else {
+      log(`[EMPTY] ${candidate.name}`, "empty");
+      log(candidate.address);
+      log("");
+    }
+  } catch (e) {
+    log(`[ERROR] ${candidate.name}: ${String(e)}`, "error");
+  }
+}
+
+btnGen.addEventListener("click", () => {
+  try {
+    mnemonicInput.value = generateMnemonic(wordlist);
+    resetLog();
+    log("Mnemonic generated", "info");
+  } catch (e) {
+    resetLog();
+    log(`Generate error: ${String(e)}`, "error");
+  }
+});
+
+btnLoad.addEventListener("click", async () => {
+  try {
+    resetLog();
+    const m = normalizeMnemonic(mnemonicInput.value);
+    if (!validateMnemonic(m, wordlist)) {
+      keyPair = null;
+      btnScan.disabled = true;
+      log("Invalid mnemonic", "error");
+      return;
+    }
+    keyPair = await mnemonicToWalletKey(m.split(" "));
+    btnScan.disabled = false;
+    log("Mnemonic loaded", "used");
+  } catch (e) {
+    keyPair = null;
+    btnScan.disabled = true;
+    log(`Load error: ${String(e)}`, "error");
+  }
+});
+
+btnScan.addEventListener("click", async () => {
+  if (busy) return;
+  if (!keyPair) {
+    resetLog();
+    log("Load mnemonic first", "error");
+    return;
+  }
+
+  setBusy(true);
+  resetLog();
+  log(`Network: ${networkSelect.value}`, "info");
+  log("Scanning wallets...", "info");
+
+  try {
+    const client = clients[networkSelect.value];
+    const candidates = buildCandidates();
+    for (const c of candidates) await checkWallet(client, c);
+    log("Done", "info");
+  } catch (e) {
+    log(`Scan error: ${String(e)}`, "error");
+  } finally {
+    setBusy(false);
+  }
+});
+
+btnClear.addEventListener("click", () => {
+  resetLog();
+  log("Cleared", "info");
+});
+
+</script>
+</body>
+</html>
