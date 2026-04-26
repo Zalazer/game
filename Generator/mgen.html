@@ -1,0 +1,684 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bitcoin Mnemonic and Address Tool</title>
+
+<style>
+:root{
+  --bg:#0f172a;
+  --panel:#111827;
+  --panel2:#020617;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --border:#334155;
+  --green:#22c55e;
+  --greenText:#052e16;
+  --blue:#38bdf8;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  padding:20px;
+}
+.wrap{max-width:1200px;margin:0 auto}
+h1{font-size:20px;margin:0 0 14px}
+p.note{color:var(--muted);margin:0 0 18px;line-height:1.5}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+input,select,button{
+  font:inherit;
+  border-radius:10px;
+}
+input,select{
+  background:#1e293b;
+  color:var(--text);
+  border:1px solid var(--border);
+  padding:10px 12px;
+}
+input{
+  flex:1 1 420px;
+  min-width:280px;
+}
+select{
+  min-width:180px;
+}
+button{
+  border:0;
+  padding:10px 5px;
+  cursor:pointer;
+  font-weight:700;
+}
+button.primary{background:var(--green);color:var(--greenText)}
+button.secondary{background:#334155;color:var(--text)}
+button.warn{background:var(--yellow);color:#111827}
+button:disabled{opacity:.65;cursor:not-allowed}
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:14px;
+}
+label{
+  display:block;
+  margin:0 0 8px;
+  color:var(--muted);
+  font-size:13px;
+}
+pre{
+  margin:0;
+  background:var(--panel2);
+  border:1px solid #1f2937;
+  border-radius:12px;
+  padding:14px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  min-height:320px;
+  line-height:1.45;
+}
+.small{
+  font-size:12px;
+  color:var(--muted);
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;
+}
+.kv{
+  background:#0b1220;
+  border:1px solid #1f2937;
+  border-radius:10px;
+  padding:10px;
+}
+.kv .k{color:var(--muted);font-size:12px;margin-bottom:6px}
+.kv .v{word-break:break-word}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Bitcoin Mnemonic Address Tool</h1>
+  <p class="note">
+    Generate a valid BIP39 mnemonic from random entropy or from your own HEX entropy.
+    Supports Bitcoin Mainnet and Testnet, including Legacy, P2SH-SegWit, Native SegWit, and Taproot.
+  </p>
+
+  <div class="card">
+    <div class="row">
+      <select id="networkSelect">
+        <option value="mainnet" selected>Mainnet</option>
+        <option value="testnet">Testnet</option>
+      </select>
+
+      <button id="random12Btn" class="primary">Random 12 words</button>
+      <button id="random24Btn" class="primary">Random 24 words</button>
+
+      <select id="entropyPreset">
+        <option value="16">Entropy 16 bytes → 12 words</option>
+        <option value="20">Entropy 20 bytes → 15 words</option>
+        <option value="24">Entropy 24 bytes → 18 words</option>
+        <option value="28">Entropy 28 bytes → 21 words</option>
+        <option value="32" selected>Entropy 32 bytes → 24 words</option>
+      </select>
+
+      <button id="randomEntropyBtn" class="secondary">Random entropy by preset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="entropyInput">User HEX entropy</label>
+    <div class="row">
+      <input id="entropyInput" placeholder="Enter HEX entropy: 32 / 40 / 48 / 56 / 64 hex chars" />
+      <button id="fromEntropyBtn" class="warn">Mnemonic from entropy</button>
+    </div>
+    <div class="small">
+      Only valid BIP39 entropy sizes are accepted: 16 / 20 / 24 / 28 / 32 bytes
+      (32 / 40 / 48 / 56 / 64 hex characters).
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="mnemonicInput">Or paste an existing mnemonic</label>
+    <div class="row">
+      <input id="mnemonicInput" placeholder="12 / 15 / 18 / 21 / 24 words" />
+      <button id="loadBtn" class="secondary">Load mnemonic</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <button id="deriveBtn" class="primary" disabled>Derive addresses</button>
+      <button id="scanBtn" class="secondary" disabled>Check activity</button>
+    </div>
+    <div class="small">
+      Activity checks use mempool.space public APIs for Mainnet and Testnet.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid" id="summaryGrid"></div>
+  </div>
+
+  <div class="card">
+    <pre id="out">Ready.</pre>
+  </div>
+
+</div>
+
+<script type="module">
+import {
+  generateMnemonic,
+  mnemonicToSeedSync,
+  validateMnemonic,
+  entropyToMnemonic,
+  mnemonicToEntropy
+} from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/+esm";
+
+import { wordlist }
+from "https://cdn.jsdelivr.net/npm/@scure/bip39@1.2.1/wordlists/english/+esm";
+
+import { HDKey } from "https://cdn.jsdelivr.net/npm/@scure/bip32@1.3.1/+esm";
+import { secp256k1, schnorr } from "https://cdn.jsdelivr.net/npm/@noble/curves@1.4.2/secp256k1/+esm";
+import { sha256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
+import { ripemd160 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
+import { bech32, bech32m } from "https://cdn.jsdelivr.net/npm/@scure/base@1.1.9/+esm";
+
+const out = document.getElementById("out");
+const summaryGrid = document.getElementById("summaryGrid");
+
+const networkSelect = document.getElementById("networkSelect");
+const entropyInput = document.getElementById("entropyInput");
+const mnemonicInput = document.getElementById("mnemonicInput");
+const loadBtn = document.getElementById("loadBtn");
+const deriveBtn = document.getElementById("deriveBtn");
+const scanBtn = document.getElementById("scanBtn");
+
+let mnemonic = "";
+let seed = null;
+let root = null;
+let derived = null;
+
+const NETWORKS = {
+  mainnet: {
+    name: "Bitcoin Mainnet",
+    coinType: 0,
+    p2pkhVersion: 0x00,
+    p2shVersion: 0x05,
+    bech32Hrp: "bc",
+    apiBase: "https://mempool.space/api/address/"
+  },
+  testnet: {
+    name: "Bitcoin Testnet",
+    coinType: 1,
+    p2pkhVersion: 0x6f,
+    p2shVersion: 0xc4,
+    bech32Hrp: "tb",
+    apiBase: "https://mempool.space/testnet/api/address/"
+  }
+};
+
+function netCfg(){
+  return NETWORKS[networkSelect.value];
+}
+
+function log(text){
+  out.textContent = text;
+}
+function append(text){
+  out.textContent += text;
+}
+
+function normalizeMnemonic(s){
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function bytesToHex(bytes){
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function hexToBytes(hex){
+  const clean = hex.trim().toLowerCase();
+  if (!/^[0-9a-f]+$/.test(clean)) throw new Error("Entropy must be a HEX string");
+  if (clean.length % 2 !== 0) throw new Error("Invalid HEX length");
+  return new Uint8Array(clean.match(/.{2}/g).map(b => parseInt(b, 16)));
+}
+
+function assertBip39EntropyLength(bytes){
+  if (![16, 20, 24, 28, 32].includes(bytes.length)) {
+    throw new Error("Entropy length must be 16, 20, 24, 28, or 32 bytes");
+  }
+}
+
+function randomBytes(len){
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return arr;
+}
+
+function concatBytes(...arrays){
+  const len = arrays.reduce((s, a) => s + a.length, 0);
+  const out = new Uint8Array(len);
+  let off = 0;
+  for (const a of arrays) {
+    out.set(a, off);
+    off += a.length;
+  }
+  return out;
+}
+
+function hash160(data){
+  return ripemd160(sha256(data));
+}
+
+const ALPH = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+function base58Encode(bytes){
+  let zeros = 0;
+  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) {
+    zeros++;
+  }
+
+  let value = 0n;
+  for (const b of bytes) value = (value << 8n) + BigInt(b);
+
+  let out = "";
+  while (value > 0n) {
+    out = ALPH[Number(value % 58n)] + out;
+    value /= 58n;
+  }
+
+  return "1".repeat(zeros) + out;
+}
+
+
+
+function doubleSha256(a){
+  return sha256(sha256(Uint8Array.from(a)));
+}
+
+
+function base58check(version, payload){
+  const body = concatBytes(new Uint8Array([version]), payload);
+  const checksum = doubleSha256(body).slice(0, 4);
+  return base58Encode(concatBytes(body, checksum));
+}
+
+function p2pkh(pubkey, cfg){
+  return base58check(cfg.p2pkhVersion, hash160(pubkey));
+}
+
+function p2shP2wpkh(pubkey, cfg){
+  const keyHash = hash160(pubkey);
+  const redeemScript = concatBytes(new Uint8Array([0x00, 0x14]), keyHash);
+  return base58check(cfg.p2shVersion, hash160(redeemScript));
+}
+
+function p2wpkh(pubkey, cfg){
+  const prog = hash160(pubkey);
+  const words = bech32.toWords(prog);
+  return bech32.encode(cfg.bech32Hrp, [0, ...words]);
+}
+
+function taggedHash(tag, msg){
+  const tagHash = sha256(new TextEncoder().encode(tag));
+  return sha256(concatBytes(tagHash, tagHash, msg));
+}
+
+
+
+
+
+function bytesToNumberBE(bytes){
+  let n = 0n;
+  for (const b of bytes) n = (n << 8n) + BigInt(b);
+  return n;
+}
+
+function numberToBytesBE(num, len){
+  const out = new Uint8Array(len);
+  for (let i = len - 1; i >= 0; i--) {
+    out[i] = Number(num & 0xffn);
+    num >>= 8n;
+  }
+  return out;
+}
+
+
+
+function p2tr(node, cfg){
+  if (!node.privateKey) throw new Error("Missing private key for Taproot derivation");
+
+  const priv = bytesToNumberBE(node.privateKey);
+  const pub = secp256k1.getPublicKey(node.privateKey, true);
+  const xOnly = pub.slice(1, 33);
+
+  const tweak = bytesToNumberBE(taggedHash("TapTweak", xOnly)) % secp256k1.CURVE.n;
+  if (tweak >= secp256k1.CURVE.n) throw new Error("Invalid Taproot tweak");
+
+  let d = priv;
+  const P = secp256k1.ProjectivePoint.fromPrivateKey(node.privateKey).toRawBytes(true);
+  if (P[0] === 0x03) {
+    d = secp256k1.CURVE.n - d;
+  }
+
+  const outputPriv = (d + tweak) % secp256k1.CURVE.n;
+  if (outputPriv === 0n) throw new Error("Invalid Taproot output key");
+
+  const outputPub = schnorr.getPublicKey(numberToBytesBE(outputPriv, 32));
+  const words = bech32m.toWords(outputPub);
+
+  return bech32m.encode(cfg.bech32Hrp, [1, ...words]);
+}
+
+
+
+
+function deriveNode(path){
+  const node = root.derive(path);
+  if (!node || !node.publicKey) throw new Error("Failed to derive path: " + path);
+  return node;
+}
+
+function buildDerivedSet(count = 5){
+  const cfg = netCfg();
+  const c = cfg.coinType;
+
+  const legacy = [];
+  const p2sh = [];
+  const segwit = [];
+  const taproot = [];
+
+  for (let i = 0; i < count; i++) {
+    const n44 = deriveNode(`m/44'/${c}'/0'/0/${i}`);
+    const n49 = deriveNode(`m/49'/${c}'/0'/0/${i}`);
+    const n84 = deriveNode(`m/84'/${c}'/0'/0/${i}`);
+    const n86 = deriveNode(`m/86'/${c}'/0'/0/${i}`);
+
+    legacy.push({
+      index: i,
+      path: `m/44'/${c}'/0'/0/${i}`,
+      address: p2pkh(n44.publicKey, cfg)
+    });
+
+    p2sh.push({
+      index: i,
+      path: `m/49'/${c}'/0'/0/${i}`,
+      address: p2shP2wpkh(n49.publicKey, cfg)
+    });
+
+    segwit.push({
+      index: i,
+      path: `m/84'/${c}'/0'/0/${i}`,
+      address: p2wpkh(n84.publicKey, cfg)
+    });
+
+    taproot.push({
+      index: i,
+      path: `m/86'/${c}'/0'/0/${i}`,
+      address: p2tr(n86, cfg)
+    });
+  }
+
+  return { legacy, p2sh, segwit, taproot };
+}
+
+function renderSummary(items){
+  summaryGrid.innerHTML = items.map(x => `
+    <div class="kv">
+      <div class="k">${x.k}</div>
+      <div class="v">${x.v}</div>
+    </div>
+  `).join("");
+}
+
+async function loadMnemonic(mnemo){
+  const clean = normalizeMnemonic(mnemo);
+  log("Validating mnemonic...");
+
+  if (!validateMnemonic(clean, wordlist)) {
+    log("❌ Invalid mnemonic");
+    deriveBtn.disabled = true;
+    scanBtn.disabled = true;
+    return false;
+  }
+
+  mnemonic = clean;
+  seed = mnemonicToSeedSync(mnemonic);
+  root = HDKey.fromMasterSeed(seed);
+  derived = null;
+
+  const entropy = mnemonicToEntropy(clean, wordlist);
+  const cfg = netCfg();
+
+  renderSummary([
+    { k: "Mnemonic valid", v: "YES" },
+    { k: "Words", v: String(mnemonic.split(" ").length) },
+    { k: "Entropy bytes", v: String(entropy.length) },
+    { k: "Entropy HEX", v: bytesToHex(entropy) },
+    { k: "Seed bytes", v: String(seed.length) },
+    { k: "Selected network", v: cfg.name }
+  ]);
+
+  log(
+`✅ Loaded mnemonic
+
+MNEMONIC:
+${mnemonic}
+
+ENTROPY HEX:
+${bytesToHex(entropy)}
+
+INFO:
+- BIP39 valid: YES
+- Words: ${mnemonic.split(" ").length}
+- Entropy bytes: ${entropy.length}
+- Seed bytes: ${seed.length}
+- Selected network: ${cfg.name}`
+  );
+
+  deriveBtn.disabled = false;
+  scanBtn.disabled = false;
+  return true;
+}
+
+function mnemonicFromEntropyHex(hex){
+  const bytes = hexToBytes(hex);
+  assertBip39EntropyLength(bytes);
+  return {
+    bytes,
+    mnemonic: entropyToMnemonic(bytes, wordlist)
+  };
+}
+
+async function checkAddress(addr){
+  const res = await fetch(netCfg().apiBase + addr);
+  if (!res.ok) {
+    throw new Error(`API error for ${addr}: ${res.status}`);
+  }
+  return await res.json();
+}
+
+function satInfo(data){
+  const chain = data?.chain_stats || {};
+  const mempool = data?.mempool_stats || {};
+  return {
+    funded: (chain.funded_txo_sum || 0) + (mempool.funded_txo_sum || 0),
+    spent: (chain.spent_txo_sum || 0) + (mempool.spent_txo_sum || 0),
+    txs: (chain.tx_count || 0) + (mempool.tx_count || 0)
+  };
+}
+
+document.getElementById("random12Btn").onclick = async () => {
+  const m = generateMnemonic(wordlist, 128);
+  mnemonicInput.value = m;
+  await loadMnemonic(m);
+};
+
+document.getElementById("random24Btn").onclick = async () => {
+  const m = generateMnemonic(wordlist, 256);
+  mnemonicInput.value = m;
+  await loadMnemonic(m);
+};
+
+document.getElementById("randomEntropyBtn").onclick = async () => {
+  try{
+    const len = Number(document.getElementById("entropyPreset").value);
+    const bytes = randomBytes(len);
+    const hex = bytesToHex(bytes);
+    entropyInput.value = hex;
+    const { mnemonic } = mnemonicFromEntropyHex(hex);
+    mnemonicInput.value = mnemonic;
+    await loadMnemonic(mnemonic);
+  }catch(e){
+    log("❌ " + e.message);
+  }
+};
+
+document.getElementById("fromEntropyBtn").onclick = async () => {
+  try{
+    const hex = entropyInput.value;
+    const { bytes, mnemonic } = mnemonicFromEntropyHex(hex);
+
+    if (!validateMnemonic(mnemonic, wordlist)) {
+      throw new Error("Generated mnemonic failed validation");
+    }
+
+    mnemonicInput.value = mnemonic;
+    await loadMnemonic(mnemonic);
+
+    append(`
+
+FROM USER ENTROPY:
+${bytesToHex(bytes)}
+
+RESULT:
+- Entropy accepted: YES
+- BIP39 size accepted: YES
+- Mnemonic derived from user entropy: YES
+- Mnemonic valid after validation: YES`);
+  }catch(e){
+    log("❌ " + e.message);
+    deriveBtn.disabled = true;
+    scanBtn.disabled = true;
+  }
+};
+
+loadBtn.onclick = async () => {
+  await loadMnemonic(mnemonicInput.value);
+};
+
+networkSelect.onchange = async () => {
+  if (mnemonic) {
+    await loadMnemonic(mnemonic);
+  } else {
+    renderSummary([]);
+    log(`Ready. Selected network: ${netCfg().name}`);
+  }
+};
+
+deriveBtn.onclick = async () => {
+  try{
+    if (!root) throw new Error("Load mnemonic first");
+
+    derived = buildDerivedSet(5);
+    const cfg = netCfg();
+
+    log(
+`✅ Derived first 5 addresses per type
+
+NETWORK:
+${cfg.name}
+
+MNEMONIC:
+${mnemonic}
+
+LEGACY (BIP44 / P2PKH):
+${derived.legacy.map(x => `[${x.index}] ${x.path}
+${x.address}`).join("\n\n")}
+
+P2SH-SEGWIT (BIP49 / P2SH-P2WPKH):
+${derived.p2sh.map(x => `[${x.index}] ${x.path}
+${x.address}`).join("\n\n")}
+
+NATIVE SEGWIT (BIP84 / bech32):
+${derived.segwit.map(x => `[${x.index}] ${x.path}
+${x.address}`).join("\n\n")}
+
+TAPROOT (BIP86 / bech32m):
+${derived.taproot.map(x => `[${x.index}] ${x.path}
+${x.address}`).join("\n\n")}`
+    );
+
+    renderSummary([
+      { k: "Mnemonic valid", v: "YES" },
+      { k: "Words", v: String(mnemonic.split(" ").length) },
+      { k: "Network", v: cfg.name },
+      { k: "Legacy first", v: derived.legacy[0].address },
+      { k: "SegWit first", v: derived.segwit[0].address },
+      { k: "Taproot first", v: derived.taproot[0].address }
+    ]);
+  }catch(e){
+    log("❌ " + e.message);
+  }
+};
+
+scanBtn.onclick = async () => {
+  try{
+    if (!root) throw new Error("Load mnemonic first");
+    if (!derived) derived = buildDerivedSet(2);
+
+    const cfg = netCfg();
+    log(`Checking activity via ${cfg.name} mempool API...`);
+
+    const targets = [
+      { type: "Legacy", item: derived.legacy[0] },
+      { type: "P2SH-SegWit", item: derived.p2sh[0] },
+      { type: "Native SegWit", item: derived.segwit[0] },
+      { type: "Taproot", item: derived.taproot[0] }
+    ];
+
+    const results = [];
+    for (const t of targets) {
+      const data = await checkAddress(t.item.address);
+      const s = satInfo(data);
+      results.push({
+        type: t.type,
+        path: t.item.path,
+        address: t.item.address,
+        txs: s.txs,
+        funded: s.funded,
+        spent: s.spent,
+        balance: s.funded - s.spent
+      });
+    }
+
+    log(
+`✅ Activity check complete
+
+NETWORK:
+${cfg.name}
+
+${results.map(r =>
+`${r.type}
+PATH: ${r.path}
+ADDRESS: ${r.address}
+TX_COUNT: ${r.txs}
+FUNDED: ${r.funded} sats
+SPENT: ${r.spent} sats
+BALANCE: ${r.balance} sats`
+).join("\n\n")}`
+    );
+  }catch(e){
+    log("❌ " + e.message);
+  }
+};
+</script>
+</body>
+</html>
