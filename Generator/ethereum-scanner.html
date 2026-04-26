@@ -316,52 +316,48 @@ async function pickLiveRpc(){
   return 0;
 }
 
-async function fetchBalanceFromRpc(rpcUrl, addr){
+
+
+async function fetchBalanceFromRpc(rpcUrl, addr) {
   controller = new AbortController();
-  let r;
-  try{
-    r = await fetch(rpcUrl, {
+  try {
+    // 1. Запрос баланса
+    const r1 = await fetch(rpcUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'eth_getBalance',
-        params: [addr, 'latest'],
-        id: Date.now()
-      })
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getBalance', params: [addr, 'latest'], id: 1 })
     });
-  }catch(e){
-    if (e?.name === 'AbortError') return { ok:false, aborted:true, retryable:false, error:'ABORTED', rpcUrl };
-    return { ok:false, retryable:true, error:String(e), rpcUrl };
-  }
+    const j1 = await r1.json();
 
-  let j;
-  try{
-    j = await r.json();
-  }catch{
-    return { ok:false, retryable:true, error:`Bad JSON / HTTP ${r.status}`, rpcUrl };
-  }
+    // 2. Запрос количества транзакций (nonce)
+    const r2 = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'eth_getTransactionCount', params: [addr, 'latest'], id: 2 })
+    });
+    const j2 = await r2.json();
 
-  if (!r.ok){
-    return { ok:false, retryable:true, error:`HTTP ${r.status}`, rpcUrl };
+    const balanceWei = BigInt(j1.result || '0x0');
+    const nonce = parseInt(j2.result || '0x0', 16); 
+    
+    return {
+      ok: true,
+      balanceWei,
+      balanceEth: formatWei(balanceWei),
+      nonce: nonce,
+      used: balanceWei > 0n || nonce > 0,
+      error: '',
+      rpcUrl
+    };
+  } catch (e) {
+    if (e?.name === 'AbortError') return { ok: false, aborted: true, error: 'ABORTED', rpcUrl };
+    return { ok: false, retryable: true, error: String(e), rpcUrl };
   }
-
-  if (j?.error){
-    const errText = JSON.stringify(j.error);
-    return { ok:false, retryable:isBadRpcError(errText), error:errText, rpcUrl };
-  }
-
-  const balanceWei = BigInt(j?.result || '0x0');
-  return {
-    ok:true,
-    balanceWei,
-    balanceEth:formatWei(balanceWei),
-    used: balanceWei > 0n,
-    error:'',
-    rpcUrl
-  };
 }
+
+
 
 
 
@@ -438,6 +434,8 @@ const PATH_VARIANTS = [
   { name: "Alt legacy", getPath: (i) => `m/44'/60'/${i}'/0/0` }
 ];
 
+
+
 async function scanVariant(variant, gapLimit, delayMs){
   log(`
 === ${variant.name} ===`, 'info');
@@ -459,7 +457,7 @@ async function scanVariant(variant, gapLimit, delayMs){
       const status = hasBalance ? '[USED]' : '[empty]';
       log(`${status} #${i} ${path}
 ${addr}
-BAL: ${info.balanceEth} ETH`, hasBalance ? 'used' : 'empty');
+BAL: ${info.balanceEth} ETH | TX: ${info.nonce}`, hasBalance ? 'used' : 'empty');
       if (info.error) log(`ERR: ${info.error}`, 'error');
 
       gap = hasBalance ? 0 : gap + 1;
@@ -477,6 +475,8 @@ ${String(e)}`, 'error');
 
   if (gap >= gapLimit) log(`Gap limit ${gapLimit} reached for ${variant.name}`, 'info');
 }
+
+
 
 async function scan(){
   if (!root){
