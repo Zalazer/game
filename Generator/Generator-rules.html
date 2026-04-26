@@ -3,22 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator – Game Rules</title>
-<meta name="generator" content="ZALAZER rules engine v1">
-
-<!-- TELEGRAM SDK -->
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+<title>Crypto Wallet Help — Bitcoin / Ethereum / Solana / TON</title>
+<meta name="generator" content="ZALAZER help engine v2">
 <style>
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, #020202, #000000);
+    background: radial-gradient(circle at top, #0f172a, #050816 70%);
     color: #fff;
     font-family: Arial, sans-serif;
     line-height: 1.6;
+    overflow-x: hidden;
     overflow-y: auto;
     touch-action: manipulation;
 }
@@ -34,32 +31,112 @@ html, body {
 #content {
     position: relative;
     z-index: 1;
-    padding: 10px 20px 40px 20px;
+    padding: 10px 16px 40px 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow-x: hidden;
 }
-
 h1.game-title {
     text-align: center;
-    margin-top: 20px;
-    font-size: 36px;
-    color: #00ffff;
-    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    margin: 22px 0 10px;
+    font-size: 34px;
+    color: #65c8ff;
+    text-shadow: 0 0 10px rgba(101,200,255,.65), 0 0 20px rgba(101,200,255,.25);
 }
-
-.game-subtitle { display: block; font-size: 0.65em; font-weight: normal; opacity: 0.7; margin-top: 6px; }
-
-
-
-h2 { margin-top: 40px; border-bottom: 1px solid #333; padding-bottom: 6px; color: #ffd36a; }
+.game-subtitle {
+    display: block;
+    font-size: 0.65em;
+    font-weight: normal;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+h2 {
+    margin-top: 40px;
+    border-bottom: 1px solid #23304d;
+    padding-bottom: 6px;
+    color: #ffd36a;
+    overflow-wrap: anywhere;
+}
 h3 { margin-top: 24px; color: #9fd6ff; }
-p { margin: 10px 0; }
+p { margin: 10px 0; overflow-wrap: anywhere; }
 ul { margin: 10px 0 20px 20px; }
-li { margin-bottom: 8px; }
+li { margin-bottom: 8px; overflow-wrap: anywhere; }
 .note {
-    background: #151515;
+    background: #111827;
     border-left: 4px solid #ffd36a;
     padding: 12px;
     margin: 20px 0;
+    border-radius: 6px;
+    overflow-wrap: anywhere;
 }
+.lang-wrap {
+    background: rgba(255,255,255,.03);
+    border: 1px solid #22304c;
+    border-radius: 16px;
+    padding: 14px 12px;
+    margin-top: 18px;
+    overflow: hidden;
+}
+.table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #22304c;
+    border-radius: 14px;
+    background: #0f172a;
+    box-sizing: border-box;
+}
+table {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+th, td {
+    border-bottom: 1px solid #22304c;
+    border-right: 1px solid #22304c;
+    padding: 12px 10px;
+    vertical-align: top;
+    text-align: left;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+th:last-child, td:last-child { border-right: 0; }
+tr:last-child td { border-bottom: 0; }
+th {
+    background: rgba(101,200,255,.08);
+    color: #f3f7ff;
+    font-weight: 700;
+}
+code, .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .95em;
+}
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(126,224,129,.12);
+    color: #7ee081;
+    border: 1px solid rgba(126,224,129,.25);
+    font-size: 12px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+}
+.card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid #22304c;
+    border-radius: 16px;
+    padding: 14px;
+}
+.card h4 { margin: 0 0 8px; color: #fff; font-size: 16px; }
+.small { font-size: 13px; color: #c0cae0; }
 .rules-footer-sep { margin-top: 50px; border: 0; border-top: 1px solid #333; }
 .rules-footer { margin-top: 20px; text-align: center; font-size: 12px; opacity: 0.7; }
 .rules-copyright { line-height: 1.5; margin-bottom: 16px; }
@@ -76,221 +153,115 @@ li { margin-bottom: 8px; }
 .rules-contact-btn:hover { background: #1e1e1e; border-color: #ffd36a; }
 .rules-note { margin-top: 10px; font-size: 11px; opacity: 0.5; }
 .doc-signature { display: none; opacity: 0.15; }
+@media (max-width: 980px) { table { min-width: 900px; } }
+@media (max-width: 760px) {
+    h1.game-title { font-size: 28px; }
+    table { min-width: 860px; }
+    th, td { padding: 10px 8px; font-size: 13px; }
+}
 </style>
 </head>
-
 <body>
 <canvas id="touchShield"></canvas>
-
 <div id="content">
-<div class="doc-signature">© 2026 ZALAZER · Generator · Rules Document</div>
+<div class="doc-signature">© 2026 ZALAZER · Generator · Help Document</div>
+<h1 class="game-title">💠 Crypto Wallet Help<br><span class="game-subtitle">Bitcoin / Ethereum / Solana / TON</span></h1>
 
-<h1 class="game-title">
-    💰 Generator<br>
-    <span class="game-subtitle">Game Rules</span>
-</h1>
-
-
-<!-- ===================== EN ===================== -->
+<div class="lang-wrap">
 <h2>🇬🇧 English</h2>
-
-<p>
-Base58Check adds “1” characters for each leading zero byte, which is required behavior for legacy Bitcoin addresses. That is why a legacy address with version byte 0x00 can start with 1.
-</p>
-
-<p>
-P2SH is now handled correctly: first a redeem script of the form 0014{HASH160(pubkey)} is built, then HASH160 is applied to this script, and only after that it is encoded using Base58Check with prefix 0x05.
-</p>
-
-<p>
-Bech32 is created as witness version 0 plus a 20-byte pubkey hash converted from 8-bit bytes into 5-bit groups, so a valid native SegWit address starts with bc1q.
-</p>
-
-<h3>What reverse validation does</h3>
-<p>
-For 1... addresses, the code decodes Base58Check, verifies checksum, checks version byte 0x00, and compares embedded pubKeyHash with HASH160(pubkey), since this is how P2PKH is constructed.
-</p>
-
-<p>
-For 3... addresses, the code rebuilds the redeem script 0014 + HASH160(pubkey), then computes HASH160(redeemScript) and compares it with the Base58Check payload, matching the P2SH-P2WPKH scheme.
-</p>
-
-<p>
-For bc1... addresses, the code parses Bech32, validates checksum, HRP bc, witness version, and witness program length, then compares the program with HASH160(pubkey) for v0 P2WPKH.
-</p>
-
-<h3>Conclusion</h3>
-<p>
-If the final output shows ALL CHECKS PASSED: YES, it means the address is structurally valid, the private key matches the public key, and the address can be fully reconstructed from that key without inconsistencies.
-</p>
-
-<div class="note">
-Generator verification logic strictly follows Bitcoin address derivation rules and checksum validation standards.
+<p>The mnemonic is usually the same BIP39 seed phrase, but each network uses its own derivation path, key format, and address format.</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th style="width:14%">Network</th><th style="width:24%">Mnemonic</th><th style="width:24%">Derivation path used by your generators</th><th style="width:20%">Address / key format</th><th style="width:18%">Metrics and pitfalls</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>Bitcoin</strong></td><td>Valid BIP39 mnemonic works as the seed phrase for HD wallets.</td><td><span class="mono">m/44'/0'/0'/0/i</span> Legacy, <span class="mono">m/49'/0'/0'/0/i</span> P2SH-SegWit, <span class="mono">m/84'/0'/0'/0/i</span> Native SegWit, <span class="mono">m/86'/0'/0'/0/i</span> Taproot.</td><td>Legacy Base58Check, SegWit Bech32, Taproot Bech32m.</td><td>Uses HASH160, double SHA-256 checksum, Bech32/Bech32m witness encoding, gap scan over receiving/change chains; Taproot requires BIP86 exact matching.</td></tr>
+<tr><td><strong>Ethereum</strong></td><td>Valid BIP39 mnemonic works, but the wallet decides the derivation scheme.</td><td>Most common: <span class="mono">m/44'/60'/0'/0/0</span>; some scanners also test <span class="mono">m/44'/60'/0'/0</span>, <span class="mono">m/44'/60'/0'/0</span>-style variants.</td><td>20-byte EVM address shown as <span class="mono">0x...</span>.</td><td>Uses secp256k1, uncompressed public key hashing with Keccak-256, EIP-55 checksum casing, RPC balance/tx metrics, and fallback RPC rotation.</td></tr>
+<tr><td><strong>Solana</strong></td><td>Valid BIP39 mnemonic works, but wallet compatibility depends on the path.</td><td>Common: <span class="mono">m/44'/501'/0'/0'</span>; scanners may test CLI-style, Phantom-style, and Solflare-style hardened variants.</td><td>Ed25519 public key, usually shown as a base58 string.</td><td>Uses SLIP-0010 / Ed25519, base58 address encoding, on-chain balance and signature-history checks, and wallet-specific path differences are common.</td></tr>
+<tr><td><strong>TON</strong></td><td>Valid BIP39 mnemonic may work, but TON wallets can also use TON-specific flows.</td><td>Wallet/version specific; some tools use <span class="mono">m/44'/607'/0'</span> or wallet-specific logic.</td><td>TON account address, often shown in friendly or raw form.</td><td>Uses wallet-version/workchain nuances, chain-specific account formatting, and often address/state checks instead of simple EVM-like balance logic.</td></tr>
+</tbody></table></div>
+<div class="card-grid" style="margin-top:14px;">
+<div class="card"><h4>One mnemonic, many wallets</h4><p class="small">A BIP39 phrase is only the seed source. The chain-specific wallet decides how to derive keys from it.</p></div>
+<div class="card"><h4>Path matters</h4><p class="small">Bitcoin, Ethereum, Solana, and TON can share a mnemonic but produce different accounts because the path changes.</p></div>
+<div class="card"><h4>Format matters</h4><p class="small">Bitcoin uses Base58Check / Bech32 / Bech32m, Ethereum uses 0x addresses, Solana uses base58 public keys, TON uses its own account format.</p></div>
+</div>
 </div>
 
-<!-- ===================== UA ===================== -->
+<div class="lang-wrap">
 <h2>🇺🇦 Українською</h2>
-
-<p>
-Base58Check додає символ “1” за кожен початковий нульовий байт, що є обов’язковою поведінкою для старих Bitcoin-адрес. Саме тому legacy-адреса з version byte 0x00 може починатися з 1.
-</p>
-
-<p>
-P2SH тепер обробляється правильно: спочатку створюється redeem script формату 0014{HASH160(pubkey)}, потім застосовується HASH160, і лише після цього виконується кодування Base58Check з префіксом 0x05.
-</p>
-
-<p>
-Bech32 створюється як witness version 0 плюс 20-байтовий pubkey hash, переведений із 8-бітних байтів у 5-бітні групи, тому коректна SegWit-адреса починається з bc1q.
-</p>
-
-<h3>Що робить зворотня перевірка</h3>
-<p>
-Для 1... адрес код декодує Base58Check, перевіряє checksum, version byte 0x00 і порівнює pubKeyHash з HASH160(pubkey), як це визначено в P2PKH.
-</p>
-
-<p>
-Для 3... адрес код відтворює redeem script 0014 + HASH160(pubkey), обчислює HASH160(redeemScript) і порівнює з Base58Check payload згідно P2SH-P2WPKH.
-</p>
-
-<p>
-Для bc1... адрес код розбирає Bech32, перевіряє checksum, HRP bc, witness version і program, після чого порівнює з HASH160(pubkey).
-</p>
-
-<h3>Висновок</h3>
-<p>
-Якщо вивід містить ALL CHECKS PASSED: YES, це означає, що адреса коректна, ключі відповідають один одному, і адреса повністю відновлюється з публічного ключа.
-</p>
-
-<div class="note">
-Generator повністю дотримується стандартів Bitcoin-адресації та криптографічної перевірки.
+<p>Мнемоніка зазвичай одна й та сама — це BIP39 seed-фраза, але кожна мережа використовує власний derivation path, формат ключа та формат адреси.</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th style="width:14%">Мережа</th><th style="width:24%">Мнемоніка</th><th style="width:24%">Derivation path у твоїх генераторах</th><th style="width:20%">Формат адреси / ключа</th><th style="width:18%">Метрики та нюанси</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>Bitcoin</strong></td><td>Коректна BIP39-мнемоніка працює як seed-фраза для HD-гаманців.</td><td><span class="mono">m/44'/0'/0'/0/i</span> Legacy, <span class="mono">m/49'/0'/0'/0/i</span> P2SH-SegWit, <span class="mono">m/84'/0'/0'/0/i</span> Native SegWit, <span class="mono">m/86'/0'/0'/0/i</span> Taproot.</td><td>Legacy Base58Check, SegWit Bech32, Taproot Bech32m.</td><td>Використовує HASH160, checksum на double SHA-256, witness-кодування Bech32/Bech32m, gap scan по receiving/change, а Taproot потребує точного BIP86.</td></tr>
+<tr><td><strong>Ethereum</strong></td><td>Коректна BIP39-мнемоніка підходить, але схему деривації задає сам гаманець.</td><td>Найчастіше: <span class="mono">m/44'/60'/0'/0/0</span>; деякі сканери також тестують варіанти <span class="mono">m/44'/60'/0'/0</span>.</td><td>20-байтна EVM-адреса у вигляді <span class="mono">0x...</span>.</td><td>Використовує secp256k1, хешування uncompressed public key через Keccak-256, EIP-55 checksum casing, RPC-метрики балансу/транзакцій і rotation fallback RPC.</td></tr>
+<tr><td><strong>Solana</strong></td><td>Коректна BIP39-мнемоніка підходить, але сумісність залежить від шляху.</td><td>Часто: <span class="mono">m/44'/501'/0'/0'</span>; сканери можуть тестувати CLI-style, Phantom-style і Solflare-style hardened варіанти.</td><td>Ed25519 public key, зазвичай у base58-форматі.</td><td>Використовує SLIP-0010 / Ed25519, base58-адресацію, balance + signature-history перевірки, і між гаманцями часто є різні шляхи.</td></tr>
+<tr><td><strong>TON</strong></td><td>Коректна BIP39-мнемоніка може працювати, але TON також має власні mnemonic flows.</td><td>Шлях залежить від версії гаманця; у деяких інструментах зустрічається <span class="mono">m/44'/607'/0'</span> або wallet-specific логіка.</td><td>TON account address у friendly або raw форматі.</td><td>Є нюанси wallet-version/workchain, chain-specific формат акаунта і часто address/state перевірки замість простого EVM-стилю балансу.</td></tr>
+</tbody></table></div>
+<div class="card-grid" style="margin-top:14px;">
+<div class="card"><h4>Одна фраза — багато гаманців</h4><p class="small">BIP39-фраза лише задає seed. Далі кожна мережа/гаманець обирає свою схему деривації.</p></div>
+<div class="card"><h4>Path має значення</h4><p class="small">Bitcoin, Ethereum, Solana і TON можуть мати один seed, але різні акаунти через різні шляхи.</p></div>
+<div class="card"><h4>Формат має значення</h4><p class="small">Bitcoin використовує Base58Check / Bech32 / Bech32m, Ethereum — 0x-адреси, Solana — base58 public keys, TON — власний формат account address.</p></div>
+</div>
 </div>
 
-<!-- ===================== RU ===================== -->
+<div class="lang-wrap">
 <h2>🇷🇺 По-русски</h2>
-
-<p>
-Base58Check добавляет символ “1” за каждый ведущий нулевой байт, что является обязательным поведением для старых Bitcoin-адресов. Поэтому legacy-адрес с version byte 0x00 может начинаться с 1.
-</p>
-
-<p>
-P2SH теперь обрабатывается корректно: сначала собирается redeem script вида 0014{HASH160(pubkey)}, затем применяется HASH160, и только после этого выполняется Base58Check-кодирование с префиксом 0x05.
-</p>
-
-<p>
-Bech32 формируется как witness version 0 плюс 20-байтовый pubkey hash, преобразованный из 8-битных байтов в 5-битные группы, поэтому корректный SegWit-адрес начинается с bc1q.
-</p>
-
-<h3>Что делает обратная проверка</h3>
-<p>
-Для адресов 1... код декодирует Base58Check, проверяет checksum, version byte 0x00 и сравнивает pubKeyHash с HASH160(pubkey), как в P2PKH.
-</p>
-
-<p>
-Для адресов 3... код пересобирает redeem script 0014 + HASH160(pubkey), затем вычисляет HASH160(redeemScript) и сравнивает с Base58Check payload по схеме P2SH-P2WPKH.
-</p>
-
-<p>
-Для bc1... адресов код парсит Bech32, проверяет checksum, HRP bc, witness version и program, затем сравнивает program с HASH160(pubkey).
-</p>
-
-<h3>Итог</h3>
-<p>
-Если вывод показывает ALL CHECKS PASSED: YES, это означает, что адрес валиден, ключи совпадают, и адрес полностью восстанавливается из публичного ключа без расхождений.
-</p>
-
-<div class="note">
-Generator строго следует стандартам Bitcoin-адресов и криптографической проверки.
+<p>Мнемоника обычно одна и та же — это BIP39 seed-фраза, но каждая сеть использует свой derivation path, формат ключа и формат адреса.</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th style="width:14%">Сеть</th><th style="width:24%">Мнемоника</th><th style="width:24%">Derivation path в твоих генераторах</th><th style="width:20%">Формат адреса / ключа</th><th style="width:18%">Метрики и нюансы</th>
+</tr></thead>
+<tbody>
+<tr><td><strong>Bitcoin</strong></td><td>Корректная BIP39-мнемоника работает как seed-фраза для HD-кошельков.</td><td><span class="mono">m/44'/0'/0'/0/i</span> Legacy, <span class="mono">m/49'/0'/0'/0/i</span> P2SH-SegWit, <span class="mono">m/84'/0'/0'/0/i</span> Native SegWit, <span class="mono">m/86'/0'/0'/0/i</span> Taproot.</td><td>Legacy Base58Check, SegWit Bech32, Taproot Bech32m.</td><td>Использует HASH160, checksum на double SHA-256, witness-кодирование Bech32/Bech32m, gap scan по receiving/change, а Taproot требует точного BIP86.</td></tr>
+<tr><td><strong>Ethereum</strong></td><td>Корректная BIP39-мнемоника подходит, но схему деривации задаёт сам кошелёк.</td><td>Чаще всего: <span class="mono">m/44'/60'/0'/0/0</span>; некоторые сканеры также тестируют варианты <span class="mono">m/44'/60'/0'/0</span>.</td><td>20-байтовый EVM-адрес в виде <span class="mono">0x...</span>.</td><td>Использует secp256k1, хеширование uncompressed public key через Keccak-256, EIP-55 checksum casing, RPC-метрики баланса/транзакций и rotation fallback RPC.</td></tr>
+<tr><td><strong>Solana</strong></td><td>Корректная BIP39-мнемоника подходит, но совместимость зависит от пути.</td><td>Часто: <span class="mono">m/44'/501'/0'/0'</span>; сканеры могут проверять CLI-style, Phantom-style и Solflare-style hardened варианты.</td><td>Ed25519 public key, обычно в base58-формате.</td><td>Использует SLIP-0010 / Ed25519, base58-адресацию, balance + signature-history проверки, и между кошельками часто отличаются пути.</td></tr>
+<tr><td><strong>TON</strong></td><td>Корректная BIP39-мнемоника может работать, но у TON также есть собственные mnemonic flows.</td><td>Путь зависит от версии кошелька; иногда встречается <span class="mono">m/44'/607'/0'</span> или wallet-specific логика.</td><td>TON account address в friendly или raw формате.</td><td>Есть нюансы wallet-version/workchain, chain-specific формат аккаунта и часто address/state проверки вместо простого EVM-стиля баланса.</td></tr>
+</tbody></table></div>
+<div class="card-grid" style="margin-top:14px;">
+<div class="card"><h4>Одна мнемоника — много кошельков</h4><p class="small">BIP39-фраза только задаёт seed. Дальше каждая сеть/кошелёк использует свою схему деривации.</p></div>
+<div class="card"><h4>Path имеет значение</h4><p class="small">Bitcoin, Ethereum, Solana и TON могут иметь один seed, но разные аккаунты из-за разных путей.</p></div>
+<div class="card"><h4>Формат тоже важен</h4><p class="small">Bitcoin использует Base58Check / Bech32 / Bech32m, Ethereum — 0x-адреса, Solana — base58 public keys, TON — собственный формат account address.</p></div>
+</div>
 </div>
 
 <hr class="rules-footer-sep">
-
 <div class="rules-footer">
-<div class="rules-copyright">
-© 2026 <strong>ZALAZER</strong><br>
-Generator and its source code are protected by copyright law.<br>
-All rights reserved.
-</div>
-
+<div class="rules-copyright">© 2026 <strong>ZALAZER</strong><br>Help page and its source code are protected by copyright law.<br>All rights reserved.</div>
 <button class="rules-contact-btn" onclick="sendFeedback()">Contact / Feedback</button>
 <div class="rules-note">Feedback can include text and screenshot. No reply guaranteed.</div>
 </div>
-
 </div>
-
 <script>
-['gesturestart','gesturechange','gestureend'].forEach(evt=>{
-    document.addEventListener(evt,e=>e.preventDefault(),{passive:false});
-});
+['gesturestart','gesturechange','gestureend'].forEach(evt=>{ document.addEventListener(evt,e=>e.preventDefault(),{passive:false}); });
 const shield = document.getElementById('touchShield');
-['touchstart','touchmove','touchend'].forEach(evt=>{
-    shield.addEventListener(evt,e=>{
-        if(e.touches && e.touches.length>1) e.preventDefault();
-    },{passive:false});
-});
+['touchstart','touchmove','touchend'].forEach(evt=>{ shield.addEventListener(evt,e=>{ if(e.touches && e.touches.length>1) e.preventDefault(); },{passive:false}); });
 </script>
-
 <script>
-const __docSignature = {
-    product:"Generator",
-    type:"rules",
-    revision:"1.0",
-    year:2026
-};
-
 const tg = window.Telegram?.WebApp;
-
 async function sendFeedback(){
-    if(!tg){
-        alert("Feedback works only inside Telegram WebApp");
-        return;
-    }
-
+    if(!tg){ alert("Feedback works only inside Telegram WebApp"); return; }
     const feedbackText = prompt("Please enter your feedback:");
     if(!feedbackText) return;
-
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-
     fileInput.onchange = async ()=>{
         let fileData = null;
-        if(fileInput.files.length>0){
-            fileData = await fileToBase64(fileInput.files[0]);
-        }
-
+        if(fileInput.files.length>0){ fileData = await fileToBase64(fileInput.files[0]); }
         tg.sendData(JSON.stringify({
-            type:'feedback',
-            game:'Generator',
-            page:'rules',
-            text:feedbackText,
-            screenshot:fileData,
-            platform:tg.platform,
-            lang:tg.initDataUnsafe?.user?.language_code,
-            user:tg.initDataUnsafe?.user?.id,
-            ts:Date.now()
+            type:'feedback', page:'crypto-wallet-help', text:feedbackText, screenshot:fileData,
+            platform:tg.platform, lang:tg.initDataUnsafe?.user?.language_code,
+            user:tg.initDataUnsafe?.user?.id, ts:Date.now()
         }));
-
         alert("Thank you! Your feedback has been sent ✅");
     };
-
     fileInput.click();
 }
-
-function fileToBase64(file){
-    return new Promise((resolve,reject)=>{
-        const reader = new FileReader();
-        reader.onload = ()=>resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-if(tg){
-    console.log("Telegram WebApp доступен ✅");
-}else{
-    console.log("Telegram WebApp НЕ доступен ❌");
-}
+function fileToBase64(file){ return new Promise((resolve,reject)=>{ const reader = new FileReader(); reader.onload = ()=>resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); }
+if(tg){ console.log("Telegram WebApp available ✅"); } else { console.log("Telegram WebApp not available ❌"); }
 </script>
-
 </body>
 </html>
