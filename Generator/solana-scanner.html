@@ -88,6 +88,8 @@ const out = document.getElementById('out');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const enc = new TextEncoder();
 
+
+
 let bip39Seed = null;
 let stopRequested = false;
 
@@ -163,50 +165,129 @@ function getSolAddressFromSeed32(seed32){
   return bs58.encode(kp.publicKey);
 }
 
-async function rpc(method, params){
-  const r = await fetch('https://api.mainnet-beta.solana.com', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method, params })
-  });
-  const j = await r.json();
-  if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-  return j.result;
+
+
+const RPC_ENDPOINTS = [
+  'https://api.mainnet.solana.com',
+  'https://api.mainnet-beta.solana.com',
+  'https://api.devnet.solana.com',
+  'https://api.testnet.solana.com'
+];
+
+let selectedRpc = null;
+
+async function rpcCall(url, method, params, timeoutMs = 2500) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method,
+        params
+      }),
+      signal: controller.signal
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
+
+    return data.result;
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`Timeout after ${timeoutMs}ms`);
+    }
+    throw new Error(err?.message || String(err));
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
-async function probeAddress(addr, sigLimit=1){
-  try {
-    const [balanceResult, accountInfo, signatures] = await Promise.all([
-      rpc('getBalance', [addr, { commitment: 'finalized' }]),
-      rpc('getAccountInfo', [addr, { commitment: 'finalized', encoding: 'base64' }]),
-      rpc('getSignaturesForAddress', [addr, { commitment: 'finalized', limit: Math.max(1, Math.min(1000, sigLimit)) }])
+async function ensureWorkingRpc() {
+  if (selectedRpc) return selectedRpc;
+
+  const errors = [];
+
+  for (const url of RPC_ENDPOINTS) {
+    try {
+      await rpcCall(url, 'getVersion', []);
+      selectedRpc = url;
+      log(`[RPC OK] ${url}`, 'used');
+      return selectedRpc;
+    } catch (e) {
+      const msg = e?.message || String(e);
+      errors.push(`${url} -> ${msg}`);
+      log(`[RPC FAIL] ${url} -> ${msg}`, 'error');
+    }
+  }
+
+  throw new Error(`No working RPC endpoint. ${errors.join(' | ')}`);
+}
+
+async function rpc(method, params) {
+  const url = await ensureWorkingRpc();
+  return await rpcCall(url, method, params);
+}
+
+
+
+
+
+async function probeAddress(addr, sigLimit = 1){
+  try{
+    const signatures = await rpc('getSignaturesForAddress', [
+      addr,
+      {
+        commitment: 'finalized',
+        limit: Math.max(1, Math.min(20, sigLimit))
+      }
     ]);
 
-    const lamports = balanceResult?.value ?? 0;
-    const hasAccount = accountInfo?.value !== null;
     const sigCount = Array.isArray(signatures) ? signatures.length : 0;
     const hasHistory = sigCount > 0;
 
     return {
-      lamports,
-      balance: lamports / 1e9,
-      hasAccount,
+      ok: true,
+      lamports: null,
+      balance: null,
+      hasAccount: null,  // Уже null
       hasHistory,
-      used: hasAccount || hasHistory || lamports > 0,
-      status: lamports > 0 ? 'FUNDED' : (hasAccount || hasHistory ? 'USED_ZERO' : 'EMPTY')
+      sigCount,
+      used: hasHistory,
+      status: hasHistory ? 'USED_ZERO' : 'EMPTY',
+      error: ''
     };
-  } catch (e) {
+  }catch(e){
     return {
-      lamports: 0,
-      balance: 0,
-      hasAccount: false,
-      hasHistory: false,
+      ok: false,
+      lamports: null,
+      balance: null,
+      hasAccount: null,
+      hasHistory: null,
+      sigCount: null,
       used: false,
       status: 'ERROR',
       error: String(e)
     };
   }
 }
+
+
+
 
 const PATH_VARIANTS = [
   {
@@ -223,45 +304,105 @@ const PATH_VARIANTS = [
   }
 ];
 
+
+
+
 async function scanVariant(variant, gapLimit, delayMs, sigLimit){
-  log(`\n=== ${variant.name} ===`, 'info');
+  const MAX_SCAN = 200;
+
+  log(`=== ${variant.name} ===`, 'info');
+
   let gap = 0;
   let i = 0;
 
-  while (gap < gapLimit && !stopRequested){
+  while (gap < gapLimit && !stopRequested && i < MAX_SCAN){
     const path = variant.getPath(i);
     let addr = '';
-    let probe;
+    let probe = null;
 
-    try {
-      const { key } = deriveEd25519Slip10(path, bip39Seed);
-      addr = getSolAddressFromSeed32(key);
-      probe = await probeAddress(addr, sigLimit);
-    } catch (e) {
-      log(`[ERROR] #${i} ${path}\n${String(e)}\n`, 'error');
-      gap++;
+    try{
+      const derived = deriveEd25519Slip10(path, bip39Seed);
+      addr = getSolAddressFromSeed32(derived.key);
+    }catch(e){
+      log(
+        `[ERROR] #${i} ${path} ${addr || '(address not derived)'} ${String(e)}`,
+        'error'
+      );
       i++;
-      if (delayMs) await sleep(delayMs);
+
+      if (delayMs && !stopRequested){
+        await sleep(delayMs + Math.random() * 500);
+      }
+
       continue;
     }
 
-    let cls = 'empty';
-    let tag = '[EMPTY]';
-    if (probe.status === 'FUNDED') { cls = 'used'; tag = '[FUNDED]'; }
-    else if (probe.status === 'USED_ZERO') { cls = 'zeroUsed'; tag = '[USED 0]'; }
-    else if (probe.status === 'ERROR') { cls = 'error'; tag = '[ERROR]'; }
+    try{
+      probe = await probeAddress(addr, sigLimit);
+    }catch(e){
+      log(
+        `[ERROR] #${i} ${path} ${addr} ${String(e)}`,
+        'error'
+      );
+      i++;
 
-    log(`${tag} #${i} ${path}\n${addr}\nBAL: ${probe.balance} SOL | account:${probe.hasAccount} | history:${probe.hasHistory}`, cls);
+      if (delayMs && !stopRequested){
+        await sleep(delayMs + Math.random() * 500);
+      }
 
-    if (probe.status === 'FUNDED' || probe.status === 'USED_ZERO') gap = 0;
-    else gap++;
+      continue;
+    }
+
+    if (!probe || probe.status === 'ERROR' || probe.ok === false){
+      const errMsg = (probe && probe.error) ? probe.error : 'Unknown RPC error';
+
+      log(
+        `[ERROR] #${i} ${path} ${addr} ${errMsg}`,
+        'error'
+      );
+
+      i++;
+
+      if (delayMs && !stopRequested){
+        await sleep(delayMs + Math.random() * 500);
+      }
+
+      continue;
+    }
+
+    const sigCount = probe.sigCount ?? 0;
+    const hasHistory = probe.hasHistory ?? false;
+
+    if (probe.status === 'USED_ZERO'){
+      log(
+        `[USED] #${i} ${path} ${addr} | sig:${sigCount} | history:${hasHistory}`,
+        'zeroUsed'
+      );
+      gap = 0;
+    } else {
+      log(
+        `[EMPTY] #${i} ${path} ${addr} | sig:${sigCount} | history:${hasHistory}`,
+        'empty'
+      );
+      gap++;
+    }
 
     i++;
-    if (delayMs) await sleep(delayMs);
+
+    if (delayMs && !stopRequested){
+      await sleep(delayMs + Math.random() * 500);
+    }
   }
 
-  if (gap >= gapLimit) log(`Gap limit ${gapLimit} reached for ${variant.name}`, 'info');
+  if (i >= MAX_SCAN){
+    log(`Stopped at MAX_SCAN ${MAX_SCAN} for ${variant.name}`, 'info');
+  } else if (gap >= gapLimit){
+    log(`Gap limit ${gapLimit} reached for ${variant.name}`, 'info');
+  }
 }
+
+
+
 
 async function scan(){
   if (!bip39Seed){
