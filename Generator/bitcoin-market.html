@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BTC/USDC Line Template Mobile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+  body { margin:0; background:#0f0f19; }
+  #chart-wrapper { position:relative; width:100vw; height:100vh; touch-action:none; }
+  #widget-container { position:absolute; top:0; left:0; width:100%; height:100%; }
+  #overlay { position:absolute; top:0; left:0; width:100%; height:100%; }
+</style>
+</head>
+<body>
+
+<div id="chart-wrapper">
+  <div id="widget-container"></div>
+  <canvas id="overlay"></canvas>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+// === TradingView виджет ===
+new TradingView.widget({
+  container_id: "widget-container",
+  autosize: true,
+  symbol: "BINANCE:BTCUSDT",
+  interval: "15",
+  timezone: "Etc/UTC",
+  theme: "dark",
+  style: "1",
+  locale: "en",
+  toolbar_bg: "#111",
+  hide_side_toolbar: false,
+  allow_symbol_change: true,
+  withdateranges: true,
+  hideideas: true
+});
+
+// === Canvas с лини€ми ===
+const canvas = document.getElementById('overlay');
+const ctx = canvas.getContext('2d');
+
+let currentPrice = 67000; // центр шаблона
+let offsetY = 0;           // вертикальное смещение
+let pxPerUnit = 0.02;      // масштаб линий
+let isDragging = false;
+let startY = 0;
+let lastDistance = 0;
+
+// Resize
+function resizeCanvas(){
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  drawTemplateLines();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// === –исуем линии шаблона ===
+function drawTemplateLines(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const h = canvas.height;
+  const w = canvas.width;
+
+  const intervalsMid = [700,800,900]; // ликвидационные зоны
+  const roundStep = 500; // линии через 500 пунктов
+  const margin = 100; // ширина зоны ликвидации
+
+  // –егул€рные линии через 500 пунктов
+  for(let p=currentPrice-5000;p<=currentPrice+5000;p+=roundStep){
+    const y = h/2 - (p-currentPrice)*pxPerUnit + offsetY;
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(w,y);
+    ctx.strokeStyle = '#2196F3';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Ћиквидационные зоны ±700,800,900 с шириной двойной маржи
+  intervalsMid.forEach(d=>{
+    // верхн€€ зона
+    let topStart = currentPrice + d - margin;
+    let topEnd = currentPrice + d + margin;
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+    ctx.fillRect(0, h/2 - (topEnd-currentPrice)*pxPerUnit + offsetY,
+                 w, (topEnd-topStart)*pxPerUnit);
+
+    // нижн€€ зона
+    let botStart = currentPrice - d - margin;
+    let botEnd = currentPrice - d + margin;
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+    ctx.fillRect(0, h/2 - (botEnd-currentPrice)*pxPerUnit + offsetY,
+                 w, (botEnd-botStart)*pxPerUnit);
+  });
+}
+
+// === Drag и Pinch ===
+canvas.addEventListener('touchstart', e=>{
+  if(e.touches.length === 1){
+    isDragging = true;
+    startY = e.touches[0].clientY;
+  }
+});
+
+canvas.addEventListener('touchmove', e=>{
+  if(e.touches.length === 1 && isDragging){
+    const dy = e.touches[0].clientY - startY;
+    offsetY += dy;
+    startY = e.touches[0].clientY;
+    drawTemplateLines();
+  }
+  else if(e.touches.length === 2){
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+
+    if(lastDistance){
+      const scale = dist / lastDistance;
+      pxPerUnit *= scale;
+      if(pxPerUnit < 0.001) pxPerUnit = 0.001;
+      if(pxPerUnit > 0.5) pxPerUnit = 0.5;
+      drawTemplateLines();
+    }
+    lastDistance = dist;
+  }
+});
+
+canvas.addEventListener('touchend', e=>{
+  if(e.touches.length < 2) lastDistance = 0;
+  if(e.touches.length === 0) isDragging = false;
+});
+canvas.addEventListener('touchcancel', e=>{
+  isDragging = false;
+  lastDistance = 0;
+});
+</script>
+
+</body>
+</html>
