@@ -1,0 +1,430 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mnemonic Recovery Checker</title>
+<style>
+:root{--bg:#0f172a;--panel:#111827;--panel2:#020617;--text:#e2e8f0;--muted:#94a3b8;--line:#334155;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#38bdf8;--purple:#a78bfa}
+*{box-sizing:border-box}
+body{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg);color:var(--text);padding:20px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font-size:22px;margin:0 0 8px}
+p.lead{color:var(--muted);margin:0 0 16px;max-width:100ch;line-height:1.5}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+textarea,input,select{width:100%;padding:12px;background:#1e293b;color:#fff;border:1px solid var(--line);border-radius:12px;font:inherit}
+textarea{min-height:130px;resize:vertical}
+button{padding:10px 14px;background:var(--green);color:#04130a;border:0;border-radius:10px;font-weight:700;cursor:pointer}
+button.secondary{background:#1e293b;color:var(--text);border:1px solid var(--line)}
+button.purple{background:var(--purple);color:#140d2a}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:14px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.small{font-size:12px;color:var(--muted);line-height:1.45}
+.ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--yellow)} .info{color:var(--blue)} .purple{color:var(--purple)}
+.tokens{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.token{padding:6px 10px;border-radius:999px;background:#1e293b;border:1px solid var(--line);font-size:13px;max-width:100%;word-break:break-word}
+.token.bad{border-color:var(--red);color:#fecaca;background:#2a1414}
+.token.warn{border-color:var(--yellow);color:#fde68a;background:#2c210f}
+.token.ok{border-color:var(--green);color:#bbf7d0;background:#122414}
+.list{display:grid;gap:8px;margin-top:10px}
+.suggestion{padding:10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+pre{background:var(--panel2);border:1px solid var(--line);padding:14px;border-radius:12px;white-space:pre-wrap;word-break:break-word;overflow:auto}
+.summary{display:grid;gap:8px}
+.kv{display:flex;justify-content:space-between;gap:12px;border-bottom:1px dashed #243244;padding:6px 0}
+.kv:last-child{border-bottom:0}
+code{word-break:break-word}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th,.table td{border:1px solid var(--line);padding:8px;vertical-align:top}
+.table th{background:#0f172a;color:#cbd5e1;text-align:left}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mnemonic Recovery Checker</h1>
+  <p class="lead">Local seed phrase recovery tool. It checks wordlist membership, checksum validity, word count, duplicates, typo candidates, and adjacent swap hints. It also supports recovery mode so a near-correct phrase is not rejected too early. Nothing is sent anywhere.</p>
+
+  <div class="controls">
+    <button id="sampleBtn">Sample</button>
+    <button id="analyzeBtn">Analyze</button>
+    <button id="deepBtn" class="purple">Deep check</button>
+    <button id="clearBtn" class="secondary">Clear</button>
+    <button id="btnValid12" class="secondary">12 words</button>
+    <button id="btnValid24" class="secondary">24 words</button>
+    <button id="btnRecovery" class="secondary">Recovery mode</button>
+    <button id="btnStrict" class="secondary">Strict mode</button>
+    <button id="btnAutoDetect" class="secondary">Auto-detect</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="small">Phrase</div>
+      <textarea id="mnemonicInput" placeholder="Paste 12/15/18/21/24 words"></textarea>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px">
+        <div>
+          <div class="small">Wordlist</div>
+          <select id="wordlistSelect">
+            <option value="auto" selected>Auto-detect</option>
+            <option value="english">English</option>
+            <option value="spanish">Spanish</option>
+            <option value="french">French</option>
+            <option value="italian">Italian</option>
+            <option value="japanese">Japanese</option>
+            <option value="chinese_simplified">Chinese Simplified</option>
+            <option value="chinese_traditional">Chinese Traditional</option>
+            <option value="korean">Korean</option>
+          </select>
+        </div>
+        <div>
+          <div class="small">Mode</div>
+          <select id="modeSelect">
+            <option value="strict" selected>Strict</option>
+            <option value="recovery">Recovery</option>
+            <option value="diagnostic">Diagnostic</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px">
+        <div><div class="small">Max suggestions</div><input id="maxSuggestions" type="number" min="1" max="20" value="8"></div>
+        <div><div class="small">Max edit distance</div><input id="maxDistance" type="number" min="1" max="4" value="2"></div>
+        <div><div class="small">Show adjacent swaps</div><select id="showSwapSelect"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div><strong>Status</strong></div>
+      <div id="statusBox" class="small" style="margin-top:8px">Waiting for input</div>
+    </div>
+
+    <div class="card">
+      <div><strong>Summary</strong></div>
+      <div id="summaryBox" class="summary small" style="margin-top:8px">â€”</div>
+    </div>
+
+    <div class="card">
+      <div><strong>Wordlist guess</strong></div>
+      <div id="guessBox" class="small" style="margin-top:8px">â€”</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div><strong>Word analysis</strong></div>
+      <div id="tokensBox" class="tokens"></div>
+    </div>
+    <div class="card">
+      <div><strong>Suspicious words</strong></div>
+      <div id="suggestionsBox" class="list"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div><strong>Possible swaps</strong></div>
+      <div id="swapBox" class="list"></div>
+    </div>
+    <div class="card">
+      <div><strong>Checksum diagnostics</strong></div>
+      <pre id="checksumBox">â€”</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <div><strong>Analysis table</strong></div>
+    <div style="overflow:auto;margin-top:10px"><table class="table"><thead><tr><th>#</th><th>Word</th><th>Status</th><th>Suggestions</th></tr></thead><tbody id="tableBody"></tbody></table></div>
+  </div>
+</div>
+
+<script type="module">
+  import { validateMnemonic, mnemonicToSeedSync } from 'https://esm.sh/@scure/bip39@1.3.0';
+  import { wordlist as english } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/english';
+  import { wordlist as spanish } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/spanish';
+  import { wordlist as french } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/french';
+  import { wordlist as italian } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/italian';
+  import { wordlist as japanese } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/japanese';
+  import { wordlist as chinese_simplified } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/chinese_simplified';
+  import { wordlist as chinese_traditional } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/chinese_traditional';
+  import { wordlist as korean } from 'https://esm.sh/@scure/bip39@1.3.0/wordlists/korean';
+
+  const wordlists = { english, spanish, french, italian, japanese, chinese_simplified, chinese_traditional, korean };
+  const wordlistEntries = Object.entries(wordlists);
+  const allowedCounts = new Set([12,15,18,21,24]);
+
+  const input = document.getElementById('mnemonicInput');
+  const statusBox = document.getElementById('statusBox');
+  const summaryBox = document.getElementById('summaryBox');
+  const tokensBox = document.getElementById('tokensBox');
+  const suggestionsBox = document.getElementById('suggestionsBox');
+  const swapBox = document.getElementById('swapBox');
+  const checksumBox = document.getElementById('checksumBox');
+  const tableBody = document.getElementById('tableBody');
+  const guessBox = document.getElementById('guessBox');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const deepBtn = document.getElementById('deepBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const sampleBtn = document.getElementById('sampleBtn');
+  const btnValid12 = document.getElementById('btnValid12');
+  const btnValid24 = document.getElementById('btnValid24');
+  const btnRecovery = document.getElementById('btnRecovery');
+  const btnStrict = document.getElementById('btnStrict');
+  const btnAutoDetect = document.getElementById('btnAutoDetect');
+  const wordlistSelect = document.getElementById('wordlistSelect');
+  const modeSelect = document.getElementById('modeSelect');
+  const maxSuggestionsInput = document.getElementById('maxSuggestions');
+  const maxDistanceInput = document.getElementById('maxDistance');
+  const showSwapSelect = document.getElementById('showSwapSelect');
+
+  function normalizeMnemonic(text) {
+    return String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  function splitWords(text) {
+    const t = normalizeMnemonic(text);
+    return t ? t.split(' ') : [];
+  }
+  function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    if (!m) return n;
+    if (!n) return m;
+    const prev = new Array(n + 1);
+    const cur = new Array(n + 1);
+    for (let j = 0; j <= n; j++) prev[j] = j;
+    for (let i = 1; i <= m; i++) {
+      cur[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      }
+      for (let j = 0; j <= n; j++) prev[j] = cur[j];
+    }
+    return prev[n];
+  }
+  function getSelectedWordlist() {
+    const v = wordlistSelect.value;
+    return v === 'auto' ? null : (wordlists[v] || null);
+  }
+  function detectWordlist(words) {
+    const scores = [];
+    for (const [name, wl] of wordlistEntries) {
+      let known = 0;
+      for (const w of words) if (wl.includes(w)) known++;
+      scores.push({ name, known, total: words.length, hitRate: words.length ? known / words.length : 0 });
+    }
+    scores.sort((a, b) => b.hitRate - a.hitRate || b.known - a.known || a.name.localeCompare(b.name));
+    return scores;
+  }
+  function suggestWords(word, wl, limit, maxDistance) {
+    const scored = [];
+    for (const candidate of wl) {
+      const d = levenshtein(word, candidate);
+      if (d <= maxDistance || candidate.startsWith(word.slice(0, 2)) || word.startsWith(candidate.slice(0, 2))) {
+        scored.push({ candidate, d });
+      }
+    }
+    scored.sort((a, b) => a.d - b.d || a.candidate.localeCompare(b.candidate));
+    return scored.slice(0, limit).map(x => x.candidate);
+  }
+  function renderTokens(words, invalidByIndex, exactMatches) {
+    tokensBox.innerHTML = '';
+    words.forEach((w, idx) => {
+      const div = document.createElement('div');
+      div.className = 'token';
+      if (invalidByIndex.includes(idx)) div.classList.add('bad');
+      else if (exactMatches[idx] === false) div.classList.add('warn');
+      else div.classList.add('ok');
+      div.textContent = `${idx + 1}: ${w}`;
+      tokensBox.appendChild(div);
+    });
+  }
+  function renderSuggestions(rows) {
+    suggestionsBox.innerHTML = '';
+    if (!rows.length) { suggestionsBox.innerHTML = '<div class="small">No suspicious words.</div>'; return; }
+    for (const row of rows) {
+      const div = document.createElement('div');
+      div.className = 'suggestion';
+      div.innerHTML = `<div class="bad"><strong>#${row.index + 1}</strong> <code>${row.word}</code> â€” not found in the selected wordlist</div><div class="small" style="margin-top:6px">Similar options: <code>${row.suggestions.join(', ') || 'none'}</code></div>`;
+      suggestionsBox.appendChild(div);
+    }
+  }
+  function renderSwaps(swaps) {
+    swapBox.innerHTML = '';
+    if (!swaps.length) { swapBox.innerHTML = '<div class="small">No obvious swap hints.</div>'; return; }
+    for (const s of swaps) {
+      const div = document.createElement('div');
+      div.className = 'suggestion';
+      div.innerHTML = `<div class="purple"><strong>Swap hint</strong>: swap #${s.a + 1} and #${s.b + 1}</div><div class="small" style="margin-top:6px">Trial checksum: <code>${s.valid ? 'VALID' : 'invalid'}</code></div><div class="small">${s.mnemonic}</div>`;
+      swapBox.appendChild(div);
+    }
+  }
+  function setStatus(html) { statusBox.innerHTML = html; }
+  function isAllowedCount(n) { return allowedCounts.has(n); }
+  function analyzeWithWordlist(words, wlName, wl, opts) {
+    const invalidByIndex = [];
+    const exactMatches = [];
+    const suggestionsRows = [];
+    const duplicateMap = new Map();
+    const counts = new Map();
+    for (const w of words) counts.set(w, (counts.get(w) || 0) + 1);
+    for (const [k, v] of counts.entries()) if (v > 1) duplicateMap.set(k, v);
+
+    words.forEach((w, idx) => {
+      const inList = wl.includes(w);
+      exactMatches[idx] = inList;
+      if (!inList) {
+        invalidByIndex.push(idx);
+        suggestionsRows.push({ index: idx, word: w, suggestions: suggestWords(w, wl, opts.maxSuggestions, opts.maxDistance) });
+      }
+    });
+
+    const countOk = isAllowedCount(words.length);
+    const checksumOk = words.length > 0 && invalidByIndex.length === 0 && countOk ? validateMnemonic(words.join(' '), wl) : false;
+    const seedLen = checksumOk ? mnemonicToSeedSync(words.join(' '), '').length : 0;
+    const diagnostics = [];
+    diagnostics.push(`Wordlist: ${wlName}`);
+    diagnostics.push(`Words: ${words.length}`);
+    diagnostics.push(`Count: ${countOk ? 'ok' : 'bad'}`);
+    diagnostics.push(`Unknown words: ${invalidByIndex.length}`);
+    diagnostics.push(`Duplicates: ${duplicateMap.size}`);
+    diagnostics.push(`Checksum: ${checksumOk ? 'valid' : 'invalid'}`);
+    diagnostics.push(`Mode: ${opts.mode}`);
+    diagnostics.push(`Seed bytes (if valid): ${seedLen || 'â€”'}`);
+    return { invalidByIndex, exactMatches, suggestionsRows, duplicateMap, countOk, checksumOk, diagnostics };
+  }
+  function tryDetectByLists(words) {
+    const scores = detectWordlist(words);
+    const top = scores.slice(0, 4);
+    let text = top.map(s => `${s.name}: ${s.known}/${s.total}`).join(' â€¢ ');
+    if (!top.length) text = 'â€”';
+    return { top, text };
+  }
+  function adjacentSwapHints(words, wl, showSwaps, mode) {
+    if (!showSwaps || words.length < 2) return [];
+    const out = [];
+    const limitPairs = Math.min(words.length - 1, 30);
+    for (let i = 0; i < limitPairs; i++) {
+      const swapped = words.slice();
+      [swapped[i], swapped[i + 1]] = [swapped[i + 1], swapped[i]];
+      const ok = validateMnemonic(swapped.join(' '), wl);
+      if (ok || mode === 'diagnostic') out.push({ a: i, b: i + 1, valid: ok, mnemonic: swapped.join(' ') });
+      if (out.length >= 8) break;
+    }
+    return out;
+  }
+  function renderTable(words, exactMatches, wl, opts) {
+    tableBody.innerHTML = '';
+    words.forEach((w, idx) => {
+      const tr = document.createElement('tr');
+      const inList = exactMatches[idx];
+      const suggestions = inList ? 'â€”' : suggestWords(w, wl, opts.maxSuggestions, opts.maxDistance).join(', ');
+      tr.innerHTML = `<td>${idx + 1}</td><td><code>${w}</code></td><td class="${inList ? 'ok' : 'bad'}">${inList ? 'ok' : 'unknown'}</td><td><code>${suggestions || 'â€”'}</code></td>`;
+      tableBody.appendChild(tr);
+    });
+  }
+  function analyze() {
+    const words = splitWords(input.value);
+    const mode = modeSelect.value;
+    const opts = { maxSuggestions: Math.max(1, Math.min(20, Number(maxSuggestionsInput.value) || 8)), maxDistance: Math.max(1, Math.min(4, Number(maxDistanceInput.value) || 2)), mode };
+    const selected = getSelectedWordlist();
+    const detection = detectWordlist(words);
+    const top = detection.slice(0, 4);
+    const wlName = selected ? wordlistSelect.value : (top[0]?.name || 'english');
+    const wl = selected || wordlists[wlName] || english;
+    const result = analyzeWithWordlist(words, wlName, wl, opts);
+    const swaps = adjacentSwapHints(words, wl, showSwapSelect.value === 'yes', mode);
+
+    renderTokens(words, result.invalidByIndex, result.exactMatches);
+    renderSuggestions(result.suggestionsRows);
+    renderSwaps(swaps);
+    renderTable(words, result.exactMatches, wl, opts);
+
+    guessBox.innerHTML = selected ? `Selected: <strong>${wlName}</strong>` : `Likely wordlists: <code>${top.map(s => `${s.name}: ${s.known}/${s.total}`).join(' â€¢ ') || 'â€”'}</code>`;
+
+    const parts = [];
+    parts.push(`Words: ${words.length}`);
+    parts.push(result.countOk ? 'count ok' : 'count bad' );
+    parts.push(result.invalidByIndex.length ? `unknown ${result.invalidByIndex.length}` : 'all known');
+    parts.push(result.duplicateMap.size ? `duplicates ${result.duplicateMap.size}` : 'no duplicates');
+    parts.push(result.checksumOk ? 'checksum valid' : 'checksum invalid');
+    summaryBox.innerHTML = parts.map(p => `<div class="kv"><span>${p.split(' ')[0]}</span><span>${p}</span></div>`).join('');
+
+    if (!words.length) setStatus('<span class="small">Waiting for input</span>');
+    else if (!isAllowedCount(words.length)) setStatus('<span class="bad"><strong>Invalid length.</strong></span> <span class="small">BIP39 expects 12/15/18/21/24 words.</span>');
+    else if (result.invalidByIndex.length) setStatus('<span class="bad"><strong>There are words outside the selected wordlist.</strong></span> <span class="small">Fix unknown words first.</span>');
+    else if (result.checksumOk) setStatus('<span class="ok"><strong>Mnemonic is valid.</strong></span> <span class="small">Words are in the wordlist and checksum matches.</span>');
+    else setStatus('<span class="warn"><strong>Looks like a seed phrase, but the checksum does not match.</strong></span> <span class="small">This is a good candidate for recovery mode.</span>');
+
+    const dupText = result.duplicateMap.size ? [...result.duplicateMap.entries()].map(([w, c]) => `${w} Ã—${c}`).join(', ') : 'â€”';
+    checksumBox.textContent = [
+      `Wordlist: ${wlName}`,
+      `Words: ${words.length}`,
+      `Count: ${result.countOk ? 'ok' : 'bad'}`,
+      `Unknown words: ${result.invalidByIndex.length}`,
+      `Duplicates: ${dupText}`,
+      `Checksum: ${result.checksumOk ? 'valid' : 'invalid'}`,
+      `Mode: ${mode}`,
+      `Recovery hint: ${mode === 'recovery' ? 'enabled' : 'off'}`,
+      `Likely wordlists: ${top.map(s => `${s.name}: ${s.known}/${s.total}`).join(' â€¢ ') || 'â€”'}`
+    ].join('\n');
+  }
+
+
+
+
+
+
+  function deepCheck() {
+    const words = splitWords(input.value);
+    const maxDistance = Math.max(1, Math.min(4, Number(maxDistanceInput.value) || 2));
+    const limit = Math.max(1, Math.min(20, Number(maxSuggestionsInput.value) || 8));
+    const out = [];
+    for (const [name, wl] of wordlistEntries) {
+      const invalid = [];
+      words.forEach((w, idx) => {
+        if (!wl.includes(w)) invalid.push({ idx, w, s: suggestWords(w, wl, limit, maxDistance) });
+      });
+      const countOk = allowedCounts.has(words.length);
+      const chk = words.length > 0 && invalid.length === 0 && countOk ? validateMnemonic(words.join(' '), wl) : false;
+      out.push(`### ${name}`);
+      out.push(`known=${words.filter(w => wl.includes(w)).length}/${words.length}`);
+      out.push(`unknown=${invalid.length}`);
+      out.push(`checksum=${chk}`);
+      if (invalid.length) out.push(invalid.map(x => `${x.idx + 1}:${x.w}=>${x.s.slice(0,4).join('|') || 'none'}`).join(' ; '));
+      out.push('');
+    }
+    checksumBox.textContent = out.join('\n');
+    setStatus('<span class="info"><strong>Deep check ready.</strong></span> <span class="small">Compared the phrase against all built-in wordlists.</span>');
+  }
+
+  btnValid12.addEventListener('click', () => {
+    input.value = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    analyze();
+  });
+  btnValid24.addEventListener('click', () => {
+    input.value = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    analyze();
+  });
+  btnRecovery.addEventListener('click', () => { modeSelect.value = 'recovery'; analyze(); });
+  btnStrict.addEventListener('click', () => { modeSelect.value = 'strict'; analyze(); });
+  btnAutoDetect.addEventListener('click', () => { wordlistSelect.value = 'auto'; analyze(); });
+
+  analyzeBtn.addEventListener('click', analyze);
+  deepBtn.addEventListener('click', deepCheck);
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    tokensBox.innerHTML = '';
+    suggestionsBox.innerHTML = '';
+    swapBox.innerHTML = '';
+    tableBody.innerHTML = '';
+    checksumBox.textContent = 'â€”';
+    statusBox.textContent = 'Waiting for input';
+    summaryBox.textContent = 'â€”';
+    guessBox.textContent = 'â€”';
+  });
+  sampleBtn.addEventListener('click', () => {
+    input.value = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+    analyze();
+  });
+  input.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyze(); });
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bitcoin Sequential FIX + SAVE</title>
+
+<style>
+body{
+  font-family:monospace;
+  background:#0f172a;
+  color:#e2e8f0;
+  padding:25px;
+}
+
+button{
+  padding:12px 12px;
+  background:#22c55e;
+  border:0;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+  margin-right:10px;
+}
+
+pre{
+  background:#020617;
+  padding:15px;
+  border-radius:10px;
+  white-space:pre-wrap;
+  overflow:auto;
+  max-height:70vh;
+}
+</style>
+</head>
+<body>
+
+<button id="seedBtn">Generate SEED</button>
+<button id="nextBtn" disabled>Next 100</button>
+<button id="saveBtn" disabled>Save TXT</button>
+
+<pre id="out">Ready.</pre>
+
+<script type="module">
+
+import { secp256k1 } from "https://cdn.jsdelivr.net/npm/@noble/curves@1.4.2/secp256k1/+esm";
+import { sha256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
+import { ripemd160 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
+
+/* ===== utils ===== */
+
+const out=document.getElementById("out");
+
+function log(x){ out.textContent=x; }
+
+function hex(u8){
+  return [...u8].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function hash160(data){
+  return ripemd160(sha256(data));
+}
+
+const ALPH="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+function base58Encode(bytes){
+  let zeros=0;
+  while(zeros<bytes.length && bytes[zeros]===0) zeros++;
+
+  let value=0n;
+  for(const b of bytes) value=(value<<8n)+BigInt(b);
+
+  let out="";
+  while(value>0n){
+    const mod=value%58n;
+    value/=58n;
+    out=ALPH[Number(mod)]+out;
+  }
+
+  for(let i=0;i<zeros;i++) out="1"+out;
+  return out||"1";
+}
+
+function doubleSHA256(d){
+  return sha256(sha256(d));
+}
+
+function base58check(v,p){
+  const body=new Uint8Array([v,...p]);
+  const chk=doubleSHA256(body).slice(0,4);
+  return base58Encode(new Uint8Array([...body,...chk]));
+}
+
+/* ===== core ===== */
+
+function entropyToPriv(entropy){
+  let k=BigInt("0x"+hex(entropy));
+
+  const n=0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+
+  k=k%n;
+  if(k===0n)k=1n;
+
+  const b=new Uint8Array(32);
+  for(let i=31;i>=0;i--){
+    b[i]=Number(k&0xffn);
+    k>>=8n;
+  }
+  return b;
+}
+
+function privToAddr(priv){
+  const pub=secp256k1.getPublicKey(priv,true);
+  const h=hash160(pub);
+  const addr=base58check(0x00,h);
+  return {pub,addr};
+}
+
+function addOne(x){
+  const o=new Uint8Array(x);
+  for(let i=31;i>=0;i--){
+    o[i]++;
+    if(o[i]!==0)break;
+  }
+  return o;
+}
+
+/* ===== state ===== */
+
+let entropy=null;
+let logText="";
+
+/* ===== UI ===== */
+
+document.getElementById("seedBtn").onclick=()=>{
+  entropy=crypto.getRandomValues(new Uint8Array(32));
+
+  const priv=entropyToPriv(entropy);
+  const {addr}=privToAddr(priv);
+
+  logText=
+`=== SEED ===
+
+ENTROPY:
+${hex(entropy)}
+
+ADDRESS:
+${addr}
+`;
+
+  log(logText);
+
+  document.getElementById("nextBtn").disabled=false;
+  document.getElementById("saveBtn").disabled=false;
+};
+
+document.getElementById("nextBtn").onclick=()=>{
+  if(!entropy)return;
+
+  let e=entropy;
+
+  for(let i=0;i<100;i++){
+    e=addOne(e);
+
+    const priv=entropyToPriv(e);
+    const {addr}=privToAddr(priv);
+
+    logText+=`\n#${i+1} ${addr}`;
+  }
+
+  entropy=e;
+  log(logText);
+};
+
+document.getElementById("saveBtn").onclick=()=>{
+  const blob=new Blob([logText],{type:"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="bitcoin_sequential_log.txt";
+  a.click();
+};
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bitcoin Balance Checker (Esplora)</title>
+
+<style>
+  body{
+    font-family: monospace;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:24px;
+  }
+
+  h1{
+    font-size:20px;
+    margin:0 0 16px;
+  }
+
+  textarea{
+    width:100%;
+    min-height:160px;
+    background:#020617;
+    color:#e2e8f0;
+    border:1px solid #334155;
+    border-radius:10px;
+    padding:12px;
+    box-sizing:border-box;
+    resize:vertical;
+  }
+
+  button{
+    margin-top:12px;
+    padding:12px 16px;
+    border:0;
+    border-radius:10px;
+    background:#22c55e;
+    color:#fff;
+    font-weight:bold;
+    cursor:pointer;
+  }
+
+  button:disabled{
+    background:#475569;
+    cursor:not-allowed;
+  }
+
+  pre{
+    margin-top:16px;
+    background:#020617;
+    padding:14px;
+    border-radius:10px;
+    white-space:pre-wrap;
+    overflow:auto;
+    min-height:120px;
+  }
+
+  .hint{
+    color:#94a3b8;
+    margin-top:8px;
+    line-height:1.5;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>Bitcoin Balance Checker</h1>
+
+<textarea id="addresses" placeholder="Paste addresses (one per line, or with #1 #2 etc)"></textarea>
+
+<button id="checkBtn">Check balances</button>
+
+<div class="hint">
+Uses Esplora API: https://mempool.space/api/address/<br>
+No RPC node required.
+</div>
+
+<pre id="out">Ready.</pre>
+
+<script>
+const out = document.getElementById('out');
+const btn = document.getElementById('checkBtn');
+const input = document.getElementById('addresses');
+
+function log(text){
+  out.textContent = text;
+}
+
+function sleep(ms){
+  return new Promise(r => setTimeout(r, ms));
+}
+
+/* ================================
+   ADDRESS EXTRACTOR (FIXED)
+================================ */
+
+function extractAddress(line){
+  // Bitcoin legacy address (1...)
+  const match = line.match(/1[1-9A-HJ-NP-Za-km-z]{25,34}/);
+  return match ? match[0] : null;
+}
+
+function sanitizeAddresses(text){
+  return [...new Set(
+    text
+      .split('\n')
+      .map(line => extractAddress(line.trim()))
+      .filter(Boolean)
+  )].slice(0, 100);
+}
+
+/* ================================
+   BALANCE API (Esplora)
+================================ */
+
+const API = 'https://mempool.space/api/address/';
+
+async function getBalance(address){
+  const r = await fetch(API + encodeURIComponent(address));
+
+  if(!r.ok){
+    throw new Error('HTTP ' + r.status);
+  }
+
+  const j = await r.json();
+
+  const confirmed =
+    j.chain_stats.funded_txo_sum - j.chain_stats.spent_txo_sum;
+
+  const mempool =
+    j.mempool_stats.funded_txo_sum - j.mempool_stats.spent_txo_sum;
+
+  return {
+    confirmed,
+    mempool,
+    total: confirmed + mempool
+  };
+}
+
+/* ================================
+   MAIN LOOP
+================================ */
+
+btn.onclick = async () => {
+
+  const addresses = sanitizeAddresses(input.value);
+
+  if(!addresses.length){
+    log('No valid Bitcoin addresses found.');
+    return;
+  }
+
+  btn.disabled = true;
+  log('Checking balances via mempool.space...\n');
+
+  const lines = [];
+
+  for(let i = 0; i < addresses.length; i++){
+
+    const a = addresses[i];
+
+    lines.push(`${a} → checking...`);
+    log(lines.join('\n'));
+
+    try{
+      const bal = await getBalance(a);
+
+      lines[lines.length - 1] =
+`${a}
+  confirmed: ${(bal.confirmed/1e8).toFixed(8)} BTC
+  mempool:   ${(bal.mempool/1e8).toFixed(8)} BTC
+  total:     ${(bal.total/1e8).toFixed(8)} BTC`;
+
+    }catch(e){
+      lines[lines.length - 1] = `${a} → ERROR: ${e.message}`;
+    }
+
+    log(lines.join('\n'));
+
+    // small delay to avoid API flooding
+    await sleep(800);
+  }
+
+  btn.disabled = false;
+};
+
+</script>
+
+</body>
+</html>
