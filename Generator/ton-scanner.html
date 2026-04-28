@@ -461,12 +461,11 @@ async function checkWallet(client, candidate) {
 
 
 
-// авто-нормализация при вводе
 mnemonicInput.addEventListener("input", () => {
   mnemonicInput.value = normalizeMnemonic(mnemonicInput.value);
 });
 
-// нормализация при вставке
+
 mnemonicInput.addEventListener("paste", (e) => {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData("text");
@@ -507,13 +506,16 @@ btnLoad.addEventListener("click", async () => {
 
     const words = m.split(/\s+/);
 
-    // проверка количества слов
-    if (words.length !== 24) {
-      keyPair = null;
-      btnScan.disabled = true;
-      log(`Invalid mnemonic: expected 24 words, got ${words.length}`, "error");
-      return;
-    }
+const allowedLengths = [12, 15, 18, 21, 24];
+
+// проверка количества слов
+if (!allowedLengths.includes(words.length)) {
+  keyPair = null;
+  btnScan.disabled = true;
+  log(`Invalid mnemonic: allowed lengths = 12,15,18,21,24 (got ${words.length})`, "error");
+  return;
+}
+
 
     // проверка словаря
     for (let w of words) {
