@@ -461,6 +461,19 @@ async function checkWallet(client, candidate) {
 
 
 
+// авто-нормализация при вводе
+mnemonicInput.addEventListener("input", () => {
+  mnemonicInput.value = normalizeMnemonic(mnemonicInput.value);
+});
+
+// нормализация при вставке
+mnemonicInput.addEventListener("paste", (e) => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  mnemonicInput.value = normalizeMnemonic(text);
+});
+
+
 
 
 btnGen.addEventListener('click', async () => {
@@ -488,22 +501,43 @@ btnGen.addEventListener('click', async () => {
 btnLoad.addEventListener("click", async () => {
   try {
     resetLog();
+
     const m = normalizeMnemonic(mnemonicInput.value);
-    if (!validateMnemonic(m, wordlist)) {
+    mnemonicInput.value = m;
+
+    const words = m.split(/\s+/);
+
+    // проверка количества слов
+    if (words.length !== 24) {
       keyPair = null;
       btnScan.disabled = true;
-      log("Invalid mnemonic", "error");
+      log(`Invalid mnemonic: expected 24 words, got ${words.length}`, "error");
       return;
     }
-    keyPair = await mnemonicToPrivateKey(m.split(" "));
+
+    // проверка словаря
+    for (let w of words) {
+      if (!wordlist.includes(w)) {
+        keyPair = null;
+        btnScan.disabled = true;
+        log(`Invalid word: ${w}`, "error");
+        return;
+      }
+    }
+
+    // ВАЖНО: НЕ используем validateMnemonic
+    keyPair = await mnemonicToPrivateKey(words);
+
     btnScan.disabled = false;
-    log("Mnemonic loaded", "used");
+    log("Mnemonic loaded (TON mode)", "used");
+
   } catch (e) {
     keyPair = null;
     btnScan.disabled = true;
     log(`Load error: ${String(e)}`, "error");
   }
 });
+
 
 
 
