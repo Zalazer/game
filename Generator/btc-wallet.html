@@ -1,0 +1,417 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bitcoin Wallet</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:monospace;background:#0b1220;color:#e2e8f0}
+.container{max-width:820px;margin:auto;padding:18px}
+.card{background:#111827;padding:18px;border-radius:14px;margin-bottom:18px}
+h2{margin:0 0 10px 0;font-size:22px}
+input,textarea,select,button{
+  width:100%;font-size:18px;padding:14px;margin:10px 0;border-radius:10px;
+  border:1px solid #1f2937;background:#020617;color:#e2e8f0
+}
+textarea{min-height:110px}
+button{background:#22c55e;font-weight:bold;cursor:pointer}
+button.secondary{background:#2563eb}
+button.danger{background:#dc2626}
+pre{
+  background:#020617;padding:14px;border-radius:10px;overflow:auto;
+  font-size:14px;white-space:pre-wrap;word-break:break-word
+}
+.item{border-bottom:1px solid #1f2937;padding:10px 0}
+.small{font-size:13px;opacity:.75}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:700px){.row{grid-template-columns:1fr}}
+label{display:block;margin:8px 0}
+code{background:#020617;padding:2px 4px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="card">
+<h2>🔐 Wallet</h2>
+
+<select id="net">
+  <option value="testnet">Testnet</option>
+  <option value="mainnet">Mainnet</option>
+</select>
+
+<select id="addrType">
+  <option value="p2pkh">Legacy P2PKH (BIP44)</option>
+</select>
+
+<textarea id="mnemonic" placeholder="Enter mnemonic OR leave empty to generate"></textarea>
+
+<div class="row">
+  <input id="password" placeholder="Password for vault" type="password">
+  <input id="account" placeholder="Account" value="0" type="number" min="0">
+</div>
+
+<button onclick="generateMnemonic()">Generate Mnemonic</button>
+<button class="secondary" onclick="unlockWallet()">Unlock Wallet</button>
+<button class="secondary" onclick="saveVault()">Save Encrypted</button>
+<button class="secondary" onclick="loadVault()">Load Vault</button>
+
+<pre id="addr">Address: -</pre>
+<pre id="balance">Balance: -</pre>
+<pre id="status">Status: idle</pre>
+
+<div id="qr"></div>
+</div>
+
+<div class="card">
+<h2>💸 Send</h2>
+
+<input id="to" placeholder="Recipient address">
+<div class="row">
+  <input id="amount" placeholder="Amount (sat)" type="number" min="1">
+  <select id="feeMode">
+    <option value="slow">Slow</option>
+    <option value="normal">Normal</option>
+    <option value="fast">Fast</option>
+  </select>
+</div>
+
+<label><input type="checkbox" id="rbf" checked> Enable RBF</label>
+
+<button onclick="sendTx()">Send</button>
+
+<pre id="txout"></pre>
+</div>
+
+<div class="card">
+<h2>📬 Address Book</h2>
+
+<input id="label" placeholder="Name">
+<input id="addrbook" placeholder="Address">
+<button onclick="addContact()">Add</button>
+
+<pre id="contacts"></pre>
+</div>
+
+<div class="card">
+<h2>📊 History</h2>
+<button class="secondary" onclick="loadHistory()">Load</button>
+<div id="history"></div>
+</div>
+
+</div>
+
+<script type="module">
+import * as bitcoin from "https://cdn.jsdelivr.net/npm/bitcoinjs-lib@6.1.5/+esm";
+import * as bip39 from "https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm";
+import * as ecc from "https://cdn.jsdelivr.net/npm/tiny-secp256k1@2.2.3/+esm";
+import { BIP32Factory } from "https://cdn.jsdelivr.net/npm/bip32@4.0.0/+esm";
+
+const bip32 = BIP32Factory(ecc);
+
+let node = null;
+let address = "";
+let derivedPayment = null;
+
+function setStatus(msg){ document.getElementById("status").textContent = "Status: " + msg; }
+function net(){
+  return document.getElementById("net").value === "testnet" ? bitcoin.networks.testnet : bitcoin.networks.bitcoin;
+}
+function api(){
+  return document.getElementById("net").value === "testnet"
+    ? "https://mempool.space/testnet/api"
+    : "https://mempool.space/api";
+}
+function accountIndex(){
+  const v = parseInt(document.getElementById("account").value || "0", 10);
+  return Number.isFinite(v) && v >= 0 ? v : 0;
+}
+function feeKey(mode){
+  if(mode === "fast") return "fastestFee";
+  if(mode === "slow") return "hourFee";
+  return "halfHourFee";
+}
+function satPerVbyteFromMode(fees, mode){
+  const k = feeKey(mode);
+  const v = Number(fees?.[k]);
+  return Number.isFinite(v) && v > 0 ? Math.max(1, Math.ceil(v)) : 5;
+}
+function toHex(bytes){ return Array.from(bytes, b => b.toString(16).padStart(2,"0")).join(""); }
+
+async function fetchJson(url, opts){
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return await r.json();
+}
+async function fetchText(url, opts){
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return await r.text();
+}
+
+function generateMnemonic(){
+  document.getElementById("mnemonic").value = bip39.generateMnemonic();
+  setStatus("mnemonic generated");
+}
+
+async function unlockWallet(){
+  try{
+    setStatus("unlocking...");
+    const mnemonic = document.getElementById("mnemonic").value.trim();
+    if(!bip39.validateMnemonic(mnemonic)) throw new Error("Invalid mnemonic");
+
+    const seed = await bip39.mnemonicToSeed(mnemonic);
+    const root = bip32.fromSeed(seed, net());
+    const acct = accountIndex();
+
+    const path = `m/44'/${document.getElementById("net").value === "testnet" ? 1 : 0}'/${acct}'/0/0`;
+    node = root.derivePath(path);
+
+    derivedPayment = bitcoin.payments.p2pkh({
+      pubkey: node.publicKey,
+      network: net()
+    });
+
+    if(!derivedPayment.address) throw new Error("Failed to derive address");
+    address = derivedPayment.address;
+
+    document.getElementById("addr").textContent = `Address: ${address}
+Path: ${path}`;
+    generateQR(address);
+    await loadBalance();
+    setStatus("wallet unlocked");
+  }catch(e){
+    setStatus("error");
+    alert(e.message);
+  }
+}
+
+function generateQR(text){
+  document.getElementById("qr").innerHTML =
+    `<img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(text)}">`;
+}
+
+async function loadBalance(){
+  if(!address) throw new Error("Unlock wallet first");
+  const j = await fetchJson(`${api()}/address/${address}`);
+  const confirmed = (j.chain_stats.funded_txo_sum - j.chain_stats.spent_txo_sum) || 0;
+  const mempool = (j.mempool_stats.funded_txo_sum - j.mempool_stats.spent_txo_sum) || 0;
+  document.getElementById("balance").textContent =
+    `Balance: ${confirmed + mempool} sat
+Confirmed: ${confirmed} sat
+Mempool: ${mempool} sat`;
+}
+
+async function validateRecipient(addr){
+  const j = await fetchJson(`${api()}/v1/validate-address/${addr}`);
+  if(!j.isvalid) throw new Error("Recipient address is invalid");
+  return j;
+}
+
+async function getFeeRate(){
+  const j = await fetchJson(`${api()}/v1/fees/recommended`);
+  return j;
+}
+
+async function sendTx(){
+  try{
+    if(!node || !address) throw new Error("Unlock wallet first");
+
+    const to = document.getElementById("to").value.trim();
+    const amount = Number(document.getElementById("amount").value);
+    if(!to) throw new Error("Recipient address is required");
+    if(!Number.isInteger(amount) || amount <= 0) throw new Error("Amount must be a positive integer");
+
+    await validateRecipient(to);
+
+    const utxos = await fetchJson(`${api()}/address/${address}/utxo`);
+    if(!Array.isArray(utxos) || utxos.length === 0) throw new Error("No UTXOs available");
+
+    const fees = await getFeeRate();
+    const satPerVbyte = satPerVbyteFromMode(fees, document.getElementById("feeMode").value);
+    const useRbf = document.getElementById("rbf").checked;
+
+    const inputs = [];
+    let total = 0;
+
+    for(const u of utxos){
+      const prevHex = await fetchText(`${api()}/tx/${u.txid}/hex`);
+      inputs.push({
+        hash: u.txid,
+        index: u.vout,
+        nonWitnessUtxo: Buffer.from(prevHex, "hex"),
+        sequence: useRbf ? 0xfffffffd : 0xffffffff
+      });
+      total += u.value;
+      if(total >= amount) break;
+    }
+
+    if(total < amount) throw new Error("Insufficient funds");
+
+    const outputCountBase = 1;
+    const inputCount = inputs.length;
+
+    const estimateVbytes = () => {
+      const inVb = 148;
+      const outVb = 34;
+      const base = 10;
+      const changeOut = 34;
+      return base + inputCount * inVb + outputCountBase * outVb + changeOut;
+    };
+
+    let fee = Math.ceil(estimateVbytes() * satPerVbyte);
+    let change = total - amount - fee;
+
+    while(change > 0 && change < 546){
+      fee += change;
+      change = total - amount - fee;
+    }
+
+    if(change < 0) throw new Error("Insufficient funds after fee");
+
+    const psbt = new bitcoin.Psbt({ network: net() });
+    for(const inp of inputs) psbt.addInput(inp);
+
+    psbt.addOutput({ address: to, value: amount });
+    if(change >= 546) psbt.addOutput({ address, value: change });
+
+    for(let i = 0; i < inputs.length; i++) psbt.signInput(i, node);
+    psbt.finalizeAllInputs();
+
+    const tx = psbt.extractTransaction().toHex();
+    const res = await fetch(`${api()}/tx`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: tx
+    });
+
+    const txt = await res.text();
+    if(!res.ok) throw new Error(txt || "Broadcast failed");
+
+    document.getElementById("txout").textContent =
+      `txid: ${txt}
+feeRate: ${satPerVbyte} sat/vB
+fee: ${fee} sat
+change: ${Math.max(0, change)} sat`;
+    await loadBalance();
+    setStatus("transaction sent");
+  }catch(e){
+    setStatus("error");
+    document.getElementById("txout").textContent = String(e.message || e);
+  }
+}
+
+async function loadHistory(){
+  try{
+    if(!address) throw new Error("Unlock wallet first");
+    const txs = await fetchJson(`${api()}/address/${address}/txs`);
+    const html = txs.slice(0, 10).map(tx => {
+      const confirmed = tx.status?.confirmed ? `confirmed ${tx.status.block_height}` : "unconfirmed";
+      return `<div class="item"><div>${tx.txid}</div><div class="small">${confirmed}</div></div>`;
+    }).join("");
+    document.getElementById("history").innerHTML = html || "<div class='small'>No history</div>";
+  }catch(e){
+    document.getElementById("history").innerHTML = `<div class="small">${e.message}</div>`;
+  }
+}
+
+async function saveVault(){
+  try{
+    const pass = document.getElementById("password").value;
+    const data = document.getElementById("mnemonic").value.trim();
+    if(!pass) throw new Error("Password is required");
+    if(!bip39.validateMnemonic(data)) throw new Error("Mnemonic is invalid or empty");
+
+    const enc = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const key = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
+    const aesKey = await crypto.subtle.deriveKey(
+      { name:"PBKDF2", salt, iterations:200000, hash:"SHA-256" },
+      key,
+      { name:"AES-GCM", length:256 },
+      false,
+      ["encrypt"]
+    );
+
+    const encrypted = await crypto.subtle.encrypt(
+      { name:"AES-GCM", iv },
+      aesKey,
+      enc.encode(data)
+    );
+
+    localStorage.setItem("vault", JSON.stringify({
+      salt: Array.from(salt),
+      iv: Array.from(iv),
+      data: Array.from(new Uint8Array(encrypted))
+    }));
+
+    alert("Saved");
+    setStatus("vault saved");
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+async function loadVault(){
+  try{
+    const pass = document.getElementById("password").value;
+    const raw = localStorage.getItem("vault");
+    if(!raw) throw new Error("No vault found");
+    if(!pass) throw new Error("Password is required");
+
+    const vault = JSON.parse(raw);
+    const enc = new TextEncoder();
+
+    const key = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
+    const aesKey = await crypto.subtle.deriveKey(
+      { name:"PBKDF2", salt: new Uint8Array(vault.salt), iterations:200000, hash:"SHA-256" },
+      key,
+      { name:"AES-GCM", length:256 },
+      false,
+      ["decrypt"]
+    );
+
+    const decrypted = await crypto.subtle.decrypt(
+      { name:"AES-GCM", iv: new Uint8Array(vault.iv) },
+      aesKey,
+      new Uint8Array(vault.data)
+    );
+
+    document.getElementById("mnemonic").value = new TextDecoder().decode(decrypted);
+    setStatus("vault loaded");
+  }catch(e){
+    alert(e.message);
+  }
+}
+
+function addContact(){
+  const name = document.getElementById("label").value.trim();
+  const addr = document.getElementById("addrbook").value.trim();
+  if(!name || !addr) return alert("Name and address are required");
+  let c = JSON.parse(localStorage.getItem("contacts") || "[]");
+  c.push({ name, addr });
+  localStorage.setItem("contacts", JSON.stringify(c));
+  renderContacts();
+}
+
+function renderContacts(){
+  const c = JSON.parse(localStorage.getItem("contacts") || "[]");
+  document.getElementById("contacts").textContent = JSON.stringify(c, null, 2);
+}
+
+renderContacts();
+
+window.generateMnemonic = generateMnemonic;
+window.unlockWallet = unlockWallet;
+window.sendTx = sendTx;
+window.loadHistory = loadHistory;
+window.saveVault = saveVault;
+window.loadVault = loadVault;
+window.addContact = addContact;
+window.loadBalance = loadBalance;
+</script>
+</body>
+</html>
