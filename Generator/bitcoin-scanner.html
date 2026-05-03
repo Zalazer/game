@@ -285,11 +285,94 @@ async function scan(root, type){
 
 
 
-// FORMAT как в твоем оригинале
-function format(title,data){
+// ===== VISUALIZATION ENGINE =====
+
+function bar(value, max, width = 20) {
+    if (max === 0) return "░".repeat(width);
+    const len = Math.round((value / max) * width);
+    return "█".repeat(len) + "░".repeat(width - len);
+}
+
+function visualizeSummary(data) {
+    const used = data.filter(d => d.used).length;
+    const empty = data.length - used;
+
+    const totalFunded = data.reduce((s, d) => s + d.funded, 0);
+    const totalSpent = data.reduce((s, d) => s + d.spent, 0);
+    const balance = totalFunded - totalSpent;
+
+    return `
+===== WALLET SUMMARY =====
+Used:   ${used}  ${bar(used, data.length)}
+Empty:  ${empty} ${bar(empty, data.length)}
+
+Funded: ${totalFunded}
+Spent:  ${totalSpent}
+Balance:${balance}
+`;
+}
+
+function visualizeUsage(data) {
+    let line = "\n===== ADDRESS USAGE =====\n\n";
+    data.forEach(d => {
+        line += `${d.index.toString().padStart(2, "0")} `;
+        line += d.used ? "█" : "░";
+        line += "\n";
+    });
+    return line;
+}
+
+function visualizeFlow(data) {
+    const used = data.filter(d => d.used && d.funded > 0);
+    if (used.length === 0) return "\n(no activity)\n";
+
+    const max = Math.max(...used.map(d => d.funded));
+
+    let s = "\n===== FUNDED FLOW =====\n";
+    for (const d of used) {
+        s += `#${d.index} ${bar(d.funded, max)} ${d.funded}\n`;
+    }
+    return s;
+}
+
+function visualizeChange(data) {
+    const change = data.filter(d => d.chain === 1 && d.used);
+    if (change.length === 0) return "\n(no change activity)\n";
+
+    const max = Math.max(...change.map(d => d.funded));
+
+    let s = "\n===== CHANGE FLOW =====\n";
+    for (const d of change) {
+        s += `#${d.index} ${bar(d.funded, max)} ${d.funded}\n`;
+    }
+    return s;
+}
+
+function visualizeCompact(data) {
+    let s = "\n===== QUICK VIEW =====\n[ ";
+    for (const d of data.slice(0, 50)) {
+        s += d.used ? "█ " : "░ ";
+    }
+    s += "]\n";
+    return s;
+}
+
+function visualizeAll(data) {
+    return (
+        visualizeSummary(data) +
+        visualizeCompact(data) +
+        visualizeUsage(data) +
+        visualizeFlow(data) +
+        visualizeChange(data)
+    );
+}
+
+
+function format(title, data){
     let s = `
 ==== ${title} ====
 `;
+
     for(const d of data){
         const status = d.used ? "[USED]" : "[empty]";
         s += `
@@ -298,8 +381,13 @@ ${d.addr}
 BAL: ${d.balance} (funded:${d.funded} spent:${d.spent} tx:${d.txCount})
 `;
     }
+
+    // 🔥 ДОБАВЛЯЕМ ВИЗУАЛИЗАЦИЮ
+    s += visualizeAll(data);
+
     return s;
 }
+
 
 
 // MAIN
