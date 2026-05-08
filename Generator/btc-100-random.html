@@ -1,11 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bitcoin Sequential FIX + SAVE</title>
+<title>Raw Bitcoin Key Generator</title>
 
 <style>
+
 body{
   font-family:monospace;
   background:#0f172a;
@@ -14,13 +15,23 @@ body{
 }
 
 button{
-  padding:12px 12px;
+  padding:12px;
   background:#22c55e;
   border:0;
   border-radius:10px;
   cursor:pointer;
   font-weight:bold;
   margin-right:10px;
+  margin-bottom:10px;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:0;
+  margin-bottom:10px;
+  font-family:monospace;
 }
 
 pre{
@@ -31,156 +42,835 @@ pre{
   overflow:auto;
   max-height:70vh;
 }
+
 </style>
 </head>
 <body>
 
-<button id="seedBtn">Generate SEED</button>
-<button id="nextBtn" disabled>Next 100</button>
-<button id="saveBtn" disabled>Save TXT</button>
+<button id="seedBtn">
+Generate Deterministic Chain
+</button>
+
+<button id="saveBtn" disabled>
+Save TXT
+</button>
+
+<br><br>
+
+<input
+  id="entropyInput"
+  placeholder="Paste HEX / binary / text"
+  autocomplete="off"
+  spellcheck="false"
+/>
+
+<div id="info">
+Type: unknown
+</div>
+
+<br>
+
+<button id="entropyBtn">
+Start From Input
+</button>
+
+<br><br>
 
 <pre id="out">Ready.</pre>
 
 <script type="module">
 
-import { secp256k1 } from "https://cdn.jsdelivr.net/npm/@noble/curves@1.4.2/secp256k1/+esm";
-import { sha256 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
-import { ripemd160 } from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
+import { secp256k1 }
+from "https://cdn.jsdelivr.net/npm/@noble/curves@1.4.2/secp256k1/+esm";
 
-/* ===== utils ===== */
+import { sha256 }
+from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/sha256/+esm";
 
-const out=document.getElementById("out");
+import { ripemd160 }
+from "https://cdn.jsdelivr.net/npm/@noble/hashes@1.3.2/ripemd160/+esm";
 
-function log(x){ out.textContent=x; }
+
+
+// =====================================================
+// CONFIG
+// =====================================================
+
+const TOTAL = 100;
+
+const N =
+0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
+
+
+
+// =====================================================
+// OUTPUT
+// =====================================================
+
+const out =
+document.getElementById("out");
+
+function log(x){
+
+  out.textContent = x;
+}
+
+
+
+// =====================================================
+// HEX
+// =====================================================
 
 function hex(u8){
-  return [...u8].map(b=>b.toString(16).padStart(2,'0')).join('');
+
+  return [...u8]
+    .map(
+      b => b.toString(16).padStart(2,"0")
+    )
+    .join("");
 }
+
+function bytesToBigInt(bytes){
+
+  return BigInt(
+    "0x" + hex(bytes)
+  );
+}
+
+function bigintTo32Bytes(num){
+
+  const out =
+    new Uint8Array(32);
+
+  for(let i=31;i>=0;i--){
+
+    out[i] =
+      Number(num & 0xffn);
+
+    num >>= 8n;
+  }
+
+  return out;
+}
+
+
+
+// =====================================================
+// HASH
+// =====================================================
 
 function hash160(data){
-  return ripemd160(sha256(data));
+
+  return ripemd160(
+    sha256(data)
+  );
 }
 
-const ALPH="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function doubleSHA256(data){
+
+  return sha256(
+    sha256(data)
+  );
+}
+
+
+
+// =====================================================
+// BASE58
+// =====================================================
+
+const ALPH =
+"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 function base58Encode(bytes){
-  let zeros=0;
-  while(zeros<bytes.length && bytes[zeros]===0) zeros++;
 
-  let value=0n;
-  for(const b of bytes) value=(value<<8n)+BigInt(b);
+  let zeros = 0;
 
-  let out="";
-  while(value>0n){
-    const mod=value%58n;
-    value/=58n;
-    out=ALPH[Number(mod)]+out;
+  while(
+    zeros < bytes.length &&
+    bytes[zeros] === 0
+  ){
+    zeros++;
   }
 
-  for(let i=0;i<zeros;i++) out="1"+out;
-  return out||"1";
-}
+  let value = 0n;
 
-function doubleSHA256(d){
-  return sha256(sha256(d));
-}
+  for(const b of bytes){
 
-function base58check(v,p){
-  const body=new Uint8Array([v,...p]);
-  const chk=doubleSHA256(body).slice(0,4);
-  return base58Encode(new Uint8Array([...body,...chk]));
-}
-
-/* ===== core ===== */
-
-function entropyToPriv(entropy){
-  let k=BigInt("0x"+hex(entropy));
-
-  const n=0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n;
-
-  k=k%n;
-  if(k===0n)k=1n;
-
-  const b=new Uint8Array(32);
-  for(let i=31;i>=0;i--){
-    b[i]=Number(k&0xffn);
-    k>>=8n;
+    value =
+      (value << 8n) +
+      BigInt(b);
   }
-  return b;
-}
 
-function privToAddr(priv){
-  const pub=secp256k1.getPublicKey(priv,true);
-  const h=hash160(pub);
-  const addr=base58check(0x00,h);
-  return {pub,addr};
-}
+  let out = "";
 
-function addOne(x){
-  const o=new Uint8Array(x);
-  for(let i=31;i>=0;i--){
-    o[i]++;
-    if(o[i]!==0)break;
+  while(value > 0n){
+
+    const mod =
+      value % 58n;
+
+    value /= 58n;
+
+    out =
+      ALPH[Number(mod)] + out;
   }
-  return o;
+
+  for(let i=0;i<zeros;i++){
+
+    out = "1" + out;
+  }
+
+  return out || "1";
 }
 
-/* ===== state ===== */
+function base58check(version,payload){
 
-let entropy=null;
-let logText="";
+  const body =
+    new Uint8Array(
+      [version, ...payload]
+    );
 
-/* ===== UI ===== */
+  const chk =
+    doubleSHA256(body)
+    .slice(0,4);
 
-document.getElementById("seedBtn").onclick=()=>{
-  entropy=crypto.getRandomValues(new Uint8Array(32));
+  return base58Encode(
+    new Uint8Array(
+      [...body, ...chk]
+    )
+  );
+}
 
-  const priv=entropyToPriv(entropy);
-  const {addr}=privToAddr(priv);
 
-  logText=
-`=== SEED ===
 
-ENTROPY:
-${hex(entropy)}
+// =====================================================
+// WIF
+// =====================================================
 
-ADDRESS:
-${addr}
-`;
+function privToWIF(priv, compressed){
+
+  const body = compressed
+
+    ? new Uint8Array([
+        0x80,
+        ...priv,
+        0x01
+      ])
+
+    : new Uint8Array([
+        0x80,
+        ...priv
+      ]);
+
+  const chk =
+    doubleSHA256(body)
+    .slice(0,4);
+
+  return base58Encode(
+    new Uint8Array([
+      ...body,
+      ...chk
+    ])
+  );
+}
+
+
+
+// =====================================================
+// HELPERS
+// =====================================================
+
+function concatBytes(...arrays){
+
+  const len =
+    arrays.reduce(
+      (s,a)=>s+a.length,
+      0
+    );
+
+  const out =
+    new Uint8Array(len);
+
+  let off = 0;
+
+  for(const a of arrays){
+
+    out.set(a,off);
+
+    off += a.length;
+  }
+
+  return out;
+}
+
+
+
+// =====================================================
+// ADDRESS TYPES
+// =====================================================
+
+function pubToLegacy(pub){
+
+  const h =
+    hash160(pub);
+
+  return base58check(
+    0x00,
+    h
+  );
+}
+
+function pubToP2SH(pubCompressed){
+
+  const redeemScript =
+    concatBytes(
+      new Uint8Array([0x00,0x14]),
+      hash160(pubCompressed)
+    );
+
+  const redeemHash =
+    hash160(redeemScript);
+
+  return base58check(
+    0x05,
+    redeemHash
+  );
+}
+
+function privToAddresses(priv){
+
+  const pubCompressed =
+    secp256k1.getPublicKey(
+      priv,
+      true
+    );
+
+  const pubUncompressed =
+    secp256k1.getPublicKey(
+      priv,
+      false
+    );
+
+  const addrCompressed =
+    pubToLegacy(pubCompressed);
+
+  const addrUncompressed =
+    pubToLegacy(pubUncompressed);
+
+  const addrP2SH =
+    pubToP2SH(pubCompressed);
+
+  const wifCompressed =
+    privToWIF(priv,true);
+
+  const wifUncompressed =
+    privToWIF(priv,false);
+
+  return {
+
+    addrCompressed,
+    addrUncompressed,
+    addrP2SH,
+
+    wifCompressed,
+    wifUncompressed
+  };
+}
+
+
+
+// =====================================================
+// INPUT PARSING
+// =====================================================
+
+function detectType(str){
+
+  const s = str.trim();
+
+  if(/^[01\s]+$/.test(s))
+    return "BINARY";
+
+  if(/^[0-9a-fA-F\s]+$/.test(s))
+    return "HEX";
+
+  return "TEXT";
+}
+
+function binaryToBytes(bin){
+
+  bin =
+    bin.replace(/\s+/g,"");
+
+  const out =
+    new Uint8Array(
+      Math.ceil(bin.length / 8)
+    );
+
+  for(let i=0;i<out.length;i++){
+
+    const byte =
+      bin
+      .slice(i*8, i*8+8)
+      .padEnd(8,"0");
+
+    out[i] =
+      parseInt(byte,2);
+  }
+
+  return out;
+}
+
+function hexToBytes(hexStr){
+
+  hexStr =
+    hexStr.replace(/\s+/g,"");
+
+  if(hexStr.length % 2 !== 0){
+
+    throw new Error(
+      "Invalid HEX length"
+    );
+  }
+
+  const out =
+    new Uint8Array(
+      hexStr.length / 2
+    );
+
+  for(let i=0;i<out.length;i++){
+
+    out[i] =
+      parseInt(
+        hexStr.substr(i*2,2),
+        16
+      );
+  }
+
+  return out;
+}
+
+function textToBytes(txt){
+
+  return new TextEncoder()
+    .encode(txt);
+}
+
+function normalizeTo32Bytes(bytes){
+
+  if(bytes.length > 32){
+
+    throw new Error(
+      "Input exceeds 32 bytes"
+    );
+  }
+
+  if(bytes.length === 32){
+
+    return bytes;
+  }
+
+  const out =
+    new Uint8Array(32);
+
+  out.set(
+    bytes,
+    32 - bytes.length
+  );
+
+  return out;
+}
+
+function parseEntropy(input){
+
+  const type =
+    detectType(input);
+
+  let bytes;
+
+  if(type === "BINARY"){
+
+    bytes =
+      binaryToBytes(input);
+  }
+  else if(type === "HEX"){
+
+    bytes =
+      hexToBytes(input);
+  }
+  else{
+
+    bytes =
+      textToBytes(input);
+  }
+
+  return {
+    type,
+    bytes:
+      normalizeTo32Bytes(bytes)
+  };
+}
+
+function parsePrivFromInput(bytes){
+
+  let n =
+    bytesToBigInt(bytes);
+
+  if(n === 0n){
+
+    throw new Error(
+      "Private key cannot be zero"
+    );
+  }
+
+  if(n >= N){
+
+    throw new Error(
+      "Private key must be < curve order"
+    );
+  }
+
+  return bigintTo32Bytes(n);
+}
+
+
+
+// =====================================================
+// RANDOM RANGES
+// =====================================================
+
+const ranges = [
+
+  [
+    0x400000000000000000000000000000000000000000000000000n,
+    0x500000000000000000000000000000000000000000000000000n
+  ],
+
+  [
+    0x1n,
+    0x0000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFn
+  ],
+
+  [
+    0x1n,
+    0x000000000000000000000000000000000000000000000000FFFFFFFFFFFFn
+  ]
+];
+
+function randomBigInt(bits){
+
+  const bytes =
+    crypto.getRandomValues(
+      new Uint8Array(
+        Math.ceil(bits / 8)
+      )
+    );
+
+  let n = 0n;
+
+  for(const b of bytes){
+
+    n =
+      (n << 8n) |
+      BigInt(b);
+  }
+
+  return n;
+}
+
+function randomInRange(min,max){
+
+  const range =
+    max - min + 1n;
+
+  const bits =
+    range.toString(2).length;
+
+  while(true){
+
+    const rnd =
+      randomBigInt(bits);
+
+    if(rnd < range){
+
+      return min + rnd;
+    }
+  }
+}
+
+function randomEntropyFromRanges(){
+
+  const selected =
+    ranges[
+      Math.floor(
+        Math.random() *
+        ranges.length
+      )
+    ];
+
+  const min =
+    selected[0];
+
+  const max =
+    selected[1];
+
+  const value =
+    randomInRange(min,max);
+
+  return {
+
+    entropy:
+      bigintTo32Bytes(value),
+
+    min,
+    max
+  };
+}
+
+
+
+// =====================================================
+// GENERATION
+// =====================================================
+
+let logText = "";
+
+function generateDeterministic(
+  startPriv,
+  total,
+  source,
+  minRange,
+  maxRange
+){
+
+  const lines = [];
+
+  lines.push(
+    "START PRIV:" +
+    hex(startPriv)
+  );
+
+  lines.push(
+    "TOTAL GENERATED: " +
+    String(total * 3)
+  );
+
+  lines.push(
+    "MAX RANGE:0x" +
+    maxRange.toString(16)
+  );
+
+  lines.push("");
+
+  let generated = 0;
+
+  const current =
+    bytesToBigInt(startPriv);
+
+  const addrList = [];
+
+  for(let i=0;i<total;i++){
+
+    const privValue =
+      current + BigInt(i);
+
+    if(
+      privValue === 0n ||
+      privValue >= N
+    ){
+
+      break;
+    }
+
+    const priv =
+      bigintTo32Bytes(
+        privValue
+      );
+
+    const {
+
+      addrCompressed,
+      addrUncompressed,
+      addrP2SH
+
+    } =
+    privToAddresses(priv);
+
+    addrList.push(
+      addrCompressed
+    );
+
+    addrList.push(
+      addrUncompressed
+    );
+
+    addrList.push(
+      addrP2SH
+    );
+
+    generated += 3;
+  }
+
+  lines.push(
+    addrList.join(" ")
+  );
+
+  logText =
+    lines.join("\n");
 
   log(logText);
+}
 
-  document.getElementById("nextBtn").disabled=false;
-  document.getElementById("saveBtn").disabled=false;
-};
 
-document.getElementById("nextBtn").onclick=()=>{
-  if(!entropy)return;
+// =====================================================
+// SAVE
+// =====================================================
 
-  let e=entropy;
+async function saveTextFile(
+  text,
+  filename
+){
 
-  for(let i=0;i<100;i++){
-    e=addOne(e);
+  const blob =
+    new Blob(
+      [text],
+      {
+        type:
+        "text/plain;charset=utf-8"
+      }
+    );
 
-    const priv=entropyToPriv(e);
-    const {addr}=privToAddr(priv);
+  const a =
+    document.createElement("a");
 
-    logText+=`\n#${i+1} ${addr}`;
-  }
+  a.href =
+    URL.createObjectURL(blob);
 
-  entropy=e;
-  log(logText);
-};
+  a.download =
+    filename;
 
-document.getElementById("saveBtn").onclick=()=>{
-  const blob=new Blob([logText],{type:"text/plain"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="bitcoin_sequential_log.txt";
   a.click();
+
+  setTimeout(()=>{
+
+    URL.revokeObjectURL(a.href);
+
+  },1000);
+}
+
+
+
+// =====================================================
+// BUTTONS
+// =====================================================
+
+document
+.getElementById("seedBtn")
+.onclick = () => {
+
+  const r =
+    randomEntropyFromRanges();
+
+  generateDeterministic(
+
+    r.entropy,
+
+    TOTAL,
+
+    "RANDOM_RANGE_RAW_PRIVKEY",
+
+    r.min,
+
+    r.max
+  );
+
+  document
+  .getElementById("saveBtn")
+  .disabled = false;
+};
+
+document
+.getElementById("saveBtn")
+.onclick = async () => {
+
+  await saveTextFile(
+
+    logText,
+
+    "raw_bitcoin_keys.txt"
+  );
+};
+
+
+
+// =====================================================
+// INPUT
+// =====================================================
+
+const inputEl =
+document.getElementById(
+  "entropyInput"
+);
+
+const infoEl =
+document.getElementById(
+  "info"
+);
+
+inputEl.addEventListener(
+  "input",
+  ()=>{
+
+    const val =
+      inputEl.value;
+
+    infoEl.textContent =
+      "Type: " +
+      detectType(val);
+  }
+);
+
+document
+.getElementById("entropyBtn")
+.onclick = () => {
+
+  try{
+
+    const parsed =
+      parseEntropy(
+        inputEl.value
+      );
+
+    const priv =
+      parsePrivFromInput(
+        parsed.bytes
+      );
+
+    generateDeterministic(
+
+      priv,
+
+      TOTAL,
+
+      parsed.type,
+
+      1n,
+
+      N - 1n
+    );
+
+    document
+    .getElementById("saveBtn")
+    .disabled = false;
+
+  }
+  catch(e){
+
+    log(
+      "ERROR: " +
+      e.message
+    );
+  }
 };
 
 </script>
-
 </body>
 </html>
