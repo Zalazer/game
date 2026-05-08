@@ -68,13 +68,12 @@
 
 <h1>Bitcoin Balance Checker</h1>
 
-<textarea id="addresses" placeholder="Paste addresses (one per line, or with #1 #2 etc)"></textarea>
+<textarea id="addresses" placeholder="Paste addresses (one per line)"></textarea>
 
 <button id="checkBtn">Check balances</button>
 
 <div class="hint">
-Uses Esplora API: https://mempool.space/api/address/<br>
-No RPC node required.
+Uses Esplora API: https://mempool.space/api/address/
 </div>
 
 <pre id="out">Ready.</pre>
@@ -92,17 +91,23 @@ function sleep(ms){
   return new Promise(r => setTimeout(r, ms));
 }
 
-/* ================================
-   ADDRESS EXTRACTOR (FIXED)
-================================ */
+//
+// =============================
+// UNIVERSAL BITCOIN ADDRESS PARSER
+// =============================
+//
 
 function extractAddress(line){
-  // Bitcoin legacy address (1...)
-  const match = line.match(/1[1-9A-HJ-NP-Za-km-z]{25,34}/);
+
+  const match = line.match(
+    /\b(bc1[ac-hj-np-z02-9]{11,71}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})\b/
+  );
+
   return match ? match[0] : null;
 }
 
 function sanitizeAddresses(text){
+
   return [...new Set(
     text
       .split('\n')
@@ -111,13 +116,16 @@ function sanitizeAddresses(text){
   )].slice(0, 100);
 }
 
-/* ================================
-   BALANCE API (Esplora)
-================================ */
+//
+// =============================
+// API
+// =============================
+//
 
 const API = 'https://mempool.space/api/address/';
 
 async function getBalance(address){
+
   const r = await fetch(API + encodeURIComponent(address));
 
   if(!r.ok){
@@ -127,10 +135,10 @@ async function getBalance(address){
   const j = await r.json();
 
   const confirmed =
-    j.chain_stats.funded_txo_sum - j.chain_stats.spent_txo_sum;
+    (j.chain_stats.funded_txo_sum - j.chain_stats.spent_txo_sum);
 
   const mempool =
-    j.mempool_stats.funded_txo_sum - j.mempool_stats.spent_txo_sum;
+    (j.mempool_stats.funded_txo_sum - j.mempool_stats.spent_txo_sum);
 
   return {
     confirmed,
@@ -139,9 +147,11 @@ async function getBalance(address){
   };
 }
 
-/* ================================
-   MAIN LOOP
-================================ */
+//
+// =============================
+// MAIN LOOP
+// =============================
+//
 
 btn.onclick = async () => {
 
@@ -153,7 +163,8 @@ btn.onclick = async () => {
   }
 
   btn.disabled = true;
-  log('Checking balances via mempool.space...\n');
+
+  log('Checking balances...\n');
 
   const lines = [];
 
@@ -165,6 +176,7 @@ btn.onclick = async () => {
     log(lines.join('\n'));
 
     try{
+
       const bal = await getBalance(a);
 
       lines[lines.length - 1] =
@@ -174,12 +186,14 @@ btn.onclick = async () => {
   total:     ${(bal.total/1e8).toFixed(8)} BTC`;
 
     }catch(e){
-      lines[lines.length - 1] = `${a} → ERROR: ${e.message}`;
+
+      lines[lines.length - 1] =
+`${a} → ERROR: ${e.message}`;
+
     }
 
     log(lines.join('\n'));
 
-    // small delay to avoid API flooding
     await sleep(800);
   }
 
@@ -187,6 +201,5 @@ btn.onclick = async () => {
 };
 
 </script>
-
 </body>
 </html>
