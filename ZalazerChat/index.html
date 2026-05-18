@@ -6,80 +6,59 @@
   <title>ZalazerChat</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root{
-      --bg:#0d0f14;
-      --panel:#171a22;
-      --panel2:#1f2430;
-      --line:#31394b;
-      --text:#eef2f8;
-      --muted:#9aa4bb;
-      --accent:#73e2bc;
-      --accent2:#99f1d4;
-      --danger:#e57b7b;
-      --shadow:0 20px 60px rgba(0,0,0,.35);
-      --radius:22px;
+    :root {
+      --bg:#0d0f14; --panel:#171a22; --panel2:#1f2430; --line:#31394b; --text:#eef2f8;
+      --muted:#9aa4bb; --accent:#73e2bc; --accent2:#99f1d4; --danger:#e57b7b; --shadow:0 20px 60px rgba(0,0,0,.35); --radius:22px;
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
-    body{min-height:100vh}
-    .app{max-width:980px;margin:0 auto;padding:14px 14px 22px}
-    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
-    .brand{font-size:13px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
-    .title{font-size:30px;font-weight:900;line-height:1.05;margin-top:6px}
-    .sub{color:var(--muted);line-height:1.45}
-    .hero,.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .hero{padding:16px 18px;margin-bottom:14px}
-    .layout{display:grid;grid-template-columns:320px 1fr;gap:14px}
-    .sidebar{padding:14px}
-    .card{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
-    .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-    .name{font-size:26px;font-weight:900;margin-top:8px}
-    .mutedBox{background:#151925;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:10px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-    .stat{background:#121722;border:1px solid var(--line);border-radius:14px;padding:10px}
-    .stat .v{font-size:22px;font-weight:900;margin-top:6px}
-    .actions{display:flex;flex-wrap:wrap;gap:8px}
-    .btn{
-      border:0;border-radius:14px;padding:12px 14px;background:var(--panel2);color:var(--text);
-      font-weight:800;cursor:pointer;box-shadow:var(--shadow)
-    }
-    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#102018}
-    .btn.warn{background:linear-gradient(135deg,#f0b16c,#ffd7a1);color:#2b1900}
-    .btn.ghost{background:#141923}
-    .chat{display:flex;flex-direction:column;min-height:75vh}
-    .chatHead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-    .chatBody{padding:16px;display:flex;flex-direction:column;gap:10px;flex:1;overflow:auto;min-height:360px;max-height:62vh}
-    .msg{
-      max-width:84%;padding:12px 14px;border-radius:18px;line-height:1.48;
-      white-space:pre-wrap;word-wrap:break-word
-    }
-    .msg.ai{align-self:flex-start;background:#1b2130;border:1px solid #36435d}
-    .msg.user{align-self:flex-end;background:#173126;border:1px solid #2e6f57}
-    .typing{min-height:22px;padding:0 16px 8px;color:var(--muted);font-size:13px}
-    .composer{border-top:1px solid var(--line);padding:12px;display:flex;gap:10px;align-items:flex-end}
-    textarea{
-      flex:1;min-height:56px;max-height:190px;resize:vertical;background:#11151d;color:var(--text);
-      border:1px solid var(--line);border-radius:16px;padding:14px;font:inherit;outline:none
-    }
-    .tiny{font-size:12px;color:var(--muted);line-height:1.45}
-    .exportInfo{margin-top:10px;color:var(--muted)}
-    @media (max-width:860px){
-      .layout{grid-template-columns:1fr}
-      .chatBody{max-height:48vh}
-      .top{flex-direction:column}
-    }
+    * { box-sizing:border-box; }
+    html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,sans-serif; }
+    body { min-height:100vh; }
+    .app { max-width:1080px; margin:0 auto; padding:14px 14px 22px; }
+    .top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:14px; }
+    .brand { font-size:13px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; }
+    .title { font-size:30px; font-weight:900; line-height:1.05; margin-top:6px; }
+    .sub { color:var(--muted); line-height:1.45; }
+    .hero,.panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .hero { padding:16px 18px; margin-bottom:14px; }
+    .layout { display:grid; grid-template-columns:360px 1fr; gap:14px; }
+    .sidebar { padding:14px; }
+    .card { background:var(--panel2); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:12px; }
+    .label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+    .name { font-size:26px; font-weight:900; margin-top:8px; }
+    .mutedBox { background:#151925; border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-top:10px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .stat { background:#121722; border:1px solid var(--line); border-radius:14px; padding:10px; }
+    .stat .v { font-size:22px; font-weight:900; margin-top:6px; }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .btn { border:0; border-radius:14px; padding:12px 14px; background:var(--panel2); color:var(--text); font-weight:800; cursor:pointer; box-shadow:var(--shadow); }
+    .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#102018; }
+    .btn.warn { background:linear-gradient(135deg,#f0b16c,#ffd7a1); color:#2b1900; }
+    .btn.ghost { background:#141923; }
+    .btn.danger { background:linear-gradient(135deg,#d36c6c,#f19b9b); color:#2a0f0f; }
+    .chat { display:flex; flex-direction:column; min-height:75vh; }
+    .chatHead { padding:14px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .chatBody { padding:16px; display:flex; flex-direction:column; gap:10px; flex:1; overflow:auto; min-height:360px; max-height:62vh; }
+    .msg { max-width:84%; padding:12px 14px; border-radius:18px; line-height:1.48; white-space:pre-wrap; word-wrap:break-word; }
+    .msg.ai { align-self:flex-start; background:#1b2130; border:1px solid #36435d; }
+    .msg.user { align-self:flex-end; background:#173126; border:1px solid #2e6f57; }
+    .typing { min-height:22px; padding:0 16px 8px; color:var(--muted); font-size:13px; }
+    .composer { border-top:1px solid var(--line); padding:12px; display:flex; gap:10px; align-items:flex-end; }
+    textarea { flex:1; min-height:56px; max-height:190px; resize:vertical; background:#11151d; color:var(--text); border:1px solid var(--line); border-radius:16px; padding:14px; font:inherit; outline:none; }
+    .tiny { font-size:12px; color:var(--muted); line-height:1.45; }
+    .exportInfo { margin-top:10px; color:var(--muted); }
+    .rosterList { margin-top:10px; display:flex; flex-direction:column; gap:8px; max-height:260px; overflow:auto; }
+    .rosterItem { width:100%; text-align:left; border:1px solid var(--line); background:#121722; color:var(--text); border-radius:14px; padding:10px 12px; cursor:pointer; }
+    .rosterItem.active { outline:2px solid var(--accent); background:#182233; }
+    .rosterMeta { display:block; font-size:11px; color:var(--muted); margin-top:4px; }
+    @media (max-width:860px) { .layout{grid-template-columns:1fr;} .chatBody{max-height:48vh;} .top{flex-direction:column;} }
   </style>
 </head>
 <body>
   <div class="app">
     <div class="top">
       <div>
-        <div class="brand">ZALAZER</div>
-        <div class="title">ZalazerChat</div>
-        <div class="sub" style="margin-top:8px">
-          Здесь ты общаешься на русском с персонажем так, будто это обычный человек в мессенджере.
-          Позже этот характер можно перенести в BrokenRoute как уже сформированного NPC.
-        </div>
+        <div class="brand">ZalazerChat</div>
+        <div class="sub" style="margin-top:8px">Здесь ты общаешься с персонажем так, будто это обычный человек. Позже выбранного персонажа можно перенести в BrokenRoute как уже сформированного NPC с памятью.</div>
       </div>
       <div class="actions">
         <button class="btn" id="loadBtn" type="button">Загрузить</button>
@@ -88,59 +67,46 @@
       </div>
     </div>
 
-    <div class="hero">
-      Вся логика персонажа, настроения, речи и промптов находится прямо в этом HTML.
-      Worker нужен только как KV-хранилище и прокси к ИИ.
-    </div>
-
     <div class="layout">
       <aside class="panel sidebar">
         <div class="card">
-          <div class="label">Персонаж</div>
+          <div class="label">Персонажи</div>
+          <div class="rosterList" id="rosterList"></div>
+          <div class="actions" style="margin-top:10px">
+            <button class="btn ghost" id="exportBtn" type="button">В BrokenRoute</button>
+          </div>
+          <div class="exportInfo tiny">Экспортируется выбранный персонаж. BrokenRoute сможет загрузить его из списка импортов.</div>
+        </div>
+
+        <div class="card">
+          <div class="label">Профиль</div>
           <div class="name" id="charName">...</div>
           <div class="sub" id="charSummary" style="margin-top:8px">...</div>
-
           <div class="mutedBox">
             <div><span class="label">Страна</span><div id="charCountry"></div></div>
-            <div style="margin-top:8px"><span class="label">Где живёт</span><div id="charLocation"></div></div>
-            <div style="margin-top:8px"><span class="label">Особенность</span><div id="charHook"></div></div>
+            <div style="margin-top:8px"><span class="label">Локация</span><div id="charLocation"></div></div>
+            <div style="margin-top:8px"><span class="label">Хук</span><div id="charHook"></div></div>
           </div>
-
           <div class="grid2">
             <div class="stat"><div class="label">Mood</div><div class="v" id="moodVal">--</div></div>
             <div class="stat"><div class="label">Trust</div><div class="v" id="trustVal">--</div></div>
             <div class="stat"><div class="label">Energy</div><div class="v" id="energyVal">--</div></div>
             <div class="stat"><div class="label">Depth</div><div class="v" id="depthVal">--</div></div>
           </div>
-
-          <div class="exportInfo tiny">
-            Экспорт в BrokenRoute идёт как JSON-профиль персонажа через KV.
-          </div>
-          <div class="actions" style="margin-top:10px">
-            <button class="btn ghost" id="exportBtn" type="button">Экспорт в BrokenRoute</button>
-          </div>
         </div>
 
-        <div class="card">
-          <div class="label">Правила речи</div>
-          <div class="tiny" id="rulesView"></div>
-        </div>
       </aside>
 
       <section class="panel chat">
         <div class="chatHead">
           <div>
             <div style="font-size:22px;font-weight:900" id="chatTitle">...</div>
-            <div class="sub" id="chatSubtitle">русский режим • живой диалог</div>
+            <div class="sub" id="chatSubtitle"></div>
           </div>
-          <div class="tiny" style="max-width:240px;text-align:right">
-            Не упоминать ИИ. Не звучать как бот. Не писать канцеляритом.
-          </div>
+          
         </div>
-
         <div class="chatBody" id="chatBody"></div>
         <div class="typing" id="typing"></div>
-
         <div class="composer">
           <textarea id="input" placeholder="Напиши сообщение..."></textarea>
           <button class="btn primary" id="sendBtn" type="button">Отправить</button>
@@ -150,30 +116,19 @@
   </div>
 
   <script>
-    const tg =
-  window.parent?.Telegram?.WebApp ||
-  window.Telegram?.WebApp ||
-  null;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
+    const tg = window.parent?.Telegram?.WebApp || window.Telegram?.WebApp || null;
+    if (tg) { tg.ready(); tg.expand(); }
 
     const app = {
       userId: tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'anon',
       language: 'ru',
       busy: false,
+      roster: [],
+      activeCharacterId: null,
       character: null,
       state: null,
       dialog: [],
-      rules: [
-        'Всегда по-русски.',
-        'Никаких признаний, что собеседник — ИИ.',
-        'Короткие живые фразы, иногда неровные.',
-        'Без списков и официоза.',
-        'Можно сомневаться, недоговаривать, переспрашивать.',
-        'Не пытаться быть слишком идеальной.'
-      ]
+      rules: ['Не упоминать ИИ.','Не звучать как бот.','Не писать канцеляритом.']
     };
 
     const ui = {
@@ -196,96 +151,67 @@
       saveBtn: document.getElementById('saveBtn'),
       sendBtn: document.getElementById('sendBtn'),
       exportBtn: document.getElementById('exportBtn'),
-      rulesView: document.getElementById('rulesView')
+      rulesView: document.getElementById('rulesView'),
+      rosterList: document.getElementById('rosterList')
     };
 
     const presets = [
       {
-        core: {
-          name: 'Лена',
-          age: 26,
-          country: 'Польша',
-          location: 'маленький город у моря',
-          eyes: 'зелёные',
-          hair: 'тёмно-каштановые',
-          hook: 'живёт рядом с портом и часто не спит по ночам',
-          husband: 'Даниэль',
-          pet: 'кот Мило'
-        },
-        persona: {
-          vibe: 'мягкая, осторожная, тёплая, временами слишком живая и неровная',
-          summary: 'Отвечает по-человечески, без шаблонов. Иногда отступает от темы, иногда пишет коротко.',
-          speech: 'простые живые фразы, немного воздуха, лёгкая бытовая естественность'
-        },
-        state: { mood: 58, trust: 39, energy: 71, depth: 22 }
+        core:{ name:'Лена', age:26, country:'Украина', location:'Киев', eyes:'серые', hair:'тёмные', hook:'любит длинные ночные разговоры', husband:'нет', pet:'кот' },
+        persona:{ vibe:'мягкая, внимательная, немного загадочная', summary:'Тёплая собеседница, которая быстро чувствует настроение и любит личные разговоры.', speech:'пишет естественно, короткими живыми фразами, иногда с лёгкой иронией' },
+        state:{ mood:58, trust:39, energy:71, depth:22 }
       },
       {
-        core: {
-          name: 'Нора',
-          age: 25,
-          country: 'Сербия',
-          location: 'приморский район на окраине города',
-          eyes: 'серые',
-          hair: 'чёрные',
-          hook: 'плохо переносит тишину и потому часто сама пишет первой',
-          husband: 'Марк',
-          pet: 'кошка Луна'
-        },
-        persona: {
-          vibe: 'сдержанная, внимательная, иногда ироничная, но не холодная',
-          summary: 'Чувствуется как реальный человек, а не сервис. Не даёт слишком идеальных ответов.',
-          speech: 'чуть суховатая, но честная речь, иногда с мягкой иронией'
-        },
-        state: { mood: 51, trust: 42, energy: 66, depth: 18 }
+        core:{ name:'Мира', age:25, country:'Польша', location:'Варшава', eyes:'карие', hair:'русые', hook:'любит спорить и поддевать без злости', husband:'нет', pet:'нет' },
+        persona:{ vibe:'острая, умная, игривая', summary:'Быстро отвечает, любит живую динамику и словесные пикировки.', speech:'пишет уверенно, ритмично, с лёгкими провокациями' },
+        state:{ mood:51, trust:42, energy:66, depth:18 }
       },
       {
-        core: {
-          name: 'Ася',
-          age: 24,
-          country: 'Черногория',
-          location: 'квартира над старой дорогой к берегу',
-          eyes: 'карие',
-          hair: 'русые',
-          hook: 'быстро цепляется за детали и запоминает странные мелочи',
-          husband: 'Иво',
-          pet: 'кот Туман'
-        },
-        persona: {
-          vibe: 'быстрая, живая, иногда внезапно серьёзная',
-          summary: 'Пишет так, будто действительно сидит в чате. Может отвечать неровно и неидеально.',
-          speech: 'разговорная, мягкая, иногда неожиданно точная'
-        },
-        state: { mood: 63, trust: 35, energy: 78, depth: 16 }
+        core:{ name:'Ася', age:24, country:'Литва', location:'Вильнюс', eyes:'зелёные', hair:'светлые', hook:'внезапно уходит в глубокие темы', husband:'нет', pet:'собака' },
+        persona:{ vibe:'спокойная, наблюдательная, чуть отстранённая', summary:'Сначала осторожная, но постепенно уходит в более честный и глубокий диалог.', speech:'говорит мягко, с паузами и личными интонациями' },
+        state:{ mood:63, trust:35, energy:78, depth:16 }
       }
     ];
 
-    function clone(obj) {
-      return JSON.parse(JSON.stringify(obj));
-    }
-
-    function makeCharacter() {
-      const base = clone(presets[Math.floor(Math.random() * presets.length)]);
+    function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+    function makeCharacter(){
+      const base = clone(presets[Math.floor(Math.random()*presets.length)]);
       return {
-        id: 'zc-' + Date.now() + '-' + Math.random().toString(16).slice(2, 8),
-        language: 'ru',
-        createdAt: Date.now(),
-        core: base.core,
-        persona: base.persona,
-        state: base.state
+        id:'zc-'+Date.now()+'-'+Math.random().toString(16).slice(2,8),
+        language:'ru',
+        createdAt:Date.now(),
+        core:base.core,
+        persona:base.persona,
+        state:base.state
       };
     }
-
-    function defaultGreeting(character) {
-      return `Привет. Я ${character.core.name}. Не спишь?`;
+    function defaultGreeting(character){ return `Привет. Я ${character.core.name}. Ты как?`; }
+    
+    function getActiveEntry(){ return app.roster.find(x => x.id === app.activeCharacterId) || null; }
+    function syncActiveToRoster(){
+      const entry = getActiveEntry();
+      if (!entry || !app.character || !app.state) return;
+      entry.profile = clone(app.character);
+      entry.state = clone(app.state);
+      entry.dialog = clone(app.dialog);
+      entry.updatedAt = Date.now();
     }
 
-    function renderRules() {
-      ui.rulesView.innerHTML = app.rules.map(v => '• ' + v).join('<br>');
+    function renderRoster(){
+      ui.rosterList.innerHTML = '';
+      app.roster.forEach(entry => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'rosterItem' + (entry.id === app.activeCharacterId ? ' active' : '');
+        btn.innerHTML = `${entry.profile.core.name}<span class="rosterMeta">${entry.profile.core.location} · ${new Date(entry.updatedAt||Date.now()).toLocaleString('ru-RU')}</span>`;
+        btn.addEventListener('click', () => openCharacterById(entry.id));
+        ui.rosterList.appendChild(btn);
+      });
     }
 
-    function renderCharacter() {
-      const c = app.character;
-      const s = app.state;
+    function renderCharacter(){
+      const c = app.character, s = app.state;
       if (!c || !s) return;
       ui.charName.textContent = c.core.name;
       ui.charSummary.textContent = c.persona.summary;
@@ -297,10 +223,10 @@
       ui.energyVal.textContent = String(s.energy);
       ui.depthVal.textContent = String(s.depth);
       ui.chatTitle.textContent = c.core.name;
-      ui.chatSubtitle.textContent = `${c.core.country} • ${c.core.location} • русский режим`;
+      ui.chatSubtitle.textContent = `${c.core.country} • ${c.core.location}`;
     }
 
-    function renderDialog() {
+    function renderDialog(){
       ui.chatBody.innerHTML = '';
       app.dialog.forEach(item => {
         const div = document.createElement('div');
@@ -311,233 +237,240 @@
       ui.chatBody.scrollTop = ui.chatBody.scrollHeight;
     }
 
-    function adjustStateFromUserText(text) {
-      app.state.trust = clamp(app.state.trust + (/спасибо|нравишься|интересно|верю/i.test(text) ? 3 : 1), 0, 100);
-      app.state.mood = clamp(app.state.mood + (/плохо|устал|тяжело|херово/i.test(text) ? -1 : 1), 0, 100);
-      app.state.energy = clamp(app.state.energy - (text.length > 220 ? 2 : 1), 0, 100);
-      app.state.depth = clamp(app.state.depth + (/почему|чувствуешь|боишься|настоящ/i.test(text) ? 3 : 1), 0, 100);
-    }
-
-    function clamp(v, min, max) {
-      return Math.max(min, Math.min(max, v));
-    }
-
-    function buildSystemPrompt() {
-      const c = app.character;
-      const s = app.state;
-      return [
-        'Ты ведёшь себя как живой человек в личной переписке Telegram.',
-        'Пиши только по-русски.',
-        'Никогда не говори, что ты бот, ИИ, нейросеть, языковая модель или виртуальный персонаж.',
-        'Избегай формального стиля, списков, лекций и аккуратных офисных ответов.',
-        'Пиши естественно, иногда коротко, иногда с лёгкой неровностью.',
-        'Не будь слишком полезной и слишком идеальной.',
-        'Ты не ассистент, а человек со своей жизнью.',
-        `Тебя зовут ${c.core.name}. Тебе ${c.core.age}.`,
-        `Ты из страны ${c.core.country}. Живёшь: ${c.core.location}.`,
-        `У тебя ${c.core.eyes} глаза и ${c.core.hair} волосы.`,
-        `Муж: ${c.core.husband}. Питомец: ${c.core.pet}.`,
-        `Особенность: ${c.core.hook}.`,
-        `Характер: ${c.persona.vibe}.`,
-        `Стиль речи: ${c.persona.speech}.`,
-        `Внутреннее состояние сейчас: mood=${s.mood}, trust=${s.trust}, energy=${s.energy}, depth=${s.depth}.`,
-        'Если не хочешь отвечать прямо, уходи немного в сторону, но оставайся живой.',
-        'Не повторяй, что ты всегда рядом, не говори шаблоны поддержки, не используй фразы "чем могу помочь".'
-      ].join(' ');
-    }
-
-    function buildMessages(userText) {
-      const history = app.dialog.slice(-12).map(item => ({
-        role: item.role === 'user' ? 'user' : 'assistant',
-        content: item.text
-      }));
-      return [
-        { role: 'system', content: buildSystemPrompt() },
-        ...history,
-        { role: 'user', content: userText }
-      ];
-    }
-
-    async function apiGet(path) {
-      const r = await fetch(path);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    }
-
-    async function apiPost(path, body) {
-      const r = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    }
-
-    async function saveAll() {
-      const pack = {
-        profile: app.character,
-        state: app.state,
-        dialog: app.dialog,
-        updatedAt: Date.now()
-      };
-
-      await apiPost('/__kvset', { scope: 'zc', user: app.userId, part: 'profile', data: pack.profile });
-      await apiPost('/__kvset', { scope: 'zc', user: app.userId, part: 'state', data: pack.state });
-      await apiPost('/__kvset', { scope: 'zc', user: app.userId, part: 'dialog', data: pack.dialog });
-      return pack;
-    }
-
-    async function loadAll() {
-      const [profileRes, stateRes, dialogRes] = await Promise.all([
-        apiGet(`/__kvget?scope=zc&user=${encodeURIComponent(app.userId)}&part=profile`),
-        apiGet(`/__kvget?scope=zc&user=${encodeURIComponent(app.userId)}&part=state`),
-        apiGet(`/__kvget?scope=zc&user=${encodeURIComponent(app.userId)}&part=dialog`)
-      ]);
-
-      const profile = profileRes.data;
-      const state = stateRes.data;
-      const dialog = dialogRes.data;
-
-      if (profile && state) {
-        app.character = profile;
-        app.state = state;
-        app.dialog = Array.isArray(dialog) ? dialog : [];
-        renderCharacter();
-        renderDialog();
-        return true;
-      }
-      return false;
-    }
-
-    async function exportCharacterToBrokenRoute() {
-      const exportData = {
-        exportedAt: Date.now(),
-        from: 'ZalazerChat',
-        character: app.character,
-        state: app.state,
-        sampleDialog: app.dialog.slice(-8)
-      };
-      await apiPost('/__kvset', {
-        scope: 'br',
-        user: app.userId,
-        part: 'importedCharacter',
-        data: exportData
-      });
-      tg?.HapticFeedback?.notificationOccurred?.('success');
-      alert('Персонаж экспортирован в BrokenRoute');
-    }
-
-    async function createFreshCharacter() {
-      app.character = makeCharacter();
-      app.state = clone(app.character.state);
-      app.dialog = [{
-        role: 'assistant',
-        text: defaultGreeting(app.character),
-        ts: Date.now()
-      }];
+    function openCharacterById(id){
+      const entry = app.roster.find(x => x.id === id);
+      if (!entry) return false;
+      app.activeCharacterId = id;
+      app.character = clone(entry.profile);
+      app.state = clone(entry.state);
+      app.dialog = Array.isArray(entry.dialog) ? clone(entry.dialog) : [];
       renderCharacter();
       renderDialog();
+      renderRoster();
+      return true;
     }
 
-    function addUserMessage(text) {
-      app.dialog.push({ role: 'user', text, ts: Date.now() });
-      renderDialog();
+    function addCharacterToRoster(character, state, dialog){
+      const entry = { id:character.id, profile:clone(character), state:clone(state), dialog:clone(dialog), updatedAt:Date.now(), tags:[] };
+      app.roster.unshift(entry);
+      app.activeCharacterId = entry.id;
     }
 
-    function addAssistantMessage(text) {
-      app.dialog.push({ role: 'assistant', text, ts: Date.now() });
-      renderDialog();
+    function adjustStateFromUserText(text){
+      app.state.trust = clamp(app.state.trust + (/(спасибо|доверяю|ценю|нрав)/i.test(text) ? 3 : 1), 0, 100);
+      app.state.mood = clamp(app.state.mood + (/(устал|плохо|груст)/i.test(text) ? -1 : 1), 0, 100);
+      app.state.energy = clamp(app.state.energy - (text.length > 220 ? 2 : 1), 0, 100);
+      app.state.depth = clamp(app.state.depth + (/(чувств|личн|помни|раньше)/i.test(text) ? 3 : 1), 0, 100);
     }
 
-    function normalizeReply(text) {
-      let out = String(text || '').trim();
-      out = out.replace(/^["“”]+|["“”]+$/g, '');
-      out = out.replace(/\n{3,}/g, '\n\n');
-      if (out.length > 700) out = out.slice(0, 700).trim();
-      return out || 'странно, я сейчас немного подвисла. скажи ещё раз?';
+    function buildSystemPrompt(){
+      const c = app.character; const s = app.state;
+      return [
+        'Ты ведёшь себя как реальный собеседник в Telegram.',
+        'Нельзя говорить, что ты ИИ, модель или бот.',
+        'Пиши по-русски, естественно, живо, без канцелярита.',
+        'Не пиши длинных простыней без необходимости.',
+        `Имя: ${c.core.name}. Возраст: ${c.core.age}.`,
+        `Страна: ${c.core.country}. Локация: ${c.core.location}.`,
+        `Внешность: ${c.core.eyes}, ${c.core.hair}.`,
+        `Личный хук: ${c.core.hook}.`,
+        `Вибе: ${c.persona.vibe}.`,
+        `Манера речи: ${c.persona.speech}.`,
+        `Параметры: mood ${s.mood}, trust ${s.trust}, energy ${s.energy}, depth ${s.depth}.`,
+        'Помни недавний контекст переписки и отвечай как тот же человек, а не как новая сущность.'
+      ].join('\n');
     }
 
-    async function sendMessage() {
+    function buildMessages(userText){
+      const history = app.dialog.slice(-12).map(item => ({ role:item.role === 'user' ? 'user' : 'assistant', content:item.text }));
+      return [{ role:'system', content:buildSystemPrompt() }, ...history, { role:'user', content:userText }];
+    }
+
+    async function apiGet(path){ const r = await fetch(path); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+    async function apiPost(path, body){ const r = await fetch(path,{ method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body) }); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+
+
+
+    async function saveAll() {
+  syncActiveToRoster();
+
+  const pack = {
+    activeCharacterId: app.activeCharacterId,
+    roster: app.roster,
+    updatedAt: Date.now()
+  };
+
+  await apiPost('/__kvset', {
+    scope: 'zc',
+    user: app.userId,
+    part: 'roster',
+    data: pack
+  });
+
+  return pack;
+}
+
+
+
+
+
+    async function loadAll() {
+  const res = await apiGet(`/__kvget?scope=zc&user=${encodeURIComponent(app.userId)}&part=roster`);
+  const pack = res.data;
+
+  if (pack?.roster?.length) {
+    app.roster = Array.isArray(pack.roster) ? pack.roster : [];
+    app.activeCharacterId = pack.activeCharacterId || app.roster[0]?.id || null;
+
+    if (app.activeCharacterId) {
+      openCharacterById(app.activeCharacterId);
+    }
+
+    renderRoster();
+    return true;
+  }
+
+  return false;
+}
+
+
+
+    function buildMemorySummary(entry){
+      const dialog = Array.isArray(entry.dialog) ? entry.dialog : [];
+      const lastUser = dialog.filter(x => x.role === 'user').slice(-6).map(x => x.text);
+      const lastAi = dialog.filter(x => x.role !== 'user').slice(-6).map(x => x.text);
+      return {
+        summary:[
+          `Персонаж: ${entry.profile.core.name}.`,
+          `Хук: ${entry.profile.core.hook}.`,
+          `Текущее доверие: ${entry.state.trust}.`,
+          `Текущая глубина: ${entry.state.depth}.`,
+          `Настроение: ${entry.state.mood}.`
+        ].join(' '),
+        facts:[entry.profile.core.country, entry.profile.core.location, entry.profile.core.hook, entry.profile.persona?.vibe || '', entry.profile.persona?.speech || ''].filter(Boolean),
+        sampleDialog: dialog.slice(-20),
+        lastUserTopics: lastUser,
+        lastNpcReplies: lastAi
+      };
+    }
+
+
+
+
+
+    async function exportCharacterToBrokenRoute() {
+  syncActiveToRoster();
+  const entry = getActiveEntry();
+  if (!entry) throw new Error('Нет активного персонажа');
+
+  const exportData = {
+    exportId: `brimp-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    exportedAt: Date.now(),
+    from: 'ZalazerChat',
+    characterId: entry.id,
+    character: clone(entry.profile),
+    state: clone(entry.state),
+    memory: buildMemorySummary(entry)
+  };
+
+  await apiPost('/__kvset', {
+    scope: 'br',
+    user: app.userId,
+    part: `importedCharacter:${entry.id}`,
+    data: exportData
+  });
+
+  const indexRes = await apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=importsIndex`);
+  const prev = Array.isArray(indexRes.data) ? indexRes.data : [];
+
+  const next = [
+    {
+      id: entry.id,
+      exportId: exportData.exportId,
+      name: entry.profile.core.name,
+      summary: entry.profile.persona.summary,
+      updatedAt: exportData.exportedAt
+    },
+    ...prev.filter(x => x.id !== entry.id)
+  ];
+
+  await apiPost('/__kvset', {
+    scope: 'br',
+    user: app.userId,
+    part: 'importsIndex',
+    data: next.slice(0, 50)
+  });
+
+  tg?.HapticFeedback?.notificationOccurred?.('success');
+  alert(`${entry.profile.core.name} экспортирована в BrokenRoute`);
+}
+
+
+
+
+
+
+    async function createFreshCharacter(){
+      const character = makeCharacter();
+      const state = clone(character.state);
+      const dialog = [{ role:'assistant', text:defaultGreeting(character), ts:Date.now() }];
+      addCharacterToRoster(character, state, dialog);
+      openCharacterById(character.id);
+    }
+
+    function addUserMessage(text){ app.dialog.push({ role:'user', text, ts:Date.now() }); syncActiveToRoster(); renderDialog(); }
+    function addAssistantMessage(text){ app.dialog.push({ role:'assistant', text, ts:Date.now() }); syncActiveToRoster(); renderDialog(); }
+    
+
+
+function normalizeReply(text) {
+  let out = String(text || '').trim();
+  out = out.replace(/\n/g, '');
+  out = out.replace(/\n{3,}/g, '\n\n');
+  out = out.replace(/[ \t]{2,}/g, ' ');
+  if (out.length > 700) out = out.slice(0, 700).trim();
+  return out || 'Я задумалась. Скажи ещё раз чуть иначе?';
+}
+
+
+
+    async function sendMessage(){
       if (app.busy) return;
       const text = ui.input.value.trim();
-      if (!text) return;
-
+      if (!text || !app.character) return;
       app.busy = true;
       ui.input.value = '';
       addUserMessage(text);
       adjustStateFromUserText(text);
+      syncActiveToRoster();
       renderCharacter();
-      ui.typing.textContent = 'печатает...';
-
+      ui.typing.textContent = '...';
       try {
-        const ai = await apiPost('/__ai', {
-          temperature: 0.92,
-          max_tokens: 220,
-          messages: buildMessages(text)
-        });
-
-        let reply = normalizeReply(ai.content);
+        const ai = await apiPost('/__ai', { temperature:0.92, max_tokens:220, messages:buildMessages(text) });
+        const reply = normalizeReply(ai.content);
         addAssistantMessage(reply);
         app.state.depth = clamp(app.state.depth + 1, 0, 100);
         app.state.mood = clamp(app.state.mood + 1, 0, 100);
+        syncActiveToRoster();
         renderCharacter();
       } catch (e) {
-        addAssistantMessage('у меня будто связь качнулась. напиши ещё раз.');
+        addAssistantMessage('Связь подвисла. Я здесь, просто ответ сейчас сорвался.');
       } finally {
         ui.typing.textContent = '';
         app.busy = false;
       }
     }
 
-    async function init() {
-      renderRules();
+    async function init(){
       const loaded = await loadAll().catch(() => false);
-      if (!loaded) {
-        await createFreshCharacter();
-      }
+      if (!loaded) await createFreshCharacter();
+      ui.sendBtn.addEventListener('click', sendMessage);
+      ui.input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+      ui.newBtn.addEventListener('click', async () => { await createFreshCharacter(); tg?.HapticFeedback?.impactOccurred?.('light'); });
+      ui.saveBtn.addEventListener('click', async () => { try { await saveAll(); tg?.HapticFeedback?.notificationOccurred?.('success'); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
+      ui.loadBtn.addEventListener('click', async () => { try { const ok = await loadAll(); if (!ok) await createFreshCharacter(); tg?.HapticFeedback?.impactOccurred?.('light'); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
+      ui.exportBtn.addEventListener('click', async () => { try { await saveAll(); await exportCharacterToBrokenRoute(); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
     }
-
-    ui.sendBtn.addEventListener('click', sendMessage);
-    ui.input.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    ui.newBtn.addEventListener('click', async () => {
-      await createFreshCharacter();
-      tg?.HapticFeedback?.impactOccurred?.('light');
-    });
-
-    ui.saveBtn.addEventListener('click', async () => {
-      try {
-        await saveAll();
-        tg?.HapticFeedback?.notificationOccurred?.('success');
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
-
-    ui.loadBtn.addEventListener('click', async () => {
-      try {
-        const loaded = await loadAll();
-        if (!loaded) await createFreshCharacter();
-        tg?.HapticFeedback?.impactOccurred?.('light');
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
-
-    ui.exportBtn.addEventListener('click', async () => {
-      try {
-        await saveAll();
-        await exportCharacterToBrokenRoute();
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
 
     init();
   </script>
