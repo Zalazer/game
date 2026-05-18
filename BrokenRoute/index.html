@@ -6,75 +6,17 @@
   <title>BrokenRoute</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root{
-      --bg:#0c0d11;
-      --panel:#151821;
-      --panel2:#1c2130;
-      --line:#30384a;
-      --text:#f2f5fb;
-      --muted:#97a1b8;
-      --accent:#f2c76b;
-      --accent2:#ffe2a8;
-      --shadow:0 24px 70px rgba(0,0,0,.38);
-      --radius:22px;
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:radial-gradient(circle at top,#192031 0,#0c0d11 58%);color:var(--text);font-family:Inter,system-ui,sans-serif}
-    body{min-height:100vh}
-    .app{max-width:1020px;margin:0 auto;padding:14px 14px 26px}
-    .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
-    .brand{font-size:13px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
-    .title{font-size:31px;font-weight:900;line-height:1.05;margin-top:6px}
-    .sub{color:var(--muted);line-height:1.5}
-    .hero,.panel{background:rgba(21,24,33,.94);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-    .hero{padding:16px 18px;margin-bottom:14px}
-    .layout{display:grid;grid-template-columns:300px 1fr;gap:14px}
-    .sidebar{padding:14px}
-    .stat{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:10px}
-    .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-    .v{font-size:24px;font-weight:900;margin-top:6px}
-    .npcBox{background:#121723;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px}
-    .actions{display:flex;flex-wrap:wrap;gap:8px}
-    .btn{
-      border:0;border-radius:14px;padding:12px 14px;background:var(--panel2);color:var(--text);
-      font-weight:800;cursor:pointer;box-shadow:var(--shadow)
-    }
-    .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#2a1a00}
-    .btn.ghost{background:#151a24}
-    .main{display:flex;flex-direction:column;min-height:76vh}
-    .sceneHead{padding:16px;border-bottom:1px solid var(--line)}
-    .sceneWrap{padding:18px;display:flex;flex-direction:column;gap:16px}
-    .objective,.sceneBox,.choicesWrap,.historyBox{
-      border-radius:20px;padding:16px;border:1px solid var(--line)
-    }
-    .objective{background:#111722;color:var(--muted)}
-    .sceneBox{background:linear-gradient(180deg,#1b2130,#151923);line-height:1.7;font-size:16px;white-space:pre-wrap}
-    .choicesWrap{background:#161b26}
-    .choices{display:grid;gap:10px}
-    .choice{
-      text-align:left;background:#171d29;border:1px solid var(--line);border-radius:16px;
-      padding:14px;color:var(--text);cursor:pointer;font:inherit;font-weight:800
-    }
-    .historyBox{background:#121722;color:var(--muted);font-size:13px;line-height:1.5}
-    .tiny{font-size:12px;color:var(--muted);line-height:1.45}
-    @media (max-width:860px){
-      .layout{grid-template-columns:1fr}
-      .top{flex-direction:column}
-      .main{min-height:auto}
-    }
+    :root { --bg:#0c0d11; --panel:#151821; --panel2:#1c2130; --line:#30384a; --text:#f2f5fb; --muted:#97a1b8; --accent:#f2c76b; --accent2:#ffe2a8; --shadow:0 24px 70px rgba(0,0,0,.38); --radius:22px; }
+    *{box-sizing:border-box;} html,body{margin:0;padding:0;background:radial-gradient(circle at top,#192031 0,#0c0d11 58%);color:var(--text);font-family:Inter,system-ui,sans-serif;} body{min-height:100vh;}
+    .app{max-width:1020px;margin:0 auto;padding:14px 14px 26px;} .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;} .brand{font-size:13px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;} .title{font-size:31px;font-weight:900;line-height:1.05;margin-top:6px;} .sub{color:var(--muted);line-height:1.5;} .hero,.panel{background:rgba(21,24,33,.94);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);} .hero{padding:16px 18px;margin-bottom:14px;} .layout{display:grid;grid-template-columns:300px 1fr;gap:14px;} .sidebar{padding:14px;} .stat{background:var(--panel2);border:1px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:10px;} .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;} .v{font-size:24px;font-weight:900;margin-top:6px;} .npcBox{background:#121723;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:12px;} .actions{display:flex;flex-wrap:wrap;gap:8px;} .btn{border:0;border-radius:14px;padding:12px 14px;background:var(--panel2);color:var(--text);font-weight:800;cursor:pointer;box-shadow:var(--shadow);} .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#2a1a00;} .btn.ghost{background:#151a24;} .main{display:flex;flex-direction:column;min-height:76vh;} .sceneHead{padding:16px;border-bottom:1px solid var(--line);} .sceneWrap{padding:18px;display:flex;flex-direction:column;gap:16px;} .objective,.sceneBox,.choicesWrap,.historyBox{border-radius:20px;padding:16px;border:1px solid var(--line);} .objective{background:#111722;color:var(--muted);} .sceneBox{background:linear-gradient(180deg,#1b2130,#151923);line-height:1.7;font-size:16px;white-space:pre-wrap;} .choicesWrap{background:#161b26;} .choices{display:grid;gap:10px;} .choice{text-align:left;background:#171d29;border:1px solid var(--line);border-radius:16px;padding:14px;color:var(--text);cursor:pointer;font:inherit;font-weight:800;} .historyBox{background:#121722;color:var(--muted);font-size:13px;line-height:1.5;} .tiny{font-size:12px;color:var(--muted);line-height:1.45;} .importsList{margin-top:8px;display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto;} .importItem{width:100%;text-align:left;border:1px solid var(--line);background:#171d29;color:var(--text);border-radius:14px;padding:10px 12px;cursor:pointer;} .importItem.active{outline:2px solid var(--accent);} @media (max-width:860px){.layout{grid-template-columns:1fr}.top{flex-direction:column}.main{min-height:auto}}
   </style>
 </head>
 <body>
   <div class="app">
     <div class="top">
       <div>
-        <div class="brand">ZALAZER</div>
-        <div class="title">BrokenRoute</div>
-        <div class="sub" style="margin-top:8px">
-          Русский режим • текстовый маршрут • живые сцены.  
-          Позже сюда можно подмешивать уже сформированных персонажей из ZalazerChat,
-          чтобы NPC были не шаблонные, а с памятью и характером.
-        </div>
+        <div class="brand">BrokenRoute</div>
+        <div class="sub" style="margin-top:8px">Текстовый маршрут • живые сцены. Можно подмешивать уже сформированных персонажей из ZalazerChat, чтобы NPC были не шаблонные, а с памятью и характером.</div>
       </div>
       <div class="actions">
         <button class="btn" id="loadBtn" type="button">Загрузить</button>
@@ -84,25 +26,22 @@
       </div>
     </div>
 
-    <div class="hero">
-      Весь текст, сцены, системные промпты и логика последствий живут в этом HTML.
-      Worker используется только как KV-хранилище и прокси к ИИ.
-    </div>
-
     <div class="layout">
       <aside class="panel sidebar">
         <div class="stat"><div class="k">Глава</div><div class="v" id="chapterVal">1</div></div>
         <div class="stat"><div class="k">Деньги</div><div class="v" id="moneyVal">500</div></div>
         <div class="stat"><div class="k">Энергия</div><div class="v" id="energyVal">100</div></div>
-        <div class="stat"><div class="k">Шум</div><div class="v" id="heatVal">0</div></div>
-        <div class="stat"><div class="k">Влияние</div><div class="v" id="influenceVal">0</div></div>
-        <div class="stat"><div class="k">Время</div><div class="v" id="timeVal">0</div></div>
+        <div class="stat"><div class="k">Heat</div><div class="v" id="heatVal">0</div></div>
+        <div class="stat"><div class="k">Influence</div><div class="v" id="influenceVal">0</div></div>
+        <div class="stat"><div class="k">Time</div><div class="v" id="timeVal">0</div></div>
 
         <div class="npcBox">
-          <div class="k">Импортированный NPC</div>
-          <div style="font-size:22px;font-weight:900;margin-top:8px" id="npcName">—</div>
-          <div class="sub" id="npcSummary" style="margin-top:8px">Персонаж пока не импортирован.</div>
+          <div class="k">NPC</div>
+          <div style="font-size:22px;font-weight:900;margin-top:8px" id="npcName">...</div>
+          <div class="sub" id="npcSummary" style="margin-top:8px">...</div>
           <div class="tiny" id="npcHook" style="margin-top:10px"></div>
+          <div class="tiny" style="margin-top:10px">Импортированные NPC</div>
+          <div id="importsList" class="importsList"></div>
         </div>
       </aside>
 
@@ -111,43 +50,29 @@
           <div id="sceneTitle" style="font-size:26px;font-weight:900">Сломанный маршрут</div>
           <div id="sceneSub" class="sub" style="margin-top:6px">ночь • трасса • слабая сеть</div>
         </div>
-
         <div class="sceneWrap">
-          <div class="objective" id="objectiveBox">
-            Понять, кто втянул тебя в эту дорогу и почему маршрут сломался ещё до прибытия.
-          </div>
-
-          <div class="sceneBox" id="sceneText">
-Нажми «Начать маршрут».
-          </div>
-
+          <div class="objective" id="objectiveBox">Понять, кто втянул тебя в эту дорогу и почему маршрут сломался ещё до прибытия.</div>
+          <div class="sceneBox" id="sceneText">Нажми «Начать маршрут».</div>
           <div class="choicesWrap">
             <div class="k" style="margin-bottom:10px">Выбор</div>
             <div class="choices" id="choices"></div>
           </div>
-
-          <div class="historyBox" id="historyBox">
-            Последнее действие: ожидание старта.
-          </div>
+          <div class="historyBox" id="historyBox">Последнее действие: ожидание старта.</div>
         </div>
       </section>
     </div>
   </div>
 
   <script>
-    const tg =
-  window.parent?.Telegram?.WebApp ||
-  window.Telegram?.WebApp ||
-  null;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
+    const tg = window.parent?.Telegram?.WebApp || window.Telegram?.WebApp || null;
+    if (tg) { tg.ready(); tg.expand(); }
 
     const app = {
       userId: tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'anon',
       busy: false,
+      importsIndex: [],
       importedCharacter: null,
+      selectedImportId: null,
       route: null
     };
 
@@ -170,46 +95,46 @@
       loadBtn: document.getElementById('loadBtn'),
       importBtn: document.getElementById('importBtn'),
       startBtn: document.getElementById('startBtn'),
-      saveBtn: document.getElementById('saveBtn')
+      saveBtn: document.getElementById('saveBtn'),
+      importsList: document.getElementById('importsList')
     };
 
-    function createDefaultRoute() {
+    function createDefaultRoute(){
       return {
-        chapter: 1,
-        title: 'Сломанный маршрут',
-        subtitle: 'ночь • трасса • слабая сеть',
-        objective: 'Понять, кому можно верить.',
-        scene: 'Маршрут перестраивается. Что-то пошло не так ещё до прибытия, и теперь любое решение может оказаться не тем.',
-        choices: [
-          'Проверить телефон и последние сообщения',
-          'Остановиться у редкой заправки впереди',
-          'Съехать с основной дороги и переждать'
-        ],
-        resources: {
-          money: 500,
-          energy: 100,
-          heat: 0,
-          influence: 0,
-          time: 0
-        },
-        history: ['ожидание старта'],
-        sceneIndex: 0,
-        status: 'idle'
+        chapter:1,
+        title:'Сломанный маршрут',
+        subtitle:'ночь • трасса • слабая сеть',
+        objective:'Понять, кто втянул тебя в эту дорогу и почему маршрут сломался ещё до прибытия.',
+        scene:'Нажми «Начать маршрут».',
+        choices:['Проверить телефон','Осмотреть обочину','Остаться в машине'],
+        resources:{ money:500, energy:100, heat:0, influence:0, time:0 },
+        history:['ожидание старта'],
+        sceneIndex:0,
+        status:'idle'
       };
     }
 
     const localSceneSeeds = [
-      'Мокрый свет фонарей ложится на разбитый асфальт, а навигатор внезапно ведёт тебя не туда, куда должен.',
-      'Телефон ловит сеть рывками, будто кто-то рядом постоянно её глушит.',
-      'На обочине слишком тихо, но именно такая тишина обычно означает, что кто-то уже наблюдает.',
-      'Ты чувствуешь, что маршрут сломался не случайно, и кто-то заранее знал, где ты окажешься.'
+      'Фары выхватывают кусок мокрой дороги. Ветер шевелит траву у канавы, а на экране телефона снова вспыхивает слабый сигнал.',
+      'На обочине слишком тихо. Кажется, кто-то был здесь раньше тебя и ушёл буквально несколько минут назад.',
+      'Дорога впереди пуста, но чувство такое, будто маршрут испорчен не случайно, а кем-то вручную.'
     ];
 
-    function clamp(v, min, max) {
-      return Math.max(min, Math.min(max, v));
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+    async function apiGet(path){ const r = await fetch(path); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+    async function apiPost(path, body){ const r = await fetch(path,{ method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body) }); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+
+    function renderChoices(choices){
+      ui.choices.innerHTML = '';
+      choices.slice(0,3).forEach(text => {
+        const btn = document.createElement('button');
+        btn.className = 'choice'; btn.type = 'button'; btn.textContent = text;
+        btn.addEventListener('click', () => makeChoice(text));
+        ui.choices.appendChild(btn);
+      });
     }
 
-    function renderRoute() {
+    function renderRoute(){
       const r = app.route;
       ui.chapterVal.textContent = String(r.chapter);
       ui.moneyVal.textContent = String(r.resources.money);
@@ -221,27 +146,15 @@
       ui.sceneSub.textContent = r.subtitle;
       ui.objectiveBox.textContent = r.objective;
       ui.sceneText.textContent = r.scene;
-      ui.historyBox.textContent = 'Последнее действие: ' + (r.history[r.history.length - 1] || '—');
-      renderChoices(r.choices || []);
+      ui.historyBox.textContent = 'Последнее действие: ' + (r.history[r.history.length - 1] || 'ожидание');
+      renderChoices(r.choices);
     }
 
-    function renderChoices(choices) {
-      ui.choices.innerHTML = '';
-      choices.slice(0, 3).forEach(text => {
-        const btn = document.createElement('button');
-        btn.className = 'choice';
-        btn.type = 'button';
-        btn.textContent = text;
-        btn.addEventListener('click', () => makeChoice(text));
-        ui.choices.appendChild(btn);
-      });
-    }
-
-    function renderImportedCharacter() {
+    function renderImportedCharacter(){
       const data = app.importedCharacter;
       if (!data || !data.character) {
-        ui.npcName.textContent = '—';
-        ui.npcSummary.textContent = 'Персонаж пока не импортирован.';
+        ui.npcName.textContent = '...';
+        ui.npcSummary.textContent = 'NPC ещё не выбран.';
         ui.npcHook.textContent = '';
         return;
       }
@@ -251,197 +164,196 @@
       ui.npcHook.textContent = `${c.core.country} • ${c.core.location} • ${c.core.hook}`;
     }
 
-    async function apiGet(path) {
-      const r = await fetch(path);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    }
-
-    async function apiPost(path, body) {
-      const r = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    }
-
-    async function loadRoute() {
-      const [stateRes, npcRes] = await Promise.all([
-        apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=state`),
-        apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=importedCharacter`)
-      ]);
-
-      app.route = stateRes.data || createDefaultRoute();
-      app.importedCharacter = npcRes.data || null;
-
-      renderRoute();
-      renderImportedCharacter();
-    }
-
-    async function saveRoute() {
-      await apiPost('/__kvset', {
-        scope: 'br',
-        user: app.userId,
-        part: 'state',
-        data: app.route
+    function renderImportsList(){
+      ui.importsList.innerHTML = '';
+      app.importsIndex.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'importItem' + (item.id === app.selectedImportId ? ' active' : '');
+        btn.textContent = item.name;
+        btn.addEventListener('click', async () => { await loadImportedCharacterById(item.id); });
+        ui.importsList.appendChild(btn);
       });
     }
 
-    async function importCharacter() {
-      const res = await apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=importedCharacter`);
+    async function loadImportsIndex(){
+      const res = await apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=importsIndex`);
+      app.importsIndex = Array.isArray(res.data) ? res.data : [];
+      if (!app.selectedImportId && app.importsIndex.length) app.selectedImportId = app.importsIndex[0].id;
+      renderImportsList();
+    }
+
+    async function loadImportedCharacterById(id){
+      if (!id) { app.importedCharacter = null; renderImportedCharacter(); return; }
+      const part = encodeURIComponent(`importedCharacter:${id}`);
+      const res = await apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=${part}`);
       app.importedCharacter = res.data || null;
+      app.selectedImportId = id;
       renderImportedCharacter();
-      if (app.importedCharacter?.character) {
-        app.route.history.push('импортирован персонаж ' + app.importedCharacter.character.core.name);
-        app.route.history = app.route.history.slice(-20);
-        renderRoute();
+      renderImportsList();
+    }
+
+    async function loadRoute(){
+      const stateRes = await apiGet(`/__kvget?scope=br&user=${encodeURIComponent(app.userId)}&part=state`);
+      app.route = stateRes.data || createDefaultRoute();
+      renderRoute();
+      await loadImportsIndex();
+      if (app.selectedImportId) await loadImportedCharacterById(app.selectedImportId); else { app.importedCharacter = null; renderImportedCharacter(); }
+    }
+
+    async function saveRoute(){
+      await apiPost('/__kvset', { scope:'br', user:app.userId, part:'state', data:app.route });
+    }
+
+    async function importCharacter(){
+      await loadImportsIndex();
+      if (app.importsIndex.length) {
+        await loadImportedCharacterById(app.importsIndex[0].id);
+        if (app.importedCharacter?.character) {
+          app.route.history.push(`Импортирован NPC: ${app.importedCharacter.character.core.name}`);
+          app.route.history = app.route.history.slice(-20);
+          renderRoute();
+        }
       }
     }
 
-    function applyChoiceEffects(choice) {
+    function applyChoiceEffects(choice){
       const r = app.route;
       r.resources.time += 5;
       r.resources.energy = clamp(r.resources.energy - 3, 0, 100);
-
-      if (/заправк/i.test(choice)) {
-        r.resources.money = clamp(r.resources.money - 40, 0, 999999);
-        r.resources.heat = clamp(r.resources.heat + 1, 0, 100);
-      }
-      if (/телефон|сообщени/i.test(choice)) {
-        r.resources.influence = clamp(r.resources.influence + 1, 0, 100);
-      }
-      if (/съехать|переждать/i.test(choice)) {
-        r.resources.heat = clamp(r.resources.heat - 1, 0, 100);
-      }
+      if (/куп|заплат|взять/i.test(choice)) { r.resources.money = clamp(r.resources.money - 40, 0, 999999); r.resources.heat = clamp(r.resources.heat + 1, 0, 100); }
+      if (/говор|довер|попрос/i.test(choice)) r.resources.influence = clamp(r.resources.influence + 1, 0, 100);
+      if (/скрыт|тихо|молча/i.test(choice)) r.resources.heat = clamp(r.resources.heat - 1, 0, 100);
     }
 
-    function buildSystemPrompt(choice) {
+
+
+
+    function buildNpcMemoryBlock() {
+  const pack = app.importedCharacter;
+  const npc = pack?.character || null;
+  const memory = pack?.memory || null;
+  if (!npc) return '';
+
+  const facts = Array.isArray(memory?.facts)
+    ? memory.facts.slice(0, 8).join('; ')
+    : '';
+
+  const sampleDialog = Array.isArray(memory?.sampleDialog)
+    ? memory.sampleDialog
+        .slice(-8)
+        .map(m => `${m.role === 'user' ? 'Игрок' : npc.core.name}: ${m.text}`)
+        .join('\n')
+    : '';
+
+  return [
+    `NPC: ${npc.core.name}.`,
+    `Страна и локация: ${npc.core.country}, ${npc.core.location}.`,
+    `Хук: ${npc.core.hook}.`,
+    `Вибе: ${npc.persona.vibe}.`,
+    `Манера речи: ${npc.persona.speech}.`,
+    `Состояние NPC — mood ${pack.state?.mood ?? 0}, trust ${pack.state?.trust ?? 0}, energy ${pack.state?.energy ?? 0}, depth ${pack.state?.depth ?? 0}.`,
+    memory?.summary ? `Память отношений: ${memory.summary}` : '',
+    facts ? `Факты из прошлой переписки: ${facts}.` : '',
+    sampleDialog ? `Примеры прошлой переписки:
+${sampleDialog}` : '',
+    'NPC должен помнить этот контекст и вести себя так, будто общение с игроком уже было раньше.'
+  ].filter(Boolean).join('\n');
+}
+
+
+
+
+    function buildSystemPrompt(choice){
       const r = app.route;
-      const npc = app.importedCharacter?.character || null;
-
-      const npcBlock = npc ? [
-        `В сцене может появиться персонаж ${npc.core.name}.`,
-        `Это человек из ${npc.core.country}, живёт: ${npc.core.location}.`,
-        `Особенность: ${npc.core.hook}.`,
-        `Характер: ${npc.persona.vibe}.`,
-        `Стиль речи: ${npc.persona.speech}.`,
-        'Если NPC появляется, он должен звучать как живой человек, а не как бот.'
-      ].join(' ') : 'Пока импортированного NPC нет.';
-
+      const npcBlock = buildNpcMemoryBlock();
       return [
-        'Ты ведущий русскоязычной текстовой игры BrokenRoute.',
-        'Пиши только по-русски.',
-        'Стилистика: напряжённая, атмосферная, реалистичная, без мистического перегиба.',
-        'Не упоминай ИИ, не пиши как ассистент.',
-        'Нужна короткая живая сцена после выбора игрока.',
-        'Сцена должна быть 1–3 абзаца, без списков.',
-        'После сцены отдельно верни три коротких варианта следующего действия.',
-        'Формат ответа строго такой:',
+        'Ты пишешь сцены для текстовой дорожной игры BrokenRoute.',
+        'Стиль: русский, атмосферный, живой, без канцелярита.',
+        'Нужно вернуть строго 4 строки:',
         'SCENE: ...',
         'OPTION1: ...',
         'OPTION2: ...',
         'OPTION3: ...',
-        `Текущая глава: ${r.chapter}.`,
-        `Ресурсы: money=${r.resources.money}, energy=${r.resources.energy}, heat=${r.resources.heat}, influence=${r.resources.influence}, time=${r.resources.time}.`,
-        `Текущая цель: ${r.objective}.`,
-        `Последнее решение игрока: ${choice}.`,
+        `Глава: ${r.chapter}.`,
+        `Ресурсы: money ${r.resources.money}, energy ${r.resources.energy}, heat ${r.resources.heat}, influence ${r.resources.influence}, time ${r.resources.time}.`,
+        `Цель игрока: ${r.objective}.`,
+        `Выбор игрока: ${choice}.`,
         npcBlock
-      ].join(' ');
+      ].join('\n');
     }
 
-    function buildMessages(choice) {
-      const recentHistory = app.route.history.slice(-8).join(' | ');
-      return [
-        { role: 'system', content: buildSystemPrompt(choice) },
-        {
-          role: 'user',
-          content: `История маршрута: ${recentHistory}. Разверни следующую сцену после действия игрока: ${choice}.`
-        }
-      ];
+    function buildMessages(choice){
+      const recentHistory = app.route.history.slice(-8).join('. ');
+      return [{ role:'system', content:buildSystemPrompt(choice) }, { role:'user', content:`История: ${recentHistory}. Новый выбор: ${choice}.` }];
     }
+
+
+
 
     function parseAiRoute(text, choice) {
-      const raw = String(text || '').trim();
+  const raw = String(text || '').trim();
+  let scene = '';
+  let option1 = '';
+  let option2 = '';
+  let option3 = '';
 
-      let scene = '';
-      let option1 = '';
-      let option2 = '';
-      let option3 = '';
+  raw.split('\n').forEach(line => {
+    const t = line.trim();
+    if (t.startsWith('SCENE:')) scene = t.replace('SCENE:', '').trim();
+    if (t.startsWith('OPTION1:')) option1 = t.replace('OPTION1:', '').trim();
+    if (t.startsWith('OPTION2:')) option2 = t.replace('OPTION2:', '').trim();
+    if (t.startsWith('OPTION3:')) option3 = t.replace('OPTION3:', '').trim();
+  });
 
-      raw.split('\n').forEach(line => {
-        const t = line.trim();
-        if (t.startsWith('SCENE:')) scene = t.replace('SCENE:', '').trim();
-        if (t.startsWith('OPTION1:')) option1 = t.replace('OPTION1:', '').trim();
-        if (t.startsWith('OPTION2:')) option2 = t.replace('OPTION2:', '').trim();
-        if (t.startsWith('OPTION3:')) option3 = t.replace('OPTION3:', '').trim();
-      });
+  if (!scene) {
+    scene = `${localSceneSeeds[Math.floor(Math.random() * localSceneSeeds.length)]} После выбора «${choice}» ситуация стала менее предсказуемой.`;
+  }
 
-      if (!scene) {
-        scene = `${localSceneSeeds[Math.floor(Math.random() * localSceneSeeds.length)]} Ты выбираешь: ${choice}. Становится ясно, что маршрут начал ломаться не сам по себе.`;
-      }
+  const options = [option1, option2, option3].filter(Boolean);
+  if (options.length < 3) {
+    return {
+      scene,
+      choices: ['Идти дальше', 'Проверить детали', 'Сменить тактику']
+    };
+  }
 
-      const options = [option1, option2, option3].filter(Boolean);
-      if (options.length < 3) {
-        return {
-          scene,
-          choices: [
-            'Сделать осторожный следующий шаг',
-            'Связаться с нужным человеком и уточнить детали',
-            'Сменить направление, пока не стало поздно'
-          ]
-        };
-      }
+  return {
+    scene,
+    choices: options.slice(0, 3)
+  };
+}
 
-      return { scene, choices: options.slice(0, 3) };
-    }
 
-    async function startRoute() {
-      if (!app.route) app.route = createDefaultRoute();
-      await makeChoice('начать маршрут');
-    }
 
-    async function makeChoice(choice) {
+
+
+    async function startRoute(){ if (!app.route) app.route = createDefaultRoute(); await makeChoice('старт'); }
+
+    async function makeChoice(choice){
       if (app.busy) return;
       app.busy = true;
-      ui.sceneText.textContent = 'маршрут перестраивается...';
-
+      ui.sceneText.textContent = '...';
       try {
         applyChoiceEffects(choice);
-
-        const ai = await apiPost('/__ai', {
-          temperature: 0.9,
-          max_tokens: 360,
-          messages: buildMessages(choice)
-        });
-
+        const ai = await apiPost('/__ai', { temperature:0.9, max_tokens:360, messages:buildMessages(choice) });
         const parsed = parseAiRoute(ai.content, choice);
-
         app.route.scene = parsed.scene;
         app.route.choices = parsed.choices;
         app.route.history.push(choice);
         app.route.history = app.route.history.slice(-20);
         app.route.sceneIndex += 1;
         app.route.status = 'running';
-
         if (app.route.sceneIndex > 0 && app.route.sceneIndex % 5 === 0) {
           app.route.chapter += 1;
-          app.route.subtitle = `глава ${app.route.chapter} • дорога • давление растёт`;
-          app.route.objective = app.importedCharacter?.character
-            ? `Понять, можно ли доверять ${app.importedCharacter.character.core.name}, и не потерять контроль над маршрутом.`
-            : 'Понять, кто ломает твой маршрут и зачем тебя ведут дальше.';
+          app.route.subtitle = `глава ${app.route.chapter} • маршрут становится темнее`;
+          app.route.objective = app.importedCharacter?.character ? `Разобраться, почему ${app.importedCharacter.character.core.name} связана с этим маршрутом и что она скрывает.` : 'Продолжить маршрут и не дать дороге сломать темп.';
         }
-
         renderRoute();
       } catch (e) {
-        app.route.scene = `${localSceneSeeds[Math.floor(Math.random() * localSceneSeeds.length)]} После решения "${choice}" связь будто рвётся, но дорога всё равно толкает тебя дальше.`;
-        app.route.choices = [
-          'Осмотреться внимательнее',
-          'Проверить боковую дорогу',
-          'Замереть и не выдавать себя'
-        ];
-        app.route.history.push(choice + ' (резервный ход)');
+        app.route.scene = `${localSceneSeeds[Math.floor(Math.random()*localSceneSeeds.length)]} Выбор «${choice}» сработал, но связь снова сорвалась.`;
+        app.route.choices = ['Идти дальше','Осмотреться','Сделать паузу'];
+        app.route.history.push(choice);
         app.route.history = app.route.history.slice(-20);
         renderRoute();
       } finally {
@@ -449,47 +361,12 @@
       }
     }
 
-    ui.startBtn.addEventListener('click', async () => {
-      try {
-        await startRoute();
-        tg?.HapticFeedback?.impactOccurred?.('light');
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
+    ui.startBtn.addEventListener('click', async () => { try { await startRoute(); tg?.HapticFeedback?.impactOccurred?.('light'); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
+    ui.importBtn.addEventListener('click', async () => { try { await importCharacter(); tg?.HapticFeedback?.notificationOccurred?.('success'); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
+    ui.saveBtn.addEventListener('click', async () => { try { await saveRoute(); tg?.HapticFeedback?.notificationOccurred?.('success'); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
+    ui.loadBtn.addEventListener('click', async () => { try { await loadRoute(); tg?.HapticFeedback?.impactOccurred?.('light'); } catch { tg?.HapticFeedback?.notificationOccurred?.('error'); } });
 
-    ui.importBtn.addEventListener('click', async () => {
-      try {
-        await importCharacter();
-        tg?.HapticFeedback?.notificationOccurred?.('success');
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
-
-    ui.saveBtn.addEventListener('click', async () => {
-      try {
-        await saveRoute();
-        tg?.HapticFeedback?.notificationOccurred?.('success');
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
-
-    ui.loadBtn.addEventListener('click', async () => {
-      try {
-        await loadRoute();
-        tg?.HapticFeedback?.impactOccurred?.('light');
-      } catch {
-        tg?.HapticFeedback?.notificationOccurred?.('error');
-      }
-    });
-
-    loadRoute().catch(() => {
-      app.route = createDefaultRoute();
-      renderRoute();
-      renderImportedCharacter();
-    });
+    loadRoute().catch(() => { app.route = createDefaultRoute(); renderRoute(); renderImportedCharacter(); });
   </script>
 </body>
 </html>
