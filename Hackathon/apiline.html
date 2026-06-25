@@ -392,12 +392,13 @@
 </div>
 
   </div>  <script type="module">
-    import * as anchor from 'https://esm.sh/@coral-xyz/anchor@0.30.1';
     import {
-      Connection,
-      PublicKey,
-      SystemProgram
-    } from 'https://esm.sh/@solana/web3.js@1.95.3';
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction
+} from 'https://esm.sh/@solana/web3.js@1.95.3';
 
     import {
       getAssociatedTokenAddressSync,
@@ -418,59 +419,17 @@
     const RPC_URL = 'https://api.mainnet-beta.solana.com';
     const API_BASE = 'https://txline.txodds.com';
 
-    const IDL = {
-  address: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
-  metadata: {
-    name: 'txoracle',
-    version: '1.4.7',
-    spec: '0.1.0',
-    description: 'TxODDS TxLINE Data system'
-  },
+ const SUBSCRIBE_DISCRIMINATOR = new Uint8Array([254, 28, 191, 138, 156, 179, 183, 53]);
 
-  // ✅ ВОТ ГЛАВНЫЙ ФИКС
-  types: [],
+const connection = new Connection(RPC_URL, 'confirmed');
+const encoder = new TextEncoder();
 
-  instructions: [
-    {
-      name: 'subscribe',
-      discriminator: [254,28,191,138,156,179,183,53],
-      accounts: [
-        { name: 'user', writable: true, signer: true },
-        { name: 'pricingMatrix' },
-        { name: 'tokenMint' },
-        { name: 'userTokenAccount', writable: true },
-        { name: 'tokenTreasuryVault', writable: true },
-        { name: 'tokenTreasuryPda' },
-        { name: 'tokenProgram' },
-        { name: 'systemProgram' },
-        { name: 'associatedTokenProgram' }
-      ],
-      args: [
-        { name: 'serviceLevelId', type: 'u16' },
-        { name: 'weeks', type: 'u8' }
-      ]
-    }
-  ],
-
-  accounts: [
-    {
-      name: 'pricingMatrix',
-      discriminator: [173,13,64,22,248,77,110,106]
-    }
-  ]
-};
+let wallet = null;
+let derived = null;
+let walletSignatureBase64 = '';
+let activeTokenProgramId = null;
 
 
-
-    const connection = new Connection(RPC_URL, 'confirmed');
-    const encoder = new TextEncoder();
-
-    let wallet = null;
-    let provider = null;
-    let program = null;
-    let derived = null;
-    let walletSignatureBase64 = '';
-    let activeTokenProgramId = null;
 
     const $ = (id) => document.getElementById(id);
 
@@ -642,36 +601,27 @@
     }
 
     async function connectWallet() {
-      wallet = getPhantomProvider();
+  wallet = getPhantomProvider();
 
-      await wallet.connect();
+  await wallet.connect();
 
-      provider = new anchor.AnchorProvider(
-        connection,
-        {
-          publicKey: wallet.publicKey,
-          signTransaction: wallet.signTransaction.bind(wallet),
-          signAllTransactions: wallet.signAllTransactions?.bind(wallet)
-        },
-        { commitment: 'confirmed' }
-      );
+  const tokenProgramId = await detectMintTokenProgram();
 
-      program = new anchor.Program(IDL, provider);
+  setWalletStatus(
+    `Connected: ${wallet.publicKey.toBase58()} | Token program: ${tokenProgramId.toBase58()}`,
+    true
+  );
 
-      const tokenProgramId = await detectMintTokenProgram();
+  log('Wallet connected', {
+    publicKey: wallet.publicKey.toBase58(),
+    tokenProgram: tokenProgramId.toBase58()
+  });
 
-      setWalletStatus(
-        `Connected: ${wallet.publicKey.toBase58()} | Token program: ${tokenProgramId.toBase58()}`,
-        true
-      );
+  updateUiState();
+}
 
-      log('Wallet connected', {
-        publicKey: wallet.publicKey.toBase58(),
-        tokenProgram: tokenProgramId.toBase58()
-      });
 
-      updateUiState();
-    }
+
 
     async function deriveAccounts() {
       if (!wallet?.publicKey) {
@@ -750,79 +700,118 @@
       );
     }
 
-    async function subscribeFlow() {
-      if (!program) {
-        throw new Error('Connect wallet first.');
-      }
+    function buildSubscribeData(serviceLevelId, weeks) {
+  if (!Number.isInteger(serviceLevelId) || serviceLevelId < 0 || serviceLevelId > 65535) {
+    throw new Error('serviceLevelId must fit into u16.');
+  }
 
-      setStatus('Preparing subscription...');
+  if (!Number.isInteger(weeks) || weeks < 0 || weeks > 255) {
+    throw new Error('weeks must fit into u8.');
+  }
 
-      const {
-        userPubkey,
-        pricingMatrixPda,
-        tokenTreasuryPda,
-        tokenTreasuryVault,
-        userTokenAccount
-      } = await deriveAccounts();
+  const data = new Uint8Array(8 + 2 + 1);
 
-      const { serviceLevelId, weeks } = validateSubscriptionInputs();
+  data.set(SUBSCRIBE_DISCRIMINATOR, 0);
 
-      const preIx = await ensureUserTokenAta(
-        userPubkey,
-        userTokenAccount
-      );
+  data[8] = serviceLevelId & 0xff;
+  data[9] = (serviceLevelId >> 8) & 0xff;
 
-      let method = program.methods
-        .subscribe(serviceLevelId, weeks)
-        .accounts({
-          user: userPubkey,
-          pricingMatrix: pricingMatrixPda,
-          tokenMint: SUBSCRIPTION_TOKEN_MINT,
-          userTokenAccount,
-          tokenTreasuryVault,
-          tokenTreasuryPda,
-          tokenProgram: activeTokenProgramId,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId
-        });
+  data[10] = weeks;
 
-      if (preIx) {
-        method = method.preInstructions([preIx]);
-      }
+  return data;
+}
 
-      const txSig = await method.rpc();
+async function subscribeFlow() {
+  if (!wallet?.publicKey) {
+    throw new Error('Connect wallet first.');
+  }
 
-      setStatus('Waiting for subscription transaction confirmation...');
+  if (!wallet.signTransaction) {
+    throw new Error('Wallet signTransaction() is not available in this environment.');
+  }
 
-      const confirmation = await connection.confirmTransaction(
-        txSig,
-        'confirmed'
-      );
+  setStatus('Preparing subscription...');
 
-      if (confirmation.value.err) {
-        throw new Error(
-          `Subscription transaction failed: ${JSON.stringify(
-            confirmation.value.err
-          )}`
-        );
-      }
+  const {
+    userPubkey,
+    pricingMatrixPda,
+    tokenTreasuryPda,
+    tokenTreasuryVault,
+    userTokenAccount
+  } = await deriveAccounts();
 
-      $('txSig').value = txSig;
-      invalidateSignature();
-      updateUiState();
+  const { serviceLevelId, weeks } = validateSubscriptionInputs();
 
-      setStatus('Subscription transaction confirmed.', true);
+  const preIx = await ensureUserTokenAta(userPubkey, userTokenAccount);
 
-      log('Subscribe success', {
-        txSig,
-        serviceLevelId,
-        weeks,
-        tokenProgram: activeTokenProgramId.toBase58()
-      });
+  const subscribeIx = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: userPubkey, isSigner: true, isWritable: true },
+      { pubkey: pricingMatrixPda, isSigner: false, isWritable: false },
+      { pubkey: SUBSCRIPTION_TOKEN_MINT, isSigner: false, isWritable: false },
+      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: tokenTreasuryVault, isSigner: false, isWritable: true },
+      { pubkey: tokenTreasuryPda, isSigner: false, isWritable: false },
+      { pubkey: activeTokenProgramId, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+    ],
+    data: buildSubscribeData(serviceLevelId, weeks)
+  });
 
-      return txSig;
-    }
+  const latestBlockhash = await connection.getLatestBlockhash('confirmed');
 
+  const tx = new Transaction({
+    feePayer: userPubkey,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  });
+
+  if (preIx) {
+    tx.add(preIx);
+  }
+
+  tx.add(subscribeIx);
+
+  const signedTx = await wallet.signTransaction(tx);
+  const txSig = await connection.sendRawTransaction(signedTx.serialize(), {
+    skipPreflight: false,
+    preflightCommitment: 'confirmed'
+  });
+
+  setStatus('Waiting for subscription transaction confirmation...');
+
+  const confirmation = await connection.confirmTransaction(
+    {
+      signature: txSig,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    },
+    'confirmed'
+  );
+
+  if (confirmation.value.err) {
+    throw new Error(
+      `Subscription transaction failed: ${JSON.stringify(confirmation.value.err)}`
+    );
+  }
+
+  $('txSig').value = txSig;
+  invalidateSignature();
+  updateUiState();
+
+  setStatus('Subscription transaction confirmed.', true);
+
+  log('Subscribe success', {
+    txSig,
+    serviceLevelId,
+    weeks,
+    tokenProgram: activeTokenProgramId.toBase58()
+  });
+
+  return txSig;
+}
 
 
 
