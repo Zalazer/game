@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 
 <html lang="en">
 <head>
@@ -419,41 +419,48 @@
     const API_BASE = 'https://txline.txodds.com';
 
     const IDL = {
-      address: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
-      metadata: {
-        name: 'txoracle',
-        version: '1.4.7',
-        spec: '0.1.0',
-        description: 'TxODDS TxLINE Data system'
-      },
-      instructions: [
-        {
-          name: 'subscribe',
-          discriminator: [254, 28, 191, 138, 156, 179, 183, 53],
-          accounts: [
-            { name: 'user', writable: true, signer: true },
-            { name: 'pricingMatrix' },
-            { name: 'tokenMint' },
-            { name: 'userTokenAccount', writable: true },
-            { name: 'tokenTreasuryVault', writable: true },
-            { name: 'tokenTreasuryPda' },
-            { name: 'tokenProgram' },
-            { name: 'systemProgram' },
-            { name: 'associatedTokenProgram' }
-          ],
-          args: [
-            { name: 'serviceLevelId', type: 'u16' },
-            { name: 'weeks', type: 'u8' }
-          ]
-        }
-      ],
+  address: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
+  metadata: {
+    name: 'txoracle',
+    version: '1.4.7',
+    spec: '0.1.0',
+    description: 'TxODDS TxLINE Data system'
+  },
+
+  // ✅ ВОТ ГЛАВНЫЙ ФИКС
+  types: [],
+
+  instructions: [
+    {
+      name: 'subscribe',
+      discriminator: [254,28,191,138,156,179,183,53],
       accounts: [
-        {
-          name: 'pricingMatrix',
-          discriminator: [173, 13, 64, 22, 248, 77, 110, 106]
-        }
+        { name: 'user', writable: true, signer: true },
+        { name: 'pricingMatrix' },
+        { name: 'tokenMint' },
+        { name: 'userTokenAccount', writable: true },
+        { name: 'tokenTreasuryVault', writable: true },
+        { name: 'tokenTreasuryPda' },
+        { name: 'tokenProgram' },
+        { name: 'systemProgram' },
+        { name: 'associatedTokenProgram' }
+      ],
+      args: [
+        { name: 'serviceLevelId', type: 'u16' },
+        { name: 'weeks', type: 'u8' }
       ]
-    };
+    }
+  ],
+
+  accounts: [
+    {
+      name: 'pricingMatrix',
+      discriminator: [173,13,64,22,248,77,110,106]
+    }
+  ]
+};
+
+
 
     const connection = new Connection(RPC_URL, 'confirmed');
     const encoder = new TextEncoder();
