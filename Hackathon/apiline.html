@@ -1,1 +1,835 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>TxLINE Helper</title>  <style>
+    :root {
+      --bg:#0f1115;
+      --panel:#171a21;
+      --panel2:#1e2430;
+      --text:#eef2ff;
+      --muted:#a8b0c7;
+      --accent:#59d0c2;
+      --accent2:#6ea8ff;
+      --danger:#ff6b7a;
+      --ok:#64d38a;
+      --border:#2a3242;
+      --radius:16px;
+      --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans:Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing:border-box;
+    }
+
+    body {
+      margin:0;
+      min-height:100vh;
+      padding:18px;
+      font-family:var(--sans);
+      color:var(--text);
+      background:linear-gradient(180deg,#0b0d12,#111623 45%,#0b0d12);
+    }
+
+    .wrap {
+      max-width:960px;
+      margin:0 auto;
+      display:grid;
+      gap:14px;
+    }
+
+    .card {
+      padding:16px;
+      background:rgba(23,26,33,.94);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:0 8px 28px rgba(0,0,0,.24);
+    }
+
+    h1,
+    h2 {
+      margin:0 0 10px;
+    }
+
+    h1 {
+      font-size:28px;
+    }
+
+    h2 {
+      font-size:18px;
+      color:#dfe8ff;
+    }
+
+    p {
+      margin:8px 0 0;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .grid {
+      display:grid;
+      gap:12px;
+    }
+
+    @media (min-width:860px) {
+      .grid.two {
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    label {
+      display:block;
+      margin-bottom:6px;
+      font-size:14px;
+      color:#cfe0ff;
+    }
+
+    input,
+    textarea {
+      width:100%;
+      padding:12px 13px;
+      color:var(--text);
+      font:inherit;
+      background:var(--panel2);
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+
+    textarea {
+      min-height:120px;
+      resize:vertical;
+      font-family:var(--mono);
+      font-size:13px;
+    }
+
+    button {
+      min-height:46px;
+      padding:12px 14px;
+      appearance:none;
+      border:none;
+      border-radius:12px;
+      cursor:pointer;
+      color:#09111a;
+      font-weight:700;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+    }
+
+    button.secondary {
+      color:#edf3ff;
+      background:#273043;
+    }
+
+    button:disabled {
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
+    .row > * {
+      flex:1 1 180px;
+    }
+
+    .pill {
+      display:inline-flex;
+      margin-right:8px;
+      margin-bottom:8px;
+      padding:7px 10px;
+      color:#d8e5ff;
+      font-size:12px;
+      background:#1f2937;
+      border:1px solid var(--border);
+      border-radius:999px;
+    }
+
+    .mono {
+      font-family:var(--mono);
+      font-size:13px;
+      word-break:break-all;
+    }
+
+    .status {
+      padding:10px 12px;
+      background:#131824;
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+
+    .ok {
+      color:var(--ok);
+    }
+
+    .err {
+      color:#ff9cab;
+    }
+
+    .small {
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .log {
+      max-height:260px;
+      overflow:auto;
+      padding:12px;
+      white-space:pre-wrap;
+      font-family:var(--mono);
+      font-size:12px;
+      background:#0f1420;
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+
+    .kv {
+      display:grid;
+      gap:8px;
+    }
+
+    .kv div {
+      padding:10px;
+      background:#121925;
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+
+    .choice {
+      display:grid;
+      gap:10px;
+    }
+
+    .choice label {
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      margin:0;
+      padding:12px;
+      cursor:pointer;
+      background:#121925;
+      border:1px solid var(--border);
+      border-radius:12px;
+    }
+
+    .choice input[type="radio"] {
+      width:auto;
+      margin-top:3px;
+      transform:scale(1.15);
+    }
+
+    .choice-title {
+      color:#eef4ff;
+      font-weight:700;
+    }
+
+    .choice-sub {
+      margin-top:4px;
+      color:var(--muted);
+      font-size:13px;
+    }
+  </style></head><body>
+  <div class="wrap">
+    <div class="card">
+      <h1>TxLINE World Cup Helper</h1>
+      <p>Subscribe to TxLINE free tier, sign activation, and retrieve your API token.</p>  <div style="margin-top:12px;">
+    <span class="pill">Program: 9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA</span>
+    <span class="pill">Mint: Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL</span>
+    <span class="pill">Free tiers: 1 / 12</span>
+  </div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>1. Wallet</h2>
+
+    <div class="row">
+      <button id="connectBtn">Connect Phantom</button>
+      <button id="checkBtn" class="secondary">Check Wallet</button>
+    </div>
+
+    <div id="walletStatus" class="status" style="margin-top:12px;">
+      Not connected.
+    </div>
+
+    <p class="small">
+      Open this page inside the Phantom browser or in a browser with Phantom installed.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>2. Free tier</h2>
+
+    <div class="choice">
+      <label>
+        <input type="radio" name="serviceLevel" value="1" checked />
+        <div>
+          <div class="choice-title">Tier 1</div>
+          <div class="choice-sub">
+            World Cup + International Friendlies, 60-second delay, free
+          </div>
+        </div>
+      </label>
+
+      <label>
+        <input type="radio" name="serviceLevel" value="12" />
+        <div>
+          <div class="choice-title">Tier 12</div>
+          <div class="choice-sub">
+            World Cup + International Friendlies, real-time, free
+          </div>
+        </div>
+      </label>
+    </div>
+
+    <div class="grid" style="margin-top:12px;">
+      <div>
+        <label for="weeks">Duration weeks</label>
+        <input id="weeks" type="number" min="4" max="252" step="4" value="4" />
+      </div>
+
+      <div>
+        <label for="leagues">Selected leagues CSV</label>
+        <input
+          id="leagues"
+          type="text"
+          value=""
+          placeholder="Empty for standard bundle"
+        />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="deriveBtn" class="secondary" disabled>Derive Accounts</button>
+      <button id="subscribeBtn" disabled>Subscribe Free Tier</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>3. Derived accounts</h2>
+  <div id="derived" class="kv"></div>
+</div>
+
+<div class="grid two">
+  <div class="card">
+    <h2>4. Activation</h2>
+
+    <div class="grid">
+      <div>
+        <label for="txSig">Subscription tx signature</label>
+        <input
+          id="txSig"
+          type="text"
+          placeholder="Filled automatically after subscribe"
+        />
+      </div>
+
+      <div>
+        <label for="jwt">Guest JWT</label>
+        <textarea
+          id="jwt"
+          placeholder="Filled automatically after Get Guest JWT"
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="apiToken">API token</label>
+        <textarea
+          id="apiToken"
+          placeholder="Filled after activation"
+          readonly
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="guestBtn" class="secondary">Get Guest JWT</button>
+      <button id="signBtn" class="secondary" disabled>Sign Message</button>
+      <button id="activateBtn" disabled>Activate API Token</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. Test API</h2>
+
+    <div class="grid">
+      <div>
+        <label for="fixtureId">Fixture ID for odds/scores test</label>
+        <input
+          id="fixtureId"
+          type="text"
+          value=""
+          placeholder="Optional fixture ID"
+        />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <button id="testFixturesBtn" class="secondary" disabled>
+        Test Fixtures Snapshot
+      </button>
+
+      <button id="testOddsBtn" class="secondary" disabled>
+        Test Odds Snapshot
+      </button>
+
+      <button id="testScoresBtn" class="secondary" disabled>
+        Test Scores Snapshot
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>6. Output</h2>
+  <div id="mainStatus" class="status">Ready.</div>
+  <div id="result" class="log" style="margin-top:12px;"></div>
+</div>
+
+  </div>  <script type="module">
+    import * as anchor from 'https://esm.sh/@coral-xyz/anchor@0.30.1';
+    import {
+      Connection,
+      PublicKey,
+      SystemProgram
+    } from 'https://esm.sh/@solana/web3.js@1.95.3';
+
+    import {
+      getAssociatedTokenAddressSync,
+      TOKEN_PROGRAM_ID,
+      TOKEN_2022_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      createAssociatedTokenAccountInstruction
+    } from 'https://esm.sh/@solana/spl-token@0.4.8';
+
+    const PROGRAM_ID = new PublicKey(
+      '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA'
+    );
+
+    const SUBSCRIPTION_TOKEN_MINT = new PublicKey(
+      'Zhw9TVKp68a1QrftncMSd6ELXKDtpVMNuMGr1jNwdeL'
+    );
+
+    const RPC_URL = 'https://api.mainnet-beta.solana.com';
+    const API_BASE = 'https://txline.txodds.com';
+
+    const IDL = {
+      address: '9ExbZjAapQww1vfcisDmrngPinHTEfpjYRWMunJgcKaA',
+      metadata: {
+        name: 'txoracle',
+        version: '1.4.7',
+        spec: '0.1.0',
+        description: 'TxODDS TxLINE Data system'
+      },
+      instructions: [
+        {
+          name: 'subscribe',
+          discriminator: [254, 28, 191, 138, 156, 179, 183, 53],
+          accounts: [
+            { name: 'user', writable: true, signer: true },
+            { name: 'pricingMatrix' },
+            { name: 'tokenMint' },
+            { name: 'userTokenAccount', writable: true },
+            { name: 'tokenTreasuryVault', writable: true },
+            { name: 'tokenTreasuryPda' },
+            { name: 'tokenProgram' },
+            { name: 'systemProgram' },
+            { name: 'associatedTokenProgram' }
+          ],
+          args: [
+            { name: 'serviceLevelId', type: 'u16' },
+            { name: 'weeks', type: 'u8' }
+          ]
+        }
+      ],
+      accounts: [
+        {
+          name: 'pricingMatrix',
+          discriminator: [173, 13, 64, 22, 248, 77, 110, 106]
+        }
+      ]
+    };
+
+    const connection = new Connection(RPC_URL, 'confirmed');
+    const encoder = new TextEncoder();
+
+    let wallet = null;
+    let provider = null;
+    let program = null;
+    let derived = null;
+    let walletSignatureBase64 = '';
+    let activeTokenProgramId = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function log(msg, obj) {
+      const out = $('result');
+
+      const line = typeof obj === 'undefined'
+        ? msg
+        : `${msg}\n${JSON.stringify(obj, null, 2)}`;
+
+      out.textContent += (out.textContent ? '\n\n' : '') + line;
+      out.scrollTop = out.scrollHeight;
+
+      console.log(msg, obj ?? '');
+    }
+
+    function setStatus(text, ok = null) {
+      const el = $('mainStatus');
+      el.textContent = text;
+      el.className = `status ${ok === true ? 'ok' : ok === false ? 'err' : ''}`;
+    }
+
+    function setWalletStatus(text, ok = null) {
+      const el = $('walletStatus');
+      el.textContent = text;
+      el.className = `status ${ok === true ? 'ok' : ok === false ? 'err' : ''}`;
+    }
+
+    function invalidateSignature() {
+      walletSignatureBase64 = '';
+      $('activateBtn').disabled = true;
+    }
+
+    function updateUiState() {
+      const connected = Boolean(wallet?.publicKey);
+      const hasTxSig = Boolean($('txSig').value.trim());
+      const hasJwt = Boolean($('jwt').value.trim());
+      const hasSignature = Boolean(walletSignatureBase64);
+      const hasApiToken = Boolean($('apiToken').value.trim());
+
+      $('deriveBtn').disabled = !connected;
+      $('subscribeBtn').disabled = !connected;
+
+      $('signBtn').disabled = !(connected && hasTxSig && hasJwt);
+      $('activateBtn').disabled = !(connected && hasTxSig && hasJwt && hasSignature);
+
+      $('testFixturesBtn').disabled = !hasApiToken;
+      $('testOddsBtn').disabled = !hasApiToken;
+      $('testScoresBtn').disabled = !hasApiToken;
+    }
+
+    function parseLeagues() {
+      const raw = $('leagues').value.trim();
+
+      if (!raw) {
+        return [];
+      }
+
+      const parts = raw.split(',').map((item) => item.trim());
+
+      if (parts.some((item) => !/^\d+$/.test(item))) {
+        throw new Error(
+          'Selected leagues CSV must contain only numeric IDs separated by commas.'
+        );
+      }
+
+      const leagues = parts.map(Number);
+
+      if (
+        leagues.some(
+          (leagueId) =>
+            !Number.isSafeInteger(leagueId) || leagueId < 0
+        )
+      ) {
+        throw new Error('League IDs must be non-negative integers.');
+      }
+
+      return [...new Set(leagues)];
+    }
+
+    function getSelectedServiceLevel() {
+      const checked = document.querySelector(
+        'input[name="serviceLevel"]:checked'
+      );
+
+      return checked ? Number(checked.value) : 1;
+    }
+
+    function validateSubscriptionInputs() {
+      const serviceLevelId = getSelectedServiceLevel();
+      const weeks = Number($('weeks').value);
+
+      if (
+        !Number.isInteger(serviceLevelId) ||
+        ![1, 12].includes(serviceLevelId)
+      ) {
+        throw new Error('Invalid service level.');
+      }
+
+      if (
+        !Number.isInteger(weeks) ||
+        weeks < 4 ||
+        weeks > 252 ||
+        weeks % 4 !== 0
+      ) {
+        throw new Error(
+          'Duration must be a whole number from 4 to 252 weeks, in steps of 4.'
+        );
+      }
+
+      return { serviceLevelId, weeks };
+    }
+
+    function renderDerived() {
+      const root = $('derived');
+      root.innerHTML = '';
+
+      if (!derived) {
+        return;
+      }
+
+      for (const [key, value] of Object.entries(derived)) {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <strong>${key}</strong>
+          <div class="mono">${value}</div>
+        `;
+        root.appendChild(div);
+      }
+    }
+
+    function getPhantomProvider() {
+      if (window.phantom?.solana?.isPhantom) {
+        return window.phantom.solana;
+      }
+
+      if (window.solana?.isPhantom) {
+        return window.solana;
+      }
+
+      throw new Error(
+        'Phantom wallet not found. Open this page in Phantom browser or install Phantom.'
+      );
+    }
+
+    async function detectMintTokenProgram() {
+      const mintInfo = await connection.getAccountInfo(
+        SUBSCRIPTION_TOKEN_MINT,
+        'confirmed'
+      );
+
+      if (!mintInfo) {
+        throw new Error('Subscription token mint was not found on Solana mainnet.');
+      }
+
+      if (mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+        activeTokenProgramId = TOKEN_2022_PROGRAM_ID;
+        return activeTokenProgramId;
+      }
+
+      if (mintInfo.owner.equals(TOKEN_PROGRAM_ID)) {
+        activeTokenProgramId = TOKEN_PROGRAM_ID;
+        return activeTokenProgramId;
+      }
+
+      throw new Error(
+        `Unsupported token program owner for mint: ${mintInfo.owner.toBase58()}`
+      );
+    }
+
+    async function connectWallet() {
+      wallet = getPhantomProvider();
+
+      await wallet.connect();
+
+      provider = new anchor.AnchorProvider(
+        connection,
+        {
+          publicKey: wallet.publicKey,
+          signTransaction: wallet.signTransaction.bind(wallet),
+          signAllTransactions: wallet.signAllTransactions?.bind(wallet)
+        },
+        { commitment: 'confirmed' }
+      );
+
+      program = new anchor.Program(IDL, provider);
+
+      const tokenProgramId = await detectMintTokenProgram();
+
+      setWalletStatus(
+        `Connected: ${wallet.publicKey.toBase58()} | Token program: ${tokenProgramId.toBase58()}`,
+        true
+      );
+
+      log('Wallet connected', {
+        publicKey: wallet.publicKey.toBase58(),
+        tokenProgram: tokenProgramId.toBase58()
+      });
+
+      updateUiState();
+    }
+
+    async function deriveAccounts() {
+      if (!wallet?.publicKey) {
+        throw new Error('Connect wallet first.');
+      }
+
+      if (!activeTokenProgramId) {
+        await detectMintTokenProgram();
+      }
+
+      const userPubkey = wallet.publicKey;
+
+      const [tokenTreasuryPda] = PublicKey.findProgramAddressSync(
+        [encoder.encode('token_treasury_v2')],
+        PROGRAM_ID
+      );
+
+      const tokenTreasuryVault = getAssociatedTokenAddressSync(
+        SUBSCRIPTION_TOKEN_MINT,
+        tokenTreasuryPda,
+        true,
+        activeTokenProgramId
+      );
+
+      const [pricingMatrixPda] = PublicKey.findProgramAddressSync(
+        [encoder.encode('pricing_matrix')],
+        PROGRAM_ID
+      );
+
+      const userTokenAccount = getAssociatedTokenAddressSync(
+        SUBSCRIPTION_TOKEN_MINT,
+        userPubkey,
+        false,
+        activeTokenProgramId
+      );
+
+      derived = {
+        user: userPubkey.toBase58(),
+        pricingMatrixPda: pricingMatrixPda.toBase58(),
+        tokenTreasuryPda: tokenTreasuryPda.toBase58(),
+        tokenTreasuryVault: tokenTreasuryVault.toBase58(),
+        userTokenAccount: userTokenAccount.toBase58(),
+        tokenMint: SUBSCRIPTION_TOKEN_MINT.toBase58(),
+        tokenProgram: activeTokenProgramId.toBase58()
+      };
+
+      renderDerived();
+      log('Derived accounts', derived);
+
+      return {
+        userPubkey,
+        pricingMatrixPda,
+        tokenTreasuryPda,
+        tokenTreasuryVault,
+        userTokenAccount
+      };
+    }
+
+    async function ensureUserTokenAta(userPubkey, userTokenAccount) {
+      const info = await connection.getAccountInfo(
+        userTokenAccount,
+        'confirmed'
+      );
+
+      if (info) {
+        return null;
+      }
+
+      return createAssociatedTokenAccountInstruction(
+        userPubkey,
+        userTokenAccount,
+        userPubkey,
+        SUBSCRIPTION_TOKEN_MINT,
+        activeTokenProgramId,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    }
+
+    async function subscribeFlow() {
+      if (!program) {
+        throw new Error('Connect wallet first.');
+      }
+
+      setStatus('Preparing subscription...');
+
+      const {
+        userPubkey,
+        pricingMatrixPda,
+        tokenTreasuryPda,
+        tokenTreasuryVault,
+        userTokenAccount
+      } = await deriveAccounts();
+
+      const { serviceLevelId, weeks } = validateSubscriptionInputs();
+
+      const preIx = await ensureUserTokenAta(
+        userPubkey,
+        userTokenAccount
+      );
+
+      let method = program.methods
+        .subscribe(serviceLevelId, weeks)
+        .accounts({
+          user: userPubkey,
+          pricingMatrix: pricingMatrixPda,
+          tokenMint: SUBSCRIPTION_TOKEN_MINT,
+          userTokenAccount,
+          tokenTreasuryVault,
+          tokenTreasuryPda,
+          tokenProgram: activeTokenProgramId,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId
+        });
+
+      if (preIx) {
+        method = method.preInstructions([preIx]);
+      }
+
+      const txSig = await method.rpc();
+
+      setStatus('Waiting for subscription transaction confirmation...');
+
+      const confirmation = await connection.confirmTransaction(
+        txSig,
+        'confirmed'
+      );
+
+      if (confirmation.value.err) {
+        throw new Error(
+          `Subscription transaction failed: ${JSON.stringify(
+            confirmation.value.err
+          )}`
+        );
+      }
+
+      $('txSig').value = txSig;
+      invalidateSignature();
+      updateUiState();
+
+      setStatus('Subscription transaction confirmed.', true);
+
+      log('Subscribe success', {
+        txSig,
+        serviceLevelId,
+        weeks,
+        tokenProgram: activeTokenProgramId.toBase58()
+      });
+
+      return txSig;
+    }
+
+
+
+
+
+
+
+
+
+async function getGuestJwt() { setStatus('Requesting guest JWT...'); const res = await fetch(`${API_BASE}/auth/guest/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }); const raw = await res.text(); if (!res.ok) { throw new Error(`Guest auth failed: ${res.status} ${raw}`); } let data; try { data = JSON.parse(raw); } catch { data = raw; } const jwt = data?.token || data?.jwt || data; if (typeof jwt !== 'string' || !jwt.trim()) { throw new Error('Guest auth response did not contain a valid JWT.'); } $('jwt').value = jwt.trim(); invalidateSignature(); updateUiState(); setStatus('Guest JWT received.', true); log('Guest JWT received', { received: true, tokenLength: jwt.length }); return jwt.trim(); } async function signActivationMessage() { if (!wallet?.publicKey) { throw new Error('Connect wallet first.'); } const txSig = $('txSig').value.trim(); const jwt = $('jwt').value.trim(); const leagues = parseLeagues(); if (!txSig || !jwt) { throw new Error('Need subscription tx signature and Guest JWT first.'); } const messageString = `${txSig}:${leagues.join(',')}:${jwt}`; const message = encoder.encode(messageString); if (!wallet.signMessage) { throw new Error( 'Wallet signMessage() is not available. Use Phantom app or Phantom browser.' ); } const signatureResult = await wallet.signMessage(message, 'utf8'); const signatureBytes = signatureResult.signature || signatureResult; walletSignatureBase64 = btoa( String.fromCharCode(...signatureBytes) ); updateUiState(); setStatus('Activation message signed.', true); log('Activation message signed', { txSig, leagues, signatureLength: walletSignatureBase64.length, messageLength: messageString.length }); return walletSignatureBase64; } async function activateToken() { setStatus('Activating API token...'); const txSig = $('txSig').value.trim(); const jwt = $('jwt').value.trim(); const leagues = parseLeagues(); if (!txSig || !jwt) { throw new Error('Need subscription tx signature and Guest JWT first.'); } if (!walletSignatureBase64) { throw new Error('Sign activation message first.'); } const res = await fetch(`${API_BASE}/api/token/activate`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}` }, body: JSON.stringify({ txSig, walletSignature: walletSignatureBase64, leagues }) }); const raw = await res.text(); if (res.status === 401 || res.status === 403) { throw new Error( 'Guest JWT expired or is invalid. Request a new Guest JWT and sign the activation message again.' ); } if (!res.ok) { throw new Error(`Activation failed: ${res.status} ${raw}`); } let data; try { data = JSON.parse(raw); } catch { data = raw; } const apiToken = data?.token || data; if (typeof apiToken !== 'string' || !apiToken.trim()) { throw new Error('Activation response did not contain a valid API token.'); } $('apiToken').value = apiToken.trim(); updateUiState(); setStatus('API token activated.', true); log('API token activated', { received: true, tokenLength: apiToken.length }); return apiToken; } async function apiCall(path) { const jwt = $('jwt').value.trim(); const apiToken = $('apiToken').value.trim(); if (!jwt || !apiToken) { throw new Error('Need Guest JWT and API token first.'); } const res = await fetch(`${API_BASE}${path}`, { headers: { 'Authorization': `Bearer ${jwt}`, 'X-Api-Token': apiToken, 'Content-Type': 'application/json' } }); const raw = await res.text(); let data; try { data = JSON.parse(raw); } catch { data = raw; } if (res.status === 401 || res.status === 403) { throw new Error( 'Authorization failed. Your Guest JWT or API token may have expired.' ); } if (!res.ok) { throw new Error(`API test failed: ${res.status} ${raw}`); } log(`API response ${path}`, data); setStatus(`API test success: ${path}`, true); return data; } $('connectBtn').onclick = async () => { try { await connectWallet(); } catch (error) { setStatus(error.message, false); log('Connect error', { error: error.message }); } }; $('checkBtn').onclick = async () => { try { const phantomProvider = getPhantomProvider(); const walletAddress = phantomProvider.publicKey ? phantomProvider.publicKey.toBase58?.() || '' : ''; setWalletStatus( `Phantom detected${walletAddress ? `: ${walletAddress}` : ''}`, true ); } catch (error) { setWalletStatus(error.message, false); } }; $('deriveBtn').onclick = async () => { try { await deriveAccounts(); setStatus('Accounts derived.', true); } catch (error) { setStatus(error.message, false); log('Derive error', { error: error.message }); } }; $('subscribeBtn').onclick = async () => { try { await subscribeFlow(); } catch (error) { setStatus(error.message, false); log('Subscribe error', { error: error.message, stack: error.stack }); } }; $('guestBtn').onclick = async () => { try { await getGuestJwt(); } catch (error) { setStatus(error.message, false); log('Guest JWT error', { error: error.message }); } }; $('signBtn').onclick = async () => { try { await signActivationMessage(); } catch (error) { setStatus(error.message, false); log('Sign error', { error: error.message, stack: error.stack }); } }; $('activateBtn').onclick = async () => { try { await activateToken(); } catch (error) { setStatus(error.message, false); log('Activate error', { error: error.message, stack: error.stack }); } }; $('testFixturesBtn').onclick = async () => { try { await apiCall('/api/fixtures/snapshot'); } catch (error) { setStatus(error.message, false); log('Fixtures test error', { error: error.message }); } }; $('testOddsBtn').onclick = async () => { try { const fixtureId = $('fixtureId').value.trim(); if (!fixtureId) { throw new Error('Enter fixture ID for odds snapshot test.'); } await apiCall( `/api/odds/snapshot/${encodeURIComponent(fixtureId)}` ); } catch (error) { setStatus(error.message, false); log('Odds test error', { error: error.message }); } }; $('testScoresBtn').onclick = async () => { try { const fixtureId = $('fixtureId').value.trim(); if (!fixtureId) { throw new Error('Enter fixture ID for scores snapshot test.'); } await apiCall( `/api/scores/snapshot/${encodeURIComponent(fixtureId)}` ); } catch (error) { setStatus(error.message, false); log('Scores test error', { error: error.message }); } }; $('txSig').addEventListener('input', () => { invalidateSignature(); updateUiState(); }); $('jwt').addEventListener('input', () => { invalidateSignature(); updateUiState(); }); $('leagues').addEventListener('input', () => { invalidateSignature(); updateUiState(); }); $('apiToken').addEventListener('input', updateUiState); updateUiState(); </script>
+
+</body> </html>
+
+
+
+
+
 
