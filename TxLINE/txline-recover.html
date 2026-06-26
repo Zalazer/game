@@ -391,7 +391,17 @@
     return res.body.jwt;
   }
 
-  async function signActivationMessage(txSig, jwt) {
+  function bytesToBase64(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+async function signActivationMessage(txSig, jwt) {
   if (!provider) {
     await connectWallet();
   }
@@ -419,7 +429,7 @@
     throw new Error('Wallet signature missing');
   }
 
-  const walletSignature = base58Encode(signatureBytes);
+  const walletSignature = bytesToBase64(signatureBytes);
 
   setText('signedMessageValue', message);
   setText('walletSignatureValue', walletSignature);
@@ -429,6 +439,8 @@
     walletSignature
   };
 }
+
+
 
 
   async function activate(workerBase, txSig, jwt, walletSignature) {
