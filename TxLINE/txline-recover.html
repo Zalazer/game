@@ -436,7 +436,6 @@
     type: 'txline_activate',
     jwt,
     txSig,
-    wallet: currentWallet,
     walletSignature,
     leagues: []
   });
@@ -448,7 +447,6 @@
     request: {
       txSig,
       jwt,
-      wallet: currentWallet,
       walletSignature,
       leagues: []
     },
@@ -475,6 +473,7 @@
     body: res.body
   };
 }
+
 
 
   async function runRecovery() {
