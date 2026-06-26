@@ -228,7 +228,7 @@
       <div class="k">Tx signature</div><div class="v" id="txSigValue"></div>
       <div class="k">Guest JWT</div><div class="v" id="jwtValue"></div>
       <div class="k">Signed message</div><div class="v" id="signedMessageValue"></div>
-      <div class="k">Wallet signature (base58)</div><div class="v" id="walletSignatureValue"></div>
+      <div class="k">Wallet signature (base64)</div><div class="v" id="walletSignatureValue"></div>
       <div class="k">HTTP status</div><div class="v" id="httpStatusValue"></div>
       <div class="k">API token</div><div class="v" id="apiTokenValue"></div>
     </div>
@@ -326,26 +326,55 @@
   }
 
   async function getTicket(workerBase) {
-    const r = await fetch(`${workerBase}/__ticket`, {
+  let r;
+
+  try {
+    r = await fetch(`${workerBase}/__ticket`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       }
     });
-
-    const data = await r.json().catch(() => null);
-
-    if (!r.ok || !data || !data.k) {
-      throw new Error(`Ticket failed. HTTP ${r.status}. Body: ${JSON.stringify(data)}`);
-    }
-
-    return data.k;
+  } catch (e) {
+    const msg = String(e && e.message ? e.message : e);
+    setLog({
+      step: 'ticket_fetch',
+      url: `${workerBase}/__ticket`,
+      fetchError: msg
+    });
+    throw new Error(`Ticket fetch failed. ${msg}`);
   }
 
-  async function emitPayload(workerBase, payload) {
-    const k = await getTicket(workerBase);
+  const rawText = await r.text();
+  let data = null;
 
-    const r = await fetch(`${workerBase}/__emit`, {
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    data = { rawText };
+  }
+
+  if (!r.ok || !data || !data.k) {
+    setLog({
+      step: 'ticket_response',
+      httpStatus: r.status,
+      body: data
+    });
+    throw new Error(`Ticket failed. HTTP ${r.status}. Body: ${JSON.stringify(data)}`);
+  }
+
+  return data.k;
+}
+
+
+
+  async function emitPayload(workerBase, payload) {
+  const k = await getTicket(workerBase);
+
+  let r;
+
+  try {
+    r = await fetch(`${workerBase}/__emit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -355,22 +384,34 @@
         d: payload
       })
     });
-
-    const rawText = await r.text();
-    let body = null;
-
-    try {
-      body = JSON.parse(rawText);
-    } catch {
-      body = { rawText };
-    }
-
-    return {
-      ok: r.ok,
-      status: r.status,
-      body
-    };
+  } catch (e) {
+    const msg = String(e && e.message ? e.message : e);
+    setLog({
+      step: 'emit_fetch',
+      url: `${workerBase}/__emit`,
+      payload,
+      fetchError: msg
+    });
+    throw new Error(`Emit fetch failed. ${msg}`);
   }
+
+  const rawText = await r.text();
+  let body = null;
+
+  try {
+    body = rawText ? JSON.parse(rawText) : {};
+  } catch {
+    body = { rawText };
+  }
+
+  return {
+    ok: r.ok,
+    status: r.status,
+    body
+  };
+}
+
+
 
   async function fetchGuestJwt(workerBase) {
     const res = await emitPayload(workerBase, {
