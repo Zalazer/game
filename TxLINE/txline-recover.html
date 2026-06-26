@@ -179,8 +179,6 @@
       margin-top:8px;
     }
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/bs58@6.0.0/dist/index.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -189,7 +187,7 @@
     <p>
       Recovery tool for an already finalized subscription. It does <strong>not</strong> re-run subscribe.
       It only fetches a fresh guest JWT, signs <span class="mono">txSig::jwt</span> with Phantom,
-      and calls activation through your Worker. [web:53][web:735]
+      and calls activation through your Worker.
     </p>
 
     <label for="workerBase">Worker base URL</label>
@@ -218,7 +216,7 @@
     <div class="small">
       Open this page in Phantom browser on mobile or in a desktop browser with Phantom installed.
       Your Worker must already support <span class="mono">txline_guest_start</span> and
-      <span class="mono">txline_activate</span>, with activation forwarding <span class="mono">leagues: []</span>. [web:53]
+      <span class="mono">txline_activate</span>, with activation forwarding <span class="mono">leagues: []</span>.
     </div>
 
     <div id="statusBox" class="status">Ready.</div>
@@ -254,6 +252,37 @@
   let provider = null;
   let currentWallet = null;
   let lastDebug = null;
+
+  const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+  function base58Encode(input) {
+    const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+    if (bytes.length === 0) return '';
+
+    let zeros = 0;
+    while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+
+    const digits = [0];
+
+    for (let i = zeros; i < bytes.length; i++) {
+      let carry = bytes[i];
+      for (let j = 0; j < digits.length; j++) {
+        const x = digits[j] * 256 + carry;
+        digits[j] = x % 58;
+        carry = (x / 58) | 0;
+      }
+      while (carry > 0) {
+        digits.push(carry % 58);
+        carry = (carry / 58) | 0;
+      }
+    }
+
+    let result = '1'.repeat(zeros);
+    for (let i = digits.length - 1; i >= 0; i--) {
+      result += BASE58_ALPHABET[digits[i]];
+    }
+    return result;
+  }
 
   function setStatus(text, kind = '') {
     statusBox.textContent = text;
@@ -377,7 +406,7 @@
       throw new Error('Wallet signature missing');
     }
 
-    const walletSignature = bs58.encode(signatureBytes);
+    const walletSignature = base58Encode(signatureBytes);
 
     setText('signedMessageValue', message);
     setText('walletSignatureValue', walletSignature);
@@ -435,7 +464,7 @@
     recoverBtn.disabled = true;
 
     try {
-      const workerBase = workerBaseEl.value.trim().replace(/\/+$/, '')
+      const workerBase = workerBaseEl.value.trim().replace(/\/+$/, '');
       const txSig = txSigEl.value.trim();
 
       if (!workerBase) {
@@ -520,3 +549,4 @@
 </script>
 </body>
 </html>
+</query>
