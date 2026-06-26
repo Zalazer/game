@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>TxLINE Recovery Activate</title>
+  <style>
+    :root{
+      --bg:#0b0b0b;
+      --panel:#151515;
+      --panel2:#1d1d1d;
+      --text:#f3f3f3;
+      --muted:#a8a8a8;
+      --accent:#ffd36a;
+      --border:#333;
+      --ok:#58d68d;
+      --warn:#ffcc33;
+      --err:#ff7675;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      --sans:Arial,Helvetica,sans-serif;
+    }
+
+    * { box-sizing:border-box; }
+
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--sans);
+      padding:18px;
+      line-height:1.45;
+    }
+
+    .wrap{
+      max-width:900px;
+      margin:0 auto;
+    }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      margin-bottom:14px;
+    }
+
+    h1{
+      margin:0 0 8px;
+      font-size:28px;
+    }
+
+    p{
+      margin:0 0 14px;
+      color:var(--muted);
+    }
+
+    label{
+      display:block;
+      margin-bottom:6px;
+      color:#ddd;
+      font-size:14px;
+    }
+
+    input, textarea, button{
+      font:inherit;
+      border-radius:10px;
+      border:1px solid var(--border);
+    }
+
+    input, textarea{
+      width:100%;
+      padding:10px 12px;
+      background:var(--panel2);
+      color:var(--text);
+    }
+
+    textarea{
+      min-height:110px;
+      resize:vertical;
+      font-family:var(--mono);
+      font-size:12px;
+    }
+
+    .btns{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    button{
+      width:auto;
+      padding:11px 14px;
+      background:#222016;
+      border-color:#5c4a18;
+      color:var(--accent);
+      cursor:pointer;
+    }
+
+    button.secondary{
+      background:#1b1b1b;
+      border-color:#333;
+      color:#e8e8e8;
+    }
+
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .status{
+      padding:12px;
+      border-radius:10px;
+      background:#111;
+      border:1px solid #2b2b2b;
+      margin-top:10px;
+      white-space:pre-wrap;
+    }
+
+    .status.ok{
+      border-color:#245c3a;
+      color:#d9ffe7;
+    }
+
+    .status.warn{
+      border-color:#6b5a1f;
+      color:#fff1b8;
+    }
+
+    .status.err{
+      border-color:#6b2525;
+      color:#ffd1d1;
+    }
+
+    .kv{
+      display:grid;
+      grid-template-columns:220px 1fr;
+      gap:8px 12px;
+      margin-top:8px;
+    }
+
+    @media (max-width:700px){
+      .kv{
+        grid-template-columns:1fr;
+      }
+    }
+
+    .k{
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .v{
+      word-break:break-word;
+      font-family:var(--mono);
+      font-size:13px;
+    }
+
+    pre{
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:#0d0d0d;
+      border:1px solid #2a2a2a;
+      border-radius:12px;
+      padding:12px;
+      overflow:auto;
+      font-family:var(--mono);
+      font-size:12px;
+      margin:0;
+    }
+
+    .mono{
+      font-family:var(--mono);
+    }
+
+    .small{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/bs58@6.0.0/dist/index.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>TxLINE Recovery Activate</h1>
+    <p>
+      Recovery tool for an already finalized subscription. It does <strong>not</strong> re-run subscribe.
+      It only fetches a fresh guest JWT, signs <span class="mono">txSig::jwt</span> with Phantom,
+      and calls activation through your Worker. [web:53][web:735]
+    </p>
+
+    <label for="workerBase">Worker base URL</label>
+    <input
+      id="workerBase"
+      value="https://game.shooleeyack.workers.dev"
+      placeholder="https://your-worker.example.workers.dev"
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    <label for="txSig" style="margin-top:12px;">Existing subscription tx signature</label>
+    <input
+      id="txSig"
+      value="4eNCZcVkYmkiRCsFhTXpXSKHbmBw8rxVgUnCsBBXHDU5RPMnD2z2mYLbFHkq1H5qdFAVWhxNGp7bRHrX6Tp3b8Ko"
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    <div class="btns">
+      <button id="recoverBtn" type="button">Recover API Token</button>
+      <button id="connectBtn" class="secondary" type="button">Connect Phantom</button>
+      <button id="copyBtn" class="secondary" type="button">Copy debug JSON</button>
+    </div>
+
+    <div class="small">
+      Open this page in Phantom browser on mobile or in a desktop browser with Phantom installed.
+      Your Worker must already support <span class="mono">txline_guest_start</span> and
+      <span class="mono">txline_activate</span>, with activation forwarding <span class="mono">leagues: []</span>. [web:53]
+    </div>
+
+    <div id="statusBox" class="status">Ready.</div>
+  </div>
+
+  <div class="card">
+    <div class="kv">
+      <div class="k">Wallet</div><div class="v" id="walletValue"></div>
+      <div class="k">Tx signature</div><div class="v" id="txSigValue"></div>
+      <div class="k">Guest JWT</div><div class="v" id="jwtValue"></div>
+      <div class="k">Signed message</div><div class="v" id="signedMessageValue"></div>
+      <div class="k">Wallet signature (base58)</div><div class="v" id="walletSignatureValue"></div>
+      <div class="k">HTTP status</div><div class="v" id="httpStatusValue"></div>
+      <div class="k">API token</div><div class="v" id="apiTokenValue"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>Raw response / debug</strong>
+    <pre id="logOutput"></pre>
+  </div>
+</div>
+
+<script>
+  const workerBaseEl = document.getElementById('workerBase');
+  const txSigEl = document.getElementById('txSig');
+  const recoverBtn = document.getElementById('recoverBtn');
+  const connectBtn = document.getElementById('connectBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const statusBox = document.getElementById('statusBox');
+  const logOutput = document.getElementById('logOutput');
+
+  let provider = null;
+  let currentWallet = null;
+  let lastDebug = null;
+
+  function setStatus(text, kind = '') {
+    statusBox.textContent = text;
+    statusBox.className = `status ${kind}`.trim();
+  }
+
+  function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || '';
+  }
+
+  function setLog(data) {
+    lastDebug = data;
+    logOutput.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  }
+
+  function getProvider() {
+    const phantom = window.phantom && window.phantom.solana;
+    if (phantom && phantom.isPhantom) return phantom;
+
+    const solana = window.solana;
+    if (solana && solana.isPhantom) return solana;
+
+    throw new Error('Phantom wallet not found. Open this page in Phantom browser or in a browser with Phantom installed.');
+  }
+
+  async function connectWallet() {
+    provider = getProvider();
+    const res = await provider.connect();
+    currentWallet =
+      (res && res.publicKey && typeof res.publicKey.toString === 'function' && res.publicKey.toString()) ||
+      (provider.publicKey && typeof provider.publicKey.toString === 'function' && provider.publicKey.toString()) ||
+      null;
+
+    if (!currentWallet) {
+      throw new Error('Wallet connect failed');
+    }
+
+    setText('walletValue', currentWallet);
+    return provider;
+  }
+
+  async function getTicket(workerBase) {
+    const r = await fetch(`${workerBase}/__ticket`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await r.json().catch(() => null);
+
+    if (!r.ok || !data || !data.k) {
+      throw new Error(`Ticket failed. HTTP ${r.status}. Body: ${JSON.stringify(data)}`);
+    }
+
+    return data.k;
+  }
+
+  async function emitPayload(workerBase, payload) {
+    const k = await getTicket(workerBase);
+
+    const r = await fetch(`${workerBase}/__emit`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        k,
+        d: payload
+      })
+    });
+
+    const rawText = await r.text();
+    let body = null;
+
+    try {
+      body = JSON.parse(rawText);
+    } catch {
+      body = { rawText };
+    }
+
+    return {
+      ok: r.ok,
+      status: r.status,
+      body
+    };
+  }
+
+  async function fetchGuestJwt(workerBase) {
+    const res = await emitPayload(workerBase, {
+      type: 'txline_guest_start'
+    });
+
+    setText('httpStatusValue', String(res.status));
+
+    if (!res.ok || !res.body || !res.body.ok || !res.body.jwt) {
+      setLog({
+        step: 'guest_start',
+        httpStatus: res.status,
+        body: res.body
+      });
+      throw new Error(`Guest JWT failed. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
+    }
+
+    return res.body.jwt;
+  }
+
+  async function signActivationMessage(txSig, jwt) {
+    if (!provider) {
+      await connectWallet();
+    }
+
+    const message = `${txSig}::${jwt}`;
+    const encodedMessage = new TextEncoder().encode(message);
+
+    const signed = await provider.signMessage(encodedMessage, 'utf8');
+    const signatureBytes = signed && signed.signature ? signed.signature : signed;
+
+    if (!signatureBytes) {
+      throw new Error('Wallet signature missing');
+    }
+
+    const walletSignature = bs58.encode(signatureBytes);
+
+    setText('signedMessageValue', message);
+    setText('walletSignatureValue', walletSignature);
+
+    return {
+      message,
+      walletSignature
+    };
+  }
+
+  async function activate(workerBase, txSig, jwt, walletSignature) {
+    const res = await emitPayload(workerBase, {
+      type: 'txline_activate',
+      jwt,
+      txSig,
+      walletSignature,
+      leagues: []
+    });
+
+    setText('httpStatusValue', String(res.status));
+    setLog({
+      step: 'activate',
+      httpStatus: res.status,
+      request: {
+        txSig,
+        jwt,
+        walletSignature,
+        leagues: []
+      },
+      response: res.body
+    });
+
+    if (!res.ok || !res.body || !res.body.ok) {
+      throw new Error(`Activation failed. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
+    }
+
+    const apiToken =
+      res.body.apiToken ||
+      res.body.token ||
+      (res.body.data && (res.body.data.apiToken || res.body.data.token)) ||
+      '';
+
+    if (!apiToken) {
+      throw new Error(`Activation succeeded but API token missing. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
+    }
+
+    return {
+      status: res.status,
+      apiToken,
+      body: res.body
+    };
+  }
+
+  async function runRecovery() {
+    recoverBtn.disabled = true;
+
+    try {
+      const workerBase = workerBaseEl.value.trim().replace(//$/, '');
+      const txSig = txSigEl.value.trim();
+
+      if (!workerBase) {
+        throw new Error('Worker base URL is required');
+      }
+
+      if (!txSig) {
+        throw new Error('txSig is required');
+      }
+
+      setText('txSigValue', txSig);
+      setText('jwtValue', '');
+      setText('signedMessageValue', '');
+      setText('walletSignatureValue', '');
+      setText('apiTokenValue', '');
+      setText('httpStatusValue', '');
+      setLog('');
+
+      setStatus('Connecting wallet...', 'warn');
+      await connectWallet();
+
+      setStatus('Requesting fresh guest JWT...', 'warn');
+      const jwt = await fetchGuestJwt(workerBase);
+      setText('jwtValue', jwt);
+
+      setStatus('Signing message txSig::jwt ...', 'warn');
+      const signed = await signActivationMessage(txSig, jwt);
+
+      setStatus('Calling /api/token/activate ...', 'warn');
+      const activated = await activate(workerBase, txSig, jwt, signed.walletSignature);
+
+      setText('apiTokenValue', activated.apiToken);
+
+      setLog({
+        success: true,
+        wallet: currentWallet,
+        txSig,
+        jwt,
+        signedMessage: signed.message,
+        walletSignature: signed.walletSignature,
+        httpStatus: activated.status,
+        apiToken: activated.apiToken,
+        raw: activated.body
+      });
+
+      setStatus('Success. API token received.', 'ok');
+    } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      setStatus(msg, 'err');
+
+      if (!lastDebug) {
+        setLog({
+          success: false,
+          error: msg
+        });
+      }
+    } finally {
+      recoverBtn.disabled = false;
+    }
+  }
+
+  connectBtn.addEventListener('click', async () => {
+    try {
+      await connectWallet();
+      setStatus(`Connected: ${currentWallet}`, 'ok');
+    } catch (e) {
+      setStatus(e && e.message ? e.message : String(e), 'err');
+    }
+  });
+
+  recoverBtn.addEventListener('click', runRecovery);
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      const text = typeof lastDebug === 'string' ? lastDebug : JSON.stringify(lastDebug, null, 2);
+      await navigator.clipboard.writeText(text || '');
+      setStatus('Debug JSON copied.', 'ok');
+    } catch (e) {
+      setStatus('Could not copy debug JSON.', 'err');
+    }
+  });
+</script>
+</body>
+</html>
