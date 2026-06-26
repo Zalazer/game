@@ -435,7 +435,7 @@
     recoverBtn.disabled = true;
 
     try {
-      const workerBase = workerBaseEl.value.trim().replace(//$/, '');
+      const workerBase = workerBaseEl.value.trim().replace(/\/+$/, '')
       const txSig = txSigEl.value.trim();
 
       if (!workerBase) {
