@@ -392,73 +392,90 @@
   }
 
   async function signActivationMessage(txSig, jwt) {
-    if (!provider) {
-      await connectWallet();
-    }
-
-    const message = `${txSig}::${jwt}`;
-    const encodedMessage = new TextEncoder().encode(message);
-
-    const signed = await provider.signMessage(encodedMessage, 'utf8');
-    const signatureBytes = signed && signed.signature ? signed.signature : signed;
-
-    if (!signatureBytes) {
-      throw new Error('Wallet signature missing');
-    }
-
-    const walletSignature = base58Encode(signatureBytes);
-
-    setText('signedMessageValue', message);
-    setText('walletSignatureValue', walletSignature);
-
-    return {
-      message,
-      walletSignature
-    };
+  if (!provider) {
+    await connectWallet();
   }
+
+  const message = `${txSig}::${jwt}`;
+  const encodedMessage = new TextEncoder().encode(message);
+
+  let signed;
+  try {
+    signed = await provider.signMessage(encodedMessage, 'utf8');
+  } catch {
+    signed = await provider.signMessage(encodedMessage);
+  }
+
+  const signatureBytes =
+    signed?.signature instanceof Uint8Array
+      ? signed.signature
+      : signed?.signature
+      ? new Uint8Array(signed.signature)
+      : signed instanceof Uint8Array
+      ? signed
+      : null;
+
+  if (!signatureBytes) {
+    throw new Error('Wallet signature missing');
+  }
+
+  const walletSignature = base58Encode(signatureBytes);
+
+  setText('signedMessageValue', message);
+  setText('walletSignatureValue', walletSignature);
+
+  return {
+    message,
+    walletSignature
+  };
+}
+
 
   async function activate(workerBase, txSig, jwt, walletSignature) {
-    const res = await emitPayload(workerBase, {
-      type: 'txline_activate',
-      jwt,
+  const res = await emitPayload(workerBase, {
+    type: 'txline_activate',
+    jwt,
+    txSig,
+    wallet: currentWallet,
+    walletSignature,
+    leagues: []
+  });
+
+  setText('httpStatusValue', String(res.status));
+  setLog({
+    step: 'activate',
+    httpStatus: res.status,
+    request: {
       txSig,
+      jwt,
+      wallet: currentWallet,
       walletSignature,
       leagues: []
-    });
+    },
+    response: res.body
+  });
 
-    setText('httpStatusValue', String(res.status));
-    setLog({
-      step: 'activate',
-      httpStatus: res.status,
-      request: {
-        txSig,
-        jwt,
-        walletSignature,
-        leagues: []
-      },
-      response: res.body
-    });
-
-    if (!res.ok || !res.body || !res.body.ok) {
-      throw new Error(`Activation failed. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
-    }
-
-    const apiToken =
-      res.body.apiToken ||
-      res.body.token ||
-      (res.body.data && (res.body.data.apiToken || res.body.data.token)) ||
-      '';
-
-    if (!apiToken) {
-      throw new Error(`Activation succeeded but API token missing. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
-    }
-
-    return {
-      status: res.status,
-      apiToken,
-      body: res.body
-    };
+  if (!res.ok || !res.body || !res.body.ok) {
+    throw new Error(`Activation failed. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
   }
+
+  const apiToken =
+    res.body.apiToken ||
+    res.body.token ||
+    (res.body.data && (res.body.data.apiToken || res.body.data.token)) ||
+    '';
+
+  if (!apiToken) {
+    throw new Error(`Activation succeeded but API token missing. HTTP ${res.status}. Body: ${JSON.stringify(res.body)}`);
+  }
+
+  return {
+    status: res.status,
+    apiToken,
+    body: res.body
+  };
+}
+
 
   async function runRecovery() {
     recoverBtn.disabled = true;
