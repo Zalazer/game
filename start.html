@@ -20,6 +20,8 @@
 <link rel="prefetch" href="Generator/index.html">
 <link rel="prefetch" href="ZalazerChat/index.html">
 <link rel="prefetch" href="BrokenRoute/index.html">
+<link rel="prefetch" href="TxLINE/index.html">
+<link rel="prefetch" href="Hackathon/index.html">
 
 
 
@@ -139,6 +141,9 @@ hr.rules-footer-sep{margin:0;border:0;border-top:1px solid #333;}
 <button class="btn" onclick="loadGame('Generator')">💰 Generator</button>
 <button class="btn btn-new" onclick="loadGame('ZalazerChat')">💬 ZalazerChat</button>
 <button class="btn btn-new" onclick="loadGame('BrokenRoute')">🛣️ BrokenRoute</button>
+<button class="btn" onclick="loadGame('TxLINE')">Get Token TxLINE</button>
+<button class="btn" onclick="loadGame('Hackathon')">Hackathon</button>
+
 
 </div>
 
@@ -211,6 +216,9 @@ All rights reserved.
 <audio id="music-Generator" src="music-Generator.mp3" loop></audio>
 <audio id="music-ZalazerChat" src="music-ZalazerChat.mp3" loop></audio>
 <audio id="music-BrokenRoute" src="music-BrokenRoute.mp3" loop></audio>
+<audio id="music-TxLINE" src="music-TxLINE.mp3" loop></audio>
+<audio id="music-Hackathon" src="music-Hackathon.mp3" loop></audio>
+
 
 
 <script>
@@ -271,7 +279,9 @@ ZaCheckers: document.getElementById('music-ZaCheckers'),
 ZaChess: document.getElementById('music-ZaChess'),
 Generator:document.getElementById('music-Generator'),
 ZalazerChat:document.getElementById('music-ZalazerChat'),
-BrokenRoute:document.getElementById('music-BrokenRoute')
+BrokenRoute:document.getElementById('music-BrokenRoute'),
+TxLINE:document.getElementById('music-TxLINE'),
+Hackathon:document.getElementById('music-Hackathon')
 };
 
 let currentGame='';
@@ -469,7 +479,7 @@ reader.readAsDataURL(file);
 let ticket=null;
 
 try{
-const tResp=await fetch('https://game.shooleeyack.workers.dev/__ticket',{
+const tResp = await fetch('./__ticket', {
 method:'POST',
 headers:{'Content-Type':'application/json'}
 });
@@ -493,7 +503,7 @@ user:userObj
 };
 
 try{
-const resp=await fetch('https://game.shooleeyack.workers.dev/__emit',{
+const resp = await fetch('./__emit', {
 method:'POST',
 headers:{'Content-Type':'application/json'},
 body:JSON.stringify({k:ticket,d:payload})
