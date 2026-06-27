@@ -235,6 +235,11 @@
             <button id="runBtn">Run subscription + activate</button>
           </div>
 
+          <div>
+<button id="retryActivateBtn" type="button">Retry Activate</button>
+          </div>
+
+
           <div class="small">
             The activation message uses the same format as recovery:
             <span class="mono">txSig::jwt</span>.
@@ -272,6 +277,13 @@
             <label for="apiToken">API token</label>
             <textarea id="apiToken" readonly></textarea>
           </div>
+
+
+<div>
+  <label for="backupState">Backup state (copy and save)</label>
+  <textarea id="backupState" readonly></textarea>
+</div>
+
         </div>
       </div>
 
@@ -313,10 +325,12 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
       weeks: document.getElementById("weeks"),
       waitMs: document.getElementById("waitMs"),
       runBtn: document.getElementById("runBtn"),
+retryActivateBtn: document.getElementById("retryActivateBtn"),
       txSig: document.getElementById("txSig"),
       jwt: document.getElementById("jwt"),
       walletSignature: document.getElementById("walletSignature"),
       apiToken: document.getElementById("apiToken"),
+backupState: document.getElementById("backupState"),
       walletStatus: document.getElementById("walletStatus"),
       mainStatus: document.getElementById("mainStatus"),
       log: document.getElementById("log")
@@ -347,6 +361,27 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+
+
+async function verifyTransactionOnRpc(txSig) {
+  const tx = await connection.getTransaction(txSig, {
+    commitment: "confirmed",
+    maxSupportedTransactionVersion: 0
+  });
+
+  if (!tx) {
+    throw new Error("Confirmed transaction was not found by RPC getTransaction.");
+  }
+
+  if (tx.meta?.err) {
+    throw new Error(`Transaction meta.err is not null: ${JSON.stringify(tx.meta.err)}`);
+  }
+
+  return tx;
+}
+
+
+
     function bytesToBase64(bytes) {
       let binary = "";
       const chunk = 0x8000;
@@ -358,12 +393,36 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
     }
 
     function clearOutput() {
-      el.txSig.value = "";
-      el.jwt.value = "";
-      el.walletSignature.value = "";
-      el.apiToken.value = "";
-      el.log.textContent = "";
-    }
+  el.txSig.value = "";
+  el.jwt.value = "";
+  el.walletSignature.value = "";
+  el.apiToken.value = "";
+  if (el.backupState) el.backupState.value = "";
+  el.log.textContent = "";
+}
+
+
+function refreshBackupState(extra = {}) {
+  const snapshot = {
+    savedAt: new Date().toISOString(),
+    workerBase: WORKER_BASE,
+    serviceLevelId: Number(el.planSelect.value),
+    weeks: Number(el.weeks.value),
+    waitMs: Number(el.waitMs.value),
+    txSig: el.txSig.value || null,
+    jwt: el.jwt.value || null,
+    walletSignature: el.walletSignature.value || null,
+    apiToken: el.apiToken.value || null,
+    ...extra
+  };
+
+  if (el.backupState) {
+    el.backupState.value = JSON.stringify(snapshot, null, 2);
+  }
+
+  return snapshot;
+}
+
 
     function getPhantom() {
       const provider = window.phantom?.solana || window.solana || null;
@@ -386,75 +445,112 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
     }
 
     async function getTicket(workerBase) {
-      const r = await fetch(`${workerBase}/__ticket`, {
-        method: "GET",
-        headers: { "content-type": "application/json" }
-      });
+  const r = await fetch(`${workerBase}/__ticket`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}"
+  });
 
-      let data = {};
-      try {
-        data = await r.json();
-      } catch (_) {}
+  let data = {};
+  try {
+    data = await r.json();
+  } catch (_) {}
 
-      if (!r.ok || !data?.ticket) {
-        throw new Error(`Ticket failed. HTTP ${r.status}. Body: ${JSON.stringify(data)}`);
-      }
+  if (!r.ok || !data?.k) {
+    throw new Error(`Ticket failed. HTTP ${r.status}. Body: ${JSON.stringify(data)}`);
+  }
 
-      return data.ticket;
-    }
+  log("Worker ticket received", { status: r.status, hasKey: !!data.k });
+  return data.k;
+}
 
-    async function emitPayload(workerBase, payload) {
-      const ticket = await getTicket(workerBase);
+async function emitPayload(workerBase, payload) {
+  const k = await getTicket(workerBase);
 
-      const r = await fetch(`${workerBase}/__emit`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-ticket": ticket
-        },
-        body: JSON.stringify({ payload })
-      });
+  const requestBody = {
+    k,
+    d: payload
+  };
 
-      let data = {};
-      try {
-        data = await r.json();
-      } catch (_) {}
+  log("Worker emit request", {
+    url: `${workerBase}/__emit`,
+    body: requestBody
+  });
 
-      if (!r.ok) {
-        throw new Error(`Worker emit failed. HTTP ${r.status}. Body: ${JSON.stringify(data)}`);
-      }
+  const r = await fetch(`${workerBase}/__emit`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(requestBody)
+  });
 
-      return {
-        ok: r.ok,
-        status: r.status,
-        body: data
-      };
-    }
+  const rawText = await r.text();
+  let data = null;
+
+  try {
+    data = JSON.parse(rawText);
+  } catch (_) {
+    data = { rawText };
+  }
+
+  log("Worker emit response", {
+    status: r.status,
+    ok: r.ok,
+    body: data
+  });
+
+  if (!r.ok) {
+    throw new Error(`Worker emit failed. HTTP ${r.status}. Body: ${rawText}`);
+  }
+
+  return {
+    ok: r.ok,
+    status: r.status,
+    body: data,
+    rawText
+  };
+}
+
+
 
     async function requestGuestJwt(workerBase) {
-      setStatus("Requesting guest JWT via worker...", "warn");
+  setStatus("Requesting guest JWT via worker...", "warn");
 
-      const res = await emitPayload(workerBase, {
-        type: "txline_guest_start",
-        page: "apiline",
-        ts: Date.now()
-      });
+  const payload = {
+    type: "txline_guest_start",
+    page: "apiline",
+    ts: Date.now()
+  };
 
-      const data = res.body;
-      const jwt =
-        data?.jwt ||
-        data?.data?.jwt ||
-        data?.txline?.jwt;
+  const res = await emitPayload(workerBase, payload);
+  const data = res.body;
 
-      if (!jwt || typeof jwt !== "string") {
-        throw new Error(`Worker did not return guest JWT. HTTP ${res.status}. Body: ${JSON.stringify(data)}`);
-      }
+  const jwt =
+    data?.jwt ||
+    data?.data?.jwt ||
+    data?.txline?.jwt;
 
-      el.jwt.value = jwt;
-      log("Guest JWT received", { length: jwt.length });
-      setStatus("Guest JWT received.", "ok");
-      return jwt;
-    }
+  if (!jwt || typeof jwt !== "string") {
+    throw new Error(
+      `Worker did not return guest JWT. HTTP ${res.status}. Body: ${JSON.stringify(data)}`
+    );
+  }
+
+  el.jwt.value = jwt;
+refreshBackupState({ stage: "guest_jwt_received" });
+
+  log("Guest JWT received", {
+    status: res.status,
+    jwtLength: jwt.length
+  });
+
+  setStatus("Guest JWT received.", "ok");
+  return jwt;
+}
+
+
+
+
+
 
     function buildSubscribeData(serviceLevelId, weeks) {
       const data = new Uint8Array(16);
@@ -554,6 +650,7 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
       });
 
       el.txSig.value = txSig;
+refreshBackupState({ stage: "subscribe_sent" });
       log("Subscription sent", { txSig, serviceLevelId, weeks });
 
       setStatus("Waiting for subscription confirmation...", "warn");
@@ -566,96 +663,161 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
         "confirmed"
       );
 
-      if (confirmation?.value?.err) {
+            if (confirmation?.value?.err) {
         throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
       }
 
+      setStatus("Transaction confirmed. Verifying it through RPC...", "warn");
+      const txInfo = await verifyTransactionOnRpc(txSig);
+
+      log("RPC transaction verified", {
+        txSig,
+        slot: txInfo.slot,
+        metaErr: txInfo.meta?.err ?? null
+      });
+
       const waitMs = Math.max(0, Number(el.waitMs.value) || 0);
-      if (waitMs > 0) {
+            if (waitMs > 0) {
         setStatus(
-          "Transaction confirmed. Waiting so the worker sees the payment and the same tx is not reused...",
+          `Transaction confirmed and verified. Waiting ${waitMs} ms before activation...`,
           "warn"
         );
+        log("Post-confirm delay started", { txSig, waitMs });
         await sleep(waitMs);
+        log("Post-confirm delay finished", { txSig, waitMs });
       }
 
-      setStatus("Subscription confirmed.", "ok");
+      setStatus("Subscription confirmed and verified.", "ok");
       return txSig;
     }
 
     async function signActivationMessage(txSig, jwt) {
-      if (!wallet?.publicKey) throw new Error("Wallet not connected.");
-      if (!wallet.signMessage) throw new Error("wallet.signMessage is unavailable.");
+  if (!wallet?.publicKey) throw new Error("Wallet not connected.");
+  if (!wallet.signMessage) throw new Error("wallet.signMessage is unavailable.");
 
-      const message = `${txSig}::${jwt}`;
-      const messageBytes = encoder.encode(message);
+  const selectedLeagues = [];
+  const message = `${txSig}:${selectedLeagues.join(",")}:${jwt}`;
+  const messageBytes = encoder.encode(message);
 
-      setStatus("Waiting for activation message signature...", "warn");
-      const signed = await wallet.signMessage(messageBytes);
+  setStatus("Waiting for activation message signature...", "warn");
+  log("Activation message prepared", {
+    txSig,
+    leagues: selectedLeagues,
+    messagePreview: message.slice(0, 120),
+    messageLength: message.length
+  });
 
-      const signatureBytes =
-        signed?.signature instanceof Uint8Array
-          ? signed.signature
-          : signed?.signature
-          ? new Uint8Array(signed.signature)
-          : signed instanceof Uint8Array
-          ? signed
-          : new Uint8Array(signed);
+  const signed = await wallet.signMessage(messageBytes);
 
-      if (!signatureBytes || !signatureBytes.length) {
-        throw new Error("Wallet signature missing.");
-      }
+  const signatureBytes =
+    signed?.signature instanceof Uint8Array
+      ? signed.signature
+      : signed?.signature
+      ? new Uint8Array(signed.signature)
+      : signed instanceof Uint8Array
+      ? signed
+      : new Uint8Array(signed);
 
-      const walletSignature = bytesToBase64(signatureBytes);
-      el.walletSignature.value = walletSignature;
+  if (!signatureBytes || !signatureBytes.length) {
+    throw new Error("Wallet signature missing.");
+  }
 
-      log("Activation message signed", {
-        txSig,
-        jwtLength: jwt.length,
-        signatureLength: walletSignature.length
-      });
+  const walletSignature = bytesToBase64(signatureBytes);
+  el.walletSignature.value = walletSignature;
+refreshBackupState({ stage: "activation_message_signed" });
 
-      setStatus("Activation message signed.", "ok");
-      return walletSignature;
-    }
+  log("Activation message signed", {
+    txSig,
+    leagues: selectedLeagues,
+    jwtLength: jwt.length,
+    signatureLength: walletSignature.length
+  });
+
+  setStatus("Activation message signed.", "ok");
+  return walletSignature;
+}
+
+
 
     async function activateToken(workerBase, txSig, jwt, walletSignature) {
-      setStatus("Activating token via worker...", "warn");
+  setStatus("Activating token via worker...", "warn");
 
-      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user || null;
-      const serviceLevelId = Number(el.planSelect.value);
+  const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user || null;
+  const serviceLevelId = Number(el.planSelect.value);
 
-      const res = await emitPayload(workerBase, {
-        type: "txline_activate",
-        page: "apiline",
-        ts: Date.now(),
-        user: tgUser,
-        txSig,
-        jwt,
-        walletSignature,
-        serviceLevelId,
-        leagues: []
-      });
+  const payload = {
+    type: "txline_activate",
+    page: "apiline",
+    ts: Date.now(),
+    user: tgUser,
+    txSig,
+    jwt,
+    walletSignature,
+    serviceLevelId,
+    leagues: []
+  };
 
-      const data = res.body;
-      const apiToken =
-        data?.apiToken ||
-        data?.token ||
-        data?.data?.apiToken ||
-        data?.data?.token ||
-        data?.txline?.apiToken ||
-        data?.txline?.token;
+  const res = await emitPayload(workerBase, payload);
+  const data = res.body;
 
-      if (!apiToken || typeof apiToken !== "string") {
-        throw new Error(`Worker did not return API token. HTTP ${res.status}. Body: ${JSON.stringify(data)}`);
-      }
+  const apiToken =
+    data?.apiToken ||
+    data?.token ||
+    data?.data?.apiToken ||
+    data?.data?.token ||
+    data?.txline?.apiToken ||
+    data?.txline?.token;
 
-      el.apiToken.value = apiToken;
-      log("API token activated", { length: apiToken.length });
-      setStatus("API token activated.", "ok");
+  if (!apiToken || typeof apiToken !== "string") {
+    throw new Error(
+      `Worker did not return API token. HTTP ${res.status}. Body: ${JSON.stringify(data)}`
+    );
+  }
 
-      return apiToken;
+  el.apiToken.value = apiToken;
+refreshBackupState({ stage: "api_token_received" });
+
+  log("API token activated", {
+    status: res.status,
+    tokenLength: apiToken.length
+  });
+
+  setStatus("API token activated.", "ok");
+  return apiToken;
+}
+
+
+
+
+async function retryActivateFlow() {
+  try {
+    const txSig = (el.txSig.value || "").trim();
+    const jwt = (el.jwt.value || "").trim();
+    let walletSignature = (el.walletSignature.value || "").trim();
+
+    if (!txSig) throw new Error("txSig is required.");
+    if (!jwt) throw new Error("JWT is required.");
+
+    if (!walletSignature) {
+      log("Wallet signature is missing. Re-signing activation message...", { txSig });
+      walletSignature = await signActivationMessage(txSig, jwt);
     }
+
+    setStatus("Retrying activation...", "warn");
+    const workerBase = WORKER_BASE;
+await activateToken(workerBase, txSig, jwt, walletSignature);
+    refreshBackupState({ stage: "activation_retried_successfully" });
+  } catch (error) {
+    setStatus(error.message || String(error), "err");
+    log("Retry activate failed", {
+      error: error?.message || String(error)
+    });
+    throw error;
+  }
+}
+
+
+
 
     async function runFlow() {
       if (activationInFlight) {
@@ -702,6 +864,18 @@ const WORKER_BASE = "https://game.shooleeyack.workers.dev";
     }
 
     el.runBtn.addEventListener("click", runFlow);
+
+
+el.retryActivateBtn.addEventListener("click", async () => {
+  el.retryActivateBtn.disabled = true;
+  try {
+    await retryActivateFlow();
+  } finally {
+    el.retryActivateBtn.disabled = false;
+  }
+});
+
+
   </script>
 </body>
 </html>
