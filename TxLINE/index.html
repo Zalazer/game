@@ -387,6 +387,43 @@ async function verifyTransactionOnRpc(txSig) {
 
 
 
+
+async function resolveExpiredConfirmation(txSig) {
+  const statuses = await connection.getSignatureStatuses([txSig], {
+    searchTransactionHistory: true
+  });
+
+  const status = statuses?.value?.[0] ?? null;
+
+  log("Signature status fallback", {
+    txSig,
+    confirmationStatus: status?.confirmationStatus ?? null,
+    err: status?.err ?? null,
+    confirmations: status?.confirmations ?? null
+  });
+
+  if (status?.err) {
+    throw new Error(`Transaction status shows err: ${JSON.stringify(status.err)}`);
+  }
+
+  if (
+    status &&
+    (status.confirmationStatus === "confirmed" ||
+      status.confirmationStatus === "finalized" ||
+      status.confirmations === null)
+  ) {
+    const txInfo = await verifyTransactionOnRpc(txSig);
+    return {
+      recovered: true,
+      txInfo
+    };
+  }
+
+  throw new Error("Transaction expired before confirmation and was not found as confirmed in fallback status check.");
+}
+
+
+
     function bytesToBase64(bytes) {
       let binary = "";
       const chunk = 0x8000;
@@ -726,7 +763,7 @@ refreshBackupState({ stage: "guest_jwt_received" });
     data: buildSubscribeData(serviceLevelId, weeks)
   });
 
-  const latestBlockhash = await connection.getLatestBlockhash("finalized");
+  const latestBlockhash = await connection.getLatestBlockhash("confirmed");
 
   const tx = new Transaction({
     feePayer: userPubkey,
@@ -763,22 +800,46 @@ refreshBackupState({ stage: "guest_jwt_received" });
     tokenProgram: activeTokenProgramId?.toBase58?.() || null
   });
 
-  setStatus("Waiting for subscription confirmation...", "warn");
-  const confirmation = await connection.confirmTransaction(
-    {
-      signature: txSig,
-      blockhash: latestBlockhash.blockhash,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-    },
-    "confirmed"
-  );
 
-  if (confirmation?.value?.err) {
-    throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
+
+
+    setStatus("Waiting for subscription confirmation...", "warn");
+
+  let txInfo = null;
+
+  try {
+    const confirmation = await connection.confirmTransaction(
+      {
+        signature: txSig,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      },
+      "confirmed"
+    );
+
+    if (confirmation?.value?.err) {
+      throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
+    }
+
+    setStatus("Transaction confirmed. Verifying it through RPC...", "warn");
+    txInfo = await verifyTransactionOnRpc(txSig);
+  } catch (error) {
+    const msg = error?.message || String(error);
+
+    if (msg.includes("block height exceeded") || msg.includes("has expired")) {
+      setStatus("Confirmation window expired. Checking transaction status by signature...", "warn");
+      log("Primary confirmation expired, starting fallback status check", { txSig });
+
+      const recovered = await resolveExpiredConfirmation(txSig);
+      txInfo = recovered.txInfo;
+
+      setStatus("Transaction recovered from fallback status check.", "warn");
+    } else {
+      throw error;
+    }
   }
 
-  setStatus("Transaction confirmed. Verifying it through RPC...", "warn");
-  const txInfo = await verifyTransactionOnRpc(txSig);
+
 
   log("RPC transaction verified", {
     txSig,
