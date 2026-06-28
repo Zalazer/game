@@ -210,42 +210,42 @@
     </section>
 
     <section class="grid two">
-      <div class="card">
+            <div class="card">
         <h2>Subscription</h2>
 
-          <div>
-            <label for="planSelect">Free tier</label>
-            <select id="planSelect">
-              <option value="12" selected>Real-time free tier</option>
-              <option value="1">60-second delay free tier</option>
-            </select>
-          </div>
+        <div>
+          <label for="planSelect">Free tier</label>
+          <select id="planSelect">
+            <option value="12" selected>Real-time free tier</option>
+            <option value="1">60-second delay free tier</option>
+          </select>
+        </div>
 
-          <div>
-            <label for="weeks">Weeks</label>
-            <input id="weeks" type="number" value="4" min="1" step="1" />
-          </div>
+        <div>
+          <label for="weeks">Weeks</label>
+          <input id="weeks" type="number" value="4" min="1" step="1" />
+        </div>
 
-          <div>
-            <label for="waitMs">Delay after confirmed tx (ms)</label>
-            <input id="waitMs" type="number" value="8000" min="0" step="500" />
-          </div>
+        <div>
+          <label for="waitMs">Delay after confirmed tx (ms)</label>
+          <input id="waitMs" type="number" value="8000" min="0" step="500" />
+        </div>
 
-          <div>
-            <button id="runBtn">Run subscription + activate</button>
-          </div>
+        <div>
+          <button id="runBtn">Run subscription + activate</button>
+        </div>
 
-          <div>
-<button id="retryActivateBtn" type="button">Retry Activate</button>
-          </div>
+        <div>
+          <button id="retryActivateBtn" type="button">Retry Activate</button>
+        </div>
 
-
-          <div class="small">
-  Activation message format:
-  <span class="mono">txSig:leagues:jwt</span>
-</div>
+        <div class="small">
+          Activation message format:
+          <span class="mono">txSig:leagues:jwt</span>
         </div>
       </div>
+
+
 
       <div class="card">
         <h2>Status</h2>
@@ -406,11 +406,10 @@ async function resolveExpiredConfirmation(txSig) {
     throw new Error(`Transaction status shows err: ${JSON.stringify(status.err)}`);
   }
 
-  if (
+    if (
     status &&
     (status.confirmationStatus === "confirmed" ||
-      status.confirmationStatus === "finalized" ||
-      status.confirmations === null)
+      status.confirmationStatus === "finalized")
   ) {
     const txInfo = await verifyTransactionOnRpc(txSig);
     return {
@@ -604,6 +603,127 @@ function buildSubscribeData(serviceLevelId, weeks) {
 
 
 
+async function sendSubscribeAttempt(serviceLevelId, weeks, attemptNumber) {
+  const {
+    userPubkey,
+    pricingMatrixPda,
+    tokenTreasuryPda,
+    tokenTreasuryVault,
+    userTokenAccount
+  } = await deriveSubscribeAccounts();
+
+  const preIx = await ensureUserTokenAta(userPubkey, userTokenAccount);
+
+  const subscribeIx = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: userPubkey, isSigner: true, isWritable: true },
+      { pubkey: pricingMatrixPda, isSigner: false, isWritable: false },
+      { pubkey: SUBSCRIPTION_TOKEN_MINT, isSigner: false, isWritable: false },
+      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: tokenTreasuryVault, isSigner: false, isWritable: true },
+      { pubkey: tokenTreasuryPda, isSigner: false, isWritable: false },
+      { pubkey: activeTokenProgramId, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+    ],
+    data: buildSubscribeData(serviceLevelId, weeks)
+  });
+
+  const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+
+  const tx = new Transaction({
+    feePayer: userPubkey,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  });
+
+  if (preIx) {
+    log("User ATA missing. Adding ATA creation instruction.", {
+      attemptNumber,
+      userTokenAccount: userTokenAccount.toBase58()
+    });
+    tx.add(preIx);
+  }
+
+  tx.add(subscribeIx);
+
+  log("Subscribe attempt prepared", {
+    attemptNumber,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  });
+
+  setStatus(`Attempt ${attemptNumber}: waiting for Phantom transaction signature...`, "warn");
+  const signedTx = await wallet.signTransaction(tx);
+
+  setStatus(`Attempt ${attemptNumber}: sending subscription transaction...`, "warn");
+  const txSig = await connection.sendRawTransaction(signedTx.serialize(), {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+    maxRetries: 3
+  });
+
+  el.txSig.value = txSig;
+  refreshBackupState({ stage: `subscribe_sent_attempt_${attemptNumber}` });
+
+  log("Subscription sent", {
+    attemptNumber,
+    txSig,
+    serviceLevelId,
+    weeks,
+    tokenProgram: activeTokenProgramId?.toBase58?.() || null
+  });
+
+  let txInfo = null;
+
+  try {
+    setStatus(`Attempt ${attemptNumber}: waiting for subscription confirmation...`, "warn");
+
+    const confirmation = await connection.confirmTransaction(
+      {
+        signature: txSig,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+      },
+      "confirmed"
+    );
+
+    if (confirmation?.value?.err) {
+      throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
+    }
+
+    setStatus(`Attempt ${attemptNumber}: transaction confirmed. Verifying through RPC...`, "warn");
+    txInfo = await verifyTransactionOnRpc(txSig);
+  } catch (error) {
+    const msg = error?.message || String(error);
+
+    if (msg.includes("block height exceeded") || msg.includes("has expired")) {
+      setStatus(`Attempt ${attemptNumber}: confirmation expired. Checking signature status...`, "warn");
+      log("Primary confirmation expired, starting fallback status check", {
+        attemptNumber,
+        txSig
+      });
+
+      const recovered = await resolveExpiredConfirmation(txSig);
+      txInfo = recovered.txInfo;
+    } else {
+      throw error;
+    }
+  }
+
+  log("RPC transaction verified", {
+    attemptNumber,
+    txSig,
+    slot: txInfo.slot,
+    metaErr: txInfo.meta?.err ?? null
+  });
+
+  return { txSig, txInfo };
+}
+
+
+
     async function getTicket(workerBase) {
   const r = await fetch(`${workerBase}/__ticket`, {
     method: "POST",
@@ -737,132 +857,47 @@ refreshBackupState({ stage: "guest_jwt_received" });
 
   setStatus("Preparing subscription transaction...", "warn");
 
-  const {
-    userPubkey,
-    pricingMatrixPda,
-    tokenTreasuryPda,
-    tokenTreasuryVault,
-    userTokenAccount
-  } = await deriveSubscribeAccounts();
+  const maxAttempts = 2;
+  let lastError = null;
+  let txSig = null;
 
-  const preIx = await ensureUserTokenAta(userPubkey, userTokenAccount);
+  for (let attemptNumber = 1; attemptNumber <= maxAttempts; attemptNumber++) {
+    try {
+      const result = await sendSubscribeAttempt(serviceLevelId, weeks, attemptNumber);
+      txSig = result.txSig;
 
-  const subscribeIx = new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys: [
-      { pubkey: userPubkey, isSigner: true, isWritable: true },
-      { pubkey: pricingMatrixPda, isSigner: false, isWritable: false },
-      { pubkey: SUBSCRIPTION_TOKEN_MINT, isSigner: false, isWritable: false },
-      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
-      { pubkey: tokenTreasuryVault, isSigner: false, isWritable: true },
-      { pubkey: tokenTreasuryPda, isSigner: false, isWritable: false },
-      { pubkey: activeTokenProgramId, isSigner: false, isWritable: false },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
-    ],
-    data: buildSubscribeData(serviceLevelId, weeks)
-  });
+      const waitMs = Math.max(0, Number(el.waitMs.value) || 0);
+      if (waitMs > 0) {
+        setStatus(
+          `Transaction confirmed and verified. Waiting ${waitMs} ms before activation...`,
+          "warn"
+        );
+        log("Post-confirm delay started", { txSig, waitMs, attemptNumber });
+        await sleep(waitMs);
+        log("Post-confirm delay finished", { txSig, waitMs, attemptNumber });
+      }
 
-  const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+      setStatus("Subscription confirmed and verified.", "ok");
+      return txSig;
+    } catch (error) {
+      lastError = error;
+      log("Subscribe attempt failed", {
+        attemptNumber,
+        error: error?.message || String(error)
+      });
 
-  const tx = new Transaction({
-    feePayer: userPubkey,
-    blockhash: latestBlockhash.blockhash,
-    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-  });
-
-  if (preIx) {
-    log("User ATA missing. Adding ATA creation instruction.", {
-      userTokenAccount: userTokenAccount.toBase58()
-    });
-    tx.add(preIx);
-  }
-
-  tx.add(subscribeIx);
-
-  setStatus("Waiting for Phantom transaction signature...", "warn");
-  const signedTx = await wallet.signTransaction(tx);
-
-  setStatus("Sending subscription transaction...", "warn");
-  const txSig = await connection.sendRawTransaction(signedTx.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: "confirmed",
-    maxRetries: 3
-  });
-
-  el.txSig.value = txSig;
-  refreshBackupState({ stage: "subscribe_sent" });
-
-  log("Subscription sent", {
-    txSig,
-    serviceLevelId,
-    weeks,
-    tokenProgram: activeTokenProgramId?.toBase58?.() || null
-  });
-
-
-
-
-    setStatus("Waiting for subscription confirmation...", "warn");
-
-  let txInfo = null;
-
-  try {
-    const confirmation = await connection.confirmTransaction(
-      {
-        signature: txSig,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-      },
-      "confirmed"
-    );
-
-    if (confirmation?.value?.err) {
-      throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
-    }
-
-    setStatus("Transaction confirmed. Verifying it through RPC...", "warn");
-    txInfo = await verifyTransactionOnRpc(txSig);
-  } catch (error) {
-    const msg = error?.message || String(error);
-
-    if (msg.includes("block height exceeded") || msg.includes("has expired")) {
-      setStatus("Confirmation window expired. Checking transaction status by signature...", "warn");
-      log("Primary confirmation expired, starting fallback status check", { txSig });
-
-      const recovered = await resolveExpiredConfirmation(txSig);
-      txInfo = recovered.txInfo;
-
-      setStatus("Transaction recovered from fallback status check.", "warn");
-    } else {
-      throw error;
+      if (attemptNumber < maxAttempts) {
+        setStatus(
+          `Subscribe attempt ${attemptNumber} failed. Retrying with a fresh blockhash...`,
+          "warn"
+        );
+        await sleep(1200);
+      }
     }
   }
 
-
-
-  log("RPC transaction verified", {
-    txSig,
-    slot: txInfo.slot,
-    metaErr: txInfo.meta?.err ?? null
-  });
-
-  const waitMs = Math.max(0, Number(el.waitMs.value) || 0);
-
-  if (waitMs > 0) {
-    setStatus(
-      `Transaction confirmed and verified. Waiting ${waitMs} ms before activation...`,
-      "warn"
-    );
-    log("Post-confirm delay started", { txSig, waitMs });
-    await sleep(waitMs);
-    log("Post-confirm delay finished", { txSig, waitMs });
-  }
-
-  setStatus("Subscription confirmed and verified.", "ok");
-  return txSig;
+  throw lastError || new Error("Subscription failed after retry attempts.");
 }
-
 
 
 
