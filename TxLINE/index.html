@@ -241,9 +241,9 @@
 
 
           <div class="small">
-            The activation message uses the same format as recovery:
-            <span class="mono">txSig::jwt</span>.
-          </div>
+  Activation message format:
+  <span class="mono">txSig:leagues:jwt</span>
+</div>
         </div>
       </div>
 
@@ -296,17 +296,20 @@
 
   <script type="module">
     import {
-      Connection,
-      PublicKey,
-      Transaction,
-      TransactionInstruction,
-      clusterApiUrl
-    } from "https://esm.sh/@solana/web3.js@1.95.3";
-    import {
-      getAssociatedTokenAddressSync,
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    } from "https://esm.sh/@solana/spl-token@0.4.8";
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction
+} from "https://esm.sh/@solana/web3.js@1.95.3";
+
+import {
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction
+} from "https://esm.sh/@solana/spl-token@0.4.8";
 
     const RPC_URL = "https://solana-rpc.publicnode.com";
     const connection = new Connection(RPC_URL, "confirmed");
@@ -338,6 +341,8 @@ backupState: document.getElementById("backupState"),
 
     let wallet = null;
     let activationInFlight = false;
+
+let activeTokenProgramId = null;
 
     function setStatus(text, state = "") {
       el.mainStatus.textContent = text;
@@ -432,17 +437,135 @@ function refreshBackupState(extra = {}) {
       return provider;
     }
 
+
     async function connectWallet() {
-      wallet = getPhantom();
+  wallet = getPhantom();
 
-      if (!wallet.publicKey) {
-        setWalletStatus("Connecting Phantom...", "warn");
-        await wallet.connect();
-      }
+  if (!wallet.publicKey) {
+    setWalletStatus("Connecting Phantom...", "warn");
+    await wallet.connect();
+  }
 
-      setWalletStatus(`Connected: ${wallet.publicKey.toBase58()}`, "ok");
-      return wallet;
-    }
+  const tokenProgramId = await detectMintTokenProgram();
+
+  setWalletStatus(
+    `Connected: ${wallet.publicKey.toBase58()}
+Token program: ${tokenProgramId.toBase58()}`,
+    "ok"
+  );
+
+  log("Wallet connected", {
+    publicKey: wallet.publicKey.toBase58(),
+    tokenProgram: tokenProgramId.toBase58()
+  });
+
+  return wallet;
+}
+
+
+
+async function detectMintTokenProgram() {
+  const mintInfo = await connection.getAccountInfo(SUBSCRIPTION_TOKEN_MINT, "confirmed");
+
+  if (!mintInfo) {
+    throw new Error("Subscription token mint not found on Solana mainnet.");
+  }
+
+  if (mintInfo.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+    activeTokenProgramId = TOKEN_2022_PROGRAM_ID;
+    return activeTokenProgramId;
+  }
+
+  if (mintInfo.owner.equals(TOKEN_PROGRAM_ID)) {
+    activeTokenProgramId = TOKEN_PROGRAM_ID;
+    return activeTokenProgramId;
+  }
+
+  throw new Error(`Unsupported mint owner: ${mintInfo.owner.toBase58()}`);
+}
+
+async function deriveSubscribeAccounts() {
+  if (!wallet?.publicKey) throw new Error("Wallet not connected.");
+  if (!activeTokenProgramId) await detectMintTokenProgram();
+
+  const userPubkey = wallet.publicKey;
+
+  const [tokenTreasuryPda] = PublicKey.findProgramAddressSync(
+    [encoder.encode("token_treasury_v2")],
+    PROGRAM_ID
+  );
+
+  const tokenTreasuryVault = getAssociatedTokenAddressSync(
+    SUBSCRIPTION_TOKEN_MINT,
+    tokenTreasuryPda,
+    true,
+    activeTokenProgramId
+  );
+
+  const [pricingMatrixPda] = PublicKey.findProgramAddressSync(
+    [encoder.encode("pricing_matrix")],
+    PROGRAM_ID
+  );
+
+  const userTokenAccount = getAssociatedTokenAddressSync(
+    SUBSCRIPTION_TOKEN_MINT,
+    userPubkey,
+    false,
+    activeTokenProgramId
+  );
+
+  const derived = {
+    user: userPubkey.toBase58(),
+    pricingMatrixPda: pricingMatrixPda.toBase58(),
+    tokenTreasuryPda: tokenTreasuryPda.toBase58(),
+    tokenTreasuryVault: tokenTreasuryVault.toBase58(),
+    userTokenAccount: userTokenAccount.toBase58(),
+    tokenMint: SUBSCRIPTION_TOKEN_MINT.toBase58(),
+    tokenProgram: activeTokenProgramId.toBase58()
+  };
+
+  log("Derived subscribe accounts", derived);
+  return {
+    userPubkey,
+    pricingMatrixPda,
+    tokenTreasuryPda,
+    tokenTreasuryVault,
+    userTokenAccount
+  };
+}
+
+async function ensureUserTokenAta(userPubkey, userTokenAccount) {
+  const info = await connection.getAccountInfo(userTokenAccount, "confirmed");
+  if (info) return null;
+
+  return createAssociatedTokenAccountInstruction(
+    userPubkey,
+    userTokenAccount,
+    userPubkey,
+    SUBSCRIPTION_TOKEN_MINT,
+    activeTokenProgramId,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+}
+
+function buildSubscribeData(serviceLevelId, weeks) {
+  if (!Number.isInteger(serviceLevelId) || serviceLevelId < 0 || serviceLevelId > 65535) {
+    throw new Error("serviceLevelId must fit into u16.");
+  }
+
+  if (!Number.isInteger(weeks) || weeks < 0 || weeks > 255) {
+    throw new Error("weeks must fit into u8.");
+  }
+
+  const data = new Uint8Array(11);
+  data.set(SUBSCRIBE_DISCRIMINATOR, 0);
+  data[8] = serviceLevelId & 0xff;
+  data[9] = (serviceLevelId >> 8) & 0xff;
+  data[10] = weeks;
+  return data;
+}
+
+
 
     async function getTicket(workerBase) {
   const r = await fetch(`${workerBase}/__ticket`, {
@@ -552,144 +675,137 @@ refreshBackupState({ stage: "guest_jwt_received" });
 
 
 
-    function buildSubscribeData(serviceLevelId, weeks) {
-      const data = new Uint8Array(16);
-      data.set(SUBSCRIBE_DISCRIMINATOR, 0);
 
-      const view = new DataView(data.buffer);
-      view.setUint32(8, Number(serviceLevelId), true);
-      view.setUint32(12, Number(weeks), true);
 
-      return data;
-    }
-
-    async function findProgramAuthorityPda() {
-      const candidates = [
-        ["state"],
-        ["config"],
-        ["authority"],
-        ["program-authority"],
-        ["global"]
-      ];
-
-      for (const seeds of candidates) {
-        try {
-          const seedBytes = seeds.map(s => encoder.encode(s));
-          const [pda] = PublicKey.findProgramAddressSync(seedBytes, PROGRAM_ID);
-          return pda;
-        } catch (_) {}
-      }
-
-      throw new Error("Could not derive a program PDA candidate.");
-    }
-
-    async function prepareSubscribeInstruction(owner, serviceLevelId, weeks) {
-      const userTokenAccount = getAssociatedTokenAddressSync(
-        SUBSCRIPTION_TOKEN_MINT,
-        owner,
-        false,
-        TOKEN_PROGRAM_ID,
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-
-      const programAuthority = await findProgramAuthorityPda();
-
-      const keys = [
-        { pubkey: owner, isSigner: true, isWritable: true },
-        { pubkey: userTokenAccount, isSigner: false, isWritable: true },
-        { pubkey: SUBSCRIPTION_TOKEN_MINT, isSigner: false, isWritable: false },
-        { pubkey: programAuthority, isSigner: false, isWritable: true },
-        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-        { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
-      ];
-
-      return new TransactionInstruction({
-        programId: PROGRAM_ID,
-        keys,
-        data: buildSubscribeData(serviceLevelId, weeks)
-      });
-    }
 
     async function subscribeFlow() {
-      if (!wallet?.publicKey) {
-        throw new Error("Wallet not connected.");
-      }
+  if (!wallet?.publicKey) {
+    throw new Error("Wallet not connected.");
+  }
 
-      const owner = wallet.publicKey;
-      const serviceLevelId = Number(el.planSelect.value);
-      const weeks = Number(el.weeks.value);
+  if (!wallet.signTransaction) {
+    throw new Error("wallet.signTransaction is unavailable.");
+  }
 
-      if (!Number.isFinite(serviceLevelId) || serviceLevelId <= 0) {
-        throw new Error("Invalid serviceLevelId.");
-      }
+  const serviceLevelId = Number(el.planSelect.value);
+  const weeks = Number(el.weeks.value);
 
-      if (!Number.isFinite(weeks) || weeks <= 0) {
-        throw new Error("Invalid weeks value.");
-      }
+  if (![1, 12].includes(serviceLevelId)) {
+    throw new Error("Only free tier service levels 1 and 12 are allowed here.");
+  }
 
-      setStatus("Preparing subscription transaction...", "warn");
+  if (!Number.isInteger(weeks) || weeks <= 0) {
+    throw new Error("Invalid weeks value.");
+  }
 
-      const ix = await prepareSubscribeInstruction(owner, serviceLevelId, weeks);
-      const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+  setStatus("Preparing subscription transaction...", "warn");
 
-      const tx = new Transaction({
-        feePayer: owner,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-      });
+  const {
+    userPubkey,
+    pricingMatrixPda,
+    tokenTreasuryPda,
+    tokenTreasuryVault,
+    userTokenAccount
+  } = await deriveSubscribeAccounts();
 
-      tx.add(ix);
+  const preIx = await ensureUserTokenAta(userPubkey, userTokenAccount);
 
-      setStatus("Waiting for Phantom transaction signature...", "warn");
-      const signedTx = await wallet.signTransaction(tx);
+  const subscribeIx = new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: userPubkey, isSigner: true, isWritable: true },
+      { pubkey: pricingMatrixPda, isSigner: false, isWritable: false },
+      { pubkey: SUBSCRIPTION_TOKEN_MINT, isSigner: false, isWritable: false },
+      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: tokenTreasuryVault, isSigner: false, isWritable: true },
+      { pubkey: tokenTreasuryPda, isSigner: false, isWritable: false },
+      { pubkey: activeTokenProgramId, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+    ],
+    data: buildSubscribeData(serviceLevelId, weeks)
+  });
 
-      setStatus("Sending subscription transaction...", "warn");
-      const txSig = await connection.sendRawTransaction(signedTx.serialize(), {
-        preflightCommitment: "confirmed",
-        maxRetries: 3
-      });
+  const latestBlockhash = await connection.getLatestBlockhash("finalized");
 
-      el.txSig.value = txSig;
-refreshBackupState({ stage: "subscribe_sent" });
-      log("Subscription sent", { txSig, serviceLevelId, weeks });
+  const tx = new Transaction({
+    feePayer: userPubkey,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+  });
 
-      setStatus("Waiting for subscription confirmation...", "warn");
-      const confirmation = await connection.confirmTransaction(
-        {
-          signature: txSig,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
-        },
-        "confirmed"
-      );
+  if (preIx) {
+    log("User ATA missing. Adding ATA creation instruction.", {
+      userTokenAccount: userTokenAccount.toBase58()
+    });
+    tx.add(preIx);
+  }
 
-            if (confirmation?.value?.err) {
-        throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
-      }
+  tx.add(subscribeIx);
 
-      setStatus("Transaction confirmed. Verifying it through RPC...", "warn");
-      const txInfo = await verifyTransactionOnRpc(txSig);
+  setStatus("Waiting for Phantom transaction signature...", "warn");
+  const signedTx = await wallet.signTransaction(tx);
 
-      log("RPC transaction verified", {
-        txSig,
-        slot: txInfo.slot,
-        metaErr: txInfo.meta?.err ?? null
-      });
+  setStatus("Sending subscription transaction...", "warn");
+  const txSig = await connection.sendRawTransaction(signedTx.serialize(), {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+    maxRetries: 3
+  });
 
-      const waitMs = Math.max(0, Number(el.waitMs.value) || 0);
-            if (waitMs > 0) {
-        setStatus(
-          `Transaction confirmed and verified. Waiting ${waitMs} ms before activation...`,
-          "warn"
-        );
-        log("Post-confirm delay started", { txSig, waitMs });
-        await sleep(waitMs);
-        log("Post-confirm delay finished", { txSig, waitMs });
-      }
+  el.txSig.value = txSig;
+  refreshBackupState({ stage: "subscribe_sent" });
 
-      setStatus("Subscription confirmed and verified.", "ok");
-      return txSig;
-    }
+  log("Subscription sent", {
+    txSig,
+    serviceLevelId,
+    weeks,
+    tokenProgram: activeTokenProgramId?.toBase58?.() || null
+  });
+
+  setStatus("Waiting for subscription confirmation...", "warn");
+  const confirmation = await connection.confirmTransaction(
+    {
+      signature: txSig,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
+    },
+    "confirmed"
+  );
+
+  if (confirmation?.value?.err) {
+    throw new Error(`Subscription failed: ${JSON.stringify(confirmation.value.err)}`);
+  }
+
+  setStatus("Transaction confirmed. Verifying it through RPC...", "warn");
+  const txInfo = await verifyTransactionOnRpc(txSig);
+
+  log("RPC transaction verified", {
+    txSig,
+    slot: txInfo.slot,
+    metaErr: txInfo.meta?.err ?? null
+  });
+
+  const waitMs = Math.max(0, Number(el.waitMs.value) || 0);
+
+  if (waitMs > 0) {
+    setStatus(
+      `Transaction confirmed and verified. Waiting ${waitMs} ms before activation...`,
+      "warn"
+    );
+    log("Post-confirm delay started", { txSig, waitMs });
+    await sleep(waitMs);
+    log("Post-confirm delay finished", { txSig, waitMs });
+  }
+
+  setStatus("Subscription confirmed and verified.", "ok");
+  return txSig;
+}
+
+
+
+
+
 
     async function signActivationMessage(txSig, jwt) {
   if (!wallet?.publicKey) throw new Error("Wallet not connected.");
