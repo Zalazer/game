@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TxLINE Hackathon Check</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121932;
+      --panel-2: #0e1530;
+      --border: #2a355f;
+      --text: #eef2ff;
+      --muted: #b8c1e0;
+      --ok: #7ee2a8;
+      --warn: #ffd166;
+      --err: #ff9cab;
+      --accent: #64d4c3;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, rgba(100, 212, 195, 0.12), transparent 30%), var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: rgba(18, 25, 50, 0.96);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+    }
+
+    h1, h2 {
+      margin: 0 0 10px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      color: #d8e3ff;
+      font-size: 14px;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      font: inherit;
+    }
+
+    input, textarea {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid #33406e;
+      border-radius: 12px;
+      padding: 12px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    button {
+      margin-top: 12px;
+      background: linear-gradient(135deg, var(--accent), #8aa7ff);
+      color: #06111a;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #33406e;
+      background: #101a35;
+      min-height: 52px;
+      white-space: pre-wrap;
+    }
+
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .err { color: var(--err); }
+
+    .log {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      background: var(--panel-2);
+      border: 1px solid #33406e;
+      border-radius: 12px;
+      padding: 12px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .row {
+      display: grid;
+      gap: 12px;
+    }
+
+    @media (min-width: 860px) {
+      .two {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>TxLINE Hackathon Check</h1>
+      <p>
+        This tester sends a request using your recovered token and guest JWT.
+        TxLINE quickstart says the API uses the JWT and API token after activation.
+      </p>
+    </div>
+
+    <div class="card row">
+      <div>
+        <label for="workerBase">Worker base</label>
+        <input id="workerBase" value="https://game.shooleeyack.workers.dev" />
+      </div>
+
+      <div>
+        <label for="apiToken">Recovered API token</label>
+        <input id="apiToken" value="txoracle_api_2650229400a04b138cf1606c5098db27" />
+      </div>
+
+      <div>
+        <label for="jwt">Guest JWT</label>
+        <textarea id="jwt">eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3ODUyMzA2MzMsInNlc3Npb25JZCI6IjMzNmViOTYyLWM1NmQtNDBkMi1hY2Y0LTE3YWViZjRmNjkzMyIsInJvbGUiOiJndWVzdCIsIm1heWJlQ2xpZW50SXAiOiIxNS4xNTguMzguMTgyIn0.q9uJCak6iEKLWTi-T-kxPwBgvjnTigc32rycFbjfuxDf8nZ1hc2X2MmQazFLsZNdYFWu2INj-eXboT3D3bTQ0Q</textarea>
+      </div>
+
+      <div>
+        <label for="endpoint">Endpoint to test</label>
+        <input id="endpoint" value="https://txline.txodds.com/api/v1/events/upcoming?limit=5" />
+      </div>
+
+      <button id="testBtn">Test token directly</button>
+
+      <div id="status" class="status warn">Ready.</div>
+    </div>
+
+    <div class="card">
+      <h2>Response</h2>
+      <div id="response" class="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const el = {
+      workerBase: document.getElementById("workerBase"),
+      apiToken: document.getElementById("apiToken"),
+      jwt: document.getElementById("jwt"),
+      endpoint: document.getElementById("endpoint"),
+      testBtn: document.getElementById("testBtn"),
+      status: document.getElementById("status"),
+      response: document.getElementById("response")
+    };
+
+    function setStatus(text, cls = "warn") {
+      el.status.className = `status ${cls}`;
+      el.status.textContent = text;
+    }
+
+    function show(obj) {
+      el.response.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    async function testToken() {
+      const url = el.endpoint.value.trim();
+      const apiToken = el.apiToken.value.trim();
+      const jwt = el.jwt.value.trim();
+
+      if (!url || !apiToken || !jwt) {
+        setStatus("Fill endpoint, API token, and JWT.", "err");
+        return;
+      }
+
+      el.testBtn.disabled = true;
+      setStatus("Sending request...", "warn");
+      show("");
+
+      try {
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+            "x-api-key": apiToken,
+            accept: "application/json"
+          }
+        });
+
+        const raw = await res.text();
+        let body;
+        try {
+          body = JSON.parse(raw);
+        } catch {
+          body = raw;
+        }
+
+        show({
+          status: res.status,
+          ok: res.ok,
+          body
+        });
+
+        setStatus(
+          res.ok ? "Request completed successfully." : `Request failed with HTTP ${res.status}.`,
+          res.ok ? "ok" : "err"
+        );
+      } catch (e) {
+        show({ error: String(e?.message || e) });
+        setStatus("Network error.", "err");
+      } finally {
+        el.testBtn.disabled = false;
+      }
+    }
+
+    el.testBtn.addEventListener("click", testToken);
+  </script>
+</body>
+</html>
