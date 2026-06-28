@@ -423,6 +423,40 @@ async function resolveExpiredConfirmation(txSig) {
 
 
 
+async function waitForSignatureAppearance(txSig, timeoutMs = 4000) {
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const statuses = await connection.getSignatureStatuses([txSig], {
+      searchTransactionHistory: true
+    });
+
+    const status = statuses?.value?.[0] ?? null;
+
+    if (status) {
+      log("Signature appeared in status cache", {
+        txSig,
+        confirmationStatus: status.confirmationStatus ?? null,
+        err: status.err ?? null,
+        confirmations: status.confirmations ?? null
+      });
+      return status;
+    }
+
+    await sleep(500);
+  }
+
+  log("Signature did not appear in status cache within timeout", {
+    txSig,
+    timeoutMs
+  });
+
+  return null;
+}
+
+
+
+
     function bytesToBase64(bytes) {
       let binary = "";
       const chunk = 0x8000;
@@ -654,17 +688,30 @@ async function sendSubscribeAttempt(serviceLevelId, weeks, attemptNumber) {
     lastValidBlockHeight: latestBlockhash.lastValidBlockHeight
   });
 
-  setStatus(`Attempt ${attemptNumber}: waiting for Phantom transaction signature...`, "warn");
-  const signedTx = await wallet.signTransaction(tx);
+    setStatus(`Attempt ${attemptNumber}: sending subscription transaction...`, "warn");
 
-  setStatus(`Attempt ${attemptNumber}: sending subscription transaction...`, "warn");
-  const txSig = await connection.sendRawTransaction(signedTx.serialize(), {
+  if (!wallet.signAndSendTransaction) {
+    throw new Error("wallet.signAndSendTransaction is unavailable.");
+  }
+
+  const sendResult = await wallet.signAndSendTransaction(tx, {
     skipPreflight: false,
     preflightCommitment: "confirmed",
-    maxRetries: 3
+    maxRetries: 5
   });
 
-  el.txSig.value = txSig;
+  const txSig =
+    typeof sendResult === "string"
+      ? sendResult
+      : sendResult?.signature || sendResult?.txid || null;
+
+  if (!txSig) {
+    throw new Error("Wallet did not return transaction signature.");
+  }
+
+
+
+    el.txSig.value = txSig;
   refreshBackupState({ stage: `subscribe_sent_attempt_${attemptNumber}` });
 
   log("Subscription sent", {
@@ -675,7 +722,12 @@ async function sendSubscribeAttempt(serviceLevelId, weeks, attemptNumber) {
     tokenProgram: activeTokenProgramId?.toBase58?.() || null
   });
 
+  setStatus(`Attempt ${attemptNumber}: waiting for signature to appear on RPC...`, "warn");
+  await waitForSignatureAppearance(txSig, 4000);
+
   let txInfo = null;
+
+
 
   try {
     setStatus(`Attempt ${attemptNumber}: waiting for subscription confirmation...`, "warn");
@@ -840,8 +892,8 @@ refreshBackupState({ stage: "guest_jwt_received" });
     throw new Error("Wallet not connected.");
   }
 
-  if (!wallet.signTransaction) {
-    throw new Error("wallet.signTransaction is unavailable.");
+    if (!wallet.signAndSendTransaction) {
+    throw new Error("wallet.signAndSendTransaction is unavailable.");
   }
 
   const serviceLevelId = Number(el.planSelect.value);
