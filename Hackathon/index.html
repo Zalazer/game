@@ -630,12 +630,10 @@
       return probe?.collected?.[url] || null;
     }
 
-    function matchRowsFrom(probe) {
-  const e =
-    probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot'] ||
-    probe?.fixtures ||
-    null;
 
+
+    function matchRowsFrom(probe) {
+  const e = probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot'] || probe?.fixtures || null;
   const arr = pickArray(e);
   if (!arr.length) return [];
 
