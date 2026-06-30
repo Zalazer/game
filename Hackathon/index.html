@@ -631,19 +631,27 @@
     }
 
     function matchRowsFrom(probe) {
-      const urls = [
-        'https://txline.txodds.com/api/v1/matches/live',
-        'https://txline.txodds.com/api/v1/live-matches',
-        'https://txline.txodds.com/api/v1/matches',
-        'https://txline.txodds.com/api/v1/fixtures'
-      ];
-      for (const u of urls) {
-        const e = findEntry(probe, u);
-        const arr = pickArray(e);
-        if (arr.length) return arr;
-      }
-      return [];
-    }
+  const e =
+    probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot'] ||
+    probe?.fixtures ||
+    null;
+
+  const arr = pickArray(e);
+  if (!arr.length) return [];
+
+  return arr.map((x, i) => ({
+    idx: i,
+    id: x.FixtureId ?? x.fixtureId ?? x.id ?? x.matchId ?? x.eventId ?? i,
+    league: x.Competition ?? x.competition ?? x.league ?? x.tournament ?? x.region ?? '',
+    home: x.Participant1 ?? x.homeTeam ?? x.home ?? x.teamHome ?? x.a ?? '',
+    away: x.Participant2 ?? x.awayTeam ?? x.away ?? x.teamAway ?? x.b ?? '',
+    kickoff: x.StartTime ?? x.kickoff ?? x.startTime ?? x.scheduledAt ?? x.date ?? x.utc ?? '',
+    status: x.status ?? x.State ?? x.state ?? x.matchStatus ?? '',
+    score: x.score ?? [x.homeScore, x.awayScore].filter(v => v !== undefined && v !== null).join('-') ?? '',
+    raw: x
+  }));
+}
+
 
     function standingsRowsFrom(probe) {
       const e = findEntry(probe, 'https://txline.txodds.com/api/v1/standings');
@@ -663,37 +671,43 @@
       return arr;
     }
 
+
     function renderMatches(rows) {
-      if (!rows.length) {
-        el.matchesBody.innerHTML = '<tr><td colspan="8" class="small">No matches found in response.</td></tr>';
-        renderChips(el.matchChips, ['No match array']);
-        return;
-      }
-      renderChips(el.matchChips, [
-        `rows: ${rows.length}`,
-        `source: array`,
-        `best available`
-      ]);
-      el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => {
-        const id = r.id ?? r.matchId ?? r.fixtureId ?? r.eventId ?? i;
-        const league = r.league ?? r.competition ?? r.tournament ?? r.region ?? '';
-        const home = r.homeTeam ?? r.home ?? r.teamHome ?? r.participant1 ?? r.a ?? '';
-        const away = r.awayTeam ?? r.away ?? r.teamAway ?? r.participant2 ?? r.b ?? '';
-        const kickoff = r.kickoff ?? r.startTime ?? r.scheduledAt ?? r.date ?? r.utc ?? '';
-        const status = r.status ?? r.state ?? r.matchStatus ?? '';
-        const score = r.score ?? [r.homeScore, r.awayScore].filter(v => v !== undefined && v !== null).join('-') ?? '';
-        return `<tr>
-          <td class="mono">${escapeHtml(id)}</td>
-          <td>${escapeHtml(league)}</td>
-          <td>${escapeHtml(home)}</td>
-          <td>${escapeHtml(away)}</td>
-          <td class="mono">${escapeHtml(kickoff)}</td>
-          <td>${escapeHtml(status)}</td>
-          <td class="mono">${escapeHtml(score)}</td>
-          <td class="mono">${escapeHtml(safeJson(r).slice(0, 480))}</td>
-        </tr>`;
-      }).join('');
-    }
+  if (!rows.length) {
+    el.matchesBody.innerHTML = '<tr><td colspan="8" class="small">No fixtures found in response.</td></tr>';
+    renderChips(el.matchChips, ['No fixture array']);
+    return;
+  }
+
+  renderChips(el.matchChips, [
+    `rows: ${rows.length}`,
+    `source: fixtures`,
+    `best available`
+  ]);
+
+  el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => {
+    const id = r.id ?? r.FixtureId ?? r.fixtureId ?? r.matchId ?? r.eventId ?? i;
+    const league = r.league ?? r.Competition ?? r.competition ?? r.tournament ?? r.region ?? '';
+    const home = r.home ?? r.Participant1 ?? r.homeTeam ?? r.teamHome ?? r.a ?? '';
+    const away = r.away ?? r.Participant2 ?? r.awayTeam ?? r.teamAway ?? r.b ?? '';
+    const kickoff = r.kickoff ?? r.StartTime ?? r.startTime ?? r.scheduledAt ?? r.date ?? r.utc ?? '';
+    const status = r.status ?? r.State ?? r.state ?? r.matchStatus ?? '';
+    const score = r.score ?? [r.homeScore, r.awayScore].filter(v => v !== undefined && v !== null).join('-') ?? '';
+
+    return `<tr>
+      <td class="mono">${escapeHtml(id)}</td>
+      <td>${escapeHtml(league)}</td>
+      <td>${escapeHtml(home)}</td>
+      <td>${escapeHtml(away)}</td>
+      <td class="mono">${escapeHtml(kickoff)}</td>
+      <td>${escapeHtml(status)}</td>
+      <td class="mono">${escapeHtml(score)}</td>
+      <td class="mono">${escapeHtml(safeJson(r).slice(0, 480))}</td>
+    </tr>`;
+  }).join('');
+}
+
+
 
     function renderStandings(rows) {
       if (!rows.length) {
