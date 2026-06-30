@@ -640,14 +640,11 @@
         ? [probe.firstSuccess.sample]
         : probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot']?.sample
           ? [probe.collected['https://txline.txodds.com/api/fixtures/snapshot'].sample]
-          : probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot']?.sampleKeys
-            ? []
-            : [];
+          : [];
 
-  const arr = Array.isArray(entry) ? entry : [];
-  if (!arr.length) return [];
+  if (!entry.length) return [];
 
-  return arr.map((x, i) => ({
+  return entry.map((x, i) => ({
     idx: i,
     id: x.FixtureId ?? x.fixtureId ?? x.id ?? x.matchId ?? x.eventId ?? i,
     league: x.Competition ?? x.competition ?? x.league ?? x.tournament ?? x.region ?? '',
