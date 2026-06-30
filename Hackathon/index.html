@@ -634,17 +634,14 @@
 
     function matchRowsFrom(probe) {
   const entry =
-    probe?.best?.sample
-      ? [probe.best.sample]
-      : probe?.firstSuccess?.sample
-        ? [probe.firstSuccess.sample]
-        : probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot']?.sample
-          ? [probe.collected['https://txline.txodds.com/api/fixtures/snapshot'].sample]
-          : [];
+    probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot'] ||
+    probe?.firstSuccess ||
+    null;
 
-  if (!entry.length) return [];
+  const arr = pickArray(entry);
+  if (!arr.length) return [];
 
-  return entry.map((x, i) => ({
+  return arr.map((x, i) => ({
     idx: i,
     id: x.FixtureId ?? x.fixtureId ?? x.id ?? x.matchId ?? x.eventId ?? i,
     league: x.Competition ?? x.competition ?? x.league ?? x.tournament ?? x.region ?? '',
@@ -656,7 +653,6 @@
     raw: x
   }));
 }
-
 
 
 
@@ -821,10 +817,10 @@ function oddsRowsFrom(probe) {
 
 
     function renderRoutes(probe) {
-  const entries = [];
+  const entries = [...(probe?.source || [])];
 
   if (probe?.firstSuccess) {
-    entries.push({
+    entries.unshift({
       url: probe.firstSuccess.url,
       ok: true,
       status: 200,
@@ -834,11 +830,6 @@ function oddsRowsFrom(probe) {
       sample: probe.firstSuccess.sample || null,
       deepKeys: []
     });
-  }
-
-  for (const x of (probe?.source || [])) {
-    if (x.url === probe?.firstSuccess?.url) continue;
-    entries.push(x);
   }
 
   if (!entries.length) {
@@ -878,7 +869,6 @@ function oddsRowsFrom(probe) {
 
 
 
-
     function activateTab(name) {
       for (const btn of document.querySelectorAll('.tab')) {
         btn.classList.toggle('active', btn.dataset.tab === name);
@@ -915,87 +905,84 @@ function oddsRowsFrom(probe) {
       }
     }
 
-
     async function probeTxline() {
-  el.probeBtn.disabled = true;
-  setStatus('Probing TxLINE feed through worker...', 'warn');
-  try {
-    const res = await emit({
-      type: 'txline_probe_feed',
-      page: 'hackathon',
-      ts: Date.now(),
-      apiToken: el.apiToken.value.trim(),
-      jwt: el.jwt.value.trim(),
-      scope: 'worldcup',
-      serviceLevelId: Number(el.serviceLevelId.value || 12)
-    });
+      el.probeBtn.disabled = true;
+      setStatus('Probing TxLINE feed through worker...', 'warn');
+      try {
+        const res = await emit({
+          type: 'txline_probe_feed',
+          page: 'hackathon',
+          ts: Date.now(),
+          apiToken: el.apiToken.value.trim(),
+          jwt: el.jwt.value.trim(),
+          scope: 'worldcup',
+          serviceLevelId: Number(el.serviceLevelId.value || 12)
+        });
 
-    show(res);
-    const probe = res.body;
-    const collected = probe?.collected || {};
-    const keys = new Set();
-    (probe?.source || []).forEach(x => (x.deepKeys || []).forEach(k => keys.add(k)));
+        show(res);
+        const probe = res.body;
+        const collected = probe?.collected || {};
+        const keys = new Set();
+        (probe?.source || []).forEach(x => (x.deepKeys || []).forEach(k => keys.add(k)));
 
-    el.summary.textContent = JSON.stringify({
-      ok: probe?.ok,
-      scope: probe?.scope,
-      serviceLevelId: probe?.serviceLevelId,
-      firstSuccess: probe?.firstSuccess ? {
-        url: probe.firstSuccess.url,
-        count: probe.firstSuccess.count,
-        sampleKeys: probe.firstSuccess.sampleKeys
-      } : null,
-      best: probe?.best || null,
-      discoveredRoutes: Object.keys(collected).length,
-      uniqueDeepKeys: keys.size,
-      receivedAt: probe?.receivedAt
-    }, null, 2);
+        el.summary.textContent = JSON.stringify({
+          ok: probe?.ok,
+          scope: probe?.scope,
+          serviceLevelId: probe?.serviceLevelId,
+          firstSuccess: probe?.firstSuccess ? {
+            url: probe.firstSuccess.url,
+            count: probe.firstSuccess.count,
+            sampleKeys: probe.firstSuccess.sampleKeys
+          } : null,
+          best: probe?.best || null,
+          discoveredRoutes: Object.keys(collected).length,
+          uniqueDeepKeys: keys.size,
+          receivedAt: probe?.receivedAt
+        }, null, 2);
 
-    el.routesCountValue.textContent = String(Object.keys(collected).length);
-    el.keysCountValue.textContent = String(keys.size);
+        el.routesCountValue.textContent = String(Object.keys(collected).length);
+        el.keysCountValue.textContent = String(keys.size);
 
-    const best = probe?.best || probe?.firstSuccess || null;
-    el.bestRouteValue.textContent = best?.count ? String(best.count) : '—';
-    el.bestRouteSub.textContent = best?.route || best?.url || 'No successful array yet';
+        const best = probe?.best || probe?.firstSuccess || null;
+el.bestRouteValue.textContent = best?.count ? String(best.count) : '—';
+el.bestRouteSub.textContent = best?.url || best?.route || 'No successful array yet';
 
-    renderRoutes(probe);
+        renderRoutes(probe);
 
-    const matchRows = matchRowsFrom(probe);
-    const standingsRows = standingsRowsFrom(probe);
-    const eventsRows = eventsRowsFrom(probe);
-    const oddsRows = oddsRowsFrom(probe);
+        const matchRows = matchRowsFrom(probe);
+        const standingsRows = standingsRowsFrom(probe);
+        const eventsRows = eventsRowsFrom(probe);
+        const oddsRows = oddsRowsFrom(probe);
 
-    renderMatches(matchRows);
-    renderStandings(standingsRows);
-    renderEvents(eventsRows);
-    renderOdds(oddsRows);
+        renderMatches(matchRows);
+        renderStandings(standingsRows);
+        renderEvents(eventsRows);
+        renderOdds(oddsRows);
 
-    el.kpiMatches.textContent = String(matchRows.length || '—');
-    el.kpiStandings.textContent = String(standingsRows.length || '—');
-    el.kpiEvents.textContent = String(eventsRows.length || '—');
-    el.kpiOdds.textContent = String(oddsRows.length || '—');
+        el.kpiMatches.textContent = String(matchRows.length || '—');
+        el.kpiStandings.textContent = String(standingsRows.length || '—');
+        el.kpiEvents.textContent = String(eventsRows.length || '—');
+        el.kpiOdds.textContent = String(oddsRows.length || '—');
 
-    saveBackup({
-      stage: 'probe_feed',
-      lastResponse: probe,
-      counts: {
-        matches: matchRows.length,
-        standings: standingsRows.length,
-        events: eventsRows.length,
-        odds: oddsRows.length
+        saveBackup({
+          stage: 'probe_feed',
+          lastResponse: probe,
+          counts: {
+            matches: matchRows.length,
+            standings: standingsRows.length,
+            events: eventsRows.length,
+            odds: oddsRows.length
+          }
+        });
+
+        setStatus(res.ok ? 'Probe completed.' : `Probe failed (${res.status}).`, res.ok ? 'ok' : 'err');
+      } catch (e) {
+        show({ error: String(e?.message || e) });
+        setStatus('Worker request failed.', 'err');
+      } finally {
+        el.probeBtn.disabled = false;
       }
-    });
-
-    setStatus(res.ok ? 'Probe completed.' : `Probe failed (${res.status}).`, res.ok ? 'ok' : 'err');
-  } catch (e) {
-    show({ error: String(e?.message || e) });
-    setStatus('Worker request failed.', 'err');
-  } finally {
-    el.probeBtn.disabled = false;
-  }
-}
-
-
+    }
 
     function toggleAutoRefresh() {
       auto = !auto;
