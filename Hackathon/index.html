@@ -633,8 +633,12 @@
 
 
     function matchRowsFrom(probe) {
-  const e = probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot'] || probe?.fixtures || null;
-  const arr = pickArray(e);
+  const entry =
+    probe?.collected?.['https://txline.txodds.com/api/fixtures/snapshot'] ||
+    probe?.firstSuccess ||
+    null;
+
+  const arr = pickArray(entry);
   if (!arr.length) return [];
 
   return arr.map((x, i) => ({
@@ -645,29 +649,37 @@
     away: x.Participant2 ?? x.awayTeam ?? x.away ?? x.teamAway ?? x.b ?? '',
     kickoff: x.StartTime ?? x.kickoff ?? x.startTime ?? x.scheduledAt ?? x.date ?? x.utc ?? '',
     status: x.status ?? x.State ?? x.state ?? x.matchStatus ?? '',
-    score: x.score ?? [x.homeScore, x.awayScore].filter(v => v !== undefined && v !== null).join('-') ?? '',
+    score: x.score ?? (x.homeScore != null || x.awayScore != null ? `${x.homeScore ?? ''}-${x.awayScore ?? ''}` : ''),
     raw: x
   }));
 }
 
 
+
     function standingsRowsFrom(probe) {
-      const e = findEntry(probe, 'https://txline.txodds.com/api/v1/standings');
-      const arr = pickArray(e);
-      return arr;
-    }
+  const entry =
+    findEntry(probe, 'https://txline.txodds.com/api/v1/standings') ||
+    findEntry(probe, 'https://txline.txodds.com/api/standings') ||
+    null;
+  return pickArray(entry);
+}
 
-    function eventsRowsFrom(probe) {
-      const e = findEntry(probe, 'https://txline.txodds.com/api/v1/events');
-      const arr = pickArray(e);
-      return arr;
-    }
+function eventsRowsFrom(probe) {
+  const entry =
+    findEntry(probe, 'https://txline.txodds.com/api/v1/events') ||
+    findEntry(probe, 'https://txline.txodds.com/api/events') ||
+    null;
+  return pickArray(entry);
+}
 
-    function oddsRowsFrom(probe) {
-      const e = findEntry(probe, 'https://txline.txodds.com/api/v1/odds');
-      const arr = pickArray(e);
-      return arr;
-    }
+function oddsRowsFrom(probe) {
+  const entry =
+    findEntry(probe, 'https://txline.txodds.com/api/v1/odds') ||
+    findEntry(probe, 'https://txline.txodds.com/api/odds') ||
+    null;
+  return pickArray(entry);
+}
+
 
 
     function renderMatches(rows) {
@@ -690,7 +702,7 @@
     const away = r.away ?? r.Participant2 ?? r.awayTeam ?? r.teamAway ?? r.b ?? '';
     const kickoff = r.kickoff ?? r.StartTime ?? r.startTime ?? r.scheduledAt ?? r.date ?? r.utc ?? '';
     const status = r.status ?? r.State ?? r.state ?? r.matchStatus ?? '';
-    const score = r.score ?? [r.homeScore, r.awayScore].filter(v => v !== undefined && v !== null).join('-') ?? '';
+    const score = r.score ?? (r.homeScore != null || r.awayScore != null ? `${r.homeScore ?? ''}-${r.awayScore ?? ''}` : '');
 
     return `<tr>
       <td class="mono">${escapeHtml(id)}</td>
@@ -704,7 +716,6 @@
     </tr>`;
   }).join('');
 }
-
 
 
     function renderStandings(rows) {
@@ -803,42 +814,60 @@
       }).join('');
     }
 
+
+
     function renderRoutes(probe) {
-      const entries = probe?.source || [];
-      if (!entries.length) {
-        el.routes.innerHTML = '<div class="small">No routes returned.</div>';
-        el.routesCompact.innerHTML = '<div class="small">No routes returned.</div>';
-        return;
-      }
+  const entries = [...(probe?.source || [])];
 
-      const routeHtml = entries.map(x => {
-        const ok = x.ok ? 'ok' : 'bad';
-        const status = x.status ?? '';
-        const rawType = x.rawType ?? '';
-        const keys = (x.deepKeys || []).slice(0, 10).join(', ');
-        return `
-          <div class="route-card">
-            <div class="route-head">
-              <div class="route-url">${escapeHtml(x.url)}</div>
-              <div class="route-meta">
-                <span class="tag ${ok}">${x.ok ? 'ok' : 'fail'}</span>
-                <span class="tag neutral">${escapeHtml(String(status))}</span>
-                <span class="tag neutral">${escapeHtml(String(rawType))}</span>
-              </div>
-            </div>
-            <div class="route-grid">
-              <div class="mini"><div class="t">Count</div><div class="v">${escapeHtml(String(x.count ?? '—'))}</div><div class="s">Observed array length</div></div>
-              <div class="mini"><div class="t">Sample keys</div><div class="v">${escapeHtml((x.sampleKeys || []).slice(0, 5).join(', ') || '—')}</div><div class="s">First object keys</div></div>
-              <div class="mini"><div class="t">Deep keys</div><div class="v">${escapeHtml(keys || '—')}</div><div class="s">Schema hints</div></div>
-              <div class="mini"><div class="t">Sample</div><div class="v">${escapeHtml(x.sample ? JSON.stringify(x.sample).slice(0, 160) : '—')}</div><div class="s">Preview</div></div>
-            </div>
+  if (probe?.firstSuccess) {
+    entries.unshift({
+      url: probe.firstSuccess.url,
+      ok: true,
+      status: 200,
+      rawType: 'array',
+      count: probe.firstSuccess.count,
+      sampleKeys: probe.firstSuccess.sampleKeys || [],
+      sample: probe.firstSuccess.sample || null,
+      deepKeys: []
+    });
+  }
+
+  if (!entries.length) {
+    el.routes.innerHTML = '<div class="small">No routes returned.</div>';
+    el.routesCompact.innerHTML = '<div class="small">No routes returned.</div>';
+    return;
+  }
+
+  const routeHtml = entries.map(x => {
+    const ok = x.ok ? 'ok' : 'bad';
+    const status = x.status ?? '';
+    const rawType = x.rawType ?? '';
+    const keys = (x.deepKeys || []).slice(0, 10).join(', ');
+    return `
+      <div class="route-card">
+        <div class="route-head">
+          <div class="route-url">${escapeHtml(x.url)}</div>
+          <div class="route-meta">
+            <span class="tag ${ok}">${x.ok ? 'ok' : 'fail'}</span>
+            <span class="tag neutral">${escapeHtml(String(status))}</span>
+            <span class="tag neutral">${escapeHtml(String(rawType))}</span>
           </div>
-        `;
-      }).join('');
+        </div>
+        <div class="route-grid">
+          <div class="mini"><div class="t">Count</div><div class="v">${escapeHtml(String(x.count ?? '—'))}</div><div class="s">Observed array length</div></div>
+          <div class="mini"><div class="t">Sample keys</div><div class="v">${escapeHtml((x.sampleKeys || []).slice(0, 5).join(', ') || '—')}</div><div class="s">First object keys</div></div>
+          <div class="mini"><div class="t">Deep keys</div><div class="v">${escapeHtml(keys || '—')}</div><div class="s">Schema hints</div></div>
+          <div class="mini"><div class="t">Sample</div><div class="v">${escapeHtml(x.sample ? JSON.stringify(x.sample).slice(0, 160) : '—')}</div><div class="s">Preview</div></div>
+        </div>
+      </div>
+    `;
+  }).join('');
 
-      el.routes.innerHTML = routeHtml;
-      el.routesCompact.innerHTML = routeHtml;
-    }
+  el.routes.innerHTML = routeHtml;
+  el.routesCompact.innerHTML = routeHtml;
+}
+
+
 
     function activateTab(name) {
       for (const btn of document.querySelectorAll('.tab')) {
@@ -914,8 +943,9 @@
         el.routesCountValue.textContent = String(Object.keys(collected).length);
         el.keysCountValue.textContent = String(keys.size);
 
-        el.bestRouteValue.textContent = probe?.best?.count ? String(probe.best.count) : '—';
-        el.bestRouteSub.textContent = probe?.best?.route || 'No successful array yet';
+        const best = probe?.best || probe?.firstSuccess || null;
+el.bestRouteValue.textContent = best?.count ? String(best.count) : '—';
+el.bestRouteSub.textContent = best?.url || best?.route || 'No successful array yet';
 
         renderRoutes(probe);
 
