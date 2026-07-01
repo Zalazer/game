@@ -665,27 +665,29 @@ This dashboard is designed for hackathon demonstrations and automatically adapts
 <section class="main-grid">
 <aside class="sidebar">
 <div class="card panel">
-<h3>Connection</h3>
+  <h3>Connection</h3>
 
-<label for="workerBase">Worker URL</label>
-<input id="workerBase" value="https://game.shooleeyack.workers.dev">
+  <label for="workerBase">Worker base</label>
+  <input id="workerBase" value="https://game.shooleeyack.workers.dev" />
 
-<label for="apiToken">API Token</label>
-<input id="apiToken" autocomplete="off">
+  <label for="apiToken">API token</label>
+  <input id="apiToken" value="txoracle_api_2650229400a04b138cf1606c5098db27" />
 
-<label for="jwt">Guest JWT</label>
-<textarea id="jwt"></textarea>
+  <label for="jwt">Guest JWT</label>
+  <textarea id="jwt">eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3ODUyMzA2MzMsInNlc3Npb25JZCI6IjMzNmViOTYyLWM1NmQtNDBkMi1hY2Y0LTE3YWViZjRmNjkzMyIsInJvbGUiOiJndWVzdCIsIm1heWJlQ2xpZW50SXAiOiIxNS4xNTguMzguMTgyIn0.q9uJCak6iEKLWTi-T-kxPwBgvjnTigc32rycFbjfuxDf8nZ1hc2X2MmQazFLsZNdYFWu2INj-eXboT3D3bTQ0Q</textarea>
 
-<label for="serviceLevel">Service Level</label>
-<select id="serviceLevel">
-<option value="12">12 — Real Time</option>
-<option value="1">1 — Delayed</option>
-</select>
+  <label for="serviceLevelId">Service level</label>
+  <select id="serviceLevelId">
+    <option value="12" selected>12 - Real-time</option>
+    <option value="1">1 - 60s delay</option>
+  </select>
 
-<div class="footer-note">
-Configuration is kept in memory for this session. All requests are executed through the Cloudflare Worker.
+  <div class="footer-note">
+    The dashboard dynamically adapts to the actual payload returned by the worker.
+  </div>
 </div>
-</div>
+
+
 
 <div class="card panel">
 <h3>Session Snapshot</h3>
@@ -872,7 +874,7 @@ const el = {
 workerBase: document.getElementById("workerBase"),
 apiToken: document.getElementById("apiToken"),
 jwt: document.getElementById("jwt"),
-serviceLevelId: document.getElementById("serviceLevel"),
+serviceLevelId: document.getElementById("serviceLevelId"),
 checkBtn: document.getElementById("tokenBtn"),
 probeBtn: document.getElementById("probeBtn"),
 refreshBtn: document.getElementById("refreshBtn"),
