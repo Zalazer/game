@@ -1399,6 +1399,7 @@ function tableCardList(rows, renderCard, emptyHtml) {
   return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
 }
 
+
 function renderMatches(rows) {
   if (!rows.length) {
     el.matchesBody.innerHTML = '<tr><td colspan="8">No fixtures found</td></tr>';
@@ -1427,10 +1428,9 @@ function renderMatches(rows) {
       <div><span>Score</span><b class="mono">${escapeHtml(r.score ?? "")}</b></div>
     </div>
 
-    <details class="mobile-details">
-      <summary>View raw data</summary>
-      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
-    </details>
+    <div class="mobile-card-text">
+<b>Status:</b> ${escapeHtml(r.status || "Unknown")}
+</div>
   </div>
 </td>
 </tr>`,
@@ -1447,7 +1447,11 @@ function renderMatches(rows) {
 <td class="mono">${escapeHtml(r.kickoff ?? "")}</td>
 <td>${escapeHtml(r.status ?? "")}</td>
 <td class="mono">${escapeHtml(r.score ?? "")}</td>
-<td class="mono">${escapeHtml(safeJson(r).slice(0, 400))}</td>
+<td>
+<button class="btn btn-secondary details-btn" type="button">
+Details
+</button>
+</td>
 </tr>`).join("");
 }
 
@@ -1480,10 +1484,9 @@ function renderStandings(rows) {
       <div><span>Lost</span><b class="mono">${escapeHtml(r.lost ?? "")}</b></div>
     </div>
 
-    <details class="mobile-details">
-      <summary>View raw data</summary>
-      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
-    </details>
+    <div class="mobile-card-text">
+Current tournament standing
+</div>
   </div>
 </td>
 </tr>`,
@@ -1500,7 +1503,7 @@ function renderStandings(rows) {
 <td class="mono">${escapeHtml(r.won ?? "")}</td>
 <td class="mono">${escapeHtml(r.draw ?? "")}</td>
 <td class="mono">${escapeHtml(r.lost ?? "")}</td>
-<td class="mono">${escapeHtml(safeJson(r).slice(0, 360))}</td>
+<td>—</td>
 </tr>`).join("");
 }
 
@@ -1534,10 +1537,9 @@ function renderEvents(rows) {
 
     <div class="mobile-card-text">${escapeHtml(r.detail ?? r.description ?? "")}</div>
 
-    <details class="mobile-details">
-      <summary>View raw data</summary>
-      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
-    </details>
+    <div class="mobile-card-text">
+${escapeHtml(r.detail || r.description || "")}
+</div>
   </div>
 </td>
 </tr>`,
@@ -1554,7 +1556,7 @@ function renderEvents(rows) {
 <td>${escapeHtml(r.detail ?? r.description ?? "")}</td>
 <td>${escapeHtml(r.outcome ?? r.result ?? "")}</td>
 <td class="mono">${escapeHtml(r.match ?? r.fixture ?? i)}</td>
-<td class="mono">${escapeHtml(safeJson(r).slice(0, 420))}</td>
+<td>—</td>
 </tr>`).join("");
 }
 
@@ -1587,10 +1589,9 @@ function renderOdds(rows) {
       <div><span>Fixture</span><b class="mono">${escapeHtml(r.fixture ?? r.matchId ?? i)}</b></div>
     </div>
 
-    <details class="mobile-details">
-      <summary>View raw data</summary>
-      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
-    </details>
+    <div class="mobile-card-text">
+Latest available odds
+</div>
   </div>
 </td>
 </tr>`,
@@ -1607,7 +1608,7 @@ function renderOdds(rows) {
 <td class="mono">${escapeHtml(r.away ?? r.awayPrice ?? "")}</td>
 <td class="mono">${escapeHtml(r.time ?? r.updatedAt ?? "")}</td>
 <td class="mono">${escapeHtml(r.fixture ?? r.matchId ?? i)}</td>
-<td class="mono">${escapeHtml(safeJson(r).slice(0, 380))}</td>
+<td>—</td>
 </tr>`).join("");
 }
 
