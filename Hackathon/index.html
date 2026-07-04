@@ -172,7 +172,7 @@ color:#dffff6;
 
 .hero-title{
 margin-top:22px;
-font-size:54px;
+font-size:34px;
 font-weight:900;
 line-height:1.02;
 letter-spacing:-.05em;
@@ -181,7 +181,7 @@ max-width:900px;
 
 .hero-text{
 margin-top:18px;
-max-width:820px;
+max-width:650px;
 font-size:16px;
 line-height:1.75;
 color:var(--muted);
@@ -238,7 +238,7 @@ gap:16px;
 }
 
 .kpi{
-padding:22px;
+padding:16px;
 border-radius:22px;
 background:rgba(255,255,255,.035);
 border:1px solid var(--line);
@@ -256,7 +256,7 @@ font-weight:700;
 }
 
 .kpi-value{
-font-size:36px;
+font-size:28px;
 font-weight:900;
 letter-spacing:-.04em;
 }
@@ -905,6 +905,15 @@ Live football data collected from the TxLINE service. Browse fixtures, standings
 <button class="btn btn-secondary" id="tokenBtn" type="button">
 🛰 Test Connection
 </button>
+
+<button
+class="btn btn-secondary"
+id="settingsBtn"
+type="button">
+
+⚙ Settings
+
+</button>
 </div>
 </div>
 
@@ -946,24 +955,25 @@ Live football data collected from the TxLINE service. Browse fixtures, standings
 </section>
 
 <section class="main-grid">
-<aside class="sidebar">
+
+
+<aside class="sidebar hidden" id="settingsPanel">
+
 <div class="card panel">
-  <h3>Settings</h3>
 
-  <label for="workerBase">Server</label>
-  <input id="workerBase" value="https://game.shooleeyack.workers.dev" />
+<h3>Settings</h3>
 
-  <label for="serviceLevelId">Feed Quality</label>
-  <select id="serviceLevelId">
-    <option value="12" selected>12 - Real-time</option>
-    <option value="1">1 - 60s delay</option>
-  </select>
+<label for="workerBase">Server</label>
+<input id="workerBase" value="https://game.shooleeyack.workers.dev">
 
-  <div class="footer-note">
-    Choose the data source and quality level before refreshing the dashboard.
-  </div>
+<label for="serviceLevelId">Feed Quality</label>
+
+<select id="serviceLevelId">
+<option value="12" selected>Real-time</option>
+<option value="1">60 sec delay</option>
+</select>
+
 </div>
-
 
 </aside>
 
@@ -1756,6 +1766,21 @@ function init() {
   el.checkBtn.addEventListener("click", checkToken);
   el.probeBtn.addEventListener("click", probeTxline);
   el.refreshBtn.addEventListener("click", toggleAuto);
+
+const settingsBtn=document.getElementById("settingsBtn");
+
+if(settingsBtn){
+
+settingsBtn.addEventListener("click",()=>{
+
+document
+.getElementById("settingsPanel")
+.classList.toggle("hidden");
+
+});
+
+}
+
   activateTab("matches");
   saveBackup({ stage: "ready" });
 }
