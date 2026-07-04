@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -307,7 +307,7 @@ flex-direction:column;
 gap:22px;
 }
 
-.panel{padding:22px}
+.panel{padding:20px}
 
 .panel h3{
 font-size:18px;
@@ -318,8 +318,8 @@ letter-spacing:-.02em;
 
 label{
 display:block;
-margin-top:16px;
-margin-bottom:8px;
+margin-top:12px;
+margin-bottom:6px;
 font-size:13px;
 color:#d8e4ff;
 font-weight:600;
@@ -330,7 +330,7 @@ width:100%;
 background:rgba(9,15,29,.9);
 border:1px solid var(--line);
 border-radius:14px;
-padding:13px 14px;
+padding:12px 14px;
 color:white;
 font-size:14px;
 outline:none;
@@ -340,6 +340,21 @@ transition:.2s;
 input:focus,textarea:focus,select:focus{
 border-color:var(--blue);
 box-shadow:0 0 0 1px rgba(125,141,255,.35);
+}
+
+
+select{
+cursor:pointer;
+appearance:none;
+background-image:
+linear-gradient(45deg,transparent 50%,#8fa8ff 50%),
+linear-gradient(135deg,#8fa8ff 50%,transparent 50%);
+background-position:
+calc(100% - 18px) calc(50% - 2px),
+calc(100% - 12px) calc(50% - 2px);
+background-size:6px 6px;
+background-repeat:no-repeat;
+padding-right:40px;
 }
 
 textarea{
@@ -575,6 +590,266 @@ color:var(--muted2);
 font-size:14px;
 }
 
+
+
+.mobile-card{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.mobile-card-head{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.mobile-card-title{
+  font-size:15px;
+  font-weight:800;
+  line-height:1.35;
+  word-break:break-word;
+}
+
+.mobile-card-vs{
+  color:var(--muted2);
+  font-weight:700;
+  margin:0 4px;
+}
+
+.mobile-card-sub{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.mobile-card-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.mobile-card-grid div{
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.mobile-card-grid span{
+  display:block;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--muted2);
+  margin-bottom:6px;
+}
+
+.mobile-card-grid b{
+  font-size:13px;
+  font-weight:700;
+  word-break:break-word;
+}
+
+.mobile-card-text{
+  font-size:13px;
+  line-height:1.6;
+  color:var(--text);
+}
+
+.mobile-details{
+  margin-top:0;
+}
+
+.mobile-details summary{
+  padding:12px 14px;
+  font-size:13px;
+}
+
+
+
+@media (max-width:760px){
+
+body{
+padding:12px;
+overflow-x:hidden;
+}
+
+.shell{
+width:100%;
+max-width:100%;
+}
+
+.card{
+border-radius:18px;
+}
+
+.hero{
+grid-template-columns:1fr;
+gap:16px;
+}
+
+.hero-main{
+padding:22px;
+}
+
+.hero-title{
+font-size:32px;
+line-height:1.15;
+}
+
+.hero-text{
+font-size:14px;
+line-height:1.6;
+}
+
+.hero-buttons{
+display:flex;
+flex-direction:column;
+gap:12px;
+}
+
+.btn{
+width:100%;
+}
+
+.topbar{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.top-right{
+width:100%;
+justify-content:flex-start;
+}
+
+.main-grid{
+grid-template-columns:1fr;
+}
+
+.sidebar{
+order:2;
+}
+
+.content{
+order:1;
+}
+
+.kpi-grid{
+grid-template-columns:1fr 1fr;
+gap:12px;
+}
+
+.section-head{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.table-wrap{
+overflow:visible;
+border:none;
+background:none;
+}
+
+table{
+display:block;
+width:100%;
+min-width:100%;
+}
+
+thead{
+display:none;
+}
+
+tbody{
+display:block;
+width:100%;
+}
+
+tbody tr{
+display:block;
+width:100%;
+margin:0 0 14px;
+border:none;
+background:none;
+}
+
+tbody td{
+display:block;
+padding:0;
+border:none;
+}
+
+tbody td[colspan]{
+width:100%;
+padding:0;
+}
+
+.mobile-card{
+width:100%;
+max-width:100%;
+border-radius:18px;
+padding:16px;
+background:rgba(255,255,255,.035);
+border:1px solid rgba(255,255,255,.08);
+overflow:hidden;
+}
+
+.mobile-card-title{
+font-size:17px;
+font-weight:800;
+line-height:1.4;
+overflow-wrap:anywhere;
+}
+
+.mobile-card-sub{
+font-size:13px;
+}
+
+.mobile-card-grid{
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.mobile-card-grid div{
+padding:10px;
+}
+
+.mobile-card-grid b{
+overflow-wrap:anywhere;
+}
+
+.mobile-card-text{
+font-size:13px;
+line-height:1.6;
+overflow-wrap:anywhere;
+}
+
+.json{
+display:none;
+}
+
+.route-grid{
+grid-template-columns:1fr;
+}
+
+.route-url{
+overflow-wrap:anywhere;
+word-break:break-word;
+}
+
+img,
+video,
+canvas,
+svg,
+pre,
+textarea{
+max-width:100%;
+}
+
+}
+
+
+
 .hidden{display:none}
 
 @media(max-width:1280px){
@@ -583,18 +858,7 @@ font-size:14px;
 .route-grid{grid-template-columns:1fr 1fr}
 }
 
-@media(max-width:760px){
-body{padding:14px}
-.kpi-grid{grid-template-columns:1fr}
-.route-grid{grid-template-columns:1fr}
-.topbar{flex-direction:column;align-items:flex-start}
-.top-right{justify-content:flex-start}
-.hero-title{font-size:38px}
-table{min-width:900px}
-.hero-buttons{flex-direction:column}
-.btn{width:100%}
-.section-head{flex-direction:column;align-items:flex-start}
-}
+
 </style>
 </head>
 
@@ -610,54 +874,73 @@ table{min-width:900px}
 </div>
 </div>
 <div class="top-right">
-<div class="badge">World Cup</div>
-<div class="badge">Premium Feed</div>
-<div class="badge">Live Discovery</div>
-<div class="badge">Auto Schema</div>
+
+<div class="badge">
+🟢 LIVE
+</div>
+
+<div class="badge">
+Premium
+</div>
+
 </div>
 </header>
 
 <section class="hero">
 <div class="card hero-main">
 <div class="eyebrow">TxLINE Discovery Console</div>
-<div class="hero-title">Explore every available sports endpoint automatically.</div>
+<div class="hero-title">Live Football Dashboard</div>
 <div class="hero-text">
-This dashboard is designed for hackathon demonstrations and automatically adapts itself to payloads returned by the TxLINE backend. The worker discovers routes, analyzes nested JSON, extracts collections, detects competitions, fixtures, odds, standings and events, then renders everything into an executive interface.
+Live football data collected from the TxLINE service. Browse fixtures, standings, match events and betting markets through a fast and responsive dashboard designed for desktop and mobile devices.
 </div>
 <div class="hero-buttons">
-<button class="btn btn-primary" id="probeBtn" type="button">Probe Feed</button>
-<button class="btn btn-secondary" id="tokenBtn" type="button">Check Token</button>
-<button class="btn btn-secondary" id="refreshBtn" type="button">Auto Refresh OFF</button>
+<button class="btn btn-primary" id="probeBtn" type="button">
+🔄 Refresh Data
+</button>
+
+<button class="btn btn-secondary" id="refreshBtn" type="button">
+⏱ Auto Refresh OFF
+</button>
+
+<button class="btn btn-secondary" id="tokenBtn" type="button">
+🛰 Test Connection
+</button>
 </div>
 </div>
 
 <div class="hero-side">
 <div class="kpi-grid">
+
 <div class="card kpi">
-<div class="kpi-title">Fixtures</div>
+<div class="kpi-title">⚽ Fixtures</div>
 <div class="kpi-value" id="matchesCount">0</div>
-<div class="kpi-sub">discovered fixtures</div>
+<div class="kpi-sub">Live matches</div>
 </div>
+
 <div class="card kpi">
-<div class="kpi-title">Competitions</div>
+<div class="kpi-title">🏆 Competitions</div>
 <div class="kpi-value" id="competitionsCount">0</div>
-<div class="kpi-sub">active competitions</div>
+<div class="kpi-sub">Available leagues</div>
 </div>
+
 <div class="card kpi">
-<div class="kpi-title">Markets</div>
+<div class="kpi-title">🎯 Markets</div>
 <div class="kpi-value" id="marketsCount">0</div>
-<div class="kpi-sub">discovered markets</div>
+<div class="kpi-sub">Betting markets</div>
 </div>
+
 <div class="card kpi">
-<div class="kpi-title">Routes</div>
+<div class="kpi-title">🛰 Feeds</div>
 <div class="kpi-value" id="routesCount">0</div>
-<div class="kpi-sub">successful endpoints</div>
+<div class="kpi-sub">Online feeds</div>
+</div>
+
 </div>
 </div>
 
 <div class="card status-card">
-<div class="status-title">Worker Status</div>
-<div id="status" class="status warn">Ready.</div>
+<div class="status-title">System Status</div>
+<div id="status" class="status warn">Waiting for data...</div>
 </div>
 </div>
 </section>
@@ -665,32 +948,23 @@ This dashboard is designed for hackathon demonstrations and automatically adapts
 <section class="main-grid">
 <aside class="sidebar">
 <div class="card panel">
-  <h3>Connection</h3>
+  <h3>Settings</h3>
 
-  <label for="workerBase">Worker base</label>
+  <label for="workerBase">Server</label>
   <input id="workerBase" value="https://game.shooleeyack.workers.dev" />
 
-  <label for="serviceLevelId">Service level</label>
+  <label for="serviceLevelId">Feed Quality</label>
   <select id="serviceLevelId">
     <option value="12" selected>12 - Real-time</option>
     <option value="1">1 - 60s delay</option>
   </select>
 
   <div class="footer-note">
-    The dashboard dynamically adapts to the actual payload returned by the worker.
+    Choose the data source and quality level before refreshing the dashboard.
   </div>
 </div>
 
 
-
-<div class="card panel">
-<h3>Session Snapshot</h3>
-<label for="backupState">Generated state</label>
-<textarea id="backupState" readonly></textarea>
-<div class="footer-note">
-A JSON backup is rebuilt after token checks and probing so you can quickly copy the current session values.
-</div>
-</div>
 </aside>
 
 <div class="content">
@@ -768,7 +1042,7 @@ A JSON backup is rebuilt after token checks and probing so you can quickly copy 
 <div id="tab-events" class="section hidden">
 <div class="section-head">
 <h4>Events</h4>
-<div class="hint">Goals � Cards � Timeline</div>
+<div class="hint">Goals • Cards • Timeline</div>
 </div>
 <div class="section-body">
 <div class="chips" id="eventsChips"><span class="chip">No data</span></div>
@@ -874,7 +1148,6 @@ probeBtn: document.getElementById("probeBtn"),
 refreshBtn: document.getElementById("refreshBtn"),
 status: document.getElementById("status"),
 response: document.getElementById("response"),
-backupState: document.getElementById("backupState"),
 matchesCount: document.getElementById("matchesCount"),
 competitionsCount: document.getElementById("competitionsCount"),
 marketsCount: document.getElementById("marketsCount"),
@@ -924,16 +1197,6 @@ el.status.textContent = text;
 }
 
 
-function saveBackup(extra = {}) {
-  const state = {
-    savedAt: new Date().toISOString(),
-    workerBase: el.workerBase.value.trim(),
-    serviceLevelId: Number(el.serviceLevelId.value),
-    ...extra
-  };
-  el.backupState.value = JSON.stringify(state, null, 2);
-  return state;
-}
 
 
 async function emit(payload) {
@@ -1130,14 +1393,62 @@ if (key.replace(/\|/g, "").trim()) set.add(key);
 return set.size || rows.length;
 }
 
-function renderMatches(rows) {
-if (!rows.length) {
-el.matchesBody.innerHTML = '<tr><td colspan="8">No fixtures found</td></tr>';
-renderChips(el.matchChips, ["no fixtures"]);
-return;
+
+
+
+
+const MOBILE_CUTOFF = 760;
+
+function isMobileView() {
+  return window.innerWidth <= MOBILE_CUTOFF;
 }
-renderChips(el.matchChips, [`rows:${rows.length}`, "fixtures", "txline"]);
-el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
+
+function tableCardList(rows, renderCard, emptyHtml) {
+  if (!rows.length) return emptyHtml;
+  return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
+}
+
+function renderMatches(rows) {
+  if (!rows.length) {
+    el.matchesBody.innerHTML = '<tr><td colspan="8">No fixtures found</td></tr>';
+    renderChips(el.matchChips, ["no fixtures"]);
+    return;
+  }
+
+  renderChips(el.matchChips, [`rows:${rows.length}`, "fixtures", "txline"]);
+
+  if (isMobileView()) {
+    el.matchesBody.innerHTML = tableCardList(
+      rows,
+      (r, i) => `
+<tr>
+<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
+  <div class="mobile-card">
+    <div class="mobile-card-head">
+      <div class="mobile-card-title">${escapeHtml(r.home ?? "")} <span class="mobile-card-vs">vs</span> ${escapeHtml(r.away ?? "")}</div>
+      <div class="mobile-card-sub">${escapeHtml(r.league ?? "")}</div>
+    </div>
+
+    <div class="mobile-card-grid">
+      <div><span>Fixture</span><b>${escapeHtml(r.id ?? i)}</b></div>
+      <div><span>Kickoff</span><b class="mono">${escapeHtml(r.kickoff ?? "")}</b></div>
+      <div><span>Status</span><b>${escapeHtml(r.status ?? "")}</b></div>
+      <div><span>Score</span><b class="mono">${escapeHtml(r.score ?? "")}</b></div>
+    </div>
+
+    <details class="mobile-details">
+      <summary>View raw data</summary>
+      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
+    </details>
+  </div>
+</td>
+</tr>`,
+      '<tr><td colspan="8">No fixtures found</td></tr>'
+    );
+    return;
+  }
+
+  el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 <td class="mono">${escapeHtml(r.id ?? i)}</td>
 <td>${escapeHtml(r.league ?? "")}</td>
 <td>${escapeHtml(r.home ?? "")}</td>
@@ -1150,13 +1461,47 @@ el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 }
 
 function renderStandings(rows) {
-if (!rows.length) {
-el.standingsBody.innerHTML = '<tr><td colspan="8">No standings</td></tr>';
-renderChips(el.standingsChips, ["no standings"]);
-return;
-}
-renderChips(el.standingsChips, [`rows:${rows.length}`, "standings"]);
-el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
+  if (!rows.length) {
+    el.standingsBody.innerHTML = '<tr><td colspan="8">No standings</td></tr>';
+    renderChips(el.standingsChips, ["no standings"]);
+    return;
+  }
+
+  renderChips(el.standingsChips, [`rows:${rows.length}`, "standings"]);
+
+  if (isMobileView()) {
+    el.standingsBody.innerHTML = tableCardList(
+      rows,
+      (r, i) => `
+<tr>
+<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
+  <div class="mobile-card">
+    <div class="mobile-card-head">
+      <div class="mobile-card-title">${escapeHtml(r.team ?? r.name ?? i)}</div>
+      <div class="mobile-card-sub">${escapeHtml(r.group ?? "")}</div>
+    </div>
+
+    <div class="mobile-card-grid">
+      <div><span>Points</span><b class="mono">${escapeHtml(r.points ?? r.pts ?? "")}</b></div>
+      <div><span>Played</span><b class="mono">${escapeHtml(r.played ?? r.pld ?? "")}</b></div>
+      <div><span>Won</span><b class="mono">${escapeHtml(r.won ?? "")}</b></div>
+      <div><span>Draw</span><b class="mono">${escapeHtml(r.draw ?? "")}</b></div>
+      <div><span>Lost</span><b class="mono">${escapeHtml(r.lost ?? "")}</b></div>
+    </div>
+
+    <details class="mobile-details">
+      <summary>View raw data</summary>
+      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
+    </details>
+  </div>
+</td>
+</tr>`,
+      '<tr><td colspan="8">No standings</td></tr>'
+    );
+    return;
+  }
+
+  el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 <td>${escapeHtml(r.team ?? r.name ?? i)}</td>
 <td>${escapeHtml(r.group ?? "")}</td>
 <td class="mono">${escapeHtml(r.points ?? r.pts ?? "")}</td>
@@ -1169,13 +1514,48 @@ el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 }
 
 function renderEvents(rows) {
-if (!rows.length) {
-el.eventsBody.innerHTML = '<tr><td colspan="8">No events</td></tr>';
-renderChips(el.eventsChips, ["no events"]);
-return;
-}
-renderChips(el.eventsChips, [`rows:${rows.length}`, "events"]);
-el.eventsBody.innerHTML = rows.slice(0, 60).map((r, i) => `<tr>
+  if (!rows.length) {
+    el.eventsBody.innerHTML = '<tr><td colspan="8">No events</td></tr>';
+    renderChips(el.eventsChips, ["no events"]);
+    return;
+  }
+
+  renderChips(el.eventsChips, [`rows:${rows.length}`, "events"]);
+
+  if (isMobileView()) {
+    el.eventsBody.innerHTML = tableCardList(
+      rows,
+      (r, i) => `
+<tr>
+<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
+  <div class="mobile-card">
+    <div class="mobile-card-head">
+      <div class="mobile-card-title">${escapeHtml(r.player ?? r.playerName ?? "Event")}</div>
+      <div class="mobile-card-sub">${escapeHtml(r.team ?? r.teamName ?? "")}</div>
+    </div>
+
+    <div class="mobile-card-grid">
+      <div><span>Time</span><b class="mono">${escapeHtml(r.time ?? r.minute ?? "")}</b></div>
+      <div><span>Type</span><b>${escapeHtml(r.type ?? "")}</b></div>
+      <div><span>Result</span><b>${escapeHtml(r.outcome ?? r.result ?? "")}</b></div>
+      <div><span>Match</span><b class="mono">${escapeHtml(r.match ?? r.fixture ?? i)}</b></div>
+    </div>
+
+    <div class="mobile-card-text">${escapeHtml(r.detail ?? r.description ?? "")}</div>
+
+    <details class="mobile-details">
+      <summary>View raw data</summary>
+      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
+    </details>
+  </div>
+</td>
+</tr>`,
+      '<tr><td colspan="8">No events</td></tr>'
+    );
+    return;
+  }
+
+  el.eventsBody.innerHTML = rows.slice(0, 60).map((r, i) => `<tr>
 <td class="mono">${escapeHtml(r.time ?? r.minute ?? "")}</td>
 <td>${escapeHtml(r.type ?? "")}</td>
 <td>${escapeHtml(r.player ?? r.playerName ?? "")}</td>
@@ -1188,13 +1568,47 @@ el.eventsBody.innerHTML = rows.slice(0, 60).map((r, i) => `<tr>
 }
 
 function renderOdds(rows) {
-if (!rows.length) {
-el.oddsBody.innerHTML = '<tr><td colspan="8">No odds</td></tr>';
-renderChips(el.oddsChips, ["no odds"]);
-return;
-}
-renderChips(el.oddsChips, [`rows:${rows.length}`, "odds"]);
-el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
+  if (!rows.length) {
+    el.oddsBody.innerHTML = '<tr><td colspan="8">No odds</td></tr>';
+    renderChips(el.oddsChips, ["no odds"]);
+    return;
+  }
+
+  renderChips(el.oddsChips, [`rows:${rows.length}`, "odds"]);
+
+  if (isMobileView()) {
+    el.oddsBody.innerHTML = tableCardList(
+      rows,
+      (r, i) => `
+<tr>
+<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
+  <div class="mobile-card">
+    <div class="mobile-card-head">
+      <div class="mobile-card-title">${escapeHtml(r.market ?? r.marketName ?? "Market")}</div>
+      <div class="mobile-card-sub">${escapeHtml(r.book ?? r.bookmaker ?? "")}</div>
+    </div>
+
+    <div class="mobile-card-grid">
+      <div><span>Home</span><b class="mono">${escapeHtml(r.home ?? r.homePrice ?? "")}</b></div>
+      <div><span>Draw</span><b class="mono">${escapeHtml(r.draw ?? r.drawPrice ?? "")}</b></div>
+      <div><span>Away</span><b class="mono">${escapeHtml(r.away ?? r.awayPrice ?? "")}</b></div>
+      <div><span>Time</span><b class="mono">${escapeHtml(r.time ?? r.updatedAt ?? "")}</b></div>
+      <div><span>Fixture</span><b class="mono">${escapeHtml(r.fixture ?? r.matchId ?? i)}</b></div>
+    </div>
+
+    <details class="mobile-details">
+      <summary>View raw data</summary>
+      <div class="json">${escapeHtml(safeJson(r).slice(0, 1200))}</div>
+    </details>
+  </div>
+</td>
+</tr>`,
+      '<tr><td colspan="8">No odds</td></tr>'
+    );
+    return;
+  }
+
+  el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 <td>${escapeHtml(r.market ?? r.marketName ?? "")}</td>
 <td>${escapeHtml(r.book ?? r.bookmaker ?? "")}</td>
 <td class="mono">${escapeHtml(r.home ?? r.homePrice ?? "")}</td>
@@ -1205,6 +1619,7 @@ el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 <td class="mono">${escapeHtml(safeJson(r).slice(0, 380))}</td>
 </tr>`).join("");
 }
+
 
 
 
@@ -1320,11 +1735,7 @@ async function checkToken() {
       serviceLevelId: Number(el.serviceLevelId.value)
     });
     show(res);
-    saveBackup({
-      stage: "token",
-      lastTokenCheckOk: res.ok,
-      lastTokenCheckStatus: res.status
-    });
+   
     setStatus(res.ok ? "token checked" : "token rejected", res.ok ? "ok" : "err");
   } catch (e) {
     show(String(e?.message || e));
@@ -1367,14 +1778,6 @@ async function probeTxline() {
     const okRoutes = Array.isArray(probe.source) ? probe.source.filter(x => x.ok).length : 0;
     el.routesCount.textContent = okRoutes;
 
-    saveBackup({
-      stage: "probe",
-      fixtures: fixtureRows.length,
-      standings: standingsRows.length,
-      events: eventsRows.length,
-      odds: oddsRows.length,
-      routes: okRoutes
-    });
 
     setStatus("Probe completed", "ok");
   } catch (e) {
@@ -1393,18 +1796,11 @@ function toggleAuto() {
   if (auto) timer = setInterval(probeTxline, 30000);
 }
 
-function bindInputs() {
-  ["workerBase", "serviceLevelId"].forEach(key => {
-    const node = el[key];
-    if (!node) return;
-    node.addEventListener("input", () => saveBackup());
-    node.addEventListener("change", () => saveBackup());
-  });
-}
+
 
 function init() {
   if (!el.workerBase || !el.serviceLevelId) return;
-  bindInputs();
+
   el.checkBtn.addEventListener("click", checkToken);
   el.probeBtn.addEventListener("click", probeTxline);
   el.refreshBtn.addEventListener("click", toggleAuto);
