@@ -1123,16 +1123,7 @@ Live football data collected from the TxLINE service. Browse fixtures, standings
 </div>
 </div>
 
-<div class="card panel">
-<h3>Route Overview</h3>
-<div id="routesCompact" class="routes">
-<div class="route-card">
-<div class="route-head">
-<div class="route-url">Probe has not been executed yet.</div>
-</div>
-</div>
-</div>
-</div>
+
 </div>
 </section>
 </div>
@@ -1624,88 +1615,48 @@ function renderOdds(rows) {
 
 
 
-function renderRoutes(probe) {
-  const collected = probe?.collected || {};
-  const routes = [];
+function renderRoutes(probe){
 
-  Object.entries(collected).forEach(([url, data]) => {
-    routes.push({
-      url,
-      ok: data.ok,
-      status: data.status,
-      count: data.count ?? 0,
-      renderCount: data.renderCount ?? (Array.isArray(data.render) ? data.render.length : 0),
-      sample: data.sample ?? null,
-      sampleKeys: data.sampleKeys ?? [],
-      deepKeys: data.deepKeys ?? [],
-      render: data.render ?? []
-    });
-  });
+const collected = probe?.collected || {};
 
-  if (!routes.length && Array.isArray(probe?.source)) {
-    probe.source.forEach(r => routes.push({
-      url: r.url,
-      ok: r.ok,
-      status: r.status,
-      count: r.count ?? 0,
-      renderCount: r.renderCount ?? (Array.isArray(r.render) ? r.render.length : 0),
-      sample: r.sample ?? null,
-      sampleKeys: r.sampleKeys ?? [],
-      deepKeys: r.deepKeys ?? [],
-      render: r.render ?? []
-    }));
-  }
+const routes = Object.entries(collected);
 
-  if (!routes.length) {
-    el.routes.innerHTML = '<div class="placeholder">No routes found.</div>';
-    el.routesCompact.innerHTML = '<div class="placeholder">No routes found.</div>';
-    return;
-  }
-
-  routes.sort((a, b) => {
-    const aa = Number(a.renderCount || a.count || 0);
-    const bb = Number(b.renderCount || b.count || 0);
-    return bb - aa;
-  });
-
-  const html = routes.map(route => `
-<div class="route-card">
-<div class="route-head">
-<div class="route-url">${escapeHtml(route.url)}</div>
-<div class="route-meta">
-<span class="tag ${route.ok ? "ok" : "bad"}">${route.ok ? "OK" : "FAIL"}</span>
-<span class="tag">HTTP ${escapeHtml(route.status ?? "")}</span>
-</div>
-</div>
-<div class="route-grid">
-<div class="mini">
-<div class="t">Objects</div>
-<div class="v">${escapeHtml(route.count)}</div>
-</div>
-<div class="mini">
-<div class="t">Rendered</div>
-<div class="v">${escapeHtml(route.renderCount)}</div>
-</div>
-<div class="mini">
-<div class="t">Keys</div>
-<div class="v">${escapeHtml(route.sampleKeys.slice(0,6).join(", "))}</div>
-</div>
-<div class="mini">
-<div class="t">Deep Keys</div>
-<div class="v">${escapeHtml(route.deepKeys.slice(0,6).join(", "))}</div>
-</div>
-</div>
-<details>
-<summary><span>Sample JSON</span><span>Expand</span></summary>
-<div class="json">${escapeHtml(JSON.stringify(route.sample, null, 2))}</div>
-</details>
-</div>
-`).join("");
-
-  el.routes.innerHTML = html;
-  el.routesCompact.innerHTML = html;
+if(!routes.length){
+el.routes.innerHTML='<div class="placeholder">No information available.</div>';
+return;
 }
 
+el.routes.innerHTML = routes.map(([url,data])=>`
+
+<div class="route-card">
+
+<div class="route-head">
+
+<div>
+
+<div style="font-size:16px;font-weight:800">
+${escapeHtml(url.split("/").pop() || url)}
+</div>
+
+<div class="hint">
+${escapeHtml(url)}
+</div>
+
+</div>
+
+<span class="tag ${data.ok?"ok":"bad"}">
+
+${data.ok?"Available":"Unavailable"}
+
+</span>
+
+</div>
+
+</div>
+
+`).join("");
+
+}
 
 
 
