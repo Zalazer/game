@@ -670,12 +670,6 @@ This dashboard is designed for hackathon demonstrations and automatically adapts
   <label for="workerBase">Worker base</label>
   <input id="workerBase" value="https://game.shooleeyack.workers.dev" />
 
-  <label for="apiToken">API token</label>
-  <input id="apiToken" value="txoracle_api_2650229400a04b138cf1606c5098db27" />
-
-  <label for="jwt">Guest JWT</label>
-  <textarea id="jwt">eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3ODUyMzA2MzMsInNlc3Npb25JZCI6IjMzNmViOTYyLWM1NmQtNDBkMi1hY2Y0LTE3YWViZjRmNjkzMyIsInJvbGUiOiJndWVzdCIsIm1heWJlQ2xpZW50SXAiOiIxNS4xNTguMzguMTgyIn0.q9uJCak6iEKLWTi-T-kxPwBgvjnTigc32rycFbjfuxDf8nZ1hc2X2MmQazFLsZNdYFWu2INj-eXboT3D3bTQ0Q</textarea>
-
   <label for="serviceLevelId">Service level</label>
   <select id="serviceLevelId">
     <option value="12" selected>12 - Real-time</option>
@@ -929,18 +923,18 @@ el.status.className = `status ${type}`;
 el.status.textContent = text;
 }
 
+
 function saveBackup(extra = {}) {
-const state = {
-savedAt: new Date().toISOString(),
-workerBase: el.workerBase.value.trim(),
-apiToken: el.apiToken.value.trim(),
-jwt: el.jwt.value.trim(),
-serviceLevelId: Number(el.serviceLevelId.value),
-...extra
-};
-el.backupState.value = JSON.stringify(state, null, 2);
-return state;
+  const state = {
+    savedAt: new Date().toISOString(),
+    workerBase: el.workerBase.value.trim(),
+    serviceLevelId: Number(el.serviceLevelId.value),
+    ...extra
+  };
+  el.backupState.value = JSON.stringify(state, null, 2);
+  return state;
 }
+
 
 async function emit(payload) {
 const base = el.workerBase.value.trim().replace(/\/$/, "");
@@ -1313,178 +1307,117 @@ document.querySelectorAll(".tab").forEach(b => {
 b.addEventListener("click", () => activateTab(b.dataset.tab));
 });
 
+
+
+
+
 async function checkToken() {
-el.checkBtn.disabled = true;
-setStatus("checking token...");
-try {
-const res = await emit({
-type: "txline_check_token",
-apiToken: el.apiToken.value.trim(),
-jwt: el.jwt.value.trim(),
-serviceLevelId: Number(el.serviceLevelId.value)
-});
-show(res);
-saveBackup({
-stage: "token",
-lastTokenCheckOk: res.ok,
-lastTokenCheckStatus: res.status
-});
-setStatus(res.ok ? "token checked" : "token rejected", res.ok ? "ok" : "err");
-} catch (e) {
-show(String(e?.message || e));
-setStatus("token error", "err");
+  el.checkBtn.disabled = true;
+  setStatus("checking token...");
+  try {
+    const res = await emit({
+      type: "txline_check_token",
+      serviceLevelId: Number(el.serviceLevelId.value)
+    });
+    show(res);
+    saveBackup({
+      stage: "token",
+      lastTokenCheckOk: res.ok,
+      lastTokenCheckStatus: res.status
+    });
+    setStatus(res.ok ? "token checked" : "token rejected", res.ok ? "ok" : "err");
+  } catch (e) {
+    show(String(e?.message || e));
+    setStatus("token error", "err");
+  }
+  el.checkBtn.disabled = false;
 }
-el.checkBtn.disabled = false;
-}
-
-
 
 async function probeTxline() {
+  el.probeBtn.disabled = true;
+  setStatus("Probing TxLINE...", "warn");
 
-    el.probeBtn.disabled = true;
-    setStatus("Probing TxLINE...", "warn");
+  try {
+    const res = await emit({
+      type: "txline_probe_feed",
+      scope: "worldcup",
+      serviceLevelId: Number(el.serviceLevelId.value)
+    });
 
-    try {
+    show(res);
 
-        const res = await emit({
-            type: "txline_probe_feed",
-            scope: "worldcup",
-            apiToken: el.apiToken.value.trim(),
-            jwt: el.jwt.value.trim(),
-            serviceLevelId: Number(el.serviceLevelId.value)
-        });
+    const probe = res && typeof res.body === "object" ? res.body : {};
+    console.log("FULL PROBE", probe);
 
-        show(res);
+    const fixtureRows = matchRowsFrom(probe);
+    const standingsRows = standingsRowsFrom(probe);
+    const eventsRows = eventsRowsFrom(probe);
+    const oddsRows = oddsRowsFrom(probe);
 
-        const probe =
-            res &&
-            typeof res.body === "object"
-                ? res.body
-                : {};
+    renderMatches(fixtureRows);
+    renderStandings(standingsRows);
+    renderEvents(eventsRows);
+    renderOdds(oddsRows);
+    renderRoutes(probe);
 
-        console.log("FULL PROBE", probe);
+    el.matchesCount.textContent = fixtureRows.length;
+    el.competitionsCount.textContent = uniqueCompetitions(fixtureRows).length;
+    el.marketsCount.textContent = countMarkets(oddsRows);
 
-        const collected = probe.collected || {};
+    const okRoutes = Array.isArray(probe.source) ? probe.source.filter(x => x.ok).length : 0;
+    el.routesCount.textContent = okRoutes;
 
-        const fixtureEntry =
-            collected["https://txline.txodds.com/api/fixtures/snapshot"] ||
-            probe.firstSuccess ||
-            {};
+    saveBackup({
+      stage: "probe",
+      fixtures: fixtureRows.length,
+      standings: standingsRows.length,
+      events: eventsRows.length,
+      odds: oddsRows.length,
+      routes: okRoutes
+    });
 
-        const fixtureRows = Array.isArray(fixtureEntry.render)
-            ? fixtureEntry.render
-            : matchRowsFrom(probe);
+    setStatus("Probe completed", "ok");
+  } catch (e) {
+    console.error(e);
+    show(e.message || String(e));
+    setStatus("Probe failed", "err");
+  }
 
-        const standingsEntry =
-            collected["https://txline.txodds.com/api/v1/standings"] ||
-            collected["https://txline.txodds.com/api/standings"] ||
-            {};
-
-        const standingsRows =
-            Array.isArray(standingsEntry.render)
-                ? standingsEntry.render
-                : standingsRowsFrom(probe);
-
-        const eventsEntry =
-            collected["https://txline.txodds.com/api/v1/events"] ||
-            collected["https://txline.txodds.com/api/events"] ||
-            {};
-
-        const eventsRows =
-            Array.isArray(eventsEntry.render)
-                ? eventsEntry.render
-                : eventsRowsFrom(probe);
-
-        const oddsEntry =
-            collected["https://txline.txodds.com/api/v1/odds"] ||
-            collected["https://txline.txodds.com/api/odds"] ||
-            {};
-
-        const oddsRows =
-            Array.isArray(oddsEntry.render)
-                ? oddsEntry.render
-                : oddsRowsFrom(probe);
-
-        renderMatches(fixtureRows);
-        renderStandings(standingsRows);
-        renderEvents(eventsRows);
-        renderOdds(oddsRows);
-        renderRoutes(probe);
-
-        el.matchesCount.textContent = fixtureRows.length;
-        el.competitionsCount.textContent =
-            uniqueCompetitions(fixtureRows).length;
-
-        el.marketsCount.textContent =
-            countMarkets(oddsRows);
-
-        const okRoutes = Array.isArray(probe.source)
-            ? probe.source.filter(x => x.ok).length
-            : 0;
-
-        el.routesCount.textContent = okRoutes;
-
-        saveBackup({
-            stage: "probe",
-            fixtures: fixtureRows.length,
-            standings: standingsRows.length,
-            events: eventsRows.length,
-            odds: oddsRows.length,
-            routes: okRoutes
-        });
-
-        setStatus("Probe completed", "ok");
-
-    } catch (e) {
-
-        console.error(e);
-
-        show(e.message || String(e));
-
-        setStatus("Probe failed", "err");
-
-    }
-
-    el.probeBtn.disabled = false;
-
+  el.probeBtn.disabled = false;
 }
 
-
-
-
-
-
 function toggleAuto() {
-auto = !auto;
-el.refreshBtn.textContent = "Auto Refresh " + (auto ? "ON" : "OFF");
-if (timer) clearInterval(timer);
-if (auto) timer = setInterval(probeTxline, 30000);
+  auto = !auto;
+  el.refreshBtn.textContent = "Auto Refresh " + (auto ? "ON" : "OFF");
+  if (timer) clearInterval(timer);
+  if (auto) timer = setInterval(probeTxline, 30000);
 }
 
 function bindInputs() {
-["workerBase", "apiToken", "jwt", "serviceLevelId"].forEach(key => {
-const node = el[key];
-if (!node) return;
-node.addEventListener("input", () => saveBackup());
-node.addEventListener("change", () => saveBackup());
-});
+  ["workerBase", "serviceLevelId"].forEach(key => {
+    const node = el[key];
+    if (!node) return;
+    node.addEventListener("input", () => saveBackup());
+    node.addEventListener("change", () => saveBackup());
+  });
 }
 
 function init() {
-if (!el.workerBase || !el.apiToken || !el.jwt || !el.serviceLevelId) return;
-bindInputs();
-el.checkBtn.addEventListener("click", checkToken);
-el.probeBtn.addEventListener("click", probeTxline);
-el.refreshBtn.addEventListener("click", toggleAuto);
-activateTab("matches");
-saveBackup({stage: "ready"});
+  if (!el.workerBase || !el.serviceLevelId) return;
+  bindInputs();
+  el.checkBtn.addEventListener("click", checkToken);
+  el.probeBtn.addEventListener("click", probeTxline);
+  el.refreshBtn.addEventListener("click", toggleAuto);
+  activateTab("matches");
+  saveBackup({ stage: "ready" });
 }
 
 if (document.readyState === "loading") {
-document.addEventListener("DOMContentLoaded", init, { once: true });
+  document.addEventListener("DOMContentLoaded", init, { once: true });
 } else {
-init();
+  init();
 }
+
 </script>
 </body>
 </html>
