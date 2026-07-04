@@ -995,48 +995,133 @@ function findEntry(probe, url) {
 return probe?.collected?.[url] || null;
 }
 
+
+
+
+
 function matchRowsFrom(probe) {
-const entry =
-probe?.collected?.["https://txline.txodds.com/api/fixtures/snapshot"] ||
-probe?.firstSuccess ||
-null;
-const arr = pickArray(entry);
-return arr.map((x, i) => ({
-id: x.FixtureId ?? x.fixtureId ?? x.id ?? i,
-league: x.Competition ?? x.competition ?? x.league ?? "",
-home: x.Participant1 ?? x.homeTeam ?? x.home ?? "",
-away: x.Participant2 ?? x.awayTeam ?? x.away ?? "",
-kickoff: x.StartTime ?? x.startTime ?? x.kickoff ?? "",
-status: x.status ?? x.State ?? "",
-score: x.score ?? (
-x.homeScore != null || x.awayScore != null
-? `${x.homeScore ?? ""}-${x.awayScore ?? ""}`
-: ""
-),
-raw: x
-}));
+
+    const collected = probe?.collected || {};
+
+    const entry =
+        collected["https://txline.txodds.com/api/fixtures/snapshot"] ||
+        probe?.firstSuccess ||
+        {};
+
+    if (Array.isArray(entry.render))
+        return entry.render;
+
+    const arr = pickArray(entry);
+
+    return arr.map((x, i) => ({
+
+        id:
+            x.id ??
+            x.fixtureId ??
+            x.matchId ??
+            x.eventId ??
+            i,
+
+        league:
+            x.league ??
+            x.competition ??
+            x.tournament ??
+            x.region ??
+            "",
+
+        home:
+            x.home ??
+            x.homeTeam ??
+            x.teamHome ??
+            x.participant1 ??
+            "",
+
+        away:
+            x.away ??
+            x.awayTeam ??
+            x.teamAway ??
+            x.participant2 ??
+            "",
+
+        kickoff:
+            x.kickoff ??
+            x.startTime ??
+            x.scheduledAt ??
+            x.date ??
+            "",
+
+        status:
+            x.status ??
+            x.state ??
+            "",
+
+        score:
+            x.score ??
+            (
+                x.homeScore != null || x.awayScore != null
+                    ? `${x.homeScore ?? ""}-${x.awayScore ?? ""}`
+                    : ""
+            ),
+
+        raw: x
+
+    }));
+
 }
 
 function standingsRowsFrom(probe) {
-return pickArray(
-findEntry(probe, "https://txline.txodds.com/api/v1/standings") ||
-findEntry(probe, "https://txline.txodds.com/api/standings")
-);
+
+    const collected = probe?.collected || {};
+
+    const entry =
+        collected["https://txline.txodds.com/api/v1/standings"] ||
+        collected["https://txline.txodds.com/api/standings"] ||
+        {};
+
+    if (Array.isArray(entry.render))
+        return entry.render;
+
+    return pickArray(entry);
+
 }
 
 function eventsRowsFrom(probe) {
-return pickArray(
-findEntry(probe, "https://txline.txodds.com/api/v1/events") ||
-findEntry(probe, "https://txline.txodds.com/api/events")
-);
+
+    const collected = probe?.collected || {};
+
+    const entry =
+        collected["https://txline.txodds.com/api/v1/events"] ||
+        collected["https://txline.txodds.com/api/events"] ||
+        {};
+
+    if (Array.isArray(entry.render))
+        return entry.render;
+
+    return pickArray(entry);
+
 }
 
 function oddsRowsFrom(probe) {
-return pickArray(
-findEntry(probe, "https://txline.txodds.com/api/v1/odds") ||
-findEntry(probe, "https://txline.txodds.com/api/odds")
-);
+
+    const collected = probe?.collected || {};
+
+    const entry =
+        collected["https://txline.txodds.com/api/v1/odds"] ||
+        collected["https://txline.txodds.com/api/odds"] ||
+        {};
+
+    if (Array.isArray(entry.render))
+        return entry.render;
+
+    return pickArray(entry);
+
 }
+
+
+
+
+
+
 
 function uniqueCompetitions(rows) {
 return [...new Set(rows.map(r => String(r.league || "").trim()).filter(Boolean))];
@@ -1128,43 +1213,93 @@ el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 }
 
 
+
+
 function renderRoutes(probe) {
-const entries = [];
-if (Array.isArray(probe?.source)) entries.push(...probe.source);
-if (probe?.firstSuccess) {
-entries.unshift({
-url: probe.firstSuccess.url,
-ok: true,
-status: 200,
-count: probe.firstSuccess.count,
-sample: probe.firstSuccess.sample,
-sampleKeys: probe.firstSuccess.sampleKeys || [],
-deepKeys: probe.firstSuccess.deepKeys || []
-});
-}
-if (!entries.length) {
-el.routes.innerHTML = '<div class="placeholder">No routes</div>';
-el.routesCompact.innerHTML = '<div class="placeholder">No routes</div>';
-return;
-}
-const html = entries.map(x => `<div class="route-card">
+  const collected = probe?.collected || {};
+  const routes = [];
+
+  Object.entries(collected).forEach(([url, data]) => {
+    routes.push({
+      url,
+      ok: data.ok,
+      status: data.status,
+      count: data.count ?? 0,
+      renderCount: data.renderCount ?? (Array.isArray(data.render) ? data.render.length : 0),
+      sample: data.sample ?? null,
+      sampleKeys: data.sampleKeys ?? [],
+      deepKeys: data.deepKeys ?? [],
+      render: data.render ?? []
+    });
+  });
+
+  if (!routes.length && Array.isArray(probe?.source)) {
+    probe.source.forEach(r => routes.push({
+      url: r.url,
+      ok: r.ok,
+      status: r.status,
+      count: r.count ?? 0,
+      renderCount: r.renderCount ?? (Array.isArray(r.render) ? r.render.length : 0),
+      sample: r.sample ?? null,
+      sampleKeys: r.sampleKeys ?? [],
+      deepKeys: r.deepKeys ?? [],
+      render: r.render ?? []
+    }));
+  }
+
+  if (!routes.length) {
+    el.routes.innerHTML = '<div class="placeholder">No routes found.</div>';
+    el.routesCompact.innerHTML = '<div class="placeholder">No routes found.</div>';
+    return;
+  }
+
+  routes.sort((a, b) => {
+    const aa = Number(a.renderCount || a.count || 0);
+    const bb = Number(b.renderCount || b.count || 0);
+    return bb - aa;
+  });
+
+  const html = routes.map(route => `
+<div class="route-card">
 <div class="route-head">
-<div class="route-url">${escapeHtml(x.url)}</div>
+<div class="route-url">${escapeHtml(route.url)}</div>
 <div class="route-meta">
-<span class="tag ${x.ok ? 'ok' : 'bad'}">${x.ok ? 'OK' : 'FAIL'}</span>
-<span class="tag">${escapeHtml(x.status ?? "")}</span>
+<span class="tag ${route.ok ? "ok" : "bad"}">${route.ok ? "OK" : "FAIL"}</span>
+<span class="tag">HTTP ${escapeHtml(route.status ?? "")}</span>
 </div>
 </div>
 <div class="route-grid">
-<div class="mini"><div class="t">Count</div><div class="v">${escapeHtml(x.count ?? "—")}</div></div>
-<div class="mini"><div class="t">Keys</div><div class="v">${escapeHtml((x.sampleKeys || []).slice(0, 4).join(", "))}</div></div>
-<div class="mini"><div class="t">Deep</div><div class="v">${escapeHtml((x.deepKeys || []).slice(0, 4).join(", "))}</div></div>
-<div class="mini"><div class="t">Sample</div><div class="v">${escapeHtml(x.sample ? JSON.stringify(x.sample).slice(0, 120) : "—")}</div></div>
+<div class="mini">
+<div class="t">Objects</div>
+<div class="v">${escapeHtml(route.count)}</div>
 </div>
-</div>`).join("");
-el.routes.innerHTML = html;
-el.routesCompact.innerHTML = html;
+<div class="mini">
+<div class="t">Rendered</div>
+<div class="v">${escapeHtml(route.renderCount)}</div>
+</div>
+<div class="mini">
+<div class="t">Keys</div>
+<div class="v">${escapeHtml(route.sampleKeys.slice(0,6).join(", "))}</div>
+</div>
+<div class="mini">
+<div class="t">Deep Keys</div>
+<div class="v">${escapeHtml(route.deepKeys.slice(0,6).join(", "))}</div>
+</div>
+</div>
+<details>
+<summary><span>Sample JSON</span><span>Expand</span></summary>
+<div class="json">${escapeHtml(JSON.stringify(route.sample, null, 2))}</div>
+</details>
+</div>
+`).join("");
+
+  el.routes.innerHTML = html;
+  el.routesCompact.innerHTML = html;
 }
+
+
+
+
 
 function activateTab(name) {
 document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
@@ -1202,54 +1337,122 @@ setStatus("token error", "err");
 el.checkBtn.disabled = false;
 }
 
+
+
 async function probeTxline() {
-el.probeBtn.disabled = true;
-setStatus("probing...");
-try {
-const res = await emit({
-type: "txline_probe_feed",
-scope: "worldcup",
-apiToken: el.apiToken.value.trim(),
-jwt: el.jwt.value.trim(),
-serviceLevelId: Number(el.serviceLevelId.value)
-});
-show(res);
-const probe = (res && typeof res.body === "object" && res.body) ? res.body : {};
-const matchRows = matchRowsFrom(probe);
-const standingsRows = standingsRowsFrom(probe);
-const eventsRows = eventsRowsFrom(probe);
-const oddsRows = oddsRowsFrom(probe);
 
-renderMatches(matchRows);
-renderStandings(standingsRows);
-renderEvents(eventsRows);
-renderOdds(oddsRows);
-renderRoutes(probe);
+    el.probeBtn.disabled = true;
+    setStatus("Probing TxLINE...", "warn");
 
-el.matchesCount.textContent = String(matchRows.length);
-el.competitionsCount.textContent = String(uniqueCompetitions(matchRows).length);
-el.marketsCount.textContent = String(countMarkets(oddsRows));
-const routeSuccesses = (Array.isArray(probe?.source) ? probe.source.filter(x => x && x.ok).length : 0) + (probe?.firstSuccess ? 1 : 0);
-el.routesCount.textContent = String(routeSuccesses);
+    try {
 
-saveBackup({
-stage: "probe",
-lastProbeOk: res.ok,
-lastProbeStatus: res.status,
-fixtures: matchRows.length,
-standings: standingsRows.length,
-events: eventsRows.length,
-odds: oddsRows.length,
-routes: routeSuccesses
-});
+        const res = await emit({
+            type: "txline_probe_feed",
+            scope: "worldcup",
+            apiToken: el.apiToken.value.trim(),
+            jwt: el.jwt.value.trim(),
+            serviceLevelId: Number(el.serviceLevelId.value)
+        });
 
-setStatus(res.ok ? "done" : "probe failed", res.ok ? "ok" : "err");
-} catch (e) {
-show(String(e?.message || e));
-setStatus("error", "err");
+        show(res);
+
+        const probe =
+            res &&
+            typeof res.body === "object"
+                ? res.body
+                : {};
+
+        console.log("FULL PROBE", probe);
+
+        const collected = probe.collected || {};
+
+        const fixtureEntry =
+            collected["https://txline.txodds.com/api/fixtures/snapshot"] ||
+            probe.firstSuccess ||
+            {};
+
+        const fixtureRows = Array.isArray(fixtureEntry.render)
+            ? fixtureEntry.render
+            : matchRowsFrom(probe);
+
+        const standingsEntry =
+            collected["https://txline.txodds.com/api/v1/standings"] ||
+            collected["https://txline.txodds.com/api/standings"] ||
+            {};
+
+        const standingsRows =
+            Array.isArray(standingsEntry.render)
+                ? standingsEntry.render
+                : standingsRowsFrom(probe);
+
+        const eventsEntry =
+            collected["https://txline.txodds.com/api/v1/events"] ||
+            collected["https://txline.txodds.com/api/events"] ||
+            {};
+
+        const eventsRows =
+            Array.isArray(eventsEntry.render)
+                ? eventsEntry.render
+                : eventsRowsFrom(probe);
+
+        const oddsEntry =
+            collected["https://txline.txodds.com/api/v1/odds"] ||
+            collected["https://txline.txodds.com/api/odds"] ||
+            {};
+
+        const oddsRows =
+            Array.isArray(oddsEntry.render)
+                ? oddsEntry.render
+                : oddsRowsFrom(probe);
+
+        renderMatches(fixtureRows);
+        renderStandings(standingsRows);
+        renderEvents(eventsRows);
+        renderOdds(oddsRows);
+        renderRoutes(probe);
+
+        el.matchesCount.textContent = fixtureRows.length;
+        el.competitionsCount.textContent =
+            uniqueCompetitions(fixtureRows).length;
+
+        el.marketsCount.textContent =
+            countMarkets(oddsRows);
+
+        const okRoutes = Array.isArray(probe.source)
+            ? probe.source.filter(x => x.ok).length
+            : 0;
+
+        el.routesCount.textContent = okRoutes;
+
+        saveBackup({
+            stage: "probe",
+            fixtures: fixtureRows.length,
+            standings: standingsRows.length,
+            events: eventsRows.length,
+            odds: oddsRows.length,
+            routes: okRoutes
+        });
+
+        setStatus("Probe completed", "ok");
+
+    } catch (e) {
+
+        console.error(e);
+
+        show(e.message || String(e));
+
+        setStatus("Probe failed", "err");
+
+    }
+
+    el.probeBtn.disabled = false;
+
 }
-el.probeBtn.disabled = false;
-}
+
+
+
+
+
 
 function toggleAuto() {
 auto = !auto;
