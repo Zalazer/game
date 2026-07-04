@@ -629,9 +629,10 @@ text-align:center;
 
 .mobile-card-grid{
 display:grid;
-grid-template-columns:1fr;
-gap:10px;
+grid-template-columns:1.5fr 1fr;
+gap:12px;
 margin-top:14px;
+align-items:start;
 }
 
 .mobile-card-grid div{
@@ -651,9 +652,12 @@ margin-top:14px;
 }
 
 .mobile-card-grid b{
-  font-size:13px;
-  font-weight:700;
-  word-break:break-word;
+display:block;
+font-size:13px;
+font-weight:700;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
 .mobile-card-text{
