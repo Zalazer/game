@@ -599,16 +599,20 @@ font-size:14px;
 }
 
 .mobile-card-head{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:8px;
+padding-bottom:12px;
+border-bottom:1px solid rgba(255,255,255,.08);
 }
 
 .mobile-card-title{
-  font-size:15px;
-  font-weight:800;
-  line-height:1.35;
-  word-break:break-word;
+font-size:20px;
+font-weight:800;
+text-align:center;
+line-height:1.35;
+word-break:break-word;
 }
 
 .mobile-card-vs{
@@ -618,14 +622,16 @@ font-size:14px;
 }
 
 .mobile-card-sub{
-  font-size:12px;
-  color:var(--muted);
+font-size:13px;
+color:var(--muted);
+text-align:center;
 }
 
 .mobile-card-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
+display:grid;
+grid-template-columns:1fr;
+gap:10px;
+margin-top:14px;
 }
 
 .mobile-card-grid div{
@@ -1177,6 +1183,30 @@ return String(v ?? "")
 .replace(/'/g, "&#39;");
 }
 
+
+function formatDate(ts){
+
+if(!ts) return "";
+
+const n=Number(ts);
+
+if(Number.isNaN(n)) return escapeHtml(ts);
+
+const d=new Date(n);
+
+return d.toLocaleString(undefined,{
+weekday:"short",
+day:"numeric",
+month:"short",
+hour:"2-digit",
+minute:"2-digit"
+});
+
+
+}
+
+
+
 function safeJson(v) {
 try {
 return JSON.stringify(v);
@@ -1417,7 +1447,12 @@ function renderMatches(rows) {
     return;
   }
 
-  renderChips(el.matchChips, [`rows:${rows.length}`, "fixtures", "txline"]);
+  renderChips(
+el.matchChips,
+[
+`${rows.length} Matches`
+]
+);
 
   if (isMobileView()) {
     el.matchesBody.innerHTML = tableCardList(
@@ -1432,11 +1467,42 @@ function renderMatches(rows) {
     </div>
 
     <div class="mobile-card-grid">
-      <div><span>Fixture</span><b>${escapeHtml(r.id ?? i)}</b></div>
-      <div><span>Kickoff</span><b class="mono">${escapeHtml(r.kickoff ?? "")}</b></div>
-      <div><span>Status</span><b>${escapeHtml(r.status ?? "")}</b></div>
-      <div><span>Score</span><b class="mono">${escapeHtml(r.score ?? "")}</b></div>
-    </div>
+
+${
+r.kickoff
+?
+`<div>
+<span>Date</span>
+<b>${formatDate(r.kickoff)}</b>
+</div>`
+:
+""
+}
+
+${
+r.status
+?
+`<div>
+<span>Status</span>
+<b>${escapeHtml(r.status)}</b>
+</div>`
+:
+""
+}
+
+${
+r.score
+?
+`<div>
+<span>Score</span>
+<b>${escapeHtml(r.score)}</b>
+</div>`
+:
+""
+}
+
+</div>
+
 
     <div class="mobile-card-text">
 <b>Status:</b> ${escapeHtml(r.status || "Unknown")}
