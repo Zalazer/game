@@ -1451,71 +1451,36 @@ function renderMatches(rows) {
     return;
   }
 
-  renderChips(
-el.matchChips,
-[
-`${rows.length} Matches`
-]
-);
+  renderChips(el.matchChips, [`${rows.length} Matches`]);
 
   if (isMobileView()) {
-    el.matchesBody.innerHTML = tableCardList(
-      rows,
-      (r, i) => `
+    el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => `
 <tr>
 <td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
-  <div class="mobile-card">
+  <div class="mobile-card" data-fixture-card="${escapeHtml(r.id ?? i)}">
     <div class="mobile-card-head">
       <div class="mobile-card-title">${escapeHtml(r.home ?? "")} <span class="mobile-card-vs">vs</span> ${escapeHtml(r.away ?? "")}</div>
       <div class="mobile-card-sub">${escapeHtml(r.league ?? "")}</div>
     </div>
 
     <div class="mobile-card-grid">
+      <div><span>Fixture</span><b class="mono">${escapeHtml(r.id ?? i)}</b></div>
+      <div><span>Date</span><b class="mono">${escapeHtml(formatDate(r.kickoff) || r.kickoff || "")}</b></div>
+      <div><span>Status</span><b>${escapeHtml(r.status ?? "")}</b></div>
+      <div><span>Score</span><b class="mono">${escapeHtml(r.score ?? "")}</b></div>
+    </div>
 
-${
-r.kickoff
-?
-`<div>
-<span>Date</span>
-<b>${formatDate(r.kickoff)}</b>
-</div>`
-:
-""
-}
+    <div class="mobile-card-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+      <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${escapeHtml(r.id ?? "")}">
+        Details
+      </button>
+    </div>
 
-${
-r.status
-?
-`<div>
-<span>Status</span>
-<b>${escapeHtml(r.status)}</b>
-</div>`
-:
-""
-}
-
-${
-r.score
-?
-`<div>
-<span>Score</span>
-<b>${escapeHtml(r.score)}</b>
-</div>`
-:
-""
-}
-
-</div>
-
-
-    <div class="mobile-card-text">
-<b>Status:</b> ${escapeHtml(r.status || "Unknown")}
-</div>
+    <div class="mobile-details-slot" data-details-slot="${escapeHtml(r.id ?? i)}"></div>
   </div>
 </td>
-</tr>`,
-      '<tr><td colspan="8">No fixtures found</td></tr>'
-    );
+</tr>`).join("");
+    bindFixtureDetailsButtons();
     return;
   }
 
@@ -1524,16 +1489,94 @@ r.score
 <td>${escapeHtml(r.league ?? "")}</td>
 <td>${escapeHtml(r.home ?? "")}</td>
 <td>${escapeHtml(r.away ?? "")}</td>
-<td class="mono">${escapeHtml(r.kickoff ?? "")}</td>
+<td class="mono">${escapeHtml(formatDate(r.kickoff) || r.kickoff || "")}</td>
 <td>${escapeHtml(r.status ?? "")}</td>
 <td class="mono">${escapeHtml(r.score ?? "")}</td>
 <td>
-<button class="btn btn-secondary details-btn" type="button">
-Details
-</button>
+  <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${escapeHtml(r.id ?? "")}">
+    Details
+  </button>
 </td>
 </tr>`).join("");
+
+  bindFixtureDetailsButtons();
 }
+
+
+
+
+function bindFixtureDetailsButtons() {
+  document.querySelectorAll('.details-btn').forEach(btn => {
+    btn.onclick = async () => {
+      const fixtureId = btn.dataset.fixtureId;
+      if (!fixtureId) return;
+      await loadFixtureDetails(fixtureId, btn);
+    };
+  });
+}
+
+async function loadFixtureDetails(fixtureId, btn) {
+  const slot =
+    btn.closest('[data-fixture-card]')?.querySelector(`[data-details-slot="${CSS.escape(String(fixtureId))}"]`) ||
+    null;
+
+  if (slot) {
+    slot.innerHTML = '<div class="placeholder">Loading details...</div>';
+  }
+
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  btn.textContent = 'Loading...';
+
+  try {
+    const res = await emit({
+      type: 'txline_fixture_details',
+      fixtureId: String(fixtureId),
+      serviceLevelId: Number(el.serviceLevelId.value)
+    });
+
+    const body = res && typeof res.body === 'object' ? res.body : {};
+    const events = Array.isArray(body.events) ? body.events : [];
+    const odds = Array.isArray(body.odds) ? body.odds : [];
+
+    const html = `
+      <div class="details-panel" style="margin-top:12px;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+          <strong>Fixture details</strong>
+          <span class="hint">${escapeHtml(body.fixtureId ?? fixtureId)}</span>
+        </div>
+
+        <div class="mobile-card-grid">
+          <div><span>Events</span><b class="mono">${events.length}</b></div>
+          <div><span>Odds</span><b class="mono">${odds.length}</b></div>
+          <div><span>Standings</span><b class="mono">${Array.isArray(body.standings) ? body.standings.length : 0}</b></div>
+          <div><span>Status</span><b>${escapeHtml(body.ok ? 'OK' : 'Error')}</b></div>
+        </div>
+
+        <details class="mobile-details" style="margin-top:12px">
+          <summary>Raw details JSON</summary>
+          <div class="json">${escapeHtml(JSON.stringify(body, null, 2))}</div>
+        </details>
+      </div>
+    `;
+
+    if (slot) {
+      slot.innerHTML = html;
+    } else {
+      const card = btn.closest('[data-fixture-card]');
+      if (card) card.insertAdjacentHTML('beforeend', html);
+    }
+  } catch (e) {
+    const msg = `<div class="placeholder" style="color:var(--red)">Failed to load details: ${escapeHtml(e?.message || e)}</div>`;
+    if (slot) slot.innerHTML = msg;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+  }
+}
+
+
+
 
 function renderStandings(rows) {
   if (!rows.length) {
