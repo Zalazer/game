@@ -1283,11 +1283,6 @@ if (Array.isArray(v?.players)) return v.players;
 return [];
 }
 
-function findEntry(probe, url) {
-return probe?.collected?.[url] || null;
-}
-
-
 
 
 
@@ -1895,7 +1890,6 @@ document
 }
 
   activateTab("matches");
-  saveBackup({ stage: "ready" });
 }
 
 if (document.readyState === "loading") {
