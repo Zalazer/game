@@ -32,9 +32,7 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
-
 html{height:100%}
-
 body{
 min-height:100%;
 font-family:Inter,sans-serif;
@@ -47,9 +45,7 @@ linear-gradient(180deg,var(--bg),var(--bg2));
 overflow-x:hidden;
 padding:26px;
 }
-
 button,input,textarea,select{font:inherit}
-
 .shell{
 max-width:1700px;
 margin:auto;
@@ -57,7 +53,6 @@ display:flex;
 flex-direction:column;
 gap:22px;
 }
-
 .card{
 background:rgba(18,25,49,.78);
 border:1px solid var(--line2);
@@ -65,7 +60,6 @@ backdrop-filter:blur(18px);
 border-radius:26px;
 box-shadow:var(--shadow);
 }
-
 .topbar{
 display:flex;
 justify-content:space-between;
@@ -73,13 +67,11 @@ align-items:center;
 gap:20px;
 padding:20px 24px;
 }
-
 .brand{
 display:flex;
 align-items:center;
 gap:18px;
 }
-
 .logo{
 width:56px;
 height:56px;
@@ -87,26 +79,22 @@ border-radius:18px;
 background:linear-gradient(135deg,var(--green),var(--blue));
 box-shadow:0 12px 34px rgba(95,224,178,.35);
 }
-
 .brand h1{
 font-size:24px;
 font-weight:900;
 letter-spacing:-.03em;
 }
-
 .brand p{
 margin-top:4px;
 font-size:14px;
 color:var(--muted);
 }
-
 .top-right{
 display:flex;
 gap:12px;
 flex-wrap:wrap;
 justify-content:flex-end;
 }
-
 .badge{
 padding:10px 15px;
 border-radius:999px;
@@ -116,13 +104,11 @@ background:rgba(255,255,255,.04);
 border:1px solid var(--line);
 color:var(--muted);
 }
-
 .chips{
 display:flex;
 gap:10px;
 flex-wrap:wrap;
 }
-
 .chip{
 padding:7px 11px;
 border-radius:999px;
@@ -132,19 +118,16 @@ background:rgba(255,255,255,.04);
 border:1px solid var(--line);
 color:var(--muted);
 }
-
 .hero{
 display:grid;
 grid-template-columns:1.2fr 420px;
 gap:22px;
 }
-
 .hero-main{
 padding:34px;
 position:relative;
 overflow:hidden;
 }
-
 .hero-main::after{
 content:"";
 position:absolute;
@@ -155,7 +138,6 @@ height:460px;
 background:radial-gradient(circle,rgba(125,141,255,.18),transparent 70%);
 pointer-events:none;
 }
-
 .eyebrow{
 display:inline-flex;
 align-items:center;
@@ -169,7 +151,6 @@ letter-spacing:.12em;
 text-transform:uppercase;
 color:#dffff6;
 }
-
 .hero-title{
 margin-top:22px;
 font-size:34px;
@@ -178,7 +159,6 @@ line-height:1.02;
 letter-spacing:-.05em;
 max-width:900px;
 }
-
 .hero-text{
 margin-top:18px;
 max-width:650px;
@@ -186,14 +166,12 @@ font-size:16px;
 line-height:1.75;
 color:var(--muted);
 }
-
 .hero-buttons{
 display:flex;
 gap:14px;
 flex-wrap:wrap;
 margin-top:28px;
 }
-
 .btn{
 border:none;
 cursor:pointer;
@@ -203,40 +181,32 @@ font-size:15px;
 font-weight:800;
 transition:.2s;
 }
-
 .btn:hover{transform:translateY(-2px)}
-
 .btn:disabled{
 opacity:.6;
 cursor:not-allowed;
 transform:none;
 }
-
 .btn-primary{
 background:linear-gradient(135deg,var(--green),var(--blue));
 color:#071019;
 }
-
 .btn-secondary{
 background:rgba(255,255,255,.05);
 border:1px solid var(--line);
 color:white;
 }
-
 .btn-secondary:hover{background:rgba(255,255,255,.08)}
-
 .hero-side{
 display:flex;
 flex-direction:column;
 gap:18px;
 }
-
 .kpi-grid{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:16px;
 }
-
 .kpi{
 padding:16px;
 border-radius:22px;
@@ -246,7 +216,6 @@ display:flex;
 flex-direction:column;
 gap:10px;
 }
-
 .kpi-title{
 font-size:12px;
 text-transform:uppercase;
@@ -254,25 +223,21 @@ letter-spacing:.12em;
 color:var(--muted2);
 font-weight:700;
 }
-
 .kpi-value{
 font-size:28px;
 font-weight:900;
 letter-spacing:-.04em;
 }
-
 .kpi-sub{
 font-size:13px;
 color:var(--muted);
 }
-
 .status-card{
 padding:22px;
 border-radius:22px;
 border:1px solid var(--line);
 background:rgba(255,255,255,.035);
 }
-
 .status-title{
 font-size:13px;
 text-transform:uppercase;
@@ -280,7 +245,6 @@ letter-spacing:.14em;
 color:var(--muted2);
 margin-bottom:12px;
 }
-
 .status{
 padding:14px;
 border-radius:14px;
@@ -289,33 +253,27 @@ font-size:14px;
 line-height:1.6;
 white-space:pre-wrap;
 }
-
 .ok{color:var(--green)}
 .warn{color:var(--yellow)}
 .err{color:var(--red)}
-
 .main-grid{
 display:grid;
 grid-template-columns:360px 1fr;
 gap:22px;
 align-items:start;
 }
-
 .sidebar,.content{
 display:flex;
 flex-direction:column;
 gap:22px;
 }
-
 .panel{padding:20px}
-
 .panel h3{
 font-size:18px;
 font-weight:800;
 margin-bottom:18px;
 letter-spacing:-.02em;
 }
-
 label{
 display:block;
 margin-top:12px;
@@ -324,7 +282,6 @@ font-size:13px;
 color:#d8e4ff;
 font-weight:600;
 }
-
 input,textarea,select{
 width:100%;
 background:rgba(9,15,29,.9);
@@ -336,13 +293,10 @@ font-size:14px;
 outline:none;
 transition:.2s;
 }
-
 input:focus,textarea:focus,select:focus{
 border-color:var(--blue);
 box-shadow:0 0 0 1px rgba(125,141,255,.35);
 }
-
-
 select{
 cursor:pointer;
 appearance:none;
@@ -356,7 +310,6 @@ background-size:6px 6px;
 background-repeat:no-repeat;
 padding-right:40px;
 }
-
 textarea{
 resize:vertical;
 min-height:120px;
@@ -364,21 +317,18 @@ font-family:Consolas,monospace;
 font-size:12px;
 line-height:1.55;
 }
-
 .footer-note{
 margin-top:16px;
 font-size:12px;
 line-height:1.6;
 color:var(--muted2);
 }
-
 .tabs{
 display:flex;
 gap:10px;
 flex-wrap:wrap;
 margin-bottom:0;
 }
-
 .tab{
 padding:11px 18px;
 border-radius:999px;
@@ -390,22 +340,18 @@ font-weight:700;
 color:var(--muted);
 transition:.2s;
 }
-
 .tab:hover{background:rgba(255,255,255,.06)}
-
 .tab.active{
 background:linear-gradient(135deg,rgba(95,224,178,.12),rgba(125,141,255,.12));
 border-color:rgba(125,141,255,.4);
 color:white;
 }
-
 .section{
 border-radius:22px;
 border:1px solid var(--line);
 overflow:hidden;
 background:rgba(255,255,255,.025);
 }
-
 .section-head{
 display:flex;
 justify-content:space-between;
@@ -414,36 +360,29 @@ gap:12px;
 padding:18px 22px;
 border-bottom:1px solid var(--line);
 }
-
 .section-head h4,.section-title{
 font-size:15px;
 font-weight:800;
 text-transform:uppercase;
 letter-spacing:.08em;
 }
-
 .section-sub,.hint{
 font-size:12px;
 color:var(--muted2);
 }
-
 .section-body{padding:22px}
-
 .table-wrap{
 overflow:auto;
 border-radius:18px;
 border:1px solid var(--line);
 background:rgba(8,12,24,.72);
 }
-
 table{
 width:100%;
 border-collapse:collapse;
 min-width:1200px;
 }
-
 thead{background:rgba(18,27,52,.96)}
-
 th{
 padding:14px 16px;
 text-align:left;
@@ -456,7 +395,6 @@ position:sticky;
 top:0;
 z-index:2;
 }
-
 td{
 padding:14px 16px;
 border-top:1px solid rgba(255,255,255,.05);
@@ -464,24 +402,19 @@ font-size:13px;
 vertical-align:top;
 color:#eef2ff;
 }
-
 tbody tr{transition:.18s}
 tbody tr:hover{background:rgba(255,255,255,.035)}
-
 .mono,.json{
 font-family:SFMono-Regular,Consolas,monospace;
 word-break:break-word;
 }
-
 .routes{display:grid;gap:18px}
-
 .route-card{
 border-radius:20px;
 padding:18px;
 background:rgba(255,255,255,.03);
 border:1px solid var(--line);
 }
-
 .route-head{
 display:flex;
 justify-content:space-between;
@@ -489,21 +422,18 @@ align-items:flex-start;
 gap:18px;
 margin-bottom:16px;
 }
-
 .route-url{
 font-size:13px;
 font-family:Consolas,monospace;
 word-break:break-word;
 color:#dce8ff;
 }
-
 .route-meta{
 display:flex;
 gap:8px;
 flex-wrap:wrap;
 justify-content:flex-end;
 }
-
 .tag{
 padding:7px 10px;
 border-radius:999px;
@@ -512,32 +442,27 @@ font-weight:700;
 border:1px solid var(--line);
 background:rgba(255,255,255,.04);
 }
-
 .tag.ok{
 background:rgba(95,224,178,.12);
 border-color:rgba(95,224,178,.35);
 color:#d8fff1;
 }
-
 .tag.bad{
 background:rgba(255,109,134,.12);
 border-color:rgba(255,109,134,.35);
 color:#ffdbe2;
 }
-
 .route-grid{
 display:grid;
 grid-template-columns:repeat(4,minmax(0,1fr));
 gap:14px;
 }
-
 .mini{
 padding:15px;
 border-radius:16px;
 background:rgba(0,0,0,.18);
 border:1px solid rgba(255,255,255,.04);
 }
-
 .mini .t{
 font-size:11px;
 text-transform:uppercase;
@@ -545,13 +470,11 @@ letter-spacing:.12em;
 color:var(--muted2);
 margin-bottom:10px;
 }
-
 .mini .v{
 font-size:15px;
 font-weight:700;
 word-break:break-word;
 }
-
 .json{
 margin-top:14px;
 padding:18px;
@@ -565,9 +488,7 @@ line-height:1.6;
 max-height:500px;
 overflow:auto;
 }
-
 details{margin-top:18px}
-
 summary{
 display:flex;
 justify-content:space-between;
@@ -580,24 +501,18 @@ border-radius:16px;
 background:rgba(255,255,255,.03);
 border:1px solid var(--line);
 }
-
 summary::-webkit-details-marker{display:none}
-
 .placeholder{
 padding:28px;
 text-align:center;
 color:var(--muted2);
 font-size:14px;
 }
-
-
-
 .mobile-card{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
+display:flex;
+flex-direction:column;
+gap:14px;
 }
-
 .mobile-card-head{
 display:flex;
 flex-direction:column;
@@ -606,7 +521,6 @@ gap:8px;
 padding-bottom:12px;
 border-bottom:1px solid rgba(255,255,255,.08);
 }
-
 .mobile-card-title{
 font-size:20px;
 font-weight:800;
@@ -614,19 +528,16 @@ text-align:center;
 line-height:1.35;
 word-break:break-word;
 }
-
 .mobile-card-vs{
-  color:var(--muted2);
-  font-weight:700;
-  margin:0 4px;
+color:var(--muted2);
+font-weight:700;
+margin:0 4px;
 }
-
 .mobile-card-sub{
 font-size:13px;
 color:var(--muted);
 text-align:center;
 }
-
 .mobile-card-grid{
 display:grid;
 grid-template-columns:1.5fr 1fr;
@@ -634,23 +545,20 @@ gap:12px;
 margin-top:14px;
 align-items:start;
 }
-
 .mobile-card-grid div{
-  padding:10px 12px;
-  border-radius:14px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
+padding:10px 12px;
+border-radius:14px;
+background:rgba(255,255,255,.03);
+border:1px solid rgba(255,255,255,.06);
 }
-
 .mobile-card-grid span{
-  display:block;
-  font-size:11px;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  color:var(--muted2);
-  margin-bottom:6px;
+display:block;
+font-size:11px;
+text-transform:uppercase;
+letter-spacing:.08em;
+color:var(--muted2);
+margin-bottom:6px;
 }
-
 .mobile-card-grid b{
 display:block;
 font-size:13px;
@@ -659,122 +567,39 @@ white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
 }
-
 .mobile-card-text{
-  font-size:13px;
-  line-height:1.6;
-  color:var(--text);
-}
-
-.mobile-details{
-  margin-top:0;
-}
-
-.mobile-details summary{
-  padding:12px 14px;
-  font-size:13px;
-}
-
-
-
-@media (max-width:760px){
-
-body{
-padding:12px;
-overflow-x:hidden;
-}
-
-.shell{
-width:100%;
-max-width:100%;
-}
-
-.card{
-border-radius:18px;
-}
-
-.hero{
-grid-template-columns:1fr;
-gap:16px;
-}
-
-.hero-main{
-padding:22px;
-}
-
-.hero-title{
-font-size:32px;
-line-height:1.15;
-}
-
-.hero-text{
-font-size:14px;
+font-size:13px;
 line-height:1.6;
+color:var(--text);
 }
-
-.hero-buttons{
-display:flex;
-flex-direction:column;
-gap:12px;
+.mobile-details{
+margin-top:0;
 }
-
-.btn{
-width:100%;
+.mobile-details summary{
+padding:12px 14px;
+font-size:13px;
 }
-
-.topbar{
-flex-direction:column;
-align-items:flex-start;
-}
-
-.top-right{
-width:100%;
-justify-content:flex-start;
-}
-
-.main-grid{
-grid-template-columns:1fr;
-}
-
-.sidebar{
-order:2;
-}
-
-.content{
-order:1;
-}
-
-.kpi-grid{
-grid-template-columns:1fr 1fr;
-gap:12px;
-}
-
-.section-head{
-flex-direction:column;
-align-items:flex-start;
-}
-
-.table-wrap{
-overflow:visible;
-border:none;
-background:none;
-}
-
-table{
-display:block;
-width:100%;
-min-width:100%;
-}
-
-thead{
-display:none;
-}
-
-tbody{
-display:block;
-width:100%;
-}
-
+@media (max-width:760px){
+body{padding:12px;overflow-x:hidden;}
+.shell{width:100%;max-width:100%;}
+.card{border-radius:18px;}
+.hero{grid-template-columns:1fr;gap:16px;}
+.hero-main{padding:22px;}
+.hero-title{font-size:32px;line-height:1.15;}
+.hero-text{font-size:14px;line-height:1.6;}
+.hero-buttons{display:flex;flex-direction:column;gap:12px;}
+.btn{width:100%;}
+.topbar{flex-direction:column;align-items:flex-start;}
+.top-right{width:100%;justify-content:flex-start;}
+.main-grid{grid-template-columns:1fr;}
+.sidebar{order:2;}
+.content{order:1;}
+.kpi-grid{grid-template-columns:1fr 1fr;gap:12px;}
+.section-head{flex-direction:column;align-items:flex-start;}
+.table-wrap{overflow:visible;border:none;background:none;}
+table{display:block;width:100%;min-width:100%;}
+thead{display:none;}
+tbody{display:block;width:100%;}
 tbody tr{
 display:block;
 width:100%;
@@ -782,18 +607,15 @@ margin:0 0 14px;
 border:none;
 background:none;
 }
-
 tbody td{
 display:block;
 padding:0;
 border:none;
 }
-
 tbody td[colspan]{
 width:100%;
 padding:0;
 }
-
 .mobile-card{
 width:100%;
 max-width:100%;
@@ -803,50 +625,40 @@ background:rgba(255,255,255,.035);
 border:1px solid rgba(255,255,255,.08);
 overflow:hidden;
 }
-
 .mobile-card-title{
 font-size:17px;
 font-weight:800;
 line-height:1.4;
 overflow-wrap:anywhere;
 }
-
 .mobile-card-sub{
 font-size:13px;
 }
-
 .mobile-card-grid{
 grid-template-columns:1fr 1fr;
 gap:10px;
 }
-
 .mobile-card-grid div{
 padding:10px;
 }
-
 .mobile-card-grid b{
 overflow-wrap:anywhere;
 }
-
 .mobile-card-text{
 font-size:13px;
 line-height:1.6;
 overflow-wrap:anywhere;
 }
-
 .json{
 display:none;
 }
-
 .route-grid{
 grid-template-columns:1fr;
 }
-
 .route-url{
 overflow-wrap:anywhere;
 word-break:break-word;
 }
-
 img,
 video,
 canvas,
@@ -855,23 +667,15 @@ pre,
 textarea{
 max-width:100%;
 }
-
 }
-
-
-
 .hidden{display:none}
-
 @media(max-width:1280px){
 .hero{grid-template-columns:1fr}
 .main-grid{grid-template-columns:1fr}
 .route-grid{grid-template-columns:1fr 1fr}
 }
-
-
 </style>
 </head>
-
 <body>
 <div class="shell">
 
@@ -884,15 +688,8 @@ max-width:100%;
 </div>
 </div>
 <div class="top-right">
-
-<div class="badge">
-🟢 LIVE
-</div>
-
-<div class="badge">
-Premium
-</div>
-
+<div class="badge">🟢 LIVE</div>
+<div class="badge">Premium</div>
 </div>
 </header>
 
@@ -904,56 +701,19 @@ Premium
 Live football data collected from the TxLINE service. Browse fixtures, standings, match events and betting markets through a fast and responsive dashboard designed for desktop and mobile devices.
 </div>
 <div class="hero-buttons">
-<button class="btn btn-primary" id="probeBtn" type="button">
-🔄 Refresh Data
-</button>
-
-<button class="btn btn-secondary" id="refreshBtn" type="button">
-⏱ Auto Refresh OFF
-</button>
-
-<button class="btn btn-secondary" id="tokenBtn" type="button">
-🛰 Test Connection
-</button>
-
-<button
-class="btn btn-secondary"
-id="settingsBtn"
-type="button">
-
-⚙ Settings
-
-</button>
+<button class="btn btn-primary" id="probeBtn" type="button">🔄 Refresh Data</button>
+<button class="btn btn-secondary" id="refreshBtn" type="button">⏱ Auto Refresh OFF</button>
+<button class="btn btn-secondary" id="tokenBtn" type="button">🛰 Test Connection</button>
+<button class="btn btn-secondary" id="settingsBtn" type="button">⚙ Settings</button>
 </div>
 </div>
 
 <div class="hero-side">
 <div class="kpi-grid">
-
-<div class="card kpi">
-<div class="kpi-title">⚽ Fixtures</div>
-<div class="kpi-value" id="matchesCount">0</div>
-<div class="kpi-sub">Live matches</div>
-</div>
-
-<div class="card kpi">
-<div class="kpi-title">🏆 Competitions</div>
-<div class="kpi-value" id="competitionsCount">0</div>
-<div class="kpi-sub">Available leagues</div>
-</div>
-
-<div class="card kpi">
-<div class="kpi-title">🎯 Markets</div>
-<div class="kpi-value" id="marketsCount">0</div>
-<div class="kpi-sub">Betting markets</div>
-</div>
-
-<div class="card kpi">
-<div class="kpi-title">🛰 Feeds</div>
-<div class="kpi-value" id="routesCount">0</div>
-<div class="kpi-sub">Online feeds</div>
-</div>
-
+<div class="card kpi"><div class="kpi-title">⚽ Fixtures</div><div class="kpi-value" id="matchesCount">0</div><div class="kpi-sub">Live matches</div></div>
+<div class="card kpi"><div class="kpi-title">🏆 Competitions</div><div class="kpi-value" id="competitionsCount">0</div><div class="kpi-sub">Available leagues</div></div>
+<div class="card kpi"><div class="kpi-title">🎯 Markets</div><div class="kpi-value" id="marketsCount">0</div><div class="kpi-sub">Betting markets</div></div>
+<div class="card kpi"><div class="kpi-title">🛰 Feeds</div><div class="kpi-value" id="routesCount">0</div><div class="kpi-sub">Online feeds</div></div>
 </div>
 </div>
 
@@ -961,30 +721,21 @@ type="button">
 <div class="status-title">System Status</div>
 <div id="status" class="status warn">Waiting for data...</div>
 </div>
-</div>
 </section>
 
 <section class="main-grid">
 
-
 <aside class="sidebar hidden" id="settingsPanel">
-
 <div class="card panel">
-
 <h3>Settings</h3>
-
 <label for="workerBase">Server</label>
 <input id="workerBase" value="https://game.shooleeyack.workers.dev">
-
 <label for="serviceLevelId">Feed Quality</label>
-
 <select id="serviceLevelId">
 <option value="12" selected>Real-time</option>
 <option value="1">60 sec delay</option>
 </select>
-
 </div>
-
 </aside>
 
 <div class="content">
@@ -1143,7 +894,6 @@ type="button">
 </div>
 </div>
 
-
 </div>
 </section>
 </div>
@@ -1177,6 +927,15 @@ routesCompact: document.getElementById("routesCompact")
 
 let auto = false;
 let timer = null;
+let state = {
+matches: [],
+standings: [],
+events: [],
+odds: [],
+historicalByFixture: {},
+eventsByFixture: {},
+oddsByFixture: {}
+};
 
 function escapeHtml(v) {
 return String(v ?? "")
@@ -1187,17 +946,11 @@ return String(v ?? "")
 .replace(/'/g, "&#39;");
 }
 
-
 function formatDate(ts){
-
 if(!ts) return "";
-
 const n=Number(ts);
-
 if(Number.isNaN(n)) return escapeHtml(ts);
-
 const d=new Date(n);
-
 return d.toLocaleString(undefined,{
 weekday:"short",
 day:"numeric",
@@ -1205,11 +958,7 @@ month:"short",
 hour:"2-digit",
 minute:"2-digit"
 });
-
-
 }
-
-
 
 function safeJson(v) {
 try {
@@ -1230,9 +979,6 @@ function setStatus(text, type = "warn") {
 el.status.className = `status ${type}`;
 el.status.textContent = text;
 }
-
-
-
 
 async function emit(payload) {
 const base = el.workerBase.value.trim().replace(/\/$/, "");
@@ -1283,132 +1029,174 @@ if (Array.isArray(v?.players)) return v.players;
 return [];
 }
 
+function toTs(v) {
+if (v == null || v === "") return null;
+const n = Number(v);
+if (Number.isFinite(n)) return n;
+const d = new Date(v);
+const t = d.getTime();
+return Number.isFinite(t) ? t : null;
+}
 
+function normalizeStatus(v) {
+return String(v ?? "").trim().toLowerCase();
+}
 
+function classifyMatch(row) {
+const now = Date.now();
+const kickoffTs = toTs(row.kickoff);
+const status = normalizeStatus(row.status);
+
+const finishedTokens = [
+"ft", "finished", "full time", "ended", "postponed", "cancelled", "canceled", "abandoned"
+];
+const liveTokens = [
+"live", "1h", "2h", "ht", "half time", "inplay", "in play", "ongoing"
+];
+
+if (finishedTokens.some(t => status.includes(t))) return "past";
+if (liveTokens.some(t => status.includes(t))) return "current";
+if (kickoffTs != null) {
+if (kickoffTs < now - 2 * 60 * 60 * 1000) return "past";
+if (kickoffTs > now + 10 * 60 * 1000) return "future";
+return "current";
+}
+
+return "future";
+}
+
+function splitMatchesByTime(rows) {
+const past = [];
+const current = [];
+const future = [];
+
+rows.forEach(r => {
+const bucket = classifyMatch(r);
+if (bucket === "past") past.push(r);
+else if (bucket === "current") current.push(r);
+else future.push(r);
+});
+
+return { past, current, future };
+}
+
+function formatGroupLabel(name, rows) {
+return `${name} (${rows.length})`;
+}
 
 function matchRowsFrom(probe) {
+const collected = probe?.collected || {};
 
-    const collected = probe?.collected || {};
+const entry =
+collected["https://txline.txodds.com/api/fixtures/snapshot"] ||
+probe?.firstSuccess ||
+{};
 
-    const entry =
-        collected["https://txline.txodds.com/api/fixtures/snapshot"] ||
-        probe?.firstSuccess ||
-        {};
+if (Array.isArray(entry.render))
+return entry.render;
 
-    if (Array.isArray(entry.render))
-        return entry.render;
+const arr = pickArray(entry);
 
-    const arr = pickArray(entry);
+return arr.map((x, i) => ({
 
-    return arr.map((x, i) => ({
+id:
+x.id ??
+x.fixtureId ??
+x.matchId ??
+x.eventId ??
+i,
 
-        id:
-            x.id ??
-            x.fixtureId ??
-            x.matchId ??
-            x.eventId ??
-            i,
+league:
+x.league ??
+x.competition ??
+x.tournament ??
+x.region ??
+"",
 
-        league:
-            x.league ??
-            x.competition ??
-            x.tournament ??
-            x.region ??
-            "",
+home:
+x.home ??
+x.homeTeam ??
+x.teamHome ??
+x.participant1 ??
+"",
 
-        home:
-            x.home ??
-            x.homeTeam ??
-            x.teamHome ??
-            x.participant1 ??
-            "",
+away:
+x.away ??
+x.awayTeam ??
+x.teamAway ??
+x.participant2 ??
+"",
 
-        away:
-            x.away ??
-            x.awayTeam ??
-            x.teamAway ??
-            x.participant2 ??
-            "",
+kickoff:
+x.kickoff ??
+x.startTime ??
+x.scheduledAt ??
+x.date ??
+"",
 
-        kickoff:
-            x.kickoff ??
-            x.startTime ??
-            x.scheduledAt ??
-            x.date ??
-            "",
+status:
+x.status ??
+x.state ??
+"",
 
-        status:
-            x.status ??
-            x.state ??
-            "",
+score:
+x.score ??
+(
+x.homeScore != null || x.awayScore != null
+? `${x.homeScore ?? ""}-${x.awayScore ?? ""}`
+: ""
+),
 
-        score:
-            x.score ??
-            (
-                x.homeScore != null || x.awayScore != null
-                    ? `${x.homeScore ?? ""}-${x.awayScore ?? ""}`
-                    : ""
-            ),
+raw: x
 
-        raw: x
-
-    }));
+}));
 
 }
 
 function standingsRowsFrom(probe) {
+const collected = probe?.collected || {};
 
-    const collected = probe?.collected || {};
+const entry =
+collected["https://txline.txodds.com/api/v1/standings"] ||
+collected["https://txline.txodds.com/api/standings"] ||
+{};
 
-    const entry =
-        collected["https://txline.txodds.com/api/v1/standings"] ||
-        collected["https://txline.txodds.com/api/standings"] ||
-        {};
+if (Array.isArray(entry.render))
+return entry.render;
 
-    if (Array.isArray(entry.render))
-        return entry.render;
-
-    return pickArray(entry);
+return pickArray(entry);
 
 }
 
 function eventsRowsFrom(probe) {
+const collected = probe?.collected || {};
 
-    const collected = probe?.collected || {};
+const entry =
+collected["https://txline.txodds.com/api/v1/events"] ||
+collected["https://txline.txodds.com/api/events"] ||
+{};
 
-    const entry =
-        collected["https://txline.txodds.com/api/v1/events"] ||
-        collected["https://txline.txodds.com/api/events"] ||
-        {};
+if (Array.isArray(entry.render))
+return entry.render;
 
-    if (Array.isArray(entry.render))
-        return entry.render;
-
-    return pickArray(entry);
+return pickArray(entry);
 
 }
 
 function oddsRowsFrom(probe) {
+const collected = probe?.collected || {};
 
-    const collected = probe?.collected || {};
+const entry =
+collected["https://txline.txodds.com/api/v1/odds"] ||
+collected["https://txline.txodds.com/api/odds"] ||
+{};
 
-    const entry =
-        collected["https://txline.txodds.com/api/v1/odds"] ||
-        collected["https://txline.txodds.com/api/odds"] ||
-        {};
+if (Array.isArray(entry.render))
+return entry.render;
 
-    if (Array.isArray(entry.render))
-        return entry.render;
-
-    return pickArray(entry);
+return pickArray(entry);
 
 }
-
-
-
-
-
-
 
 function uniqueCompetitions(rows) {
 return [...new Set(rows.map(r => String(r.league || "").trim()).filter(Boolean))];
@@ -1418,174 +1206,278 @@ function countMarkets(rows) {
 const set = new Set();
 rows.forEach(r => {
 const key = [r.market, r.book, r.fixture].map(v => String(v ?? "")).join("|");
-if (key.replace(/\|/g, "").trim()) set.add(key);
+if (key.replace(/|/g, "").trim()) set.add(key);
 });
 return set.size || rows.length;
 }
 
-
-
-
-
 const MOBILE_CUTOFF = 760;
 
 function isMobileView() {
-  return window.innerWidth <= MOBILE_CUTOFF;
+return window.innerWidth <= MOBILE_CUTOFF;
 }
 
 function tableCardList(rows, renderCard, emptyHtml) {
-  if (!rows.length) return emptyHtml;
-  return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
+if (!rows.length) return emptyHtml;
+return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
 }
 
-
 function renderMatches(rows) {
-  if (!rows.length) {
-    el.matchesBody.innerHTML = '<tr><td colspan="8">No fixtures found</td></tr>';
-    renderChips(el.matchChips, ["no fixtures"]);
-    return;
-  }
+const grouped = splitMatchesByTime(rows);
 
-  renderChips(el.matchChips, [`${rows.length} Matches`]);
+const pastRows = grouped.past;
+const currentRows = grouped.current;
+const futureRows = grouped.future;
 
-  if (isMobileView()) {
-    el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => `
+const total = rows.length;
+renderChips(el.matchChips, [
+`total:${total}`,
+`past:${pastRows.length}`,
+`current:${currentRows.length}`,
+`future:${futureRows.length}`
+]);
+
+const renderRow = (r, i, section) => {
+const fixtureId = escapeHtml(r.id ?? i);
+const kickoff = escapeHtml(formatDate(r.kickoff) || r.kickoff || "");
+const status = escapeHtml(r.status ?? "");
+const score = escapeHtml(r.score ?? "");
+const league = escapeHtml(r.league ?? "");
+const home = escapeHtml(r.home ?? "");
+const away = escapeHtml(r.away ?? "");
+
+if (isMobileView()) {
+return `
 <tr>
 <td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
-  <div class="mobile-card" data-fixture-card="${escapeHtml(r.id ?? i)}">
+  <div class="mobile-card" data-fixture-card="${fixtureId}">
     <div class="mobile-card-head">
-      <div class="mobile-card-title">${escapeHtml(r.home ?? "")} <span class="mobile-card-vs">vs</span> ${escapeHtml(r.away ?? "")}</div>
-      <div class="mobile-card-sub">${escapeHtml(r.league ?? "")}</div>
+      <div class="mobile-card-title">${home} <span class="mobile-card-vs">vs</span> ${away}</div>
+      <div class="mobile-card-sub">${league}</div>
     </div>
 
     <div class="mobile-card-grid">
-      <div><span>Fixture</span><b class="mono">${escapeHtml(r.id ?? i)}</b></div>
-      <div><span>Date</span><b class="mono">${escapeHtml(formatDate(r.kickoff) || r.kickoff || "")}</b></div>
-      <div><span>Status</span><b>${escapeHtml(r.status ?? "")}</b></div>
-      <div><span>Score</span><b class="mono">${escapeHtml(r.score ?? "")}</b></div>
+      <div><span>Fixture</span><b class="mono">${fixtureId}</b></div>
+      <div><span>Date</span><b class="mono">${kickoff}</b></div>
+      <div><span>Status</span><b>${status}</b></div>
+      <div><span>Score</span><b class="mono">${score}</b></div>
+      <div><span>Group</span><b>${section}</b></div>
     </div>
 
     <div class="mobile-card-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
-      <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${escapeHtml(r.id ?? "")}">
+      <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${fixtureId}">
         Details
       </button>
     </div>
 
-    <div class="mobile-details-slot" data-details-slot="${escapeHtml(r.id ?? i)}"></div>
+    <div class="mobile-details-slot" data-details-slot="${fixtureId}"></div>
   </div>
 </td>
-</tr>`).join("");
-    bindFixtureDetailsButtons();
-    return;
-  }
+</tr>`;
+}
 
-  el.matchesBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
-<td class="mono">${escapeHtml(r.id ?? i)}</td>
-<td>${escapeHtml(r.league ?? "")}</td>
-<td>${escapeHtml(r.home ?? "")}</td>
-<td>${escapeHtml(r.away ?? "")}</td>
-<td class="mono">${escapeHtml(formatDate(r.kickoff) || r.kickoff || "")}</td>
-<td>${escapeHtml(r.status ?? "")}</td>
-<td class="mono">${escapeHtml(r.score ?? "")}</td>
+return `<tr>
+<td class="mono">${fixtureId}</td>
+<td>${league}</td>
+<td>${home}</td>
+<td>${away}</td>
+<td class="mono">${kickoff}</td>
+<td>${status}</td>
+<td class="mono">${score}</td>
 <td>
-  <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${escapeHtml(r.id ?? "")}">
+  <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${fixtureId}">
     Details
   </button>
 </td>
-</tr>`).join("");
+</tr>`;
+};
 
-  bindFixtureDetailsButtons();
+const sectionBlock = (title, rowsList, badge) => {
+if (!rowsList.length) return "";
+return `
+<div class="card panel" style="margin-top:14px">
+  <h3>${title}</h3>
+  <div class="hint">${badge}</div>
+  <div style="height:10px"></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fixture</th>
+          <th>Competition</th>
+          <th>Home</th>
+          <th>Away</th>
+          <th>Kickoff</th>
+          <th>Status</th>
+          <th>Score</th>
+          <th>Preview</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsList.slice(0, 50).map((r, i) => renderRow(r, i, title.toLowerCase())).join("")}
+      </tbody>
+    </table>
+  </div>
+</div>`;
+};
+
+if (!total) {
+el.matchesBody.innerHTML = '<tr><td colspan="8">No fixtures found</td></tr>';
+return;
 }
 
+const html = [
+sectionBlock("Past matches", pastRows, "Finished, postponed, cancelled, or clearly in the past"),
+sectionBlock("Current matches", currentRows, "Live or currently in progress"),
+sectionBlock("Future matches", futureRows, "Scheduled but not started yet")
+].join("");
 
+if (isMobileView()) {
+el.matchesBody.innerHTML = html || '<tr><td colspan="8">No fixtures found</td></tr>';
+} else {
+el.matchesBody.innerHTML = html || '<tr><td colspan="8">No fixtures found</td></tr>';
+}
 
+bindFixtureDetailsButtons();
+}
 
 function bindFixtureDetailsButtons() {
-  document.querySelectorAll('.details-btn').forEach(btn => {
-    btn.onclick = async () => {
-      const fixtureId = btn.dataset.fixtureId;
-      if (!fixtureId) return;
-      await loadFixtureDetails(fixtureId, btn);
-    };
-  });
+document.querySelectorAll('.details-btn').forEach(btn => {
+btn.onclick = async () => {
+const fixtureId = btn.dataset.fixtureId;
+if (!fixtureId) return;
+await loadFixtureDetails(fixtureId, btn);
+};
+});
 }
 
 async function loadFixtureDetails(fixtureId, btn) {
-  const slot =
-    btn.closest('[data-fixture-card]')?.querySelector(`[data-details-slot="${CSS.escape(String(fixtureId))}"]`) ||
-    null;
+const row =
+findFixtureRowById(fixtureId);
 
-  if (slot) {
-    slot.innerHTML = '<div class="placeholder">Loading details...</div>';
-  }
+if (!row) return;
 
-  btn.disabled = true;
-  const oldText = btn.textContent;
-  btn.textContent = 'Loading...';
+const bucket = buildFixtureDetailMode(row);
 
-  try {
-    const res = await emit({
-      type: 'txline_fixture_details',
-      fixtureId: String(fixtureId),
-      serviceLevelId: Number(el.serviceLevelId.value)
-    });
+const slot =
+btn.closest('[data-fixture-card]')?.querySelector(`[data-details-slot="${CSS.escape(String(fixtureId))}"]`) ||
+null;
 
-    const body = res && typeof res.body === 'object' ? res.body : {};
-    const events = Array.isArray(body.events) ? body.events : [];
-    const odds = Array.isArray(body.odds) ? body.odds : [];
+if (slot) {
+slot.innerHTML = '<div class="placeholder">Loading details...</div>';
+}
 
-    const html = `
+btn.disabled = true;
+const oldText = btn.textContent;
+btn.textContent = 'Loading...';
+
+try {
+let payload = {};
+
+if (bucket === "past") {
+payload = {
+historical: state.historicalByFixture[String(fixtureId)] || []
+};
+} else if (bucket === "current") {
+payload = {
+events: state.eventsByFixture[String(fixtureId)] || [],
+odds: state.oddsByFixture[String(fixtureId)] || []
+};
+} else {
+payload = {};
+}
+
+const html = `
       <div class="details-panel" style="margin-top:12px;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)">
-        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px">
-          <strong>Fixture details</strong>
-          <span class="hint">${escapeHtml(body.fixtureId ?? fixtureId)}</span>
-        </div>
-
-        <div class="mobile-card-grid">
-          <div><span>Events</span><b class="mono">${events.length}</b></div>
-          <div><span>Odds</span><b class="mono">${odds.length}</b></div>
-          <div><span>Standings</span><b class="mono">${Array.isArray(body.standings) ? body.standings.length : 0}</b></div>
-          <div><span>Status</span><b>${escapeHtml(body.ok ? 'OK' : 'Error')}</b></div>
-        </div>
-
-        <details class="mobile-details" style="margin-top:12px">
-          <summary>Raw details JSON</summary>
-          <div class="json">${escapeHtml(JSON.stringify(body, null, 2))}</div>
-        </details>
+        ${renderFixtureDetailHtml(row, payload)}
       </div>
     `;
 
-    if (slot) {
-      slot.innerHTML = html;
-    } else {
-      const card = btn.closest('[data-fixture-card]');
-      if (card) card.insertAdjacentHTML('beforeend', html);
-    }
-  } catch (e) {
-    const msg = `<div class="placeholder" style="color:var(--red)">Failed to load details: ${escapeHtml(e?.message || e)}</div>`;
-    if (slot) slot.innerHTML = msg;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = oldText;
-  }
+if (slot) {
+slot.innerHTML = html;
+} else {
+const card = btn.closest('[data-fixture-card]');
+if (card) card.insertAdjacentHTML('beforeend', html);
+}
+} catch (e) {
+const msg = `<div class="placeholder" style="color:var(--red)">Failed to load details: ${escapeHtml(e?.message || e)}</div>`;
+if (slot) slot.innerHTML = msg;
+} finally {
+btn.disabled = false;
+btn.textContent = oldText;
+}
 }
 
+function fixtureBucketFromRow(row) {
+return classifyMatch(row);
+}
 
+function findFixtureRowById(fixtureId) {
+const id = String(fixtureId);
+return (state.matches || []).find(r => String(r.id) === id) || null;
+}
 
+function buildFixtureDetailMode(row) {
+const bucket = fixtureBucketFromRow(row);
+if (bucket === "past") return "historical";
+if (bucket === "current") return "live";
+return "preview";
+}
+
+function renderFixtureDetailHtml(row, payload) {
+const bucket = fixtureBucketFromRow(row);
+const title = bucket === "past"
+? "Past match"
+: bucket === "current"
+? "Current match"
+: "Future match";
+
+const parts = [];
+parts.push(`<div class="detail-title">${escapeHtml(title)}</div>`);
+parts.push(`<div class="detail-line"><b>Fixture:</b> ${escapeHtml(row.id)}</div>`);
+parts.push(`<div class="detail-line"><b>Competition:</b> ${escapeHtml(row.league)}</div>`);
+parts.push(`<div class="detail-line"><b>Kickoff:</b> ${escapeHtml(row.kickoff)}</div>`);
+parts.push(`<div class="detail-line"><b>Status:</b> ${escapeHtml(row.status)}</div>`);
+parts.push(`<div class="detail-line"><b>Score:</b> ${escapeHtml(row.score || "")}</div>`);
+
+if (bucket === "past") {
+const hist = Array.isArray(payload?.historical) ? payload.historical : [];
+parts.push(`<div class="detail-section-title">Historical events</div>`);
+parts.push(hist.length
+? `<ul class="detail-list">${hist.slice(0, 20).map(x => `<li>${escapeHtml(JSON.stringify(x))}</li>`).join("")}</ul>`
+: `<div class="detail-empty">No historical data</div>`);
+} else if (bucket === "current") {
+const events = Array.isArray(payload?.events) ? payload.events : [];
+const odds = Array.isArray(payload?.odds) ? payload.odds : [];
+parts.push(`<div class="detail-section-title">Live events</div>`);
+parts.push(events.length
+? `<ul class="detail-list">${events.slice(0, 20).map(x => `<li>${escapeHtml(JSON.stringify(x))}</li>`).join("")}</ul>`
+: `<div class="detail-empty">No live events</div>`);
+parts.push(`<div class="detail-section-title">Live odds</div>`);
+parts.push(odds.length
+? `<ul class="detail-list">${odds.slice(0, 20).map(x => `<li>${escapeHtml(JSON.stringify(x))}</li>`).join("")}</ul>`
+: `<div class="detail-empty">No live odds</div>`);
+} else {
+parts.push(`<div class="detail-section-title">Preview</div>`);
+parts.push(`<div class="detail-empty">Match has not started yet</div>`);
+}
+
+return parts.join("");
+}
 
 function renderStandings(rows) {
-  if (!rows.length) {
-    el.standingsBody.innerHTML = '<tr><td colspan="8">No standings</td></tr>';
-    renderChips(el.standingsChips, ["no standings"]);
-    return;
-  }
+if (!rows.length) {
+el.standingsBody.innerHTML = '<tr><td colspan="8">No standings</td></tr>';
+renderChips(el.standingsChips, ["no standings"]);
+return;
+}
 
-  renderChips(el.standingsChips, [`rows:${rows.length}`, "standings"]);
+renderChips(el.standingsChips, [`rows:${rows.length}`, "standings"]);
 
-  if (isMobileView()) {
-    el.standingsBody.innerHTML = tableCardList(
-      rows,
-      (r, i) => `
+if (isMobileView()) {
+el.standingsBody.innerHTML = tableCardList(
+rows,
+(r, i) => `
 <tr>
 <td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
   <div class="mobile-card">
@@ -1608,12 +1500,12 @@ Current tournament standing
   </div>
 </td>
 </tr>`,
-      '<tr><td colspan="8">No standings</td></tr>'
-    );
-    return;
-  }
+'<tr><td colspan="8">No standings</td></tr>'
+);
+return;
+}
 
-  el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
+el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 <td>${escapeHtml(r.team ?? r.name ?? i)}</td>
 <td>${escapeHtml(r.group ?? "")}</td>
 <td class="mono">${escapeHtml(r.points ?? r.pts ?? "")}</td>
@@ -1626,18 +1518,18 @@ Current tournament standing
 }
 
 function renderEvents(rows) {
-  if (!rows.length) {
-    el.eventsBody.innerHTML = '<tr><td colspan="8">No events</td></tr>';
-    renderChips(el.eventsChips, ["no events"]);
-    return;
-  }
+if (!rows.length) {
+el.eventsBody.innerHTML = '<tr><td colspan="8">No events</td></tr>';
+renderChips(el.eventsChips, ["no events"]);
+return;
+}
 
-  renderChips(el.eventsChips, [`rows:${rows.length}`, "events"]);
+renderChips(el.eventsChips, [`rows:${rows.length}`, "events"]);
 
-  if (isMobileView()) {
-    el.eventsBody.innerHTML = tableCardList(
-      rows,
-      (r, i) => `
+if (isMobileView()) {
+el.eventsBody.innerHTML = tableCardList(
+rows,
+(r, i) => `
 <tr>
 <td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
   <div class="mobile-card">
@@ -1661,12 +1553,12 @@ ${escapeHtml(r.detail || r.description || "")}
   </div>
 </td>
 </tr>`,
-      '<tr><td colspan="8">No events</td></tr>'
-    );
-    return;
-  }
+'<tr><td colspan="8">No events</td></tr>'
+);
+return;
+}
 
-  el.eventsBody.innerHTML = rows.slice(0, 60).map((r, i) => `<tr>
+el.eventsBody.innerHTML = rows.slice(0, 60).map((r, i) => `<tr>
 <td class="mono">${escapeHtml(r.time ?? r.minute ?? "")}</td>
 <td>${escapeHtml(r.type ?? "")}</td>
 <td>${escapeHtml(r.player ?? r.playerName ?? "")}</td>
@@ -1679,18 +1571,18 @@ ${escapeHtml(r.detail || r.description || "")}
 }
 
 function renderOdds(rows) {
-  if (!rows.length) {
-    el.oddsBody.innerHTML = '<tr><td colspan="8">No odds</td></tr>';
-    renderChips(el.oddsChips, ["no odds"]);
-    return;
-  }
+if (!rows.length) {
+el.oddsBody.innerHTML = '<tr><td colspan="8">No odds</td></tr>';
+renderChips(el.oddsChips, ["no odds"]);
+return;
+}
 
-  renderChips(el.oddsChips, [`rows:${rows.length}`, "odds"]);
+renderChips(el.oddsChips, [`rows:${rows.length}`, "odds"]);
 
-  if (isMobileView()) {
-    el.oddsBody.innerHTML = tableCardList(
-      rows,
-      (r, i) => `
+if (isMobileView()) {
+el.oddsBody.innerHTML = tableCardList(
+rows,
+(r, i) => `
 <tr>
 <td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
   <div class="mobile-card">
@@ -1713,12 +1605,12 @@ Latest available odds
   </div>
 </td>
 </tr>`,
-      '<tr><td colspan="8">No odds</td></tr>'
-    );
-    return;
-  }
+'<tr><td colspan="8">No odds</td></tr>'
+);
+return;
+}
 
-  el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
+el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 <td>${escapeHtml(r.market ?? r.marketName ?? "")}</td>
 <td>${escapeHtml(r.book ?? r.bookmaker ?? "")}</td>
 <td class="mono">${escapeHtml(r.home ?? r.homePrice ?? "")}</td>
@@ -1730,55 +1622,31 @@ Latest available odds
 </tr>`).join("");
 }
 
-
-
-
-
 function renderRoutes(probe){
-
 const collected = probe?.collected || {};
-
 const routes = Object.entries(collected);
-
 if(!routes.length){
 el.routes.innerHTML='<div class="placeholder">No information available.</div>';
 return;
 }
-
 el.routes.innerHTML = routes.map(([url,data])=>`
-
 <div class="route-card">
-
 <div class="route-head">
-
 <div>
-
 <div style="font-size:16px;font-weight:800">
 ${escapeHtml(url.split("/").pop() || url)}
 </div>
-
 <div class="hint">
 ${escapeHtml(url)}
 </div>
-
 </div>
-
 <span class="tag ${data.ok?"ok":"bad"}">
-
 ${data.ok?"Available":"Unavailable"}
-
 </span>
-
 </div>
-
 </div>
-
 `).join("");
-
 }
-
-
-
 
 function activateTab(name) {
 document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
@@ -1792,114 +1660,129 @@ document.querySelectorAll(".tab").forEach(b => {
 b.addEventListener("click", () => activateTab(b.dataset.tab));
 });
 
-
-
-
-
 async function checkToken() {
-  el.checkBtn.disabled = true;
-  setStatus("checking token...");
-  try {
-    const res = await emit({
-      type: "txline_check_token",
-      serviceLevelId: Number(el.serviceLevelId.value)
-    });
-    show(res);
-   
-    setStatus(res.ok ? "token checked" : "token rejected", res.ok ? "ok" : "err");
-  } catch (e) {
-    show(String(e?.message || e));
-    setStatus("token error", "err");
-  }
-  el.checkBtn.disabled = false;
+el.checkBtn.disabled = true;
+setStatus("checking token...");
+try {
+const res = await emit({
+type: "txline_check_token",
+serviceLevelId: Number(el.serviceLevelId.value)
+});
+show(res);
+setStatus(res.ok ? "token checked" : "token rejected", res.ok ? "ok" : "err");
+} catch (e) {
+show(String(e?.message || e));
+setStatus("token error", "err");
+}
+el.checkBtn.disabled = false;
 }
 
 async function probeTxline() {
-  el.probeBtn.disabled = true;
-  setStatus("Probing TxLINE...", "warn");
+el.probeBtn.disabled = true;
+setStatus("Probing TxLINE...", "warn");
 
-  try {
-    const res = await emit({
-      type: "txline_probe_feed",
-      scope: "worldcup",
-      serviceLevelId: Number(el.serviceLevelId.value)
-    });
+try {
+const res = await emit({
+type: "txline_probe_feed",
+scope: "worldcup",
+serviceLevelId: Number(el.serviceLevelId.value)
+});
 
-    show(res);
+show(res);
 
-    const probe = res && typeof res.body === "object" ? res.body : {};
-    console.log("FULL PROBE", probe);
+const probe = res && typeof res.body === "object" ? res.body : {};
+console.log("FULL PROBE", probe);
 
-    const fixtureRows = matchRowsFrom(probe);
-    const standingsRows = standingsRowsFrom(probe);
-    const eventsRows = eventsRowsFrom(probe);
-    const oddsRows = oddsRowsFrom(probe);
+const fixtureRows = matchRowsFrom(probe);
+const standingsRows = standingsRowsFrom(probe);
+const eventsRows = eventsRowsFrom(probe);
+const oddsRows = oddsRowsFrom(probe);
 
-    renderMatches(fixtureRows);
-    renderStandings(standingsRows);
-    renderEvents(eventsRows);
-    renderOdds(oddsRows);
-    renderRoutes(probe);
+state.matches = fixtureRows;
+state.standings = standingsRows;
+state.events = eventsRows;
+state.odds = oddsRows;
+state.historicalByFixture = {};
+state.eventsByFixture = {};
+state.oddsByFixture = {};
 
-    el.matchesCount.textContent = fixtureRows.length;
-    el.competitionsCount.textContent = uniqueCompetitions(fixtureRows).length;
-    el.marketsCount.textContent = countMarkets(oddsRows);
+for (const x of state.events || []) {
+const key = String(x.match ?? x.fixture ?? x.fixtureId ?? "");
+if (!key) continue;
+if (!state.eventsByFixture[key]) state.eventsByFixture[key] = [];
+state.eventsByFixture[key].push(x);
+}
 
-    const okRoutes = Array.isArray(probe.source) ? probe.source.filter(x => x.ok).length : 0;
-    el.routesCount.textContent = okRoutes;
+for (const x of state.odds || []) {
+const key = String(x.fixture ?? x.fixtureId ?? "");
+if (!key) continue;
+if (!state.oddsByFixture[key]) state.oddsByFixture[key] = [];
+state.oddsByFixture[key].push(x);
+}
 
+if (state.historical) {
+const key = String(state.historical.fixtureId ?? state.historical.id ?? "");
+if (key) {
+if (!state.historicalByFixture[key]) state.historicalByFixture[key] = [];
+state.historicalByFixture[key].push(state.historical);
+}
+}
 
-    setStatus("Probe completed", "ok");
-  } catch (e) {
-    console.error(e);
-    show(e.message || String(e));
-    setStatus("Probe failed", "err");
-  }
+renderMatches(fixtureRows);
+activateTab("matches");
+renderStandings(standingsRows);
+renderEvents(eventsRows);
+renderOdds(oddsRows);
+renderRoutes(probe);
 
-  el.probeBtn.disabled = false;
+el.matchesCount.textContent = fixtureRows.length;
+el.competitionsCount.textContent = uniqueCompetitions(fixtureRows).length;
+el.marketsCount.textContent = countMarkets(oddsRows);
+
+const okRoutes = Array.isArray(probe.source) ? probe.source.filter(x => x.ok).length : 0;
+el.routesCount.textContent = okRoutes;
+
+setStatus("Probe completed", "ok");
+} catch (e) {
+console.error(e);
+show(e.message || String(e));
+setStatus("Probe failed", "err");
+}
+
+el.probeBtn.disabled = false;
 }
 
 function toggleAuto() {
-  auto = !auto;
-  el.refreshBtn.textContent = "Auto Refresh " + (auto ? "ON" : "OFF");
-  if (timer) clearInterval(timer);
-  if (auto) timer = setInterval(probeTxline, 30000);
+auto = !auto;
+el.refreshBtn.textContent = "Auto Refresh " + (auto ? "ON" : "OFF");
+if (timer) clearInterval(timer);
+if (auto) timer = setInterval(probeTxline, 30000);
 }
 
-
-
 function init() {
-  if (!el.workerBase || !el.serviceLevelId) return;
+if (!el.workerBase || !el.serviceLevelId) return;
 
-  el.checkBtn.addEventListener("click", checkToken);
-  el.probeBtn.addEventListener("click", probeTxline);
-  el.refreshBtn.addEventListener("click", toggleAuto);
+el.checkBtn.addEventListener("click", checkToken);
+el.probeBtn.addEventListener("click", probeTxline);
+el.refreshBtn.addEventListener("click", toggleAuto);
 
 const settingsBtn=document.getElementById("settingsBtn");
-
 if(settingsBtn){
-
 settingsBtn.addEventListener("click",()=>{
-
 document
 .getElementById("settingsPanel")
 .classList.toggle("hidden");
-
 });
-
 }
 
-  activateTab("matches");
+activateTab("matches");
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init, { once: true });
+document.addEventListener("DOMContentLoaded", init, { once: true });
 } else {
-  init();
+init();
 }
-
 </script>
 </body>
 </html>
-
-
