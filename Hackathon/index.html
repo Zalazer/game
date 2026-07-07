@@ -1085,74 +1085,67 @@ function formatGroupLabel(name, rows) {
 return `${name} (${rows.length})`;
 }
 
+
+
 function matchRowsFrom(probe) {
-const collected = probe?.collected || {};
 
-const entry =
-collected["https://txline.txodds.com/api/fixtures/snapshot"] ||
-probe?.firstSuccess ||
-{};
+  const rows =
+    Array.isArray(probe.matches)
+      ? probe.matches
+      : [];
 
-if (Array.isArray(entry.render))
-return entry.render;
+  return rows.map((m, i) => ({
 
-const arr = pickArray(entry);
+    id:
+      m.id ??
+      m.fixtureId ??
+      m.FixtureId ??
+      i,
 
-return arr.map((x, i) => ({
+    league:
+      m.league ??
+      m.competition ??
+      m.competitionName ??
+      "",
 
-id:
-x.id ??
-x.fixtureId ??
-x.matchId ??
-x.eventId ??
-i,
+    competitionId:
+      m.competitionId ??
+      "",
 
-league:
-x.league ??
-x.competition ??
-x.tournament ??
-x.region ??
-"",
+    home:
+      m.home ??
+      m.homeTeam ??
+      m.participant1 ??
+      "",
 
-home:
-x.home ??
-x.homeTeam ??
-x.teamHome ??
-x.participant1 ??
-"",
+    away:
+      m.away ??
+      m.awayTeam ??
+      m.participant2 ??
+      "",
 
-away:
-x.away ??
-x.awayTeam ??
-x.teamAway ??
-x.participant2 ??
-"",
+    kickoff:
+      m.kickoff ??
+      m.startTime ??
+      m.StartTime ??
+      "",
 
-kickoff:
-x.kickoff ??
-x.startTime ??
-x.scheduledAt ??
-x.date ??
-"",
+    status:
+      m.status ??
+      "",
 
-status:
-x.status ??
-x.state ??
-"",
+    score:
+      m.score ??
+      "",
 
-score:
-x.score ??
-(
-x.homeScore != null || x.awayScore != null
-? `${x.homeScore ?? ""}-${x.awayScore ?? ""}`
-: ""
-),
+    raw: m
 
-raw: x
-
-}));
+  }));
 
 }
+
+
+
 
 function standingsRowsFrom(probe) {
 const collected = probe?.collected || {};
@@ -1169,35 +1162,143 @@ return pickArray(entry);
 
 }
 
+
+
 function eventsRowsFrom(probe) {
-const collected = probe?.collected || {};
+const rows = pickArray(probe?.events);
 
-const entry =
-collected["https://txline.txodds.com/api/v1/events"] ||
-collected["https://txline.txodds.com/api/events"] ||
-{};
+return rows
+.map(x => ({
 
-if (Array.isArray(entry.render))
-return entry.render;
+fixtureId:
+x.fixtureId ??
+x.FixtureId ??
+"",
 
-return pickArray(entry);
+seq:
+x.seq ??
+x.Seq ??
+0,
 
+ts:
+x.ts ??
+x.timestamp ??
+x.Timestamp ??
+"",
+
+gameState:
+x.gameState ??
+x.GameState ??
+"",
+
+score:
+x.score ??
+x.Score ??
+"",
+
+period:
+x.period ??
+x.Period ??
+"",
+
+raw: x
+
+}))
+.sort((a, b) => {
+
+const sa = Number(a.seq);
+const sb = Number(b.seq);
+
+if (Number.isFinite(sa) && Number.isFinite(sb) && sa !== sb)
+return sa - sb;
+
+const ta = toTs(a.ts) ?? 0;
+const tb = toTs(b.ts) ?? 0;
+
+return ta - tb;
+
+});
 }
+
+
+
 
 function oddsRowsFrom(probe) {
-const collected = probe?.collected || {};
+const rows = pickArray(probe?.odds);
 
-const entry =
-collected["https://txline.txodds.com/api/v1/odds"] ||
-collected["https://txline.txodds.com/api/odds"] ||
-{};
+return rows.map(x => ({
 
-if (Array.isArray(entry.render))
-return entry.render;
+fixtureId:
+x.fixtureId ??
+x.FixtureId ??
+"",
 
-return pickArray(entry);
+messageId:
+x.messageId ??
+x.MessageId ??
+"",
 
+ts:
+x.ts ??
+x.timestamp ??
+x.Timestamp ??
+"",
+
+bookmaker:
+x.bookmaker ??
+x.Bookmaker ??
+"",
+
+bookmakerId:
+x.bookmakerId ??
+x.BookmakerId ??
+"",
+
+market:
+x.market ??
+x.Market ??
+"",
+
+marketPeriod:
+x.marketPeriod ??
+x.MarketPeriod ??
+"",
+
+superOddsType:
+x.superOddsType ??
+x.SuperOddsType ??
+"",
+
+inRunning:
+x.inRunning ??
+x.InRunning ??
+false,
+
+marketParameters:
+x.marketParameters ??
+x.MarketParameters ??
+null,
+
+priceNames:
+Array.isArray(x.priceNames)
+? x.priceNames
+: Array.isArray(x.PriceNames)
+? x.PriceNames
+: [],
+
+prices:
+Array.isArray(x.prices)
+? x.prices
+: Array.isArray(x.Prices)
+? x.Prices
+: [],
+
+raw: x
+
+}));
 }
+
+
 
 function uniqueCompetitions(rows) {
 return [...new Set(rows.map(r => String(r.league || "").trim()).filter(Boolean))];
@@ -1223,124 +1324,287 @@ if (!rows.length) return emptyHtml;
 return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
 }
 
+
+
 function renderMatches(rows) {
-const grouped = splitMatchesByTime(rows);
 
-const pastRows = grouped.past;
-const currentRows = grouped.current;
-const futureRows = grouped.future;
+  const grouped = splitMatchesByTime(rows);
 
-const total = rows.length;
-renderChips(el.matchChips, [
-`total:${total}`,
-`past:${pastRows.length}`,
-`current:${currentRows.length}`,
-`future:${futureRows.length}`
-]);
+  const sections = [
+    {
+      title: "CURRENT MATCHES",
+      rows: grouped.current,
+      cls: "ok"
+    },
+    {
+      title: "UPCOMING MATCHES",
+      rows: grouped.future,
+      cls: ""
+    },
+    {
+      title: "FINISHED MATCHES",
+      rows: grouped.past,
+      cls: ""
+    }
+  ];
 
-const renderRow = (r, i, section) => {
-const fixtureId = escapeHtml(r.id ?? i);
-const kickoff = escapeHtml(formatDate(r.kickoff) || r.kickoff || "");
-const status = escapeHtml(r.status ?? "");
-const score = escapeHtml(r.score ?? "");
-const league = escapeHtml(r.league ?? "");
-const home = escapeHtml(r.home ?? "");
-const away = escapeHtml(r.away ?? "");
+  renderChips(el.matchChips, [
+    `Fixtures: ${rows.length}`,
+    `Live: ${grouped.current.length}`,
+    `Upcoming: ${grouped.future.length}`,
+    `Finished: ${grouped.past.length}`
+  ]);
 
-if (isMobileView()) {
-return `
+  if (!rows.length) {
+
+    el.matchesBody.innerHTML =
+      '<tr><td colspan="8">No fixtures received from provider.</td></tr>';
+
+    return;
+
+  }
+
+  const html = [];
+
+  for (const section of sections) {
+
+    if (!section.rows.length)
+      continue;
+
+    html.push(`
+
+<tr class="group-row">
+
+<td colspan="8"
+style="
+background:rgba(125,141,255,.10);
+font-weight:800;
+font-size:15px;
+padding:14px 18px">
+
+${escapeHtml(section.title)}
+&nbsp;
+(${section.rows.length})
+
+</td>
+
+</tr>
+
+`);
+
+    for (const r of section.rows) {
+
+      const fixtureId =
+        escapeHtml(r.id);
+
+      const kickoff =
+        escapeHtml(
+          formatDate(r.kickoff)
+        );
+
+      const league =
+        escapeHtml(r.league);
+
+      const home =
+        escapeHtml(r.home);
+
+      const away =
+        escapeHtml(r.away);
+
+      const status =
+        escapeHtml(r.status);
+
+      const score =
+        escapeHtml(r.score);
+
+      if (isMobileView()) {
+
+        html.push(`
+
 <tr>
-<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
-  <div class="mobile-card" data-fixture-card="${fixtureId}">
-    <div class="mobile-card-head">
-      <div class="mobile-card-title">${home} <span class="mobile-card-vs">vs</span> ${away}</div>
-      <div class="mobile-card-sub">${league}</div>
-    </div>
 
-    <div class="mobile-card-grid">
-      <div><span>Fixture</span><b class="mono">${fixtureId}</b></div>
-      <div><span>Date</span><b class="mono">${kickoff}</b></div>
-      <div><span>Status</span><b>${status}</b></div>
-      <div><span>Score</span><b class="mono">${score}</b></div>
-      <div><span>Group</span><b>${section}</b></div>
-    </div>
+<td colspan="8">
 
-    <div class="mobile-card-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
-      <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${fixtureId}">
-        Details
-      </button>
-    </div>
+<div class="mobile-card"
+data-fixture-card="${fixtureId}">
 
-    <div class="mobile-details-slot" data-details-slot="${fixtureId}"></div>
-  </div>
+<div class="mobile-card-head">
+
+<div class="mobile-card-title">
+
+${home}
+
+<span class="mobile-card-vs">
+
+vs
+
+</span>
+
+${away}
+
+</div>
+
+<div class="mobile-card-sub">
+
+${league}
+
+</div>
+
+</div>
+
+<div class="mobile-card-grid">
+
+<div>
+
+<span>Kickoff</span>
+
+<b>${kickoff}</b>
+
+</div>
+
+<div>
+
+<span>Status</span>
+
+<b>${status}</b>
+
+</div>
+
+<div>
+
+<span>Score</span>
+
+<b>${score}</b>
+
+</div>
+
+<div>
+
+<span>Fixture</span>
+
+<b class="mono">
+
+${fixtureId}
+
+</b>
+
+</div>
+
+</div>
+
+<div
+style="
+display:flex;
+margin-top:12px">
+
+<button
+class="btn btn-secondary details-btn"
+data-fixture-id="${fixtureId}">
+
+Details
+
+</button>
+
+</div>
+
+<div
+class="mobile-details-slot"
+data-details-slot="${fixtureId}">
+
+</div>
+
+</div>
+
 </td>
-</tr>`;
-}
 
-return `<tr>
-<td class="mono">${fixtureId}</td>
-<td>${league}</td>
-<td>${home}</td>
-<td>${away}</td>
-<td class="mono">${kickoff}</td>
-<td>${status}</td>
-<td class="mono">${score}</td>
+</tr>
+
+`);
+
+      }
+
+      else {
+
+        html.push(`
+
+<tr>
+
+<td class="mono">
+
+${fixtureId}
+
+</td>
+
 <td>
-  <button class="btn btn-secondary details-btn" type="button" data-fixture-id="${fixtureId}">
-    Details
-  </button>
+
+${league}
+
 </td>
-</tr>`;
-};
 
-const sectionBlock = (title, rowsList, badge) => {
-if (!rowsList.length) return "";
-return `
-<div class="card panel" style="margin-top:14px">
-  <h3>${title}</h3>
-  <div class="hint">${badge}</div>
-  <div style="height:10px"></div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Fixture</th>
-          <th>Competition</th>
-          <th>Home</th>
-          <th>Away</th>
-          <th>Kickoff</th>
-          <th>Status</th>
-          <th>Score</th>
-          <th>Preview</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rowsList.slice(0, 50).map((r, i) => renderRow(r, i, title.toLowerCase())).join("")}
-      </tbody>
-    </table>
-  </div>
-</div>`;
-};
+<td>
 
-if (!total) {
-el.matchesBody.innerHTML = '<tr><td colspan="8">No fixtures found</td></tr>';
-return;
+${home}
+
+</td>
+
+<td>
+
+${away}
+
+</td>
+
+<td class="mono">
+
+${kickoff}
+
+</td>
+
+<td>
+
+${status}
+
+</td>
+
+<td class="mono">
+
+${score}
+
+</td>
+
+<td>
+
+<button
+class="btn btn-secondary details-btn"
+data-fixture-id="${fixtureId}">
+
+Details
+
+</button>
+
+</td>
+
+</tr>
+
+`);
+
+      }
+
+    }
+
+  }
+
+  el.matchesBody.innerHTML =
+    html.join("");
+
+  bindFixtureDetailsButtons();
+
 }
 
-const html = [
-sectionBlock("Past matches", pastRows, "Finished, postponed, cancelled, or clearly in the past"),
-sectionBlock("Current matches", currentRows, "Live or currently in progress"),
-sectionBlock("Future matches", futureRows, "Scheduled but not started yet")
-].join("");
 
-if (isMobileView()) {
-el.matchesBody.innerHTML = html || '<tr><td colspan="8">No fixtures found</td></tr>';
-} else {
-el.matchesBody.innerHTML = html || '<tr><td colspan="8">No fixtures found</td></tr>';
-}
 
-bindFixtureDetailsButtons();
-}
+
+
+
 
 function bindFixtureDetailsButtons() {
 document.querySelectorAll('.details-btn').forEach(btn => {
@@ -1352,62 +1616,107 @@ await loadFixtureDetails(fixtureId, btn);
 });
 }
 
+
+
 async function loadFixtureDetails(fixtureId, btn) {
-const row =
-findFixtureRowById(fixtureId);
 
-if (!row) return;
+  const slot =
+    btn.closest("[data-fixture-card]")
+      ?.querySelector(
+        `[data-details-slot="${CSS.escape(String(fixtureId))}"]`
+      ) || null;
 
-const bucket = buildFixtureDetailMode(row);
+  if (slot) {
+    slot.innerHTML =
+      '<div class="placeholder">Loading...</div>';
+  }
 
-const slot =
-btn.closest('[data-fixture-card]')?.querySelector(`[data-details-slot="${CSS.escape(String(fixtureId))}"]`) ||
-null;
+  btn.disabled = true;
 
-if (slot) {
-slot.innerHTML = '<div class="placeholder">Loading details...</div>';
+  const oldText = btn.textContent;
+  btn.textContent = "Loading...";
+
+  try {
+
+    const res = await emit({
+
+      type: "txline_fixture_details",
+
+      fixtureId: fixtureId,
+
+      serviceLevelId:
+        Number(el.serviceLevelId.value)
+
+    });
+
+    if (!res.ok)
+      throw new Error(
+        res.body?.error || "Request failed"
+      );
+
+    const details = res.body || {};
+
+    state.eventsByFixture[String(fixtureId)] =
+      details.events || [];
+
+    state.oddsByFixture[String(fixtureId)] =
+      details.odds || [];
+
+    state.historicalByFixture[String(fixtureId)] =
+      details.historical || [];
+
+    const row =
+      findFixtureRowById(fixtureId);
+
+    const html =
+      renderFixtureDetailHtml(
+        row,
+        details
+      );
+
+    if (slot) {
+
+      slot.innerHTML =
+        `<div class="details-panel">
+          ${html}
+        </div>`;
+
+    } else {
+
+      btn.insertAdjacentHTML(
+        "afterend",
+        `<div class="details-panel">
+            ${html}
+         </div>`
+      );
+
+    }
+
+  }
+  catch(e){
+
+    if(slot){
+
+      slot.innerHTML =
+        `<div class="placeholder" style="color:#ff6d86">
+          ${escapeHtml(e.message)}
+        </div>`;
+
+    }
+
+  }
+  finally{
+
+    btn.disabled=false;
+
+    btn.textContent=oldText;
+
+  }
+
 }
 
-btn.disabled = true;
-const oldText = btn.textContent;
-btn.textContent = 'Loading...';
 
-try {
-let payload = {};
 
-if (bucket === "past") {
-payload = {
-historical: state.historicalByFixture[String(fixtureId)] || []
-};
-} else if (bucket === "current") {
-payload = {
-events: state.eventsByFixture[String(fixtureId)] || [],
-odds: state.oddsByFixture[String(fixtureId)] || []
-};
-} else {
-payload = {};
-}
-
-const html = `
-      <div class="details-panel" style="margin-top:12px;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)">
-        ${renderFixtureDetailHtml(row, payload)}
-      </div>
-    `;
-
-if (slot) {
-slot.innerHTML = html;
-} else {
-const card = btn.closest('[data-fixture-card]');
-if (card) card.insertAdjacentHTML('beforeend', html);
-}
-} catch (e) {
-const msg = `<div class="placeholder" style="color:var(--red)">Failed to load details: ${escapeHtml(e?.message || e)}</div>`;
-if (slot) slot.innerHTML = msg;
-} finally {
-btn.disabled = false;
-btn.textContent = oldText;
-}
-}
 
 function fixtureBucketFromRow(row) {
 return classifyMatch(row);
@@ -1425,46 +1734,298 @@ if (bucket === "current") return "live";
 return "preview";
 }
 
-function renderFixtureDetailHtml(row, payload) {
-const bucket = fixtureBucketFromRow(row);
-const title = bucket === "past"
-? "Past match"
-: bucket === "current"
-? "Current match"
-: "Future match";
 
-const parts = [];
-parts.push(`<div class="detail-title">${escapeHtml(title)}</div>`);
-parts.push(`<div class="detail-line"><b>Fixture:</b> ${escapeHtml(row.id)}</div>`);
-parts.push(`<div class="detail-line"><b>Competition:</b> ${escapeHtml(row.league)}</div>`);
-parts.push(`<div class="detail-line"><b>Kickoff:</b> ${escapeHtml(row.kickoff)}</div>`);
-parts.push(`<div class="detail-line"><b>Status:</b> ${escapeHtml(row.status)}</div>`);
-parts.push(`<div class="detail-line"><b>Score:</b> ${escapeHtml(row.score || "")}</div>`);
 
-if (bucket === "past") {
-const hist = Array.isArray(payload?.historical) ? payload.historical : [];
-parts.push(`<div class="detail-section-title">Historical events</div>`);
-parts.push(hist.length
-? `<ul class="detail-list">${hist.slice(0, 20).map(x => `<li>${escapeHtml(JSON.stringify(x))}</li>`).join("")}</ul>`
-: `<div class="detail-empty">No historical data</div>`);
-} else if (bucket === "current") {
-const events = Array.isArray(payload?.events) ? payload.events : [];
-const odds = Array.isArray(payload?.odds) ? payload.odds : [];
-parts.push(`<div class="detail-section-title">Live events</div>`);
-parts.push(events.length
-? `<ul class="detail-list">${events.slice(0, 20).map(x => `<li>${escapeHtml(JSON.stringify(x))}</li>`).join("")}</ul>`
-: `<div class="detail-empty">No live events</div>`);
-parts.push(`<div class="detail-section-title">Live odds</div>`);
-parts.push(odds.length
-? `<ul class="detail-list">${odds.slice(0, 20).map(x => `<li>${escapeHtml(JSON.stringify(x))}</li>`).join("")}</ul>`
-: `<div class="detail-empty">No live odds</div>`);
-} else {
-parts.push(`<div class="detail-section-title">Preview</div>`);
-parts.push(`<div class="detail-empty">Match has not started yet</div>`);
+function renderFixtureDetailHtml(row, details) {
+
+  const events =
+    Array.isArray(details.events)
+      ? details.events
+      : [];
+
+  const odds =
+    Array.isArray(details.odds)
+      ? details.odds
+      : [];
+
+  const historical =
+    Array.isArray(details.historical)
+      ? details.historical
+      : [];
+
+  function eventRow(e) {
+
+    return `
+      <tr>
+        <td>${escapeHtml(e.period ?? "")}</td>
+        <td>${escapeHtml(e.gameState ?? "")}</td>
+        <td>${escapeHtml(e.score ?? "")}</td>
+        <td>${escapeHtml(formatDate(e.ts) || "")}</td>
+      </tr>
+    `;
+
+  }
+
+  function oddsRow(o){
+
+    const prices =
+      (o.priceNames || [])
+        .map((n,i)=>
+          `${n}: ${o.prices?.[i] ?? ""}`
+        )
+        .join("<br>");
+
+    return `
+      <tr>
+        <td>${escapeHtml(o.bookmaker)}</td>
+        <td>${escapeHtml(o.market)}</td>
+        <td>${escapeHtml(o.marketPeriod)}</td>
+        <td>${escapeHtml(prices)}</td>
+      </tr>
+    `;
+
+  }
+
+  function historicalRow(e){
+
+    return `
+      <tr>
+        <td>${escapeHtml(e.period ?? "")}</td>
+        <td>${escapeHtml(e.gameState ?? "")}</td>
+        <td>${escapeHtml(e.score ?? "")}</td>
+        <td>${escapeHtml(formatDate(e.ts) || "")}</td>
+      </tr>
+    `;
+
+  }
+
+  return `
+
+<div class="route-card">
+
+<div class="route-head">
+
+<div>
+
+<div style="font-size:20px;font-weight:800">
+
+${escapeHtml(row.home)}
+&nbsp;vs&nbsp;
+${escapeHtml(row.away)}
+
+</div>
+
+<div class="hint">
+
+${escapeHtml(row.league)}
+
+</div>
+
+</div>
+
+<span class="tag ok">
+
+${escapeHtml(row.status)}
+
+</span>
+
+</div>
+
+<div class="route-grid">
+
+<div class="mini">
+
+<div class="t">
+
+Kickoff
+
+</div>
+
+<div class="v">
+
+${escapeHtml(formatDate(row.kickoff))}
+
+</div>
+
+</div>
+
+<div class="mini">
+
+<div class="t">
+
+Score
+
+</div>
+
+<div class="v">
+
+${escapeHtml(row.score)}
+
+</div>
+
+</div>
+
+<div class="mini">
+
+<div class="t">
+
+Fixture
+
+</div>
+
+<div class="v mono">
+
+${escapeHtml(row.id)}
+
+</div>
+
+</div>
+
+<div class="mini">
+
+<div class="t">
+
+Competition
+
+</div>
+
+<div class="v">
+
+${escapeHtml(row.league)}
+
+</div>
+
+</div>
+
+</div>
+
+<br>
+
+<h3>Live Events</h3>
+
+${
+events.length ?
+
+`<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Period</th>
+<th>Status</th>
+<th>Score</th>
+<th>Time</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${events.map(eventRow).join("")}
+
+</tbody>
+
+</table>
+
+</div>`
+
+:
+
+'<div class="placeholder">No live events</div>'
+
 }
 
-return parts.join("");
+<br>
+
+<h3>Historical Events</h3>
+
+${
+historical.length ?
+
+`<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Period</th>
+<th>Status</th>
+<th>Score</th>
+<th>Time</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${historical.map(historicalRow).join("")}
+
+</tbody>
+
+</table>
+
+</div>`
+
+:
+
+'<div class="placeholder">No historical events</div>'
+
 }
+
+<br>
+
+<h3>Odds</h3>
+
+${
+odds.length ?
+
+`<div class="table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Bookmaker</th>
+<th>Market</th>
+<th>Period</th>
+<th>Prices</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${odds.map(oddsRow).join("")}
+
+</tbody>
+
+</table>
+
+</div>`
+
+:
+
+'<div class="placeholder">No odds available</div>'
+
+}
+
+</div>
+
+`;
+
+}
+
+
 
 function renderStandings(rows) {
 if (!rows.length) {
@@ -1518,136 +2079,521 @@ el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
 </tr>`).join("");
 }
 
+
+
+
 function renderEvents(rows) {
-if (!rows.length) {
-el.eventsBody.innerHTML = '<tr><td colspan="8">No events</td></tr>';
-renderChips(el.eventsChips, ["no events"]);
-return;
-}
 
-renderChips(el.eventsChips, [`rows:${rows.length}`, "events"]);
+  if (!Array.isArray(rows) || !rows.length) {
 
-if (isMobileView()) {
-el.eventsBody.innerHTML = tableCardList(
-rows,
-(r, i) => `
+    el.eventsBody.innerHTML =
+      '<tr><td colspan="8">No events</td></tr>';
+
+    renderChips(el.eventsChips, ["no events"]);
+
+    return;
+  }
+
+  renderChips(el.eventsChips, [
+    `events:${rows.length}`
+  ]);
+
+  rows = [...rows].sort((a, b) => {
+
+    const sa = Number(a.seq ?? 0);
+    const sb = Number(b.seq ?? 0);
+
+    if (sa !== sb)
+      return sa - sb;
+
+    return (toTs(a.ts) || 0) - (toTs(b.ts) || 0);
+
+  });
+
+  if (isMobileView()) {
+
+    el.eventsBody.innerHTML = rows.map(r => {
+
+      return `
 <tr>
-<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
-  <div class="mobile-card">
-    <div class="mobile-card-head">
-      <div class="mobile-card-title">${escapeHtml(r.player ?? r.playerName ?? "Event")}</div>
-      <div class="mobile-card-sub">${escapeHtml(r.team ?? r.teamName ?? "")}</div>
-    </div>
+<td colspan="8" style="padding:12px">
 
-    <div class="mobile-card-grid">
-      <div><span>Time</span><b class="mono">${escapeHtml(r.time ?? r.minute ?? "")}</b></div>
-      <div><span>Type</span><b>${escapeHtml(r.type ?? "")}</b></div>
-      <div><span>Result</span><b>${escapeHtml(r.outcome ?? r.result ?? "")}</b></div>
-      <div><span>Match</span><b class="mono">${escapeHtml(r.match ?? r.fixture ?? i)}</b></div>
-    </div>
+<div class="mobile-card">
 
-    <div class="mobile-card-text">${escapeHtml(r.detail ?? r.description ?? "")}</div>
+<div class="mobile-card-head">
 
-    <div class="mobile-card-text">
-${escapeHtml(r.detail || r.description || "")}
+<div class="mobile-card-title">
+${escapeHtml(r.gameState || "Event")}
 </div>
-  </div>
+
+<div class="mobile-card-sub">
+Fixture ${escapeHtml(r.fixtureId)}
+</div>
+
+</div>
+
+<div class="mobile-card-grid">
+
+<div>
+<span>Time</span>
+<b>${escapeHtml(formatDate(r.ts))}</b>
+</div>
+
+<div>
+<span>Period</span>
+<b>${escapeHtml(r.period || "")}</b>
+</div>
+
+<div>
+<span>Score</span>
+<b>${escapeHtml(r.score || "")}</b>
+</div>
+
+<div>
+<span>Seq</span>
+<b>${escapeHtml(r.seq ?? "")}</b>
+</div>
+
+</div>
+
+<details style="margin-top:10px">
+
+<summary>Raw JSON</summary>
+
+<div class="json">
+
+${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
+
+</div>
+
+</details>
+
+</div>
+
 </td>
-</tr>`,
-'<tr><td colspan="8">No events</td></tr>'
-);
-return;
+</tr>
+`;
+
+    }).join("");
+
+    return;
+  }
+
+  el.eventsBody.innerHTML = rows.map(r => `
+
+<tr>
+
+<td class="mono">
+${escapeHtml(formatDate(r.ts))}
+</td>
+
+<td>
+${escapeHtml(r.gameState || "")}
+</td>
+
+<td>
+${escapeHtml(r.period || "")}
+</td>
+
+<td>
+${escapeHtml(r.score || "")}
+</td>
+
+<td class="mono">
+${escapeHtml(r.seq ?? "")}
+</td>
+
+<td class="mono">
+${escapeHtml(r.fixtureId)}
+</td>
+
+<td class="mono">
+${escapeHtml(r.raw?.messageId ?? r.messageId ?? "")}
+</td>
+
+<td>
+
+<details>
+
+<summary>JSON</summary>
+
+<div class="json">
+
+${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
+
+</div>
+
+</details>
+
+</td>
+
+</tr>
+
+`).join("");
+
 }
 
-el.eventsBody.innerHTML = rows.slice(0, 60).map((r, i) => `<tr>
-<td class="mono">${escapeHtml(r.time ?? r.minute ?? "")}</td>
-<td>${escapeHtml(r.type ?? "")}</td>
-<td>${escapeHtml(r.player ?? r.playerName ?? "")}</td>
-<td>${escapeHtml(r.team ?? r.teamName ?? "")}</td>
-<td>${escapeHtml(r.detail ?? r.description ?? "")}</td>
-<td>${escapeHtml(r.outcome ?? r.result ?? "")}</td>
-<td class="mono">${escapeHtml(r.match ?? r.fixture ?? i)}</td>
-<td>—</td>
-</tr>`).join("");
-}
+
+
+
 
 function renderOdds(rows) {
-if (!rows.length) {
-el.oddsBody.innerHTML = '<tr><td colspan="8">No odds</td></tr>';
-renderChips(el.oddsChips, ["no odds"]);
-return;
-}
 
-renderChips(el.oddsChips, [`rows:${rows.length}`, "odds"]);
+  if (!Array.isArray(rows) || !rows.length) {
 
-if (isMobileView()) {
-el.oddsBody.innerHTML = tableCardList(
-rows,
-(r, i) => `
+    el.oddsBody.innerHTML =
+      '<tr><td colspan="8">No odds</td></tr>';
+
+    renderChips(el.oddsChips, ["no odds"]);
+
+    return;
+  }
+
+  renderChips(el.oddsChips, [
+    `odds:${rows.length}`,
+    `markets:${countMarkets(rows)}`
+  ]);
+
+  function formatPrices(r) {
+
+    const names =
+      Array.isArray(r.priceNames)
+        ? r.priceNames
+        : [];
+
+    const prices =
+      Array.isArray(r.prices)
+        ? r.prices
+        : [];
+
+    if (!names.length && !prices.length)
+      return "";
+
+    const out = [];
+
+    const len = Math.max(
+      names.length,
+      prices.length
+    );
+
+    for (let i = 0; i < len; i++) {
+
+      const n = names[i] ?? `#${i + 1}`;
+      const p = prices[i] ?? "";
+
+      out.push(`${n}: ${p}`);
+
+    }
+
+    return out.join(" | ");
+
+  }
+
+  if (isMobileView()) {
+
+    el.oddsBody.innerHTML = rows.map(r => `
+
 <tr>
-<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
-  <div class="mobile-card">
-    <div class="mobile-card-head">
-      <div class="mobile-card-title">${escapeHtml(r.market ?? r.marketName ?? "Market")}</div>
-      <div class="mobile-card-sub">${escapeHtml(r.book ?? r.bookmaker ?? "")}</div>
-    </div>
 
-    <div class="mobile-card-grid">
-      <div><span>Home</span><b class="mono">${escapeHtml(r.home ?? r.homePrice ?? "")}</b></div>
-      <div><span>Draw</span><b class="mono">${escapeHtml(r.draw ?? r.drawPrice ?? "")}</b></div>
-      <div><span>Away</span><b class="mono">${escapeHtml(r.away ?? r.awayPrice ?? "")}</b></div>
-      <div><span>Time</span><b class="mono">${escapeHtml(r.time ?? r.updatedAt ?? "")}</b></div>
-      <div><span>Fixture</span><b class="mono">${escapeHtml(r.fixture ?? r.matchId ?? i)}</b></div>
-    </div>
+<td colspan="8" style="padding:12px">
 
-    <div class="mobile-card-text">
-Latest available odds
+<div class="mobile-card">
+
+<div class="mobile-card-head">
+
+<div class="mobile-card-title">
+${escapeHtml(r.market || "")}
 </div>
-  </div>
-</td>
-</tr>`,
-'<tr><td colspan="8">No odds</td></tr>'
-);
-return;
-}
 
-el.oddsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
-<td>${escapeHtml(r.market ?? r.marketName ?? "")}</td>
-<td>${escapeHtml(r.book ?? r.bookmaker ?? "")}</td>
-<td class="mono">${escapeHtml(r.home ?? r.homePrice ?? "")}</td>
-<td class="mono">${escapeHtml(r.draw ?? r.drawPrice ?? "")}</td>
-<td class="mono">${escapeHtml(r.away ?? r.awayPrice ?? "")}</td>
-<td class="mono">${escapeHtml(r.time ?? r.updatedAt ?? "")}</td>
-<td class="mono">${escapeHtml(r.fixture ?? r.matchId ?? i)}</td>
-<td>—</td>
-</tr>`).join("");
-}
+<div class="mobile-card-sub">
+${escapeHtml(r.bookmaker || "")}
+</div>
 
-function renderRoutes(probe){
-const collected = probe?.collected || {};
-const routes = Object.entries(collected);
-if(!routes.length){
-el.routes.innerHTML='<div class="placeholder">No information available.</div>';
-return;
-}
-el.routes.innerHTML = routes.map(([url,data])=>`
-<div class="route-card">
-<div class="route-head">
+</div>
+
+<div class="mobile-card-grid">
+
 <div>
-<div style="font-size:16px;font-weight:800">
-${escapeHtml(url.split("/").pop() || url)}
+<span>Fixture</span>
+<b>${escapeHtml(r.fixtureId)}</b>
 </div>
-<div class="hint">
-${escapeHtml(url)}
+
+<div>
+<span>Period</span>
+<b>${escapeHtml(r.marketPeriod || "")}</b>
 </div>
+
+<div>
+<span>Type</span>
+<b>${escapeHtml(r.superOddsType || "")}</b>
 </div>
-<span class="tag ${data.ok?"ok":"bad"}">
-${data.ok?"Available":"Unavailable"}
-</span>
+
+<div>
+<span>Live</span>
+<b>${r.inRunning ? "YES" : "NO"}</b>
 </div>
+
+<div style="grid-column:1/-1">
+<span>Prices</span>
+<b style="white-space:normal">
+${escapeHtml(formatPrices(r))}
+</b>
 </div>
+
+</div>
+
+<details style="margin-top:10px">
+
+<summary>Raw JSON</summary>
+
+<div class="json">
+
+${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
+
+</div>
+
+</details>
+
+</div>
+
+</td>
+
+</tr>
+
 `).join("");
+
+    return;
+
+  }
+
+  el.oddsBody.innerHTML = rows.map(r => `
+
+<tr>
+
+<td>
+${escapeHtml(r.market || "")}
+</td>
+
+<td>
+${escapeHtml(r.bookmaker || "")}
+</td>
+
+<td>
+${escapeHtml(r.marketPeriod || "")}
+</td>
+
+<td>
+${escapeHtml(r.superOddsType || "")}
+</td>
+
+<td>
+${r.inRunning ? "YES" : "NO"}
+</td>
+
+<td class="mono">
+${escapeHtml(formatDate(r.ts))}
+</td>
+
+<td class="mono">
+${escapeHtml(r.fixtureId)}
+</td>
+
+<td>
+
+<details>
+
+<summary>Prices</summary>
+
+<div class="json">
+
+<b>${escapeHtml(formatPrices(r))}</b>
+
+<br><br>
+
+${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
+
+</div>
+
+</details>
+
+</td>
+
+</tr>
+
+`).join("");
+
 }
+
+
+
+
+
+
+function renderRoutes(probe) {
+
+  const collected =
+    probe?.collected || {};
+
+  const routes =
+    Object.entries(collected);
+
+  if (!routes.length) {
+
+    el.routes.innerHTML =
+      '<div class="placeholder">No routes discovered.</div>';
+
+    return;
+
+  }
+
+  el.routes.innerHTML =
+    routes.map(([url, entry]) => {
+
+      const renderCount =
+        Array.isArray(entry.render)
+          ? entry.render.length
+          : 0;
+
+      const rawCount =
+        Array.isArray(entry.data)
+          ? entry.data.length
+          : 0;
+
+      const status =
+        entry.ok ? "Available" : "Unavailable";
+
+      const statusClass =
+        entry.ok ? "ok" : "bad";
+
+      const elapsed =
+        entry.elapsed ??
+        entry.elapsedMs ??
+        entry.duration ??
+        "-";
+
+      const code =
+        entry.status ??
+        "-";
+
+      return `
+
+<div class="route-card">
+
+<div class="route-head">
+
+<div>
+
+<div style="font-size:17px;font-weight:800">
+
+${escapeHtml(url.split("/").pop() || url)}
+
+</div>
+
+<div class="hint">
+
+${escapeHtml(url)}
+
+</div>
+
+</div>
+
+<div class="route-meta">
+
+<span class="tag ${statusClass}">
+${status}
+</span>
+
+<span class="tag">
+HTTP ${escapeHtml(code)}
+</span>
+
+<span class="tag">
+${escapeHtml(String(elapsed))} ms
+</span>
+
+</div>
+
+</div>
+
+<div class="route-grid">
+
+<div class="mini">
+
+<div class="t">
+Rendered rows
+</div>
+
+<div class="v">
+${renderCount}
+</div>
+
+</div>
+
+<div class="mini">
+
+<div class="t">
+Raw records
+</div>
+
+<div class="v">
+${rawCount}
+</div>
+
+</div>
+
+<div class="mini">
+
+<div class="t">
+Success
+</div>
+
+<div class="v">
+${entry.ok ? "YES" : "NO"}
+</div>
+
+</div>
+
+<div class="mini">
+
+<div class="t">
+Content
+</div>
+
+<div class="v">
+${escapeHtml(entry.contentType || "-")}
+</div>
+
+</div>
+
+</div>
+
+<details>
+
+<summary>
+
+Raw response
+
+</summary>
+
+<div class="json">
+
+${escapeHtml(
+JSON.stringify(entry, null, 2)
+)}
+
+</div>
+
+</details>
+
+</div>
+
+`;
+
+    }).join("");
+
+}
+
+
 
 function activateTab(name) {
 document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
@@ -1678,80 +2624,180 @@ setStatus("token error", "err");
 el.checkBtn.disabled = false;
 }
 
+
+
 async function probeTxline() {
-el.probeBtn.disabled = true;
-setStatus("Probing TxLINE...", "warn");
 
-try {
-const res = await emit({
-type: "txline_probe_feed",
-scope: "worldcup",
-serviceLevelId: Number(el.serviceLevelId.value)
-});
+  el.probeBtn.disabled = true;
+  setStatus("Loading TxLINE data...", "warn");
 
-show(res);
+  try {
 
-const probe = res && typeof res.body === "object" ? res.body : {};
-console.log("FULL PROBE", probe);
+    const res = await emit({
+      type: "txline_probe_feed",
+      scope: "worldcup",
+      serviceLevelId: Number(el.serviceLevelId.value)
+    });
 
-const fixtureRows = matchRowsFrom(probe);
-const standingsRows = standingsRowsFrom(probe);
-const eventsRows = eventsRowsFrom(probe);
-const oddsRows = oddsRowsFrom(probe);
+    show(res);
 
-state.matches = fixtureRows;
-state.standings = standingsRows;
-state.events = eventsRows;
-state.odds = oddsRows;
-state.historicalByFixture = {};
-state.eventsByFixture = {};
-state.oddsByFixture = {};
+    if (!res.ok)
+      throw new Error(res.body?.error || "Probe failed");
 
-for (const x of state.events || []) {
-const key = String(x.match ?? x.fixture ?? x.fixtureId ?? "");
-if (!key) continue;
-if (!state.eventsByFixture[key]) state.eventsByFixture[key] = [];
-state.eventsByFixture[key].push(x);
+    const probe =
+      typeof res.body === "object"
+        ? res.body
+        : {};
+
+    console.log("FULL PROBE", probe);
+
+    /* ---------------- MATCHES ---------------- */
+
+    state.matches =
+  matchRowsFrom(probe);
+
+    /* ---------------- STANDINGS ---------------- */
+
+    state.standings =
+      Array.isArray(probe.standings)
+        ? probe.standings
+        : standingsRowsFrom(probe);
+
+    /* ---------------- EVENTS ---------------- */
+
+    state.events =
+      Array.isArray(probe.events)
+        ? probe.events
+        : [];
+
+    /* ---------------- ODDS ---------------- */
+
+    state.odds =
+      Array.isArray(probe.odds)
+        ? probe.odds
+        : [];
+
+    /* ---------------- HISTORICAL ---------------- */
+
+    state.historical =
+      Array.isArray(probe.historical)
+        ? probe.historical
+        : [];
+
+    /* ---------------- INDEXES ---------------- */
+
+    state.eventsByFixture = {};
+    state.oddsByFixture = {};
+    state.historicalByFixture = {};
+
+    for (const e of state.events) {
+
+      const id = String(e.fixtureId || "");
+
+      if (!id)
+        continue;
+
+      (state.eventsByFixture[id] ||= []).push(e);
+
+    }
+
+    for (const o of state.odds) {
+
+      const id = String(o.fixtureId || "");
+
+      if (!id)
+        continue;
+
+      (state.oddsByFixture[id] ||= []).push(o);
+
+    }
+
+    for (const h of state.historical) {
+
+      const id = String(h.fixtureId || "");
+
+      if (!id)
+        continue;
+
+      (state.historicalByFixture[id] ||= []).push(h);
+
+    }
+
+    /* ---------------- KPI ---------------- */
+
+    el.matchesCount.textContent =
+probe.counts?.matches ??
+state.matches.length;
+
+    el.competitionsCount.textContent =
+probe.counts?.fixtures
+? uniqueCompetitions(state.matches).length
+: 0;
+
+    el.marketsCount.textContent =
+      probe.counts?.odds ??
+      countMarkets(state.odds);
+
+    el.routesCount.textContent =
+      Object.keys(probe.collected || {}).length;
+
+    /* ---------------- TABLES ---------------- */
+
+    renderMatches(state.matches);
+
+    renderStandings(state.standings);
+
+    renderEvents(state.events);
+
+    renderOdds(state.odds);
+
+    renderRoutes(probe);
+
+    activateTab("matches");
+
+    if (!state.matches.length) {
+
+      setStatus(
+        "Connected. No fixtures available.",
+        "warn"
+      );
+
+    } else {
+
+      setStatus(
+        `Loaded ${state.matches.length} fixtures`,
+        "ok"
+      );
+
+    }
+
+  }
+
+  catch (e) {
+
+    console.error(e);
+
+    show(e);
+
+    setStatus(
+      e.message || "Probe failed",
+      "err"
+    );
+
+  }
+
+  finally {
+
+    el.probeBtn.disabled = false;
+
+  }
+
 }
 
-for (const x of state.odds || []) {
-const key = String(x.fixture ?? x.fixtureId ?? "");
-if (!key) continue;
-if (!state.oddsByFixture[key]) state.oddsByFixture[key] = [];
-state.oddsByFixture[key].push(x);
-}
 
-if (state.historical) {
-const key = String(state.historical.fixtureId ?? state.historical.id ?? "");
-if (key) {
-if (!state.historicalByFixture[key]) state.historicalByFixture[key] = [];
-state.historicalByFixture[key].push(state.historical);
-}
-}
 
-renderMatches(fixtureRows);
-activateTab("matches");
-renderStandings(standingsRows);
-renderEvents(eventsRows);
-renderOdds(oddsRows);
-renderRoutes(probe);
 
-el.matchesCount.textContent = fixtureRows.length;
-el.competitionsCount.textContent = uniqueCompetitions(fixtureRows).length;
-el.marketsCount.textContent = countMarkets(oddsRows);
 
-const okRoutes = Array.isArray(probe.source) ? probe.source.filter(x => x.ok).length : 0;
-el.routesCount.textContent = okRoutes;
-
-setStatus("Probe completed", "ok");
-} catch (e) {
-console.error(e);
-show(e.message || String(e));
-setStatus("Probe failed", "err");
-}
-
-el.probeBtn.disabled = false;
-}
 
 function toggleAuto() {
 auto = !auto;
