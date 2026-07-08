@@ -1044,28 +1044,63 @@ function normalizeStatus(v) {
 return String(v ?? "").trim().toLowerCase();
 }
 
+
+
 function classifyMatch(row) {
-const now = Date.now();
-const kickoffTs = toTs(row.kickoff);
-const status = normalizeStatus(row.status);
+  const now = Date.now();
+  const kickoffTs = toTs(row.kickoff);
+  const status = normalizeStatus(row.status);
+  const statusRaw = normalizeStatus(row.statusRaw);
 
-const finishedTokens = [
-"ft", "finished", "full time", "ended", "postponed", "cancelled", "canceled", "abandoned"
-];
-const liveTokens = [
-"live", "1h", "2h", "ht", "half time", "inplay", "in play", "ongoing"
-];
+  const finishedTokens = [
+    "finished",
+    "finished aet",
+    "finished pens",
+    "ended",
+    "postponed",
+    "cancelled",
+    "canceled",
+    "abandoned",
+    "coverage cancelled"
+  ];
 
-if (finishedTokens.some(t => status.includes(t))) return "past";
-if (liveTokens.some(t => status.includes(t))) return "current";
-if (kickoffTs != null) {
-if (kickoffTs < now - 2 * 60 * 60 * 1000) return "past";
-if (kickoffTs > now + 10 * 60 * 1000) return "future";
-return "current";
+  const liveTokens = [
+    "first half",
+    "second half",
+    "halftime",
+    "extra time 1",
+    "extra time 2",
+    "et halftime",
+    "penalties",
+    "interrupted",
+    "waiting et",
+    "waiting pens"
+  ];
+
+  const upcomingTokens = [
+    "not started"
+  ];
+
+  if (finishedTokens.some(t => status === t || status.includes(t))) return "past";
+  if (liveTokens.some(t => status === t || status.includes(t))) return "current";
+  if (upcomingTokens.some(t => status === t || status.includes(t))) return "future";
+
+  if (["f", "fet", "fpe", "a", "c", "p", "txcc"].includes(statusRaw)) return "past";
+  if (["h1", "ht", "h2", "wet", "et1", "htet", "et2", "wpe", "pe", "i"].includes(statusRaw)) return "current";
+  if (["ns"].includes(statusRaw)) return "future";
+
+  if (kickoffTs != null) {
+    if (kickoffTs < now - 2 * 60 * 60 * 1000) return "past";
+    if (kickoffTs > now + 10 * 60 * 1000) return "future";
+    return "current";
+  }
+
+  return "future";
 }
 
-return "future";
-}
+
+
+
 
 function splitMatchesByTime(rows) {
 const past = [];
@@ -1089,14 +1124,9 @@ return `${name} (${rows.length})`;
 
 
 function matchRowsFrom(probe) {
-
-  const rows =
-    Array.isArray(probe.matches)
-      ? probe.matches
-      : [];
+  const rows = Array.isArray(probe?.matches) ? probe.matches : [];
 
   return rows.map((m, i) => ({
-
     id:
       m.id ??
       m.fixtureId ??
@@ -1135,15 +1165,28 @@ function matchRowsFrom(probe) {
       m.status ??
       "",
 
-    score:
-      m.score ??
+    statusRaw:
+      m.statusRaw ??
+      m.gameState ??
+      m.GameState ??
       "",
 
+    score:
+      m.score ??
+      ((m.homeScore != null && m.awayScore != null)
+        ? `${m.homeScore}-${m.awayScore}`
+        : ""),
+
+    homeScore:
+      m.homeScore ?? null,
+
+    awayScore:
+      m.awayScore ?? null,
+
     raw: m
-
   }));
-
 }
+
 
 
 
@@ -1166,137 +1209,143 @@ return pickArray(entry);
 
 
 function eventsRowsFrom(probe) {
-const rows = pickArray(probe?.events);
+  const rows = pickArray(probe?.events);
 
-return rows
-.map(x => ({
+  return rows
+    .map(x => ({
+      fixtureId:
+        x.fixtureId ??
+        x.FixtureId ??
+        "",
 
-fixtureId:
-x.fixtureId ??
-x.FixtureId ??
-"",
+      seq:
+        x.seq ??
+        x.Seq ??
+        0,
 
-seq:
-x.seq ??
-x.Seq ??
-0,
+      ts:
+        x.ts ??
+        x.timestamp ??
+        x.Timestamp ??
+        "",
 
-ts:
-x.ts ??
-x.timestamp ??
-x.Timestamp ??
-"",
+      gameState:
+        x.gameState ??
+        x.GameState ??
+        x.status ??
+        "",
 
-gameState:
-x.gameState ??
-x.GameState ??
-"",
+      gameStateRaw:
+        x.gameStateRaw ??
+        x.statusRaw ??
+        "",
 
-score:
-x.score ??
-x.Score ??
-"",
+      score:
+        x.score ??
+        x.Score ??
+        ((x.homeScore != null && x.awayScore != null)
+          ? `${x.homeScore}-${x.awayScore}`
+          : ""),
 
-period:
-x.period ??
-x.Period ??
-"",
+      period:
+        x.period ??
+        x.Period ??
+        "",
 
-raw: x
+      raw: x
+    }))
+    .sort((a, b) => {
+      const sa = Number(a.seq);
+      const sb = Number(b.seq);
 
-}))
-.sort((a, b) => {
+      if (Number.isFinite(sa) && Number.isFinite(sb) && sa !== sb) {
+        return sa - sb;
+      }
 
-const sa = Number(a.seq);
-const sb = Number(b.seq);
+      const ta = toTs(a.ts) ?? 0;
+      const tb = toTs(b.ts) ?? 0;
 
-if (Number.isFinite(sa) && Number.isFinite(sb) && sa !== sb)
-return sa - sb;
-
-const ta = toTs(a.ts) ?? 0;
-const tb = toTs(b.ts) ?? 0;
-
-return ta - tb;
-
-});
+      return ta - tb;
+    });
 }
 
 
 
 
+
 function oddsRowsFrom(probe) {
-const rows = pickArray(probe?.odds);
+  const rows = pickArray(probe?.odds);
 
-return rows.map(x => ({
+  return rows.map(x => ({
+    fixtureId:
+      x.fixtureId ??
+      x.FixtureId ??
+      "",
 
-fixtureId:
-x.fixtureId ??
-x.FixtureId ??
-"",
+    messageId:
+      x.messageId ??
+      x.MessageId ??
+      "",
 
-messageId:
-x.messageId ??
-x.MessageId ??
-"",
+    ts:
+      x.ts ??
+      x.timestamp ??
+      x.Timestamp ??
+      x.lastUpdated ??
+      x.LastUpdated ??
+      "",
 
-ts:
-x.ts ??
-x.timestamp ??
-x.Timestamp ??
-"",
+    bookmaker:
+      x.bookmaker ??
+      x.Bookmaker ??
+      "",
 
-bookmaker:
-x.bookmaker ??
-x.Bookmaker ??
-"",
+    bookmakerId:
+      x.bookmakerId ??
+      x.BookmakerId ??
+      "",
 
-bookmakerId:
-x.bookmakerId ??
-x.BookmakerId ??
-"",
+    market:
+      x.market ??
+      x.Market ??
+      "",
 
-market:
-x.market ??
-x.Market ??
-"",
+    marketPeriod:
+      x.marketPeriod ??
+      x.MarketPeriod ??
+      "",
 
-marketPeriod:
-x.marketPeriod ??
-x.MarketPeriod ??
-"",
+    superOddsType:
+      x.superOddsType ??
+      x.SuperOddsType ??
+      "",
 
-superOddsType:
-x.superOddsType ??
-x.SuperOddsType ??
-"",
+    inRunning:
+      x.inRunning ??
+      x.InRunning ??
+      false,
 
-inRunning:
-x.inRunning ??
-x.InRunning ??
-false,
+    marketParameters:
+      x.marketParameters ??
+      x.MarketParameters ??
+      null,
 
-marketParameters:
-x.marketParameters ??
-x.MarketParameters ??
-null,
+    priceNames:
+      Array.isArray(x.priceNames)
+        ? x.priceNames
+        : Array.isArray(x.PriceNames)
+        ? x.PriceNames
+        : [],
 
-priceNames:
-Array.isArray(x.priceNames)
-? x.priceNames
-: Array.isArray(x.PriceNames)
-? x.PriceNames
-: [],
+    prices:
+      Array.isArray(x.prices)
+        ? x.prices
+        : Array.isArray(x.Prices)
+        ? x.Prices
+        : [],
 
-prices:
-Array.isArray(x.prices)
-? x.prices
-: Array.isArray(x.Prices)
-? x.Prices
-: [],
-
-raw: x
-
-}));
+    raw: x
+  }));
 }
 
 
@@ -1305,14 +1354,26 @@ function uniqueCompetitions(rows) {
 return [...new Set(rows.map(r => String(r.league || "").trim()).filter(Boolean))];
 }
 
+
 function countMarkets(rows) {
-const set = new Set();
-rows.forEach(r => {
-const key = [r.market, r.book, r.fixture].map(v => String(v ?? "")).join("|");
-if (key.replace(/|/g, "").trim()) set.add(key);
-});
-return set.size || rows.length;
+  const set = new Set();
+
+  rows.forEach(r => {
+    const key = [
+      r.market ?? "",
+      r.bookmaker ?? "",
+      r.fixtureId ?? ""
+    ].map(v => String(v)).join("|");
+
+    if (key.replace(/|/g, "").trim()) {
+      set.add(key);
+    }
+  });
+
+  return set.size || rows.length || 0;
 }
+
+
 
 const MOBILE_CUTOFF = 760;
 
@@ -1738,293 +1799,235 @@ return "preview";
 
 
 function renderFixtureDetailHtml(row, details) {
+  const current =
+    details?.current && typeof details.current === "object"
+      ? details.current
+      : null;
+
+  const snapshot =
+    Array.isArray(details?.snapshot)
+      ? details.snapshot
+      : [];
 
   const events =
-    Array.isArray(details.events)
+    Array.isArray(details?.events)
       ? details.events
       : [];
 
   const odds =
-    Array.isArray(details.odds)
+    Array.isArray(details?.odds)
       ? details.odds
       : [];
 
   const historical =
-    Array.isArray(details.historical)
+    Array.isArray(details?.historical)
       ? details.historical
       : [];
 
+  const displayStatus =
+    row?.status ||
+    current?.gameState ||
+    current?.status ||
+    "";
+
+  const displayScore =
+    row?.score ||
+    current?.score ||
+    ((current?.homeScore != null && current?.awayScore != null)
+      ? `${current.homeScore}-${current.awayScore}`
+      : "");
+
   function eventRow(e) {
-
+    const ts = e?.ts ?? e?.timestamp ?? "";
     return `
       <tr>
         <td>${escapeHtml(e.period ?? "")}</td>
-        <td>${escapeHtml(e.gameState ?? "")}</td>
+        <td>${escapeHtml(e.gameState ?? e.status ?? "")}</td>
         <td>${escapeHtml(e.score ?? "")}</td>
-        <td>${escapeHtml(formatDate(e.ts) || "")}</td>
+        <td>${escapeHtml(formatDate(ts) || "")}</td>
       </tr>
     `;
-
   }
 
-  function oddsRow(o){
-
-    const prices =
-      (o.priceNames || [])
-        .map((n,i)=>
-          `${n}: ${o.prices?.[i] ?? ""}`
-        )
-        .join("<br>");
+  function oddsRow(o) {
+    const prices = (o.priceNames || [])
+      .map((n, i) => `${n}: ${o.prices?.[i] ?? ""}`)
+      .join("<br>");
 
     return `
       <tr>
-        <td>${escapeHtml(o.bookmaker)}</td>
-        <td>${escapeHtml(o.market)}</td>
-        <td>${escapeHtml(o.marketPeriod)}</td>
-        <td>${escapeHtml(prices)}</td>
+        <td>${escapeHtml(o.bookmaker ?? "")}</td>
+        <td>${escapeHtml(o.market ?? "")}</td>
+        <td>${escapeHtml(o.marketPeriod ?? "")}</td>
+        <td>${prices}</td>
       </tr>
     `;
-
   }
 
-  function historicalRow(e){
-
+  function historicalRow(e) {
+    const ts = e?.ts ?? e?.timestamp ?? "";
     return `
       <tr>
         <td>${escapeHtml(e.period ?? "")}</td>
-        <td>${escapeHtml(e.gameState ?? "")}</td>
+        <td>${escapeHtml(e.gameState ?? e.status ?? "")}</td>
         <td>${escapeHtml(e.score ?? "")}</td>
-        <td>${escapeHtml(formatDate(e.ts) || "")}</td>
+        <td>${escapeHtml(formatDate(ts) || "")}</td>
       </tr>
     `;
+  }
 
+  function snapshotRow(e) {
+    const ts = e?.ts ?? e?.timestamp ?? "";
+    return `
+      <tr>
+        <td>${escapeHtml(e.period ?? "")}</td>
+        <td>${escapeHtml(e.gameState ?? e.status ?? "")}</td>
+        <td>${escapeHtml(e.score ?? "")}</td>
+        <td>${escapeHtml(formatDate(ts) || "")}</td>
+      </tr>
+    `;
   }
 
   return `
-
 <div class="route-card">
 
-<div class="route-head">
+  <div class="route-head">
+    <div>
+      <div style="font-size:20px;font-weight:800">
+        ${escapeHtml(row.home)}&nbsp;vs&nbsp;${escapeHtml(row.away)}
+      </div>
+      <div class="hint">
+        ${escapeHtml(row.league)}
+      </div>
+    </div>
 
-<div>
+    <span class="tag ok">
+      ${escapeHtml(displayStatus)}
+    </span>
+  </div>
 
-<div style="font-size:20px;font-weight:800">
+  <div class="route-grid">
+    <div class="mini">
+      <div class="t">Kickoff</div>
+      <div class="v">${escapeHtml(formatDate(row.kickoff))}</div>
+    </div>
 
-${escapeHtml(row.home)}
-&nbsp;vs&nbsp;
-${escapeHtml(row.away)}
+    <div class="mini">
+      <div class="t">Score</div>
+      <div class="v">${escapeHtml(displayScore)}</div>
+    </div>
+
+    <div class="mini">
+      <div class="t">Fixture</div>
+      <div class="v mono">${escapeHtml(row.id)}</div>
+    </div>
+
+    <div class="mini">
+      <div class="t">Competition</div>
+      <div class="v">${escapeHtml(row.league)}</div>
+    </div>
+  </div>
+
+  <br>
+
+  <h3>Snapshot Events</h3>
+
+  ${
+    snapshot.length
+      ? `<div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${snapshot.map(snapshotRow).join("")}
+            </tbody>
+          </table>
+        </div>`
+      : '<div class="placeholder">No snapshot events</div>'
+  }
+
+  <br>
+
+  <h3>Live Events</h3>
+
+  ${
+    events.length
+      ? `<div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${events.map(eventRow).join("")}
+            </tbody>
+          </table>
+        </div>`
+      : '<div class="placeholder">No live events</div>'
+  }
+
+  <br>
+
+  <h3>Historical Events</h3>
+
+  ${
+    historical.length
+      ? `<div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${historical.map(historicalRow).join("")}
+            </tbody>
+          </table>
+        </div>`
+      : '<div class="placeholder">No historical events</div>'
+  }
+
+  <br>
+
+  <h3>Odds</h3>
+
+  ${
+    odds.length
+      ? `<div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Bookmaker</th>
+                <th>Market</th>
+                <th>Period</th>
+                <th>Prices</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${odds.map(oddsRow).join("")}
+            </tbody>
+          </table>
+        </div>`
+      : '<div class="placeholder">No odds available</div>'
+  }
 
 </div>
-
-<div class="hint">
-
-${escapeHtml(row.league)}
-
-</div>
-
-</div>
-
-<span class="tag ok">
-
-${escapeHtml(row.status)}
-
-</span>
-
-</div>
-
-<div class="route-grid">
-
-<div class="mini">
-
-<div class="t">
-
-Kickoff
-
-</div>
-
-<div class="v">
-
-${escapeHtml(formatDate(row.kickoff))}
-
-</div>
-
-</div>
-
-<div class="mini">
-
-<div class="t">
-
-Score
-
-</div>
-
-<div class="v">
-
-${escapeHtml(row.score)}
-
-</div>
-
-</div>
-
-<div class="mini">
-
-<div class="t">
-
-Fixture
-
-</div>
-
-<div class="v mono">
-
-${escapeHtml(row.id)}
-
-</div>
-
-</div>
-
-<div class="mini">
-
-<div class="t">
-
-Competition
-
-</div>
-
-<div class="v">
-
-${escapeHtml(row.league)}
-
-</div>
-
-</div>
-
-</div>
-
-<br>
-
-<h3>Live Events</h3>
-
-${
-events.length ?
-
-`<div class="table-wrap">
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>Period</th>
-<th>Status</th>
-<th>Score</th>
-<th>Time</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-${events.map(eventRow).join("")}
-
-</tbody>
-
-</table>
-
-</div>`
-
-:
-
-'<div class="placeholder">No live events</div>'
-
-}
-
-<br>
-
-<h3>Historical Events</h3>
-
-${
-historical.length ?
-
-`<div class="table-wrap">
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>Period</th>
-<th>Status</th>
-<th>Score</th>
-<th>Time</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-${historical.map(historicalRow).join("")}
-
-</tbody>
-
-</table>
-
-</div>`
-
-:
-
-'<div class="placeholder">No historical events</div>'
-
-}
-
-<br>
-
-<h3>Odds</h3>
-
-${
-odds.length ?
-
-`<div class="table-wrap">
-
-<table>
-
-<thead>
-
-<tr>
-
-<th>Bookmaker</th>
-<th>Market</th>
-<th>Period</th>
-<th>Prices</th>
-
-</tr>
-
-</thead>
-
-<tbody>
-
-${odds.map(oddsRow).join("")}
-
-</tbody>
-
-</table>
-
-</div>`
-
-:
-
-'<div class="placeholder">No odds available</div>'
-
-}
-
-</div>
-
 `;
-
 }
+
 
 
 
@@ -2431,168 +2434,99 @@ ${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
 
 
 function renderRoutes(probe) {
-
-  const collected =
-    probe?.collected || {};
-
-  const routes =
-    Object.entries(collected);
+  const collected = probe?.collected || {};
+  const routes = Object.entries(collected);
 
   if (!routes.length) {
-
     el.routes.innerHTML =
       '<div class="placeholder">No routes discovered.</div>';
-
     return;
-
   }
 
-  el.routes.innerHTML =
-    routes.map(([url, entry]) => {
+  el.routes.innerHTML = routes.map(([url, entry]) => {
+    const renderCount =
+      Array.isArray(entry.rows)
+        ? entry.rows.length
+        : 0;
 
-      const renderCount =
-        Array.isArray(entry.render)
-          ? entry.render.length
-          : 0;
+    const rawCount =
+      Array.isArray(entry.raw)
+        ? entry.raw.length
+        : 0;
 
-      const rawCount =
-        Array.isArray(entry.data)
-          ? entry.data.length
-          : 0;
+    const status = entry.ok ? "Available" : "Unavailable";
+    const statusClass = entry.ok ? "ok" : "bad";
 
-      const status =
-        entry.ok ? "Available" : "Unavailable";
+    const elapsed =
+      entry.elapsed ??
+      entry.elapsedMs ??
+      entry.duration ??
+      "-";
 
-      const statusClass =
-        entry.ok ? "ok" : "bad";
+    const code = entry.status ?? "-";
 
-      const elapsed =
-        entry.elapsed ??
-        entry.elapsedMs ??
-        entry.duration ??
-        "-";
-
-      const code =
-        entry.status ??
-        "-";
-
-      return `
-
+    return `
 <div class="route-card">
 
-<div class="route-head">
+  <div class="route-head">
+    <div>
+      <div style="font-size:17px;font-weight:800">
+        ${escapeHtml(url.split("/").pop() || url)}
+      </div>
+      <div class="hint">
+        ${escapeHtml(url)}
+      </div>
+    </div>
 
-<div>
+    <div class="route-meta">
+      <span class="tag ${statusClass}">
+        ${status}
+      </span>
 
-<div style="font-size:17px;font-weight:800">
+      <span class="tag">
+        HTTP ${escapeHtml(code)}
+      </span>
 
-${escapeHtml(url.split("/").pop() || url)}
+      <span class="tag">
+        ${escapeHtml(String(elapsed))} ms
+      </span>
+    </div>
+  </div>
 
-</div>
+  <div class="route-grid">
+    <div class="mini">
+      <div class="t">Mapped rows</div>
+      <div class="v">${renderCount}</div>
+    </div>
 
-<div class="hint">
+    <div class="mini">
+      <div class="t">Raw records</div>
+      <div class="v">${rawCount}</div>
+    </div>
 
-${escapeHtml(url)}
+    <div class="mini">
+      <div class="t">Success</div>
+      <div class="v">${entry.ok ? "YES" : "NO"}</div>
+    </div>
 
-</div>
+    <div class="mini">
+      <div class="t">Content</div>
+      <div class="v">${escapeHtml(entry.rawType || "-")}</div>
+    </div>
+  </div>
 
-</div>
-
-<div class="route-meta">
-
-<span class="tag ${statusClass}">
-${status}
-</span>
-
-<span class="tag">
-HTTP ${escapeHtml(code)}
-</span>
-
-<span class="tag">
-${escapeHtml(String(elapsed))} ms
-</span>
-
-</div>
-
-</div>
-
-<div class="route-grid">
-
-<div class="mini">
-
-<div class="t">
-Rendered rows
-</div>
-
-<div class="v">
-${renderCount}
-</div>
-
-</div>
-
-<div class="mini">
-
-<div class="t">
-Raw records
-</div>
-
-<div class="v">
-${rawCount}
-</div>
+  <details>
+    <summary>Raw response</summary>
+    <div class="json">
+      ${escapeHtml(JSON.stringify(entry, null, 2))}
+    </div>
+  </details>
 
 </div>
-
-<div class="mini">
-
-<div class="t">
-Success
-</div>
-
-<div class="v">
-${entry.ok ? "YES" : "NO"}
-</div>
-
-</div>
-
-<div class="mini">
-
-<div class="t">
-Content
-</div>
-
-<div class="v">
-${escapeHtml(entry.contentType || "-")}
-</div>
-
-</div>
-
-</div>
-
-<details>
-
-<summary>
-
-Raw response
-
-</summary>
-
-<div class="json">
-
-${escapeHtml(
-JSON.stringify(entry, null, 2)
-)}
-
-</div>
-
-</details>
-
-</div>
-
 `;
-
-    }).join("");
-
+  }).join("");
 }
+
 
 
 
@@ -2628,12 +2562,10 @@ el.checkBtn.disabled = false;
 
 
 async function probeTxline() {
-
   el.probeBtn.disabled = true;
   setStatus("Loading TxLINE data...", "warn");
 
   try {
-
     const res = await emit({
       type: "txline_probe_feed",
       scope: "worldcup",
@@ -2642,157 +2574,85 @@ async function probeTxline() {
 
     show(res);
 
-    if (!res.ok)
+    if (!res.ok) {
       throw new Error(res.body?.error || "Probe failed");
+    }
 
     const probe =
-      typeof res.body === "object"
+      typeof res.body === "object" && res.body
         ? res.body
         : {};
 
     console.log("FULL PROBE", probe);
 
-    /* ---------------- MATCHES ---------------- */
-
-    state.matches =
-  matchRowsFrom(probe);
-
-    /* ---------------- STANDINGS ---------------- */
+    state.matches = matchRowsFrom(probe);
 
     state.standings =
       Array.isArray(probe.standings)
         ? probe.standings
         : standingsRowsFrom(probe);
 
-    /* ---------------- EVENTS ---------------- */
+    state.events = eventsRowsFrom({ events: probe.events });
 
-    state.events =
-      Array.isArray(probe.events)
-        ? probe.events
-        : [];
+    state.odds = oddsRowsFrom({ odds: probe.odds });
 
-    /* ---------------- ODDS ---------------- */
-
-    state.odds =
-      Array.isArray(probe.odds)
-        ? probe.odds
-        : [];
-
-    /* ---------------- HISTORICAL ---------------- */
-
-    state.historical =
-      Array.isArray(probe.historical)
-        ? probe.historical
-        : [];
-
-    /* ---------------- INDEXES ---------------- */
+    state.historical = eventsRowsFrom({ events: probe.historical });
 
     state.eventsByFixture = {};
     state.oddsByFixture = {};
     state.historicalByFixture = {};
 
     for (const e of state.events) {
-
       const id = String(e.fixtureId || "");
-
-      if (!id)
-        continue;
-
+      if (!id) continue;
       (state.eventsByFixture[id] ||= []).push(e);
-
     }
 
     for (const o of state.odds) {
-
       const id = String(o.fixtureId || "");
-
-      if (!id)
-        continue;
-
+      if (!id) continue;
       (state.oddsByFixture[id] ||= []).push(o);
-
     }
 
     for (const h of state.historical) {
-
       const id = String(h.fixtureId || "");
-
-      if (!id)
-        continue;
-
+      if (!id) continue;
       (state.historicalByFixture[id] ||= []).push(h);
-
     }
 
-    /* ---------------- KPI ---------------- */
-
     el.matchesCount.textContent =
-probe.counts?.matches ??
-state.matches.length;
+      probe.counts?.matches ??
+      state.matches.length;
 
     el.competitionsCount.textContent =
-probe.counts?.fixtures
-? uniqueCompetitions(state.matches).length
-: 0;
+      uniqueCompetitions(state.matches).length;
 
     el.marketsCount.textContent =
-      probe.counts?.odds ??
       countMarkets(state.odds);
 
     el.routesCount.textContent =
       Object.keys(probe.collected || {}).length;
 
-    /* ---------------- TABLES ---------------- */
-
     renderMatches(state.matches);
-
     renderStandings(state.standings);
-
     renderEvents(state.events);
-
     renderOdds(state.odds);
-
     renderRoutes(probe);
 
     activateTab("matches");
 
     if (!state.matches.length) {
-
-      setStatus(
-        "Connected. No fixtures available.",
-        "warn"
-      );
-
+      setStatus("Connected. No fixtures available.", "warn");
     } else {
-
-      setStatus(
-        `Loaded ${state.matches.length} fixtures`,
-        "ok"
-      );
-
+      setStatus(`Loaded ${state.matches.length} fixtures`, "ok");
     }
-
-  }
-
-  catch (e) {
-
+  } catch (e) {
     console.error(e);
-
     show(e);
-
-    setStatus(
-      e.message || "Probe failed",
-      "err"
-    );
-
-  }
-
-  finally {
-
+    setStatus(e.message || "Probe failed", "err");
+  } finally {
     el.probeBtn.disabled = false;
-
   }
-
 }
 
 
