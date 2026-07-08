@@ -1130,8 +1130,7 @@ grid-template-columns:1fr 1fr;
 
   <section class="hero">
     <div class="card hero-main">
-
-      <div class="hero-buttons" style="margin-top:0px">
+      <div class="hero-buttons" style="margin-top:0">
         <button class="btn btn-primary" id="probeBtn" type="button">🔄 Refresh Data</button>
         <button class="btn btn-secondary" id="refreshBtn" type="button">⏱ Auto Refresh OFF</button>
         <button class="btn btn-secondary" id="tokenBtn" type="button">🛰 Test Connection</button>
@@ -1176,49 +1175,98 @@ grid-template-columns:1fr 1fr;
   <section class="main-grid">
 
     <aside class="sidebar hidden" id="settingsPanel">
-  <div class="card panel">
-    <h3>Settings</h3>
+      <div class="card panel">
+        <h3>Settings</h3>
 
-    <input id="workerBase" type="hidden" value="https://game.shooleeyack.workers.dev">
+        <input id="workerBase" type="hidden" value="https://game.shooleeyack.workers.dev">
 
-    <label for="providerBase">Provider API</label>
-    <input id="providerBase" value="https://txline.txodds.com/api/" readonly>
+        <label for="providerBase">Provider API</label>
+        <input id="providerBase" value="https://txline.txodds.com/api/" readonly>
 
-    <label for="serviceLevelId">Feed Quality</label>
-    <select id="serviceLevelId">
-      <option value="12" selected>Real-time</option>
-      <option value="1">60 sec delay</option>
-    </select>
-  </div>
-</aside>
+        <label for="serviceLevelId">Feed Quality</label>
+        <select id="serviceLevelId">
+          <option value="12" selected>Real-time</option>
+          <option value="1">60 sec delay</option>
+        </select>
 
+        <div class="footer-note">
+          This panel shows the upstream API base used for fixtures, odds and scores snapshots.
+        </div>
+      </div>
 
+      <div class="card panel">
+        <h3>Debug</h3>
+
+        <details>
+          <summary>
+            <span>Discovered routes</span>
+            <span>Expand</span>
+          </summary>
+          <div id="routes" class="routes" style="margin-top:14px">
+            <div class="route-card">
+              <div class="route-head">
+                <div class="route-url">Waiting for probe...</div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>
+            <span>Raw JSON response</span>
+            <span>Expand</span>
+          </summary>
+          <div id="response" class="json">No response yet.</div>
+        </details>
+      </div>
+    </aside>
 
     <div class="content">
 
       <div class="card panel">
-        <h3>Data Views</h3>
-        <div class="tabs">
-          <button class="tab active" data-tab="matches" type="button">Fixtures</button>
-          <button class="tab" data-tab="standings" type="button">Standings</button>
-          <button class="tab" data-tab="events" type="button">Events</button>
-          <button class="tab" data-tab="odds" type="button">Odds</button>
-          <button class="tab" data-tab="routes" type="button">Routes</button>
-        </div>
+        <h3>Fixtures</h3>
+        <div class="hint">Open a match card to inspect snapshot events, live events, historical events and odds.</div>
       </div>
 
       <div id="tab-matches" class="section">
         <div class="section-head">
-          <h4>World Cup Fixtures</h4>
-          <div class="hint">Live snapshot from TxLINE fixtures feed</div>
+          <div>
+            <h4>Fixtures</h4>
+            <div class="hint">Current snapshot from the TxLINE feed</div>
+          </div>
         </div>
 
         <div class="section-body">
-          <div class="chips" id="matchChips">
-            <span class="chip">Waiting...</span>
+
+          <div class="kpi-grid" style="margin-bottom:18px">
+            <div class="card kpi">
+              <div class="kpi-title">All</div>
+              <div class="kpi-value" id="summaryFixtures">0</div>
+              <div class="kpi-sub">Visible fixtures</div>
+            </div>
+
+            <div class="card kpi">
+              <div class="kpi-title">Live</div>
+              <div class="kpi-value" id="summaryLive">0</div>
+              <div class="kpi-sub">In progress</div>
+            </div>
+
+            <div class="card kpi">
+              <div class="kpi-title">Upcoming</div>
+              <div class="kpi-value" id="summaryUpcoming">0</div>
+              <div class="kpi-sub">Scheduled matches</div>
+            </div>
+
+            <div class="card kpi">
+              <div class="kpi-title">Finished</div>
+              <div class="kpi-value" id="summaryFinished">0</div>
+              <div class="kpi-sub">Completed matches</div>
+            </div>
           </div>
 
-          <div style="height:14px"></div>
+          <div class="chips" id="matchChips" style="display:none">
+            <span class="chip">Waiting...</span>
+          </div>
 
           <div class="table-wrap">
             <table>
@@ -1231,7 +1279,7 @@ grid-template-columns:1fr 1fr;
                   <th>Kickoff</th>
                   <th>Status</th>
                   <th>Score</th>
-                  <th>Preview</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody id="matchesBody">
@@ -1242,12 +1290,11 @@ grid-template-columns:1fr 1fr;
         </div>
       </div>
 
-      <div id="tab-standings" class="section hidden">
+      <div id="tab-standings" class="section hidden" style="display:none">
         <div class="section-head">
           <h4>Standings</h4>
-          <div class="hint">Rendered when standings data is available</div>
+          <div class="hint">Hidden in simplified mode</div>
         </div>
-
         <div class="section-body">
           <div class="chips" id="standingsChips">
             <span class="chip">No data</span>
@@ -1277,12 +1324,11 @@ grid-template-columns:1fr 1fr;
         </div>
       </div>
 
-      <div id="tab-events" class="section hidden">
+      <div id="tab-events" class="section hidden" style="display:none">
         <div class="section-head">
           <h4>Events</h4>
-          <div class="hint">Timeline and score updates</div>
+          <div class="hint">Hidden in simplified mode</div>
         </div>
-
         <div class="section-body">
           <div class="chips" id="eventsChips">
             <span class="chip">No data</span>
@@ -1312,12 +1358,11 @@ grid-template-columns:1fr 1fr;
         </div>
       </div>
 
-      <div id="tab-odds" class="section hidden">
+      <div id="tab-odds" class="section hidden" style="display:none">
         <div class="section-head">
           <h4>Odds</h4>
-          <div class="hint">Markets, bookmakers and prices</div>
+          <div class="hint">Hidden in simplified mode</div>
         </div>
-
         <div class="section-body">
           <div class="chips" id="oddsChips">
             <span class="chip">No data</span>
@@ -1347,34 +1392,18 @@ grid-template-columns:1fr 1fr;
         </div>
       </div>
 
-      <div id="tab-routes" class="section hidden">
+      <div id="tab-routes" class="section hidden" style="display:none">
         <div class="section-head">
           <h4>Endpoint Discovery</h4>
-          <div class="hint">Routes discovered during the last probe</div>
+          <div class="hint">Hidden in simplified mode</div>
         </div>
-
-        <div class="section-body">
-          <div id="routes" class="routes">
-            <div class="route-card">
-              <div class="route-head">
-                <div class="route-url">Waiting for probe...</div>
-              </div>
-            </div>
-          </div>
-
-          <details>
-            <summary>
-              <span>Raw JSON response</span>
-              <span>Expand</span>
-            </summary>
-            <div id="response" class="json">No response yet.</div>
-          </details>
-        </div>
+        <div class="section-body"></div>
       </div>
 
     </div>
   </section>
 </div>
+
 
 
 
@@ -1867,26 +1896,38 @@ return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
 
 
 function renderMatches(rows) {
-
   const grouped = splitMatchesByTime(rows);
 
   const sections = [
     {
-      title: "CURRENT MATCHES",
+      title: "LIVE MATCHES",
       rows: grouped.current,
-      cls: "ok"
+      tone: "rgba(95,224,178,.12)",
+      border: "rgba(95,224,178,.28)"
     },
     {
       title: "UPCOMING MATCHES",
       rows: grouped.future,
-      cls: ""
+      tone: "rgba(125,141,255,.10)",
+      border: "rgba(125,141,255,.24)"
     },
     {
       title: "FINISHED MATCHES",
       rows: grouped.past,
-      cls: ""
+      tone: "rgba(255,255,255,.05)",
+      border: "rgba(255,255,255,.10)"
     }
   ];
+
+  const summaryFixtures = document.getElementById("summaryFixtures");
+  const summaryLive = document.getElementById("summaryLive");
+  const summaryUpcoming = document.getElementById("summaryUpcoming");
+  const summaryFinished = document.getElementById("summaryFinished");
+
+  if (summaryFixtures) summaryFixtures.textContent = String(rows.length);
+  if (summaryLive) summaryLive.textContent = String(grouped.current.length);
+  if (summaryUpcoming) summaryUpcoming.textContent = String(grouped.future.length);
+  if (summaryFinished) summaryFinished.textContent = String(grouped.past.length);
 
   renderChips(el.matchChips, [
     `Fixtures: ${rows.length}`,
@@ -1896,250 +1937,121 @@ function renderMatches(rows) {
   ]);
 
   if (!rows.length) {
-
     el.matchesBody.innerHTML =
       '<tr><td colspan="8">No fixtures received from provider.</td></tr>';
-
+    bindFixtureDetailsButtons();
     return;
-
   }
 
   const html = [];
 
   for (const section of sections) {
-
-    if (!section.rows.length)
-      continue;
+    if (!section.rows.length) continue;
 
     html.push(`
-
 <tr class="group-row">
-
-<td colspan="8"
-style="
-background:rgba(125,141,255,.10);
-font-weight:800;
-font-size:15px;
-padding:14px 18px">
-
-${escapeHtml(section.title)}
-&nbsp;
-(${section.rows.length})
-
-</td>
-
+  <td colspan="8" style="
+    background:${section.tone};
+    border-top:1px solid ${section.border};
+    border-bottom:1px solid ${section.border};
+    font-weight:800;
+    font-size:14px;
+    letter-spacing:.04em;
+    padding:14px 18px">
+    ${escapeHtml(section.title)}&nbsp;(${section.rows.length})
+  </td>
 </tr>
-
 `);
 
     for (const r of section.rows) {
-
-      const fixtureId =
-        escapeHtml(r.id);
-
-      const kickoff =
-        escapeHtml(
-          formatDate(r.kickoff)
-        );
-
-      const league =
-        escapeHtml(r.league);
-
-      const home =
-        escapeHtml(r.home);
-
-      const away =
-        escapeHtml(r.away);
-
-      const status =
-        escapeHtml(r.status);
-
-      const score =
-        escapeHtml(r.score);
+      const fixtureId = escapeHtml(r.id ?? "");
+      const kickoff = escapeHtml(formatDate(r.kickoff) || "—");
+      const league = escapeHtml(r.league || "—");
+      const home = escapeHtml(r.home || "—");
+      const away = escapeHtml(r.away || "—");
+      const status = escapeHtml(r.status || "—");
+      const score = escapeHtml(r.score || "—");
 
       if (isMobileView()) {
-
         html.push(`
-
 <tr>
+  <td colspan="8">
+    <div class="mobile-card" data-fixture-card="${fixtureId}">
+      <div class="mobile-card-head">
+        <div class="mobile-card-title">
+          ${home}
+          <span class="mobile-card-vs">vs</span>
+          ${away}
+        </div>
+        <div class="mobile-card-sub">${league}</div>
+      </div>
 
-<td colspan="8">
+      <div class="mobile-card-grid">
+        <div>
+          <span>Kickoff</span>
+          <b>${kickoff}</b>
+        </div>
 
-<div class="mobile-card"
-data-fixture-card="${fixtureId}">
+        <div>
+          <span>Status</span>
+          <b>${status}</b>
+        </div>
 
-<div class="mobile-card-head">
+        <div>
+          <span>Score</span>
+          <b>${score}</b>
+        </div>
 
-<div class="mobile-card-title">
+        <div>
+          <span>Fixture</span>
+          <b class="mono">${fixtureId}</b>
+        </div>
+      </div>
 
-${home}
+      <div style="display:flex;margin-top:12px">
+        <button
+          class="btn btn-secondary details-btn"
+          data-fixture-id="${fixtureId}"
+          type="button">
+          Details
+        </button>
+      </div>
 
-<span class="mobile-card-vs">
-
-vs
-
-</span>
-
-${away}
-
-</div>
-
-<div class="mobile-card-sub">
-
-${league}
-
-</div>
-
-</div>
-
-<div class="mobile-card-grid">
-
-<div>
-
-<span>Kickoff</span>
-
-<b>${kickoff}</b>
-
-</div>
-
-<div>
-
-<span>Status</span>
-
-<b>${status}</b>
-
-</div>
-
-<div>
-
-<span>Score</span>
-
-<b>${score}</b>
-
-</div>
-
-<div>
-
-<span>Fixture</span>
-
-<b class="mono">
-
-${fixtureId}
-
-</b>
-
-</div>
-
-</div>
-
-<div
-style="
-display:flex;
-margin-top:12px">
-
-<button
-class="btn btn-secondary details-btn"
-data-fixture-id="${fixtureId}">
-
-Details
-
-</button>
-
-</div>
-
-<div
-class="mobile-details-slot"
-data-details-slot="${fixtureId}">
-
-</div>
-
-</div>
-
-</td>
-
+      <div
+        class="mobile-details-slot"
+        data-details-slot="${fixtureId}">
+      </div>
+    </div>
+  </td>
 </tr>
-
 `);
-
-      }
-
-      else {
-
+      } else {
         html.push(`
-
 <tr>
-
-<td class="mono">
-
-${fixtureId}
-
-</td>
-
-<td>
-
-${league}
-
-</td>
-
-<td>
-
-${home}
-
-</td>
-
-<td>
-
-${away}
-
-</td>
-
-<td class="mono">
-
-${kickoff}
-
-</td>
-
-<td>
-
-${status}
-
-</td>
-
-<td class="mono">
-
-${score}
-
-</td>
-
-<td>
-
-<button
-class="btn btn-secondary details-btn"
-data-fixture-id="${fixtureId}">
-
-Details
-
-</button>
-
-</td>
-
+  <td class="mono">${fixtureId}</td>
+  <td>${league}</td>
+  <td>${home}</td>
+  <td>${away}</td>
+  <td class="mono">${kickoff}</td>
+  <td>${status}</td>
+  <td class="mono">${score}</td>
+  <td>
+    <button
+      class="btn btn-secondary details-btn"
+      data-fixture-id="${fixtureId}"
+      type="button">
+      Details
+    </button>
+  </td>
 </tr>
-
 `);
-
       }
-
     }
-
   }
 
-  el.matchesBody.innerHTML =
-    html.join("");
-
+  el.matchesBody.innerHTML = html.join("");
   bindFixtureDetailsButtons();
-
 }
-
 
 
 
