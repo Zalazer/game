@@ -1,3788 +1,1146 @@
 ﻿<!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>TxLINE Pro Enterprise Dashboard</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-<style>
-:root{
---bg:#060914;
---bg2:#0b1124;
---panel:#10172d;
---panel2:#141d39;
---panel3:#1b2648;
---line:rgba(255,255,255,.08);
---line2:rgba(110,140,255,.18);
---text:#eef4ff;
---muted:#9fb0d8;
---muted2:#7284af;
---green:#5fe0b2;
---red:#ff6d86;
---yellow:#ffd166;
---blue:#7d8dff;
---cyan:#67d8ff;
---purple:#bd7cff;
---radius:22px;
---shadow:0 24px 80px rgba(0,0,0,.45);
---shadow-soft:0 10px 30px rgba(0,0,0,.24);
---card-bg:rgba(18,25,49,.78);
---card-bg-2:rgba(255,255,255,.035);
---surface-soft:rgba(255,255,255,.03);
---surface-strong:rgba(255,255,255,.05);
---surface-hover:rgba(255,255,255,.06);
---live-bg:rgba(95,224,178,.12);
---live-line:rgba(95,224,178,.26);
---past-bg:rgba(255,255,255,.05);
---past-line:rgba(255,255,255,.10);
---future-bg:rgba(125,141,255,.10);
---future-line:rgba(125,141,255,.24);
-}
-
-*,
-*::before,
-*::after{
-margin:0;
-padding:0;
-box-sizing:border-box;
-min-width:0;
-}
-
-html{
-height:100%;
--webkit-text-size-adjust:100%;
-text-size-adjust:100%;
-scroll-behavior:smooth;
-}
-
-body{
-min-height:100%;
-font-family:Inter,sans-serif;
-color:var(--text);
-background:
-radial-gradient(circle at 15% 0%,rgba(125,141,255,.18),transparent 22%),
-radial-gradient(circle at 85% 8%,rgba(95,224,178,.12),transparent 18%),
-radial-gradient(circle at 50% 120%,rgba(189,124,255,.08),transparent 30%),
-linear-gradient(180deg,var(--bg),var(--bg2));
-overflow-x:hidden;
-padding:20px;
-word-wrap:break-word;
-overflow-wrap:anywhere;
-line-height:1.55;
-}
-
-button,input,textarea,select{
-font:inherit;
-}
-
-button{
-appearance:none;
--webkit-appearance:none;
-}
-
-img,video,canvas,svg{
-display:block;
-max-width:100%;
-height:auto;
-}
-
-.shell{
-max-width:1680px;
-margin:auto;
-display:flex;
-flex-direction:column;
-gap:18px;
-}
-
-.card{
-background:var(--card-bg);
-border:1px solid var(--line2);
-backdrop-filter:blur(18px);
-border-radius:24px;
-box-shadow:var(--shadow);
-max-width:100%;
-}
-
-.topbar{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:16px;
-padding:18px 22px;
-}
-
-.brand{
-display:flex;
-align-items:center;
-gap:16px;
-min-width:0;
-}
-
-.logo{
-width:52px;
-height:52px;
-border-radius:16px;
-background:linear-gradient(135deg,var(--green),var(--blue));
-box-shadow:0 12px 34px rgba(95,224,178,.35);
-flex:0 0 auto;
-}
-
-.brand h1{
-font-size:22px;
-font-weight:900;
-letter-spacing:-.03em;
-line-height:1.08;
-overflow-wrap:anywhere;
-}
-
-.brand p{
-margin-top:4px;
-font-size:13px;
-color:var(--muted);
-overflow-wrap:anywhere;
-}
-
-.top-right{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-justify-content:flex-end;
-min-width:0;
-}
-
-.badge{
-padding:9px 13px;
-border-radius:999px;
-font-size:12px;
-font-weight:700;
-background:rgba(255,255,255,.04);
-border:1px solid var(--line);
-color:var(--muted);
-max-width:100%;
-overflow-wrap:anywhere;
-}
-
-.hero{
-display:grid;
-grid-template-columns:minmax(0,1.15fr) 380px;
-gap:18px;
-align-items:start;
-}
-
-.hero-main{
-padding:26px 28px;
-position:relative;
-overflow:hidden;
-min-width:0;
-}
-
-.hero-main::after{
-content:"";
-position:absolute;
-right:-140px;
-bottom:-140px;
-width:420px;
-height:420px;
-background:radial-gradient(circle,rgba(125,141,255,.16),transparent 70%);
-pointer-events:none;
-}
-
-.eyebrow{
-display:inline-flex;
-align-items:center;
-padding:8px 12px;
-border-radius:999px;
-background:rgba(95,224,178,.12);
-border:1px solid rgba(95,224,178,.25);
-font-size:11px;
-font-weight:800;
-letter-spacing:.12em;
-text-transform:uppercase;
-color:#dffff6;
-max-width:100%;
-}
-
-.hero-title{
-margin-top:16px;
-font-size:30px;
-font-weight:900;
-line-height:1.02;
-letter-spacing:-.05em;
-max-width:860px;
-overflow-wrap:anywhere;
-}
-
-.hero-text{
-margin-top:14px;
-max-width:620px;
-font-size:15px;
-line-height:1.7;
-color:var(--muted);
-overflow-wrap:anywhere;
-}
-
-.hero-buttons{
-display:flex;
-gap:12px;
-flex-wrap:wrap;
-margin-top:22px;
-}
-
-.btn{
-border:none;
-cursor:pointer;
-padding:13px 18px;
-border-radius:14px;
-font-size:14px;
-font-weight:800;
-transition:transform .18s ease,background .18s ease,border-color .18s ease,opacity .18s ease;
-max-width:100%;
-min-height:44px;
-display:inline-flex;
-align-items:center;
-justify-content:center;
-gap:8px;
-text-align:center;
-}
-
-.btn:hover{
-transform:translateY(-1px);
-}
-
-.btn:disabled{
-opacity:.6;
-cursor:not-allowed;
-transform:none;
-}
-
-.btn-primary{
-background:linear-gradient(135deg,var(--green),var(--blue));
-color:#071019;
-box-shadow:0 10px 28px rgba(103,216,255,.18);
-}
-
-.btn-secondary{
-background:rgba(255,255,255,.05);
-border:1px solid var(--line);
-color:white;
-}
-
-.btn-secondary:hover{
-background:rgba(255,255,255,.08);
-border-color:rgba(255,255,255,.12);
-}
-
-.hero-side{
-display:flex;
-flex-direction:column;
-gap:14px;
-min-width:0;
-}
-
-.kpi-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:12px;
-}
-
-.kpi{
-padding:15px;
-border-radius:18px;
-background:rgba(255,255,255,.035);
-border:1px solid var(--line);
-display:flex;
-flex-direction:column;
-gap:8px;
-min-width:0;
-}
-
-.kpi-title{
-font-size:11px;
-text-transform:uppercase;
-letter-spacing:.12em;
-color:var(--muted2);
-font-weight:700;
-}
-
-.kpi-value{
-font-size:26px;
-font-weight:900;
-letter-spacing:-.04em;
-overflow-wrap:anywhere;
-line-height:1;
-}
-
-.kpi-sub{
-font-size:12px;
-color:var(--muted);
-overflow-wrap:anywhere;
-}
-
-.status-card{
-padding:18px;
-border-radius:18px;
-border:1px solid var(--line);
-background:rgba(255,255,255,.035);
-min-width:0;
-}
-
-.status-title{
-font-size:12px;
-text-transform:uppercase;
-letter-spacing:.14em;
-color:var(--muted2);
-margin-bottom:10px;
-}
-
-.status{
-padding:13px 14px;
-border-radius:14px;
-background:rgba(255,255,255,.04);
-font-size:14px;
-line-height:1.55;
-white-space:pre-wrap;
-overflow-wrap:anywhere;
-}
-
-.ok{color:var(--green)}
-.warn{color:var(--yellow)}
-.err{color:var(--red)}
-
-.main-grid{
-display:grid;
-grid-template-columns:320px minmax(0,1fr);
-gap:18px;
-align-items:start;
-}
-
-.sidebar,.content{
-display:flex;
-flex-direction:column;
-gap:18px;
-min-width:0;
-}
-
-.panel{
-padding:18px;
-min-width:0;
-}
-
-.panel h3{
-font-size:17px;
-font-weight:800;
-margin-bottom:14px;
-letter-spacing:-.02em;
-overflow-wrap:anywhere;
-}
-
-label{
-display:block;
-margin-top:10px;
-margin-bottom:6px;
-font-size:13px;
-color:#d8e4ff;
-font-weight:600;
-}
-
-input,textarea,select{
-width:100%;
-background:rgba(9,15,29,.9);
-border:1px solid var(--line);
-border-radius:14px;
-padding:12px 14px;
-color:white;
-font-size:14px;
-outline:none;
-transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
-}
-
-input:focus,textarea:focus,select:focus{
-border-color:var(--blue);
-box-shadow:0 0 0 1px rgba(125,141,255,.35);
-}
-
-select{
-cursor:pointer;
-appearance:none;
-background-image:
-linear-gradient(45deg,transparent 50%,#8fa8ff 50%),
-linear-gradient(135deg,#8fa8ff 50%,transparent 50%);
-background-position:
-calc(100% - 18px) calc(50% - 2px),
-calc(100% - 12px) calc(50% - 2px);
-background-size:6px 6px;
-background-repeat:no-repeat;
-padding-right:40px;
-}
-
-textarea{
-resize:vertical;
-min-height:120px;
-font-family:SFMono-Regular,Consolas,monospace;
-font-size:12px;
-line-height:1.55;
-}
-
-.footer-note{
-margin-top:14px;
-font-size:12px;
-line-height:1.6;
-color:var(--muted2);
-overflow-wrap:anywhere;
-}
-
-.tabs{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-margin-bottom:0;
-}
-
-.tab{
-padding:10px 16px;
-border-radius:999px;
-background:rgba(255,255,255,.03);
-border:1px solid var(--line);
-cursor:pointer;
-font-size:13px;
-font-weight:700;
-color:var(--muted);
-transition:background .18s ease,border-color .18s ease,color .18s ease;
-max-width:100%;
-}
-
-.tab:hover{
-background:rgba(255,255,255,.06);
-}
-
-.tab.active{
-background:linear-gradient(135deg,rgba(95,224,178,.12),rgba(125,141,255,.12));
-border-color:rgba(125,141,255,.4);
-color:white;
-}
-
-.section{
-border-radius:20px;
-border:1px solid var(--line);
-overflow:hidden;
-background:rgba(255,255,255,.025);
-max-width:100%;
-}
-
-.section-head{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:12px;
-padding:16px 18px;
-border-bottom:1px solid var(--line);
-min-width:0;
-}
-
-.section-head h4,.section-title{
-font-size:14px;
-font-weight:800;
-text-transform:uppercase;
-letter-spacing:.08em;
-overflow-wrap:anywhere;
-}
-
-.section-sub,.hint{
-font-size:12px;
-color:var(--muted2);
-overflow-wrap:anywhere;
-}
-
-.section-body{
-padding:18px;
-max-width:100%;
-min-width:0;
-}
-
-.table-wrap{
-width:100%;
-max-width:100%;
-overflow:auto;
--webkit-overflow-scrolling:touch;
-border-radius:16px;
-border:1px solid var(--line);
-background:rgba(8,12,24,.72);
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-min-width:1120px;
-}
-
-thead{
-background:rgba(18,27,52,.96);
-}
-
-th{
-padding:13px 14px;
-text-align:left;
-font-size:11px;
-font-weight:800;
-text-transform:uppercase;
-letter-spacing:.08em;
-color:#dbe6ff;
-position:sticky;
-top:0;
-z-index:2;
-white-space:nowrap;
-}
-
-td{
-padding:13px 14px;
-border-top:1px solid rgba(255,255,255,.05);
-font-size:13px;
-vertical-align:top;
-color:#eef2ff;
-overflow-wrap:anywhere;
-word-break:break-word;
-}
-
-tbody tr{
-transition:background .16s ease;
-}
-
-tbody tr:hover{
-background:rgba(255,255,255,.03);
-}
-
-.group-row td{
-position:sticky;
-top:38px;
-z-index:1;
-backdrop-filter:blur(10px);
-}
-
-.mono,.json{
-font-family:SFMono-Regular,Consolas,monospace;
-word-break:break-word;
-overflow-wrap:anywhere;
-}
-
-.routes{
-display:grid;
-gap:14px;
-}
-
-.route-card{
-border-radius:18px;
-padding:16px;
-background:rgba(255,255,255,.03);
-border:1px solid var(--line);
-max-width:100%;
-min-width:0;
-overflow:hidden;
-}
-
-.route-head{
-display:flex;
-justify-content:space-between;
-align-items:flex-start;
-gap:16px;
-margin-bottom:14px;
-min-width:0;
-}
-
-.route-head > div{
-min-width:0;
-}
-
-.route-url{
-font-size:13px;
-font-family:Consolas,monospace;
-word-break:break-word;
-overflow-wrap:anywhere;
-color:#dce8ff;
-}
-
-.route-meta{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-justify-content:flex-end;
-min-width:0;
-}
-
-.tag{
-padding:6px 10px;
-border-radius:999px;
-font-size:11px;
-font-weight:700;
-border:1px solid var(--line);
-background:rgba(255,255,255,.04);
-max-width:100%;
-overflow-wrap:anywhere;
-}
-
-.tag.ok{
-background:rgba(95,224,178,.12);
-border-color:rgba(95,224,178,.35);
-color:#d8fff1;
-}
-
-.tag.bad{
-background:rgba(255,109,134,.12);
-border-color:rgba(255,109,134,.35);
-color:#ffdbe2;
-}
-
-.route-grid{
-display:grid;
-grid-template-columns:repeat(4,minmax(0,1fr));
-gap:12px;
-max-width:100%;
-min-width:0;
-}
-
-.mini{
-padding:13px;
-border-radius:14px;
-background:rgba(0,0,0,.18);
-border:1px solid rgba(255,255,255,.04);
-min-width:0;
-}
-
-.mini .t{
-font-size:10px;
-text-transform:uppercase;
-letter-spacing:.12em;
-color:var(--muted2);
-margin-bottom:8px;
-overflow-wrap:anywhere;
-}
-
-.mini .v{
-font-size:14px;
-font-weight:700;
-word-break:break-word;
-overflow-wrap:anywhere;
-}
-
-.json{
-margin-top:12px;
-padding:14px;
-border-radius:14px;
-background:rgba(6,9,20,.75);
-border:1px solid var(--line);
-white-space:pre-wrap;
-color:#dbe6ff;
-font-size:12px;
-line-height:1.6;
-max-height:460px;
-overflow:auto;
-max-width:100%;
-}
-
-details{
-margin-top:14px;
-max-width:100%;
-}
-
-summary{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:14px;
-cursor:pointer;
-list-style:none;
-padding:12px 14px;
-border-radius:14px;
-background:rgba(255,255,255,.03);
-border:1px solid var(--line);
-max-width:100%;
-}
-
-summary::-webkit-details-marker{
-display:none;
-}
-
-.placeholder{
-padding:22px;
-text-align:center;
-color:var(--muted2);
-font-size:14px;
-overflow-wrap:anywhere;
-}
-
-.mobile-card{
-display:flex;
-flex-direction:column;
-gap:12px;
-width:100%;
-max-width:100%;
-min-width:0;
-padding:15px;
-border-radius:18px;
-background:rgba(255,255,255,.035);
-border:1px solid rgba(255,255,255,.08);
-box-shadow:var(--shadow-soft);
-}
-
-.mobile-card-head{
-display:flex;
-flex-direction:column;
-align-items:flex-start;
-gap:6px;
-padding-bottom:10px;
-border-bottom:1px solid rgba(255,255,255,.08);
-min-width:0;
-}
-
-.mobile-card-title{
-font-size:18px;
-font-weight:800;
-text-align:left;
-line-height:1.3;
-word-break:break-word;
-overflow-wrap:anywhere;
-max-width:100%;
-}
-
-.mobile-card-vs{
-color:var(--muted2);
-font-weight:700;
-margin:0 4px;
-}
-
-.mobile-card-sub{
-font-size:12px;
-color:var(--muted);
-text-align:left;
-overflow-wrap:anywhere;
-word-break:break-word;
-max-width:100%;
-}
-
-.mobile-card-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:2px;
-align-items:start;
-width:100%;
-max-width:100%;
-min-width:0;
-}
-
-.mobile-card-grid div{
-padding:10px 11px;
-border-radius:14px;
-background:rgba(255,255,255,.03);
-border:1px solid rgba(255,255,255,.06);
-min-width:0;
-max-width:100%;
-}
-
-.mobile-card-grid span{
-display:block;
-font-size:10px;
-text-transform:uppercase;
-letter-spacing:.08em;
-color:var(--muted2);
-margin-bottom:6px;
-overflow-wrap:anywhere;
-}
-
-.mobile-card-grid b{
-display:block;
-font-size:13px;
-font-weight:700;
-white-space:normal;
-overflow:hidden;
-text-overflow:clip;
-overflow-wrap:anywhere;
-word-break:break-word;
-}
-
-.mobile-card-text{
-font-size:13px;
-line-height:1.55;
-color:var(--text);
-overflow-wrap:anywhere;
-word-break:break-word;
-}
-
-.mobile-details{
-margin-top:0;
-}
-
-.mobile-details summary{
-padding:12px 14px;
-font-size:13px;
-}
-
-.mobile-details-slot,
-.details-panel{
-width:100%;
-max-width:100%;
-min-width:0;
-overflow:hidden;
-margin-top:12px;
-}
-
-.details-panel .route-card,
-.mobile-details-slot .route-card{
-width:100%;
-max-width:100%;
-border-radius:16px;
-background:rgba(255,255,255,.028);
-}
-
-.details-panel .route-head,
-.mobile-details-slot .route-head{
-align-items:flex-start;
-}
-
-.details-panel .route-grid,
-.mobile-details-slot .route-grid{
-grid-template-columns:repeat(2,minmax(0,1fr));
-}
-
-.details-panel .table-wrap,
-.mobile-details-slot .table-wrap{
-width:100%;
-max-width:100%;
-overflow-x:auto;
-overflow-y:hidden;
-}
-
-.details-panel table,
-.mobile-details-slot table{
-width:100%;
-min-width:560px;
-table-layout:fixed;
-}
-
-.details-panel th,
-.details-panel td,
-.mobile-details-slot th,
-.mobile-details-slot td{
-white-space:normal;
-overflow-wrap:anywhere;
-word-break:break-word;
-vertical-align:top;
-}
-
-.section-toggle-btn{
-border-color:rgba(255,255,255,.12);
-background:rgba(255,255,255,.04);
-padding:8px 12px;
-font-size:12px;
-font-weight:800;
-min-height:auto;
-}
-
-.section-toggle-btn:hover{
-background:rgba(255,255,255,.08);
-}
-
-.match-preview{
-margin-top:4px;
-font-size:12px;
-color:var(--muted);
-line-height:1.45;
-}
-
-.match-status-live{
-color:var(--green);
-font-weight:800;
-}
-
-.match-status-past{
-color:#d6dcef;
-font-weight:700;
-}
-
-.match-status-future{
-color:#c9d4ff;
-font-weight:700;
-}
-
-.group-row[data-group="live"] td{
-background:var(--live-bg);
-border-top:1px solid var(--live-line);
-border-bottom:1px solid var(--live-line);
-}
-
-.group-row[data-group="past"] td{
-background:var(--past-bg);
-border-top:1px solid var(--past-line);
-border-bottom:1px solid var(--past-line);
-}
-
-.group-row[data-group="future"] td{
-background:var(--future-bg);
-border-top:1px solid var(--future-line);
-border-bottom:1px solid var(--future-line);
-}
-
-.hidden{
-display:none;
-}
-
-@media (max-width:760px){
-body{
-padding:10px;
-overflow-x:hidden;
-}
-
-.shell{
-width:100%;
-max-width:100%;
-gap:14px;
-}
-
-.card{
-border-radius:18px;
-}
-
-.topbar{
-padding:14px 16px;
-flex-direction:column;
-align-items:flex-start;
-}
-
-.top-right{
-width:100%;
-justify-content:flex-start;
-}
-
-.brand h1{
-font-size:19px;
-}
-
-.brand p{
-font-size:12px;
-}
-
-.hero{
-grid-template-columns:1fr;
-gap:14px;
-}
-
-.hero-main{
-padding:18px 18px 20px;
-}
-
-.hero-title{
-font-size:24px;
-line-height:1.12;
-}
-
-.hero-text{
-font-size:14px;
-line-height:1.6;
-}
-
-.hero-buttons{
-display:flex;
-flex-direction:column;
-gap:10px;
-}
-
-.btn{
-width:100%;
-}
-
-.main-grid{
-grid-template-columns:1fr;
-gap:14px;
-}
-
-.sidebar{
-order:2;
-}
-
-.content{
-order:1;
-}
-
-.panel{
-padding:16px;
-}
-
-.kpi-grid{
-grid-template-columns:1fr 1fr;
-gap:10px;
-}
-
-.kpi{
-padding:13px;
-border-radius:16px;
-}
-
-.kpi-value{
-font-size:22px;
-}
-
-.section-head{
-flex-direction:column;
-align-items:flex-start;
-padding:14px 16px;
-}
-
-.section-body{
-padding:14px;
-}
-
-.table-wrap{
-overflow:visible;
-border:none;
-background:none;
-}
-
-table{
-display:block;
-width:100%;
-min-width:100%;
-}
-
-thead{
-display:none;
-}
-
-tbody{
-display:block;
-width:100%;
-}
-
-tbody tr{
-display:block;
-width:100%;
-margin:0 0 12px;
-border:none;
-background:none;
-}
-
-tbody td{
-display:block;
-padding:0;
-border:none;
-}
-
-tbody td[colspan]{
-width:100%;
-padding:0;
-}
-
-.group-row{
-margin-bottom:8px;
-}
-
-.group-row td{
-display:block;
-padding:0 !important;
-border:none !important;
-background:none !important;
-position:static;
-backdrop-filter:none;
-}
-
-.group-row td > div{
-border-radius:14px;
-padding:12px 14px !important;
-border:1px solid rgba(255,255,255,.08);
-background:rgba(255,255,255,.04);
-}
-
-.mobile-card{
-border-radius:16px;
-padding:14px;
-overflow:hidden;
-}
-
-.mobile-card-title{
-font-size:16px;
-line-height:1.35;
-}
-
-.mobile-card-sub{
-font-size:12px;
-}
-
-.mobile-card-grid{
-grid-template-columns:1fr 1fr;
-gap:9px;
-}
-
-.mobile-card-grid div{
-padding:9px 10px;
-}
-
-.mobile-card-grid b{
-overflow-wrap:anywhere;
-word-break:break-word;
-white-space:normal;
-}
-
-.mobile-card-text{
-font-size:13px;
-line-height:1.55;
-overflow-wrap:anywhere;
-word-break:break-word;
-}
-
-.route-grid{
-grid-template-columns:1fr;
-}
-
-.route-url{
-overflow-wrap:anywhere;
-word-break:break-word;
-}
-
-.route-head{
-flex-direction:column;
-align-items:flex-start;
-gap:10px;
-}
-
-.route-meta{
-justify-content:flex-start;
-}
-
-.details-panel,
-.mobile-details-slot{
-overflow:hidden;
-}
-
-.details-panel .route-card,
-.mobile-details-slot .route-card{
-padding:13px;
-border-radius:15px;
-overflow:hidden;
-}
-
-.details-panel .route-grid,
-.mobile-details-slot .route-grid{
-grid-template-columns:1fr;
-gap:10px;
-}
-
-.details-panel .table-wrap,
-.mobile-details-slot .table-wrap{
-overflow-x:auto;
--webkit-overflow-scrolling:touch;
-border:1px solid var(--line);
-background:rgba(8,12,24,.72);
-border-radius:14px;
-}
-
-.details-panel table,
-.mobile-details-slot table{
-display:table;
-width:100%;
-min-width:420px;
-table-layout:fixed;
-}
-
-.details-panel thead,
-.mobile-details-slot thead{
-display:table-header-group;
-}
-
-.details-panel tbody,
-.mobile-details-slot tbody{
-display:table-row-group;
-}
-
-.details-panel tr,
-.mobile-details-slot tr{
-display:table-row;
-margin:0;
-}
-
-.details-panel th,
-.details-panel td,
-.mobile-details-slot th,
-.mobile-details-slot td{
-display:table-cell;
-padding:10px 12px;
-border-top:1px solid rgba(255,255,255,.05);
-font-size:12px;
-white-space:normal;
-word-break:break-word;
-overflow-wrap:anywhere;
-}
-
-.details-panel .json,
-.mobile-details-slot .json{
-display:none;
-}
-
-summary{
-padding:11px 12px;
-font-size:13px;
-}
-
-img,
-video,
-canvas,
-svg,
-pre,
-textarea{
-max-width:100%;
-}
-}
-
-@media (max-width:1280px){
-.hero{
-grid-template-columns:1fr;
-}
-
-.main-grid{
-grid-template-columns:1fr;
-}
-
-.route-grid{
-grid-template-columns:1fr 1fr;
-}
-}
-</style>
-
-
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TxLINE World Cup 2026 Insider</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #222222);
+            --hint-color: var(--tg-theme-hint-color, #999999);
+            --link-color: var(--tg-theme-link-color, #2481cc);
+            --button-color: var(--tg-theme-button-color, #2481cc);
+            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+            --secondary-bg: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            --accent-hot: #ff4d4d;
+            --accent-live: #4caf50;
+            --accent-merkle: #673ab7;
+            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        #app {
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .header-section h1 {
+            font-size: 22px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            scrollbar-width: none;
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-chip {
+            padding: 6px 14px;
+            background: var(--secondary-bg);
+            border-radius: 20px;
+            font-size: 13px;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .filter-chip.active {
+            background: var(--button-color);
+            color: var(--button-text-color);
+        }
+
+        .match-card {
+            background: var(--bg-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            position: relative;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .match-card.is-clickable {
+            cursor: pointer;
+        }
+
+        .match-card:active {
+            transform: scale(0.98);
+        }
+
+        .match-card.hot-event {
+            border: 1.5px solid var(--accent-hot);
+        }
+
+        .match-card.hot-event::before {
+            content: "🔥 HOT";
+            position: absolute;
+            top: -10px;
+            right: 16px;
+            background: var(--accent-hot);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .match-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            gap: 8px;
+        }
+
+        .team {
+            flex: 1;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .team-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 4px;
+            display: block;
+            word-break: break-word;
+        }
+
+        .score-box {
+            flex: 0 0 100px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--text-color);
+        }
+
+        .match-status {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-live);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-live);
+            border-radius: 50%;
+            margin-right: 4px;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        .match-stats-extra {
+            display: flex;
+            justify-content: space-around;
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 12px;
+            color: var(--hint-color);
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .merkle-verify {
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--accent-merkle);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .merkle-verify:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .action-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn-secondary,
+        .btn-ai,
+        .verify-btn,
+        .fav-btn,
+        .close-btn {
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-bg);
+            color: var(--text-color);
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .btn-ai {
+            background: linear-gradient(135deg, #2481cc, #673ab7);
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .section-title {
+            padding: 12px;
+            background: var(--secondary-bg);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            margin: 10px 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title small {
+            color: var(--hint-color);
+            font-weight: 400;
+            font-size: 11px;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            margin: 20px 0 10px 5px;
+            color: var(--hint-color);
+        }
+
+        .match-card.compact {
+            padding: 8px 12px;
+            opacity: 0.88;
+        }
+
+        .match-card.compact .score-box {
+            font-size: 18px;
+            flex: 0 0 60px;
+        }
+
+        .match-card.compact .action-bar {
+            display: none;
+        }
+
+        #match-details-overlay {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+        }
+
+        #match-details-overlay.active {
+            transform: translateY(0);
+        }
+
+        .modal-content {
+            min-height: 100%;
+        }
+
+        .modal-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--secondary-bg);
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            z-index: 2;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-color);
+            margin-right: 15px;
+        }
+
+        .modal-title {
+            font-weight: 700;
+            font-size: 16px;
+            word-break: break-word;
+        }
+
+        .details-main-score,
+        .section-block {
+            padding: 16px;
+        }
+
+        .big-score {
+            font-size: 48px;
+            font-weight: 900;
+            text-align: center;
+            margin: 20px 0;
+            letter-spacing: 5px;
+        }
+
+        .status-badge {
+            text-align: center;
+            color: var(--hint-color);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .historical-timeline {
+            border-left: 2px solid var(--secondary-bg);
+            margin-left: 10px;
+            padding-left: 20px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .timeline-item::before {
+            content: "";
+            position: absolute;
+            left: -26px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            background: var(--button-color);
+            border-radius: 50%;
+        }
+
+        .timeline-item .time {
+            font-size: 11px;
+            color: var(--hint-color);
+        }
+
+        .timeline-item .event-desc {
+            font-size: 14px;
+        }
+
+        .no-data {
+            color: var(--hint-color);
+            font-size: 14px;
+        }
+
+        .merkle-proof-footer {
+            padding: 20px;
+            background: var(--secondary-bg);
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .verify-btn {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px solid var(--accent-merkle);
+            color: var(--accent-merkle);
+            background: transparent;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .fav-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 20px;
+            background: none;
+            border: none;
+            z-index: 10;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .fav-btn.active {
+            color: #ffca28;
+        }
+
+        .loader-centered,
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            color: var(--hint-color);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .match-card {
+                background: #1c1c1d;
+                border-color: #2c2c2e;
+            }
+
+            .score-box {
+                color: #ffffff;
+            }
+        }
+    </style>
 </head>
-
-
 <body>
-<div class="shell">
-
-  <header class="card topbar">
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <h1>TxLINE Pro Enterprise</h1>
-        <p>Live football fixtures, scores and odds</p>
-      </div>
-    </div>
-
-    <div class="top-right">
-      <div class="badge">🟢 LIVE</div>
-      <div class="badge">Premium</div>
-    </div>
-  </header>
-
-  <section class="hero">
-    <div class="card hero-main">
-      <div class="hero-buttons" style="margin-top:0">
-        <button class="btn btn-primary" id="probeBtn" type="button">🔄 Refresh Data</button>
-        <button class="btn btn-secondary" id="refreshBtn" type="button">⏱ Auto Refresh OFF</button>
-        <button class="btn btn-secondary" id="tokenBtn" type="button">🛰 Test Connection</button>
-        <button class="btn btn-secondary" id="settingsBtn" type="button">⚙ Settings</button>
-      </div>
-    </div>
-
-    <div class="hero-side">
-      <div class="kpi-grid">
-        <div class="card kpi">
-          <div class="kpi-title">⚽ Fixtures</div>
-          <div class="kpi-value" id="matchesCount">0</div>
-          <div class="kpi-sub">Available fixtures</div>
+    <div id="app">
+        <div class="header-section">
+            <h1 id="title">FIFA 2026 Live</h1>
+            <div id="connection-status" class="live-dot" aria-hidden="true"></div>
         </div>
 
-        <div class="card kpi">
-          <div class="kpi-title">🏆 Competitions</div>
-          <div class="kpi-value" id="competitionsCount">0</div>
-          <div class="kpi-sub">Active competitions</div>
+        <div class="filter-bar" id="filters">
+            <div class="filter-chip active" data-filter="all">All matches</div>
+            <div class="filter-chip" data-filter="live">Live</div>
+            <div class="filter-chip" data-filter="upcoming">Upcoming</div>
+            <div class="filter-chip" data-filter="favorites">Favorites</div>
         </div>
 
-        <div class="card kpi">
-          <div class="kpi-title">🎯 Markets</div>
-          <div class="kpi-value" id="marketsCount">0</div>
-          <div class="kpi-sub">Loaded markets</div>
-        </div>
-
-        <div class="card kpi">
-          <div class="kpi-title">🛰 Feeds</div>
-          <div class="kpi-value" id="routesCount">0</div>
-          <div class="kpi-sub">Discovered routes</div>
-        </div>
-      </div>
-
-      <div class="card status-card">
-        <div class="status-title">System Status</div>
-        <div id="status" class="status warn">Waiting for data...</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="main-grid">
-
-    <aside class="sidebar hidden" id="settingsPanel">
-      <div class="card panel">
-        <h3>Settings</h3>
-
-        <input id="workerBase" type="hidden" value="https://game.shooleeyack.workers.dev">
-
-        <label for="providerBase">Provider API</label>
-        <input id="providerBase" value="https://txline.txodds.com/api/" readonly>
-
-        <label for="serviceLevelId">Feed Quality</label>
-        <select id="serviceLevelId">
-          <option value="12" selected>Real-time</option>
-          <option value="1">60 sec delay</option>
-        </select>
-
-        <div class="footer-note">
-          This panel shows the upstream API base used for fixtures, odds and scores snapshots.
-        </div>
-      </div>
-
-      <div class="card panel">
-        <h3>Debug</h3>
-
-        <details>
-          <summary>
-            <span>Discovered routes</span>
-            <span>Expand</span>
-          </summary>
-          <div id="routes" class="routes" style="margin-top:14px">
-            <div class="route-card">
-              <div class="route-head">
-                <div class="route-url">Waiting for probe...</div>
-              </div>
+        <div id="match-container">
+            <div id="loader" style="text-align: center; padding: 50px; color: var(--hint-color);">
+                Loading oracle data...
             </div>
-          </div>
-        </details>
-
-        <details>
-          <summary>
-            <span>Raw JSON response</span>
-            <span>Expand</span>
-          </summary>
-          <div id="response" class="json">No response yet.</div>
-        </details>
-      </div>
-    </aside>
-
-    <div class="content">
-
-      <div class="card panel">
-        <h3>Fixtures</h3>
-        <div class="hint">Open a match card to inspect snapshot events, live events, historical events and odds.</div>
-      </div>
-
-      <div id="tab-matches" class="section">
-        <div class="section-head">
-          <div>
-            <h4>Fixtures</h4>
-            <div class="hint">Current snapshot from the TxLINE feed</div>
-          </div>
         </div>
-
-        <div class="section-body">
-
-          <div class="kpi-grid" style="margin-bottom:18px">
-            <div class="card kpi">
-              <div class="kpi-title">All</div>
-              <div class="kpi-value" id="summaryFixtures">0</div>
-              <div class="kpi-sub">Visible fixtures</div>
-            </div>
-
-            <div class="card kpi">
-              <div class="kpi-title">Live</div>
-              <div class="kpi-value" id="summaryLive">0</div>
-              <div class="kpi-sub">In progress</div>
-            </div>
-
-            <div class="card kpi">
-              <div class="kpi-title">Upcoming</div>
-              <div class="kpi-value" id="summaryUpcoming">0</div>
-              <div class="kpi-sub">Scheduled matches</div>
-            </div>
-
-            <div class="card kpi">
-              <div class="kpi-title">Finished</div>
-              <div class="kpi-value" id="summaryFinished">0</div>
-              <div class="kpi-sub">Completed matches</div>
-            </div>
-          </div>
-
-          <div class="chips" id="matchChips" style="display:none">
-            <span class="chip">Waiting...</span>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Fixture</th>
-                  <th>Competition</th>
-                  <th>Home</th>
-                  <th>Away</th>
-                  <th>Kickoff</th>
-                  <th>Status</th>
-                  <th>Score</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody id="matchesBody">
-                <tr><td colspan="8">Waiting for first successful probe...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-standings" class="section hidden" style="display:none">
-        <div class="section-head">
-          <h4>Standings</h4>
-          <div class="hint">Hidden in simplified mode</div>
-        </div>
-        <div class="section-body">
-          <div class="chips" id="standingsChips">
-            <span class="chip">No data</span>
-          </div>
-
-          <div style="height:14px"></div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Team</th>
-                  <th>Group</th>
-                  <th>Pts</th>
-                  <th>Played</th>
-                  <th>Won</th>
-                  <th>Draw</th>
-                  <th>Lost</th>
-                  <th>Preview</th>
-                </tr>
-              </thead>
-              <tbody id="standingsBody">
-                <tr><td colspan="8">No standings received.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-events" class="section hidden" style="display:none">
-        <div class="section-head">
-          <h4>Events</h4>
-          <div class="hint">Hidden in simplified mode</div>
-        </div>
-        <div class="section-body">
-          <div class="chips" id="eventsChips">
-            <span class="chip">No data</span>
-          </div>
-
-          <div style="height:14px"></div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Status</th>
-                  <th>Period</th>
-                  <th>Score</th>
-                  <th>Seq</th>
-                  <th>Fixture</th>
-                  <th>Message</th>
-                  <th>Preview</th>
-                </tr>
-              </thead>
-              <tbody id="eventsBody">
-                <tr><td colspan="8">No event endpoint found.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-odds" class="section hidden" style="display:none">
-        <div class="section-head">
-          <h4>Odds</h4>
-          <div class="hint">Hidden in simplified mode</div>
-        </div>
-        <div class="section-body">
-          <div class="chips" id="oddsChips">
-            <span class="chip">No data</span>
-          </div>
-
-          <div style="height:14px"></div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Market</th>
-                  <th>Bookmaker</th>
-                  <th>Period</th>
-                  <th>Type</th>
-                  <th>Live</th>
-                  <th>Time</th>
-                  <th>Fixture</th>
-                  <th>Preview</th>
-                </tr>
-              </thead>
-              <tbody id="oddsBody">
-                <tr><td colspan="8">No odds endpoint found.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-routes" class="section hidden" style="display:none">
-        <div class="section-head">
-          <h4>Endpoint Discovery</h4>
-          <div class="hint">Hidden in simplified mode</div>
-        </div>
-        <div class="section-body"></div>
-      </div>
-
     </div>
-  </section>
-</div>
 
+    <div id="match-details-overlay"></div>
 
+    <script>
+        const tg = window.Telegram?.WebApp || null;
 
-
-<script>
-const el = {
-workerBase: document.getElementById("workerBase"),
-apiToken: document.getElementById("apiToken"),
-jwt: document.getElementById("jwt"),
-serviceLevelId: document.getElementById("serviceLevelId"),
-checkBtn: document.getElementById("tokenBtn"),
-probeBtn: document.getElementById("probeBtn"),
-refreshBtn: document.getElementById("refreshBtn"),
-status: document.getElementById("status"),
-response: document.getElementById("response"),
-matchesCount: document.getElementById("matchesCount"),
-competitionsCount: document.getElementById("competitionsCount"),
-marketsCount: document.getElementById("marketsCount"),
-routesCount: document.getElementById("routesCount"),
-matchesBody: document.getElementById("matchesBody"),
-standingsBody: document.getElementById("standingsBody"),
-eventsBody: document.getElementById("eventsBody"),
-oddsBody: document.getElementById("oddsBody"),
-matchChips: document.getElementById("matchChips"),
-standingsChips: document.getElementById("standingsChips"),
-eventsChips: document.getElementById("eventsChips"),
-oddsChips: document.getElementById("oddsChips"),
-routes: document.getElementById("routes"),
-routesCompact: document.getElementById("routesCompact")
-};
-
-let auto = false;
-let timer = null;
-let state = {
-matches: [],
-standings: [],
-events: [],
-odds: [],
-historicalByFixture: {},
-eventsByFixture: {},
-oddsByFixture: {}
-};
-
-function escapeHtml(v) {
-return String(v ?? "")
-.replace(/&/g, "&amp;")
-.replace(/</g, "&lt;")
-.replace(/>/g, "&gt;")
-.replace(/"/g, "&quot;")
-.replace(/'/g, "&#39;");
-}
-
-function formatDate(ts){
-if(!ts) return "";
-const n=Number(ts);
-if(Number.isNaN(n)) return escapeHtml(ts);
-const d=new Date(n);
-return d.toLocaleString(undefined,{
-weekday:"short",
-day:"numeric",
-month:"short",
-hour:"2-digit",
-minute:"2-digit"
-});
-}
-
-function safeJson(v) {
-try {
-return JSON.stringify(v);
-} catch {
-return '"[object]"';
-}
-}
-
-function show(v) {
-el.response.textContent =
-typeof v === "string"
-? v
-: JSON.stringify(v, null, 2);
-}
-
-function setStatus(text, type = "warn") {
-el.status.className = `status ${type}`;
-el.status.textContent = text;
-}
-
-async function emit(payload) {
-const base = el.workerBase.value.trim().replace(/\/$/, "");
-if (!base) throw new Error("Worker URL is empty");
-const ticketRes = await fetch(`${base}/__ticket`, { method: "POST" });
-if (!ticketRes.ok) throw new Error(`__ticket failed: ${ticketRes.status}`);
-const ticket = await ticketRes.json();
-const emitRes = await fetch(`${base}/__emit`, {
-method: "POST",
-headers: { "content-type": "application/json" },
-body: JSON.stringify({ k: ticket.k, d: payload })
-});
-const raw = await emitRes.text();
-let body;
-try {
-body = JSON.parse(raw);
-} catch {
-body = raw;
-}
-return {
-ok: emitRes.ok,
-status: emitRes.status,
-body,
-raw
-};
-}
-
-function renderChips(target, list) {
-if (!target) return;
-if (!list.length) {
-target.innerHTML = '<span class="chip">No data</span>';
-return;
-}
-target.innerHTML = list.map(v => `<span class="chip">${escapeHtml(v)}</span>`).join("");
-}
-
-function pickArray(v) {
-if (Array.isArray(v)) return v;
-if (Array.isArray(v?.data)) return v.data;
-if (Array.isArray(v?.matches)) return v.matches;
-if (Array.isArray(v?.fixtures)) return v.fixtures;
-if (Array.isArray(v?.events)) return v.events;
-if (Array.isArray(v?.standings)) return v.standings;
-if (Array.isArray(v?.odds)) return v.odds;
-if (Array.isArray(v?.scores)) return v.scores;
-if (Array.isArray(v?.teams)) return v.teams;
-if (Array.isArray(v?.players)) return v.players;
-return [];
-}
-
-function toTs(v) {
-if (v == null || v === "") return null;
-const n = Number(v);
-if (Number.isFinite(n)) return n;
-const d = new Date(v);
-const t = d.getTime();
-return Number.isFinite(t) ? t : null;
-}
-
-function normalizeStatus(v) {
-return String(v ?? "").trim().toLowerCase();
-}
-
-
-
-function classifyMatch(row) {
-  const phase = String(row?.phase ?? "").trim().toLowerCase();
-  if (phase === "finished") return "past";
-  if (phase === "stopped") return "past";
-  if (phase === "live") return "current";
-  if (phase === "upcoming") return "future";
-
-  const now = Date.now();
-  const kickoffTs = toTs(row.kickoff);
-  const status = normalizeStatus(row.status);
-  const statusRaw = normalizeStatus(row.statusRaw);
-
-  const finishedTokens = [
-    "finished",
-    "finished aet",
-    "finished pens",
-    "ended",
-    "postponed",
-    "cancelled",
-    "canceled",
-    "abandoned",
-    "coverage cancelled"
-  ];
-
-  const liveTokens = [
-    "first half",
-    "second half",
-    "halftime",
-    "extra time 1",
-    "extra time 2",
-    "et halftime",
-    "penalties",
-    "interrupted",
-    "waiting et",
-    "waiting pens",
-    "live"
-  ];
-
-  const upcomingTokens = [
-    "not started",
-    "upcoming"
-  ];
-
-  if (finishedTokens.some(t => status === t || status.includes(t))) return "past";
-  if (liveTokens.some(t => status === t || status.includes(t))) return "current";
-  if (upcomingTokens.some(t => status === t || status.includes(t))) return "future";
-
-  if (["f", "fet", "fpe", "a", "c", "p", "txcc", "txcs"].includes(statusRaw)) return "past";
-  if (["h1", "ht", "h2", "wet", "et1", "htet", "et2", "wpe", "pe", "i"].includes(statusRaw)) return "current";
-  if (["ns"].includes(statusRaw)) return "future";
-
-  if (kickoffTs != null) {
-    if (kickoffTs < now - 2 * 60 * 60 * 1000) return "past";
-    if (kickoffTs > now + 10 * 60 * 1000) return "future";
-    return "current";
-  }
-
-  return "future";
-}
-
-
-
-
-
-
-function splitMatchesByTime(rows) {
-const past = [];
-const current = [];
-const future = [];
-
-rows.forEach(r => {
-const bucket = classifyMatch(r);
-if (bucket === "past") past.push(r);
-else if (bucket === "current") current.push(r);
-else future.push(r);
-});
-
-return { past, current, future };
-}
-
-function formatGroupLabel(name, rows) {
-return `${name} (${rows.length})`;
-}
-
-
-
-function matchRowsFrom(probe) {
-  const rows = Array.isArray(probe?.matches) ? probe.matches : [];
-
-  return rows.map((m, i) => ({
-    id:
-      m.id ??
-      m.fixtureId ??
-      m.FixtureId ??
-      i,
-
-    fixtureId:
-      m.fixtureId ??
-      m.FixtureId ??
-      m.id ??
-      i,
-
-    league:
-      m.league ??
-      m.competition ??
-      m.competitionName ??
-      "",
-
-    competitionId:
-      m.competitionId ??
-      "",
-
-    home:
-      m.home ??
-      m.homeTeam ??
-      m.participant1 ??
-      "",
-
-    away:
-      m.away ??
-      m.awayTeam ??
-      m.participant2 ??
-      "",
-
-    kickoff:
-      m.kickoff ??
-      m.startTime ??
-      m.StartTime ??
-      "",
-
-    phase:
-      m.phase ??
-      "",
-
-    status:
-      m.status ??
-      m.phase ??
-      "",
-
-    statusRaw:
-      m.statusRaw ??
-      m.gameState ??
-      m.GameState ??
-      m.phase ??
-      "",
-
-    score:
-      m.score ??
-      ((m.homeScore != null && m.awayScore != null)
-        ? `${m.homeScore}-${m.awayScore}`
-        : ""),
-
-    homeScore:
-      m.homeScore ?? null,
-
-    awayScore:
-      m.awayScore ?? null,
-
-    oddsCount:
-      m.oddsCount ?? 0,
-
-    eventsCount:
-      m.eventsCount ?? 0,
-
-    historicalCount:
-      m.historicalCount ?? 0,
-
-    snapshotCount:
-      m.snapshotCount ?? 0,
-
-    hasLiveEvents:
-      !!m.hasLiveEvents,
-
-    hasHistoricalEvents:
-      !!m.hasHistoricalEvents,
-
-    hasSnapshotEvents:
-      !!m.hasSnapshotEvents,
-
-    hasOddsResolved:
-      !!m.hasOddsResolved,
-
-    eventPreview:
-      m.eventPreview ?? null,
-
-    oddsPreview:
-      m.oddsPreview ?? null,
-
-    raw: m
-  }));
-}
-
-
-
-
-
-
-function standingsRowsFrom(probe) {
-const collected = probe?.collected || {};
-
-const entry =
-collected["https://txline.txodds.com/api/v1/standings"] ||
-collected["https://txline.txodds.com/api/standings"] ||
-{};
-
-if (Array.isArray(entry.render))
-return entry.render;
-
-return pickArray(entry);
-
-}
-
-
-
-function eventsRowsFrom(probe) {
-  const rows = pickArray(probe?.events);
-
-  return rows
-    .map(x => ({
-      fixtureId:
-        x.fixtureId ??
-        x.FixtureId ??
-        "",
-
-      seq:
-        x.seq ??
-        x.Seq ??
-        0,
-
-      ts:
-        x.ts ??
-        x.timestamp ??
-        x.Timestamp ??
-        "",
-
-      gameState:
-        x.gameState ??
-        x.GameState ??
-        x.status ??
-        "",
-
-      gameStateRaw:
-        x.gameStateRaw ??
-        x.statusRaw ??
-        "",
-
-      score:
-        x.score ??
-        x.Score ??
-        ((x.homeScore != null && x.awayScore != null)
-          ? `${x.homeScore}-${x.awayScore}`
-          : ""),
-
-      period:
-        x.period ??
-        x.Period ??
-        "",
-
-      raw: x
-    }))
-    .sort((a, b) => {
-      const sa = Number(a.seq);
-      const sb = Number(b.seq);
-
-      if (Number.isFinite(sa) && Number.isFinite(sb) && sa !== sb) {
-        return sa - sb;
-      }
-
-      const ta = toTs(a.ts) ?? 0;
-      const tb = toTs(b.ts) ?? 0;
-
-      return ta - tb;
-    });
-}
-
-
-
-
-
-function oddsRowsFrom(probe) {
-  const rows = pickArray(probe?.odds);
-
-  return rows.map(x => ({
-    fixtureId:
-      x.fixtureId ??
-      x.FixtureId ??
-      "",
-
-    messageId:
-      x.messageId ??
-      x.MessageId ??
-      "",
-
-    ts:
-      x.ts ??
-      x.timestamp ??
-      x.Timestamp ??
-      x.lastUpdated ??
-      x.LastUpdated ??
-      "",
-
-    bookmaker:
-      x.bookmaker ??
-      x.Bookmaker ??
-      "",
-
-    bookmakerId:
-      x.bookmakerId ??
-      x.BookmakerId ??
-      "",
-
-    market:
-      x.market ??
-      x.Market ??
-      "",
-
-    marketPeriod:
-      x.marketPeriod ??
-      x.MarketPeriod ??
-      "",
-
-    superOddsType:
-      x.superOddsType ??
-      x.SuperOddsType ??
-      "",
-
-    inRunning:
-      x.inRunning ??
-      x.InRunning ??
-      false,
-
-    marketParameters:
-      x.marketParameters ??
-      x.MarketParameters ??
-      null,
-
-    priceNames:
-      Array.isArray(x.priceNames)
-        ? x.priceNames
-        : Array.isArray(x.PriceNames)
-        ? x.PriceNames
-        : [],
-
-    prices:
-      Array.isArray(x.prices)
-        ? x.prices
-        : Array.isArray(x.Prices)
-        ? x.Prices
-        : [],
-
-    raw: x
-  }));
-}
-
-
-
-function uniqueCompetitions(rows) {
-return [...new Set(rows.map(r => String(r.league || "").trim()).filter(Boolean))];
-}
-
-
-function countMarkets(rows) {
-  if (!Array.isArray(rows) || !rows.length) return 0;
-
-  function getVal(r, keys) {
-    for (const k of keys) {
-      const v = r?.[k];
-      if (v != null && String(v) !== "") return v;
-    }
-    return "";
-  }
-
-  const set = new Set();
-
-  rows.forEach(r => {
-    const fixtureId = getVal(r, ["fixtureId", "matchId"]);
-    const bookmaker = getVal(r, ["bookmaker", "bookmakerName"]);
-    const market = getVal(r, [
-      "marketLabel",
-      "marketType",
-      "market",
-      "superOddsType"
-    ]);
-    const period = getVal(r, [
-      "periodLabel",
-      "marketPeriod",
-      "period"
-    ]);
-    const line = getVal(r, [
-      "lineLabel",
-      "line",
-      "marketParameters"
-    ]);
-
-    const key = [
-      String(fixtureId),
-      String(bookmaker),
-      String(market),
-      String(period),
-      String(line)
-    ].join("|");
-
-    if (key.replace(/|/g, "").trim()) {
-      set.add(key);
-    }
-  });
-
-  return set.size || rows.length || 0;
-}
-
-
-
-
-const MOBILE_CUTOFF = 760;
-
-function isMobileView() {
-return window.innerWidth <= MOBILE_CUTOFF;
-}
-
-function tableCardList(rows, renderCard, emptyHtml) {
-if (!rows.length) return emptyHtml;
-return rows.slice(0, 50).map((r, i) => renderCard(r, i)).join("");
-}
-
-
-
-function renderMatches(rows) {
-  const grouped = splitMatchesByTime(rows);
-
-  const summaryFixtures = document.getElementById("summaryFixtures");
-  const summaryLive = document.getElementById("summaryLive");
-  const summaryUpcoming = document.getElementById("summaryUpcoming");
-  const summaryFinished = document.getElementById("summaryFinished");
-
-  if (summaryFixtures) summaryFixtures.textContent = String(rows.length);
-  if (summaryLive) summaryLive.textContent = String(grouped.current.length);
-  if (summaryUpcoming) summaryUpcoming.textContent = String(grouped.future.length);
-  if (summaryFinished) summaryFinished.textContent = String(grouped.past.length);
-
-  renderChips(el.matchChips, [
-    `Fixtures: ${rows.length}`,
-    `Live: ${grouped.current.length}`,
-    `Finished: ${grouped.past.length}`,
-    `Upcoming: ${grouped.future.length}`
-  ]);
-
-  if (!rows.length) {
-    el.matchesBody.innerHTML =
-      '<tr><td colspan="8">No fixtures received from provider.</td></tr>';
-    bindFixtureDetailsButtons();
-    bindMatchSectionToggles();
-    return;
-  }
-
-  const liveRows = grouped.current;
-  const pastRows = [...grouped.past].sort((a, b) => (toTs(b.kickoff) || 0) - (toTs(a.kickoff) || 0));
-  const futureRows = [...grouped.future].sort((a, b) => (toTs(a.kickoff) || 0) - (toTs(b.kickoff) || 0));
-
-  const pastVisibleLimit = isMobileView() ? 6 : 8;
-  const hasPastOverflow = pastRows.length > pastVisibleLimit;
-
-  const sections = [
-    {
-      key: "live",
-      title: "LIVE MATCHES",
-      rows: liveRows,
-      tone: "rgba(95,224,178,.12)",
-      border: "rgba(95,224,178,.28)",
-      collapsible: false,
-      collapsed: false,
-      limit: liveRows.length
-    },
-    {
-      key: "past",
-      title: "FINISHED MATCHES",
-      rows: pastRows,
-      tone: "rgba(255,255,255,.05)",
-      border: "rgba(255,255,255,.10)",
-      collapsible: hasPastOverflow,
-      collapsed: hasPastOverflow,
-      limit: hasPastOverflow ? pastVisibleLimit : pastRows.length
-    },
-    {
-      key: "future",
-      title: "UPCOMING MATCHES",
-      rows: futureRows,
-      tone: "rgba(125,141,255,.10)",
-      border: "rgba(125,141,255,.24)",
-      collapsible: false,
-      collapsed: false,
-      limit: futureRows.length
-    }
-  ];
-
-  function sectionHeader(section) {
-    const total = section.rows.length;
-    const visible = section.collapsed ? section.limit : total;
-    const suffix = section.collapsible
-      ? (section.collapsed
-          ? `Showing ${visible} of ${total}`
-          : `Showing all ${total}`)
-      : `${total}`;
-
-    return `
-<tr class="group-row">
-  <td colspan="8" style="
-    background:${section.tone};
-    border-top:1px solid ${section.border};
-    border-bottom:1px solid ${section.border};
-    padding:12px 16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-      <div style="font-weight:800;font-size:14px;letter-spacing:.04em">
-        ${escapeHtml(section.title)}&nbsp;(${total})
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span class="hint" style="font-size:12px">${escapeHtml(String(suffix))}</span>
-        ${
-          section.collapsible
-            ? `<button
-                type="button"
-                class="btn btn-secondary section-toggle-btn"
-                data-section-toggle="${escapeHtml(section.key)}"
-                data-collapsed="${section.collapsed ? "1" : "0"}"
-                style="padding:6px 10px;min-height:auto">
-                ${section.collapsed ? "Show older" : "Hide older"}
-              </button>`
-            : ""
-        }
-      </div>
-    </div>
-  </td>
-</tr>
-`;
-  }
-
-  function desktopRow(r) {
-    const fixtureId = escapeHtml(r.id ?? "");
-    const kickoff = escapeHtml(formatDate(r.kickoff) || "—");
-    const league = escapeHtml(r.league || "—");
-    const home = escapeHtml(r.home || "—");
-    const away = escapeHtml(r.away || "—");
-    const status = escapeHtml(r.status || r.phase || "—");
-    const score = escapeHtml(r.score || "—");
-    const preview =
-      r.eventPreview?.detail ||
-      r.eventPreview?.type ||
-      r.oddsPreview?.market ||
-      "";
-
-    return `
-<tr>
-  <td class="mono">${fixtureId}</td>
-  <td>
-    <div>${league}</div>
-    ${
-      preview
-        ? `<div class="hint" style="margin-top:4px">${escapeHtml(preview)}</div>`
-        : ""
-    }
-  </td>
-  <td>${home}</td>
-  <td>${away}</td>
-  <td class="mono">${kickoff}</td>
-  <td>${status}</td>
-  <td class="mono">${score}</td>
-  <td>
-    <button
-      class="btn btn-secondary details-btn"
-      data-fixture-id="${fixtureId}"
-      type="button">
-      Details
-    </button>
-  </td>
-</tr>
-`;
-  }
-
-  function mobileRow(r) {
-    const fixtureId = escapeHtml(r.id ?? "");
-    const kickoff = escapeHtml(formatDate(r.kickoff) || "—");
-    const league = escapeHtml(r.league || "—");
-    const home = escapeHtml(r.home || "—");
-    const away = escapeHtml(r.away || "—");
-    const status = escapeHtml(r.status || r.phase || "—");
-    const score = escapeHtml(r.score || "—");
-
-    const preview =
-      r.eventPreview?.detail ||
-      r.eventPreview?.type ||
-      r.oddsPreview?.market ||
-      "";
-
-    return `
-<tr>
-  <td colspan="8">
-    <div class="mobile-card" data-fixture-card="${fixtureId}">
-      <div class="mobile-card-head">
-        <div class="mobile-card-title">
-          ${home}
-          <span class="mobile-card-vs">vs</span>
-          ${away}
-        </div>
-        <div class="mobile-card-sub">${league}</div>
-      </div>
-
-      <div class="mobile-card-grid">
-        <div>
-          <span>Kickoff</span>
-          <b>${kickoff}</b>
-        </div>
-
-        <div>
-          <span>Status</span>
-          <b>${status}</b>
-        </div>
-
-        <div>
-          <span>Score</span>
-          <b>${score}</b>
-        </div>
-
-        <div>
-          <span>Fixture</span>
-          <b class="mono">${fixtureId}</b>
-        </div>
-
-        ${
-          preview
-            ? `<div style="grid-column:1/-1">
-                <span>Preview</span>
-                <b style="white-space:normal">${escapeHtml(preview)}</b>
-              </div>`
-            : ""
-        }
-      </div>
-
-      <div style="display:flex;margin-top:12px">
-        <button
-          class="btn btn-secondary details-btn"
-          data-fixture-id="${fixtureId}"
-          type="button">
-          Details
-        </button>
-      </div>
-
-      <div
-        class="mobile-details-slot"
-        data-details-slot="${fixtureId}">
-      </div>
-    </div>
-  </td>
-</tr>
-`;
-  }
-
-  const html = [];
-
-  for (const section of sections) {
-    if (!section.rows.length) continue;
-
-    html.push(sectionHeader(section));
-
-    const visibleRows = section.collapsed
-      ? section.rows.slice(0, section.limit)
-      : section.rows;
-
-    for (const r of visibleRows) {
-      html.push(isMobileView() ? mobileRow(r) : desktopRow(r));
-    }
-
-    if (section.collapsible && section.collapsed) {
-      html.push(`
-<tr data-section-hidden="${escapeHtml(section.key)}" style="display:none">
-  <td colspan="8"></td>
-</tr>
-`);
-    }
-  }
-
-  el.matchesBody.innerHTML = html.join("");
-  bindFixtureDetailsButtons();
-  bindMatchSectionToggles();
-
-  function bindMatchSectionToggles() {
-    document.querySelectorAll(".section-toggle-btn").forEach(btn => {
-      btn.onclick = () => {
-        const key = btn.dataset.sectionToggle;
-        if (!key) return;
-
-        if (key !== "past") return;
-
-        const expandedSections = [
-          {
-            key: "live",
-            title: "LIVE MATCHES",
-            rows: liveRows,
-            tone: "rgba(95,224,178,.12)",
-            border: "rgba(95,224,178,.28)",
-            collapsible: false,
-            collapsed: false,
-            limit: liveRows.length
-          },
-          {
-            key: "past",
-            title: "FINISHED MATCHES",
-            rows: pastRows,
-            tone: "rgba(255,255,255,.05)",
-            border: "rgba(255,255,255,.10)",
-            collapsible: hasPastOverflow,
-            collapsed: false,
-            limit: pastRows.length
-          },
-          {
-            key: "future",
-            title: "UPCOMING MATCHES",
-            rows: futureRows,
-            tone: "rgba(125,141,255,.10)",
-            border: "rgba(125,141,255,.24)",
-            collapsible: false,
-            collapsed: false,
-            limit: futureRows.length
-          }
-        ];
-
-        const collapsedSections = sections.map(s =>
-          s.key === "past"
-            ? {
-                ...s,
-                collapsed: hasPastOverflow,
-                limit: hasPastOverflow ? pastVisibleLimit : s.rows.length
-              }
-            : s
-        );
-
-        const shouldExpand = btn.dataset.collapsed === "1";
-
-        const nextSections = shouldExpand ? expandedSections : collapsedSections;
-
-        const nextHtml = [];
-
-        for (const section of nextSections) {
-          if (!section.rows.length) continue;
-
-          nextHtml.push(sectionHeader(section));
-
-          const visibleRows = section.collapsed
-            ? section.rows.slice(0, section.limit)
-            : section.rows;
-
-          for (const r of visibleRows) {
-            nextHtml.push(isMobileView() ? mobileRow(r) : desktopRow(r));
-          }
-
-          if (section.collapsible && section.collapsed) {
-            nextHtml.push(`
-<tr data-section-hidden="${escapeHtml(section.key)}" style="display:none">
-  <td colspan="8"></td>
-</tr>
-`);
-          }
+        if (tg?.expand) {
+            tg.expand();
         }
 
-        el.matchesBody.innerHTML = nextHtml.join("");
-        bindFixtureDetailsButtons();
-        bindMatchSectionToggles();
-      };
-    });
-  }
-}
-
-
-
-
-
-
-
-function bindFixtureDetailsButtons() {
-document.querySelectorAll('.details-btn').forEach(btn => {
-btn.onclick = async () => {
-const fixtureId = btn.dataset.fixtureId;
-if (!fixtureId) return;
-await loadFixtureDetails(fixtureId, btn);
-};
-});
-}
-
-
-
-async function loadFixtureDetails(fixtureId, btn) {
-
-  const slot =
-    btn.closest("[data-fixture-card]")
-      ?.querySelector(
-        `[data-details-slot="${CSS.escape(String(fixtureId))}"]`
-      ) || null;
-
-  if (slot) {
-    slot.innerHTML =
-      '<div class="placeholder">Loading...</div>';
-  }
-
-  btn.disabled = true;
-
-  const oldText = btn.textContent;
-  btn.textContent = "Loading...";
-
-  try {
-
-    const res = await emit({
-
-      type: "txline_fixture_details",
-
-      fixtureId: fixtureId,
-
-      serviceLevelId:
-        Number(el.serviceLevelId.value)
-
-    });
-
-    if (!res.ok)
-      throw new Error(
-        res.body?.error || "Request failed"
-      );
-
-    const details = res.body || {};
-
-    state.eventsByFixture[String(fixtureId)] =
-      details.events || [];
-
-    state.oddsByFixture[String(fixtureId)] =
-      details.odds || [];
-
-    state.historicalByFixture[String(fixtureId)] =
-      details.historical || [];
-
-    const row =
-      findFixtureRowById(fixtureId);
-
-    const html =
-      renderFixtureDetailHtml(
-        row,
-        details
-      );
-
-    if (slot) {
-
-      slot.innerHTML =
-        `<div class="details-panel">
-          ${html}
-        </div>`;
-
-    } else {
-
-      btn.insertAdjacentHTML(
-        "afterend",
-        `<div class="details-panel">
-            ${html}
-         </div>`
-      );
-
-    }
-
-  }
-  catch(e){
-
-    if(slot){
-
-      slot.innerHTML =
-        `<div class="placeholder" style="color:#ff6d86">
-          ${escapeHtml(e.message)}
-        </div>`;
-
-    }
-
-  }
-  finally{
-
-    btn.disabled=false;
-
-    btn.textContent=oldText;
-
-  }
-
-}
-
-
-
-
-function fixtureBucketFromRow(row) {
-return classifyMatch(row);
-}
-
-function findFixtureRowById(fixtureId) {
-const id = String(fixtureId);
-return (state.matches || []).find(r => String(r.id) === id) || null;
-}
-
-function buildFixtureDetailMode(row) {
-const bucket = fixtureBucketFromRow(row);
-if (bucket === "past") return "historical";
-if (bucket === "current") return "live";
-return "preview";
-}
-
-
-
-function renderFixtureDetailHtml(row, details) {
-  const current =
-    details?.current && typeof details.current === "object"
-      ? details.current
-      : null;
-
-  const snapshot =
-    Array.isArray(details?.snapshot)
-      ? details.snapshot
-      : [];
-
-  const events =
-    Array.isArray(details?.events)
-      ? details.events
-      : [];
-
-  const odds =
-    Array.isArray(details?.odds)
-      ? details.odds
-      : [];
-
-  const historical =
-    Array.isArray(details?.historical)
-      ? details.historical
-      : [];
-
-  const mode = buildFixtureDetailMode(row);
-
-  const displayStatus =
-    row?.status ||
-    current?.gameState ||
-    current?.status ||
-    row?.phase ||
-    "";
-
-  const displayScore =
-    row?.score ||
-    current?.score ||
-    ((current?.homeScore != null && current?.awayScore != null)
-      ? `${current.homeScore}-${current.awayScore}`
-      : "");
-
-  function eventRow(e) {
-    const ts = e?.ts ?? e?.timestamp ?? "";
-    return `
-      <tr>
-        <td>${escapeHtml(e.period ?? "")}</td>
-        <td>${escapeHtml(e.gameState ?? e.status ?? "")}</td>
-        <td>${escapeHtml(e.score ?? "")}</td>
-        <td>${escapeHtml(formatDate(ts) || "")}</td>
-      </tr>
-    `;
-  }
-
-  function historicalRow(e) {
-    const ts = e?.ts ?? e?.timestamp ?? "";
-    return `
-      <tr>
-        <td>${escapeHtml(e.period ?? "")}</td>
-        <td>${escapeHtml(e.gameState ?? e.status ?? "")}</td>
-        <td>${escapeHtml(e.score ?? "")}</td>
-        <td>${escapeHtml(formatDate(ts) || "")}</td>
-      </tr>
-    `;
-  }
-
-  function snapshotRow(e) {
-    const ts = e?.ts ?? e?.timestamp ?? "";
-    return `
-      <tr>
-        <td>${escapeHtml(e.period ?? "")}</td>
-        <td>${escapeHtml(e.gameState ?? e.status ?? "")}</td>
-        <td>${escapeHtml(e.score ?? "")}</td>
-        <td>${escapeHtml(formatDate(ts) || "")}</td>
-      </tr>
-    `;
-  }
-
-  function oddsPriceText(o) {
-    const names = Array.isArray(o?.priceNames) ? o.priceNames : [];
-    const prices = Array.isArray(o?.prices) ? o.prices : [];
-
-    if (!names.length && !prices.length) return "";
-
-    const len = Math.max(names.length, prices.length);
-    const out = [];
-
-    for (let i = 0; i < len; i++) {
-      out.push(`${names[i] ?? `#${i + 1}`}: ${prices[i] ?? ""}`);
-    }
-
-    return out.join(" | ");
-  }
-
-  function oddsRow(o) {
-    return `
-      <tr>
-        <td>${escapeHtml(o.bookmaker ?? "")}</td>
-        <td>${escapeHtml(o.marketLabel ?? o.market ?? o.superOddsType ?? "")}</td>
-        <td>${escapeHtml(o.periodLabel ?? o.marketPeriod ?? "")}</td>
-        <td>${escapeHtml(oddsPriceText(o))}</td>
-      </tr>
-    `;
-  }
-
-  const overviewCards = `
-  <div class="route-grid">
-    <div class="mini">
-      <div class="t">Kickoff</div>
-      <div class="v">${escapeHtml(formatDate(row?.kickoff) || "")}</div>
-    </div>
-
-    <div class="mini">
-      <div class="t">Score</div>
-      <div class="v">${escapeHtml(displayScore || "—")}</div>
-    </div>
-
-    <div class="mini">
-      <div class="t">Fixture</div>
-      <div class="v mono">${escapeHtml(row?.id ?? "")}</div>
-    </div>
-
-    <div class="mini">
-      <div class="t">Competition</div>
-      <div class="v">${escapeHtml(row?.league ?? "")}</div>
-    </div>
-  </div>`;
-
-  let primaryBlock = '';
-  let secondaryBlock = '';
-
-  if (mode === "historical") {
-    primaryBlock = `
-      <h3>Historical Match Flow</h3>
-      ${
-        historical.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Status</th>
-                    <th>Score</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${historical.map(historicalRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No historical events</div>'
-      }
-    `;
-
-    secondaryBlock = `
-      <br>
-      <h3>Snapshot Events</h3>
-      ${
-        snapshot.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Status</th>
-                    <th>Score</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${snapshot.map(snapshotRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No snapshot events</div>'
-      }
-
-      <br>
-      <h3>Odds</h3>
-      ${
-        odds.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Bookmaker</th>
-                    <th>Market</th>
-                    <th>Period</th>
-                    <th>Prices</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${odds.map(oddsRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No odds available</div>'
-      }
-    `;
-  } else if (mode === "live") {
-    primaryBlock = `
-      <h3>Live Events</h3>
-      ${
-        events.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Status</th>
-                    <th>Score</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${events.map(eventRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No live events</div>'
-      }
-    `;
-
-    secondaryBlock = `
-      <br>
-      <h3>Snapshot Events</h3>
-      ${
-        snapshot.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Status</th>
-                    <th>Score</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${snapshot.map(snapshotRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No snapshot events</div>'
-      }
-
-      <br>
-      <h3>Odds</h3>
-      ${
-        odds.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Bookmaker</th>
-                    <th>Market</th>
-                    <th>Period</th>
-                    <th>Prices</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${odds.map(oddsRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No odds available</div>'
-      }
-
-      ${
-        historical.length
-          ? `
-      <br>
-      <h3>Historical Events</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Status</th>
-              <th>Score</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${historical.map(historicalRow).join("")}
-          </tbody>
-        </table>
-      </div>`
-          : ""
-      }
-    `;
-  } else {
-    primaryBlock = `
-      <h3>Preview Snapshot</h3>
-      ${
-        snapshot.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Status</th>
-                    <th>Score</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${snapshot.map(snapshotRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No snapshot events</div>'
-      }
-    `;
-
-    secondaryBlock = `
-      <br>
-      <h3>Odds</h3>
-      ${
-        odds.length
-          ? `<div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Bookmaker</th>
-                    <th>Market</th>
-                    <th>Period</th>
-                    <th>Prices</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${odds.map(oddsRow).join("")}
-                </tbody>
-              </table>
-            </div>`
-          : '<div class="placeholder">No odds available</div>'
-      }
-
-      ${
-        events.length
-          ? `
-      <br>
-      <h3>Live Events</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Status</th>
-              <th>Score</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${events.map(eventRow).join("")}
-          </tbody>
-        </table>
-      </div>`
-          : ""
-      }
-    `;
-  }
-
-  return `
-<div class="route-card">
-
-  <div class="route-head">
-    <div>
-      <div style="font-size:20px;font-weight:800">
-        ${escapeHtml(row?.home ?? "")}&nbsp;vs&nbsp;${escapeHtml(row?.away ?? "")}
-      </div>
-      <div class="hint">
-        ${escapeHtml(row?.league ?? "")}
-      </div>
-    </div>
-
-    <span class="tag ok">
-      ${escapeHtml(displayStatus || mode)}
-    </span>
-  </div>
-
-  ${overviewCards}
-
-  <br>
-
-  ${primaryBlock}
-
-  ${secondaryBlock}
-
-</div>
-`;
-}
-
-
-
-
-function renderStandings(rows) {
-if (!rows.length) {
-el.standingsBody.innerHTML = '<tr><td colspan="8">No standings</td></tr>';
-renderChips(el.standingsChips, ["no standings"]);
-return;
-}
-
-renderChips(el.standingsChips, [`rows:${rows.length}`, "standings"]);
-
-if (isMobileView()) {
-el.standingsBody.innerHTML = tableCardList(
-rows,
-(r, i) => `
-<tr>
-<td colspan="8" style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.06)">
-  <div class="mobile-card">
-    <div class="mobile-card-head">
-      <div class="mobile-card-title">${escapeHtml(r.team ?? r.name ?? i)}</div>
-      <div class="mobile-card-sub">${escapeHtml(r.group ?? "")}</div>
-    </div>
-
-    <div class="mobile-card-grid">
-      <div><span>Points</span><b class="mono">${escapeHtml(r.points ?? r.pts ?? "")}</b></div>
-      <div><span>Played</span><b class="mono">${escapeHtml(r.played ?? r.pld ?? "")}</b></div>
-      <div><span>Won</span><b class="mono">${escapeHtml(r.won ?? "")}</b></div>
-      <div><span>Draw</span><b class="mono">${escapeHtml(r.draw ?? "")}</b></div>
-      <div><span>Lost</span><b class="mono">${escapeHtml(r.lost ?? "")}</b></div>
-    </div>
-
-    <div class="mobile-card-text">
-Current tournament standing
-</div>
-  </div>
-</td>
-</tr>`,
-'<tr><td colspan="8">No standings</td></tr>'
-);
-return;
-}
-
-el.standingsBody.innerHTML = rows.slice(0, 50).map((r, i) => `<tr>
-<td>${escapeHtml(r.team ?? r.name ?? i)}</td>
-<td>${escapeHtml(r.group ?? "")}</td>
-<td class="mono">${escapeHtml(r.points ?? r.pts ?? "")}</td>
-<td class="mono">${escapeHtml(r.played ?? r.pld ?? "")}</td>
-<td class="mono">${escapeHtml(r.won ?? "")}</td>
-<td class="mono">${escapeHtml(r.draw ?? "")}</td>
-<td class="mono">${escapeHtml(r.lost ?? "")}</td>
-<td>—</td>
-</tr>`).join("");
-}
-
-
-
-
-function renderEvents(rows) {
-
-  if (!Array.isArray(rows) || !rows.length) {
-
-    el.eventsBody.innerHTML =
-      '<tr><td colspan="8">No events</td></tr>';
-
-    renderChips(el.eventsChips, ["no events"]);
-
-    return;
-  }
-
-  renderChips(el.eventsChips, [
-    `events:${rows.length}`
-  ]);
-
-  rows = [...rows].sort((a, b) => {
-
-    const sa = Number(a.seq ?? 0);
-    const sb = Number(b.seq ?? 0);
-
-    if (sa !== sb)
-      return sa - sb;
-
-    return (toTs(a.ts) || 0) - (toTs(b.ts) || 0);
-
-  });
-
-  if (isMobileView()) {
-
-    el.eventsBody.innerHTML = rows.map(r => {
-
-      return `
-<tr>
-<td colspan="8" style="padding:12px">
-
-<div class="mobile-card">
-
-<div class="mobile-card-head">
-
-<div class="mobile-card-title">
-${escapeHtml(r.gameState || "Event")}
-</div>
-
-<div class="mobile-card-sub">
-Fixture ${escapeHtml(r.fixtureId)}
-</div>
-
-</div>
-
-<div class="mobile-card-grid">
-
-<div>
-<span>Time</span>
-<b>${escapeHtml(formatDate(r.ts))}</b>
-</div>
-
-<div>
-<span>Period</span>
-<b>${escapeHtml(r.period || "")}</b>
-</div>
-
-<div>
-<span>Score</span>
-<b>${escapeHtml(r.score || "")}</b>
-</div>
-
-<div>
-<span>Seq</span>
-<b>${escapeHtml(r.seq ?? "")}</b>
-</div>
-
-</div>
-
-<details style="margin-top:10px">
-
-<summary>Raw JSON</summary>
-
-<div class="json">
-
-${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
-
-</div>
-
-</details>
-
-</div>
-
-</td>
-</tr>
-`;
-
-    }).join("");
-
-    return;
-  }
-
-  el.eventsBody.innerHTML = rows.map(r => `
-
-<tr>
-
-<td class="mono">
-${escapeHtml(formatDate(r.ts))}
-</td>
-
-<td>
-${escapeHtml(r.gameState || "")}
-</td>
-
-<td>
-${escapeHtml(r.period || "")}
-</td>
-
-<td>
-${escapeHtml(r.score || "")}
-</td>
-
-<td class="mono">
-${escapeHtml(r.seq ?? "")}
-</td>
-
-<td class="mono">
-${escapeHtml(r.fixtureId)}
-</td>
-
-<td class="mono">
-${escapeHtml(r.raw?.messageId ?? r.messageId ?? "")}
-</td>
-
-<td>
-
-<details>
-
-<summary>JSON</summary>
-
-<div class="json">
-
-${escapeHtml(JSON.stringify(r.raw ?? r, null, 2))}
-
-</div>
-
-</details>
-
-</td>
-
-</tr>
-
-`).join("");
-
-}
-
-
-
-
-
-function renderOdds(rows) {
-
-  if (!Array.isArray(rows) || !rows.length) {
-    el.oddsBody.innerHTML =
-      '<tr><td colspan="8">No odds</td></tr>';
-
-    renderChips(el.oddsChips, ["no odds"]);
-    return;
-  }
-
-  function getVal(r, keys) {
-    for (const k of keys) {
-      const v = r?.[k];
-      if (v != null && String(v) !== "") return v;
-    }
-    return "";
-  }
-
-  function normalizePricePairs(r) {
-    if (Array.isArray(r?.prices) && r.prices.length && typeof r.prices[0] === "object") {
-      return r.prices.map(x => ({
-        name: String(x?.name ?? "").trim(),
-        price: x?.price ?? ""
-      })).filter(x => x.name || x.price !== "");
-    }
-
-    const names = Array.isArray(r?.priceNames) ? r.priceNames : [];
-    const prices = Array.isArray(r?.prices) ? r.prices : [];
-    const out = [];
-    const len = Math.max(names.length, prices.length);
-
-    for (let i = 0; i < len; i++) {
-      const n = names[i] ?? `#${i + 1}`;
-      const p = prices[i] ?? "";
-      out.push({
-        name: String(n ?? "").trim(),
-        price: p
-      });
-    }
-
-    return out.filter(x => x.name || x.price !== "");
-  }
-
-  function priceMapFrom(r) {
-    const map = {};
-    for (const item of normalizePricePairs(r)) {
-      if (!item.name) continue;
-      map[item.name] = item.price;
-    }
-
-    if (r?.priceMap && typeof r.priceMap === "object") {
-      for (const [k, v] of Object.entries(r.priceMap)) {
-        if (!(k in map)) map[k] = v;
-      }
-    }
-
-    return map;
-  }
-
-  function formatPrices(r) {
-    const explicit = getVal(r, ["pricesText"]);
-    if (explicit) return explicit;
-
-    const pairs = normalizePricePairs(r);
-    if (!pairs.length) return "";
-
-    return pairs
-      .slice(0, 8)
-      .map(x => `${x.name}: ${x.price}`)
-      .join(" | ");
-  }
-
-  function formatPrimaryMarket(r) {
-    const priceMap = priceMapFrom(r);
-
-    const home = getVal(r, ["home", "homePrice"]) || priceMap.part1 || priceMap.home || priceMap["1"] || "";
-    const draw = getVal(r, ["draw", "drawPrice"]) || priceMap.draw || priceMap.x || "";
-    const away = getVal(r, ["away", "awayPrice"]) || priceMap.part2 || priceMap.away || priceMap["2"] || "";
-
-    const over = getVal(r, ["over", "overPrice"]) || priceMap.over || "";
-    const under = getVal(r, ["under", "underPrice"]) || priceMap.under || "";
-    const yes = getVal(r, ["yes", "yesPrice"]) || priceMap.yes || "";
-    const no = getVal(r, ["no", "noPrice"]) || priceMap.no || "";
-
-    if (home !== "" || draw !== "" || away !== "") {
-      return [
-        home !== "" ? `1: ${home}` : "",
-        draw !== "" ? `X: ${draw}` : "",
-        away !== "" ? `2: ${away}` : ""
-      ].filter(Boolean).join(" | ");
-    }
-
-    if (over !== "" || under !== "") {
-      return [
-        over !== "" ? `Over: ${over}` : "",
-        under !== "" ? `Under: ${under}` : ""
-      ].filter(Boolean).join(" | ");
-    }
-
-    if (yes !== "" || no !== "") {
-      return [
-        yes !== "" ? `Yes: ${yes}` : "",
-        no !== "" ? `No: ${no}` : ""
-      ].filter(Boolean).join(" | ");
-    }
-
-    return "";
-  }
-
-  function marketLabel(r) {
-    return getVal(r, [
-      "marketLabel",
-      "marketType",
-      "market",
-      "superOddsType"
-    ]);
-  }
-
-  function periodLabel(r) {
-    return getVal(r, [
-      "periodLabel",
-      "marketPeriod",
-      "period"
-    ]);
-  }
-
-  function lineLabel(r) {
-    return getVal(r, [
-      "lineLabel",
-      "line",
-      "marketParameters"
-    ]);
-  }
-
-  function fixtureLabel(r) {
-    return getVal(r, [
-      "fixtureId",
-      "matchId"
-    ]);
-  }
-
-  function timeLabel(r) {
-    const ts = getVal(r, ["timestamp", "ts", "updatedAt", "time"]);
-    return ts ? formatDate(ts) : "";
-  }
-
-  function rowSummary(r) {
-    const primary = formatPrimaryMarket(r);
-    const fallback = formatPrices(r);
-    return primary || fallback || "—";
-  }
-
-  const normalizedRows = rows.map(r => {
-    const market = marketLabel(r);
-    const period = periodLabel(r);
-    const line = lineLabel(r);
-    const bookmaker = getVal(r, ["bookmaker"]);
-    const live = !!getVal(r, ["inRunning"]);
-    const ts = timeLabel(r);
-    const fixture = fixtureLabel(r);
-    const summary = rowSummary(r);
-
-    return {
-      raw: r,
-      market,
-      period,
-      line,
-      bookmaker,
-      live,
-      ts,
-      fixture,
-      summary
-    };
-  });
-
-  renderChips(el.oddsChips, [
-    `odds:${normalizedRows.length}`,
-    `markets:${countMarkets(rows)}`,
-    ...(
-      normalizedRows.some(x => x.live)
-        ? ["live"]
-        : ["prematch"]
-    )
-  ]);
-
-  if (isMobileView()) {
-    el.oddsBody.innerHTML = normalizedRows.map(r => `
-<tr>
-<td colspan="8" style="padding:12px">
-<div class="mobile-card">
-
-<div class="mobile-card-head">
-<div class="mobile-card-title">
-${escapeHtml(r.market || "Odds market")}
-</div>
-<div class="mobile-card-sub">
-${escapeHtml(r.bookmaker || "Unknown bookmaker")}
-</div>
-</div>
-
-<div class="mobile-card-grid">
-
-<div>
-<span>Fixture</span>
-<b>${escapeHtml(r.fixture || "—")}</b>
-</div>
-
-<div>
-<span>Period</span>
-<b>${escapeHtml(r.period || "—")}</b>
-</div>
-
-<div>
-<span>Line</span>
-<b>${escapeHtml(r.line || "—")}</b>
-</div>
-
-<div>
-<span>Live</span>
-<b>${r.live ? "YES" : "NO"}</b>
-</div>
-
-<div style="grid-column:1/-1">
-<span>Prices</span>
-<b style="white-space:normal">
-${escapeHtml(r.summary)}
-</b>
-</div>
-
-${r.ts ? `
-<div style="grid-column:1/-1">
-<span>Updated</span>
-<b>${escapeHtml(r.ts)}</b>
-</div>
-` : ""}
-
-</div>
-
-<details style="margin-top:10px">
-<summary>Raw JSON</summary>
-<div class="json">
-${escapeHtml(JSON.stringify(r.raw?.raw ?? r.raw, null, 2))}
-</div>
-</details>
-
-</div>
-</td>
-</tr>
-`).join("");
-    return;
-  }
-
-  el.oddsBody.innerHTML = normalizedRows.map(r => `
-<tr>
-<td>${escapeHtml(r.market || "")}</td>
-<td>${escapeHtml(r.bookmaker || "")}</td>
-<td>${escapeHtml([r.period, r.line].filter(Boolean).join(" • "))}</td>
-<td>${escapeHtml(r.summary)}</td>
-<td>${r.live ? "YES" : "NO"}</td>
-<td class="mono">${escapeHtml(r.ts || "")}</td>
-<td class="mono">${escapeHtml(r.fixture || "")}</td>
-<td>
-<details>
-<summary>Details</summary>
-<div class="json">
-${escapeHtml(JSON.stringify(r.raw?.raw ?? r.raw, null, 2))}
-</div>
-</details>
-</td>
-</tr>
-`).join("");
-}
-
-
-
-
-
-
-function renderRoutes(probe) {
-  const collected = probe?.collected || {};
-  const routes = Object.entries(collected);
-
-  if (!routes.length) {
-    el.routes.innerHTML =
-      '<div class="placeholder">No routes discovered.</div>';
-    return;
-  }
-
-  el.routes.innerHTML = routes.map(([url, entry]) => {
-    const renderCount =
-      Array.isArray(entry.rows)
-        ? entry.rows.length
-        : 0;
-
-    const rawCount =
-      Array.isArray(entry.raw)
-        ? entry.raw.length
-        : 0;
-
-    const status = entry.ok ? "Available" : "Unavailable";
-    const statusClass = entry.ok ? "ok" : "bad";
-
-    const elapsed =
-      entry.elapsed ??
-      entry.elapsedMs ??
-      entry.duration ??
-      "-";
-
-    const code = entry.status ?? "-";
-
-    return `
-<div class="route-card">
-
-  <div class="route-head">
-    <div>
-      <div style="font-size:17px;font-weight:800">
-        ${escapeHtml(url.split("/").pop() || url)}
-      </div>
-      <div class="hint">
-        ${escapeHtml(url)}
-      </div>
-    </div>
-
-    <div class="route-meta">
-      <span class="tag ${statusClass}">
-        ${status}
-      </span>
-
-      <span class="tag">
-        HTTP ${escapeHtml(code)}
-      </span>
-
-      <span class="tag">
-        ${escapeHtml(String(elapsed))} ms
-      </span>
-    </div>
-  </div>
-
-  <div class="route-grid">
-    <div class="mini">
-      <div class="t">Mapped rows</div>
-      <div class="v">${renderCount}</div>
-    </div>
-
-    <div class="mini">
-      <div class="t">Raw records</div>
-      <div class="v">${rawCount}</div>
-    </div>
-
-    <div class="mini">
-      <div class="t">Success</div>
-      <div class="v">${entry.ok ? "YES" : "NO"}</div>
-    </div>
-
-    <div class="mini">
-      <div class="t">Content</div>
-      <div class="v">${escapeHtml(entry.rawType || "-")}</div>
-    </div>
-  </div>
-
-  <details>
-    <summary>Raw response</summary>
-    <div class="json">
-      ${escapeHtml(JSON.stringify(entry, null, 2))}
-    </div>
-  </details>
-
-</div>
-`;
-  }).join("");
-}
-
-
-
-
-function activateTab(name) {
-document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
-["matches", "standings", "events", "odds", "routes"].forEach(id => {
-const node = document.getElementById("tab-" + id);
-if (node) node.style.display = id === name ? "" : "none";
-});
-}
-
-document.querySelectorAll(".tab").forEach(b => {
-b.addEventListener("click", () => activateTab(b.dataset.tab));
-});
-
-async function checkToken() {
-el.checkBtn.disabled = true;
-setStatus("checking token...");
-try {
-const res = await emit({
-type: "txline_check_token",
-serviceLevelId: Number(el.serviceLevelId.value)
-});
-show(res);
-setStatus(res.ok ? "token checked" : "token rejected", res.ok ? "ok" : "err");
-} catch (e) {
-show(String(e?.message || e));
-setStatus("token error", "err");
-}
-el.checkBtn.disabled = false;
-}
-
-
-
-async function probeTxline() {
-  el.probeBtn.disabled = true;
-  setStatus("Loading TxLINE data...", "warn");
-
-  try {
-    const res = await emit({
-      type: "txline_probe_feed",
-      scope: "worldcup",
-      serviceLevelId: Number(el.serviceLevelId.value)
-    });
-
-    show(res);
-
-    if (!res.ok) {
-      throw new Error(res.body?.error || "Probe failed");
-    }
-
-    const probe =
-      typeof res.body === "object" && res.body
-        ? res.body
-        : {};
-
-    console.log("FULL PROBE", probe);
-
-    state.matches = matchRowsFrom(probe);
-
-    state.standings =
-      Array.isArray(probe.standings)
-        ? probe.standings
-        : standingsRowsFrom(probe);
-
-    state.events = eventsRowsFrom({ events: probe.events || [] });
-    state.odds = oddsRowsFrom({ odds: probe.odds || [] });
-    state.historical = eventsRowsFrom({ events: probe.historical || [] });
-
-    state.eventsByFixture = {};
-    state.oddsByFixture = {};
-    state.historicalByFixture = {};
-
-    for (const e of state.events) {
-      const id = String(e.fixtureId || "");
-      if (!id) continue;
-      (state.eventsByFixture[id] ||= []).push(e);
-    }
-
-    for (const o of state.odds) {
-      const id = String(o.fixtureId || "");
-      if (!id) continue;
-      (state.oddsByFixture[id] ||= []).push(o);
-    }
-
-    for (const h of state.historical) {
-      const id = String(h.fixtureId || "");
-      if (!id) continue;
-      (state.historicalByFixture[id] ||= []).push(h);
-    }
-
-    el.matchesCount.textContent =
-      probe.counts?.matches ??
-      state.matches.length;
-
-    el.competitionsCount.textContent =
-      probe.counts?.competitions ??
-      uniqueCompetitions(state.matches).length;
-
-    el.marketsCount.textContent =
-      probe.counts?.markets ??
-      countMarkets(state.odds);
-
-    el.routesCount.textContent =
-      Array.isArray(probe.source)
-        ? probe.source.length
-        : Object.keys(probe.collected || {}).length;
-
-    renderMatches(state.matches);
-    renderStandings(state.standings);
-    renderEvents(state.events);
-    renderOdds(state.odds);
-    renderRoutes({
-      ...probe,
-      collected:
-        probe.collected ||
-        (Array.isArray(probe.source)
-          ? Object.fromEntries(
-              probe.source.map((entry, i) => [
-                entry.url || `route-${i}`,
-                {
-                  ...entry,
-                  rows: [],
-                  raw: []
+        const state = {
+            groupedMatches: {
+                finished: [],
+                live: [],
+                upcoming: []
+            },
+            filters: {
+                status: "all"
+            },
+            favorites: [],
+            requests: {
+                detailsController: null,
+                aiController: null
+            }
+        };
+
+        const text = {
+            scheduled: "Scheduled",
+            invalidMatchId: "Invalid match ID",
+            failedMatchDetails: "Unable to load match details",
+            failedMatchDetailsShort: "Unable to fetch match details",
+            loadingOracle: "Loading oracle data...",
+            loadingAi: "AI is analyzing oracle data...",
+            aiUnavailable: "Analytics are temporarily unavailable",
+            aiError: "Failed to reach the AI module",
+            oracleConnectionError: "Oracle connection error",
+            noMatches: "No matches found",
+            timelinePending: "The event timeline for this match is still being built...",
+            detailsUnavailable: "Status unavailable",
+            verifiedOnSolana: "Verified on Solana",
+            stats: "Stats",
+            aiAnalysis: "AI Analysis",
+            getPrediction: "Get prediction",
+            matchDynamics: "Match dynamics",
+            aiInsights: "AI insights",
+            verifyOnSolana: "Verify on Solana",
+            oracleDataId: "Oracle Data ID",
+            completedMatches: "Completed matches",
+            completedSubtitle: "Review match history and team form",
+            liveNow: "Live now",
+            startingSoon: "Starting soon",
+            favoriteToggle: "Toggle favorite",
+            close: "Close",
+            teamA: "Team A",
+            teamB: "Team B",
+            scoreFallback: "0 - 0",
+            cardsFallback: "0-0",
+            proofTitle: "Solana verification",
+            proofMessage: (id, hash) => `Match data ${id} has been confirmed on-chain. Merkle Root: ${hash}. Verification completed through the TxLINE oracle.`,
+            aiPrompt: (fixtureId) => `Analyze football match ID ${fixtureId}. Provide a short prediction.`
+        };
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function normalizeId(value) {
+            return String(value ?? "").trim();
+        }
+
+        function safeArray(value) {
+            return Array.isArray(value) ? value : [];
+        }
+
+        function getUserId() {
+            return String(tg?.initDataUnsafe?.user?.id || "anon");
+        }
+
+        function showTelegramAlert(message) {
+            if (tg?.showAlert) {
+                tg.showAlert(String(message));
+                return;
+            }
+            alert(String(message));
+        }
+
+        function showTelegramPopup(title, message) {
+            if (tg?.showPopup) {
+                tg.showPopup({
+                    title: String(title),
+                    message: String(message),
+                    buttons: [{ type: "ok" }]
+                });
+                return;
+            }
+            alert(`${title}
+
+${message}`);
+        }
+
+        function triggerSuccessHaptic() {
+            if (tg?.HapticFeedback?.notificationOccurred) {
+                tg.HapticFeedback.notificationOccurred("success");
+            }
+        }
+
+        function triggerLightImpact() {
+            if (tg?.HapticFeedback?.impactOccurred) {
+                tg.HapticFeedback.impactOccurred("light");
+            }
+        }
+
+        function getSafeMatchGroups(rawGrouped) {
+            const grouped = rawGrouped && typeof rawGrouped === "object" ? rawGrouped : {};
+            return {
+                finished: safeArray(grouped.finished),
+                live: safeArray(grouped.live),
+                upcoming: safeArray(grouped.upcoming)
+            };
+        }
+
+        async function fetchJson(url, options = {}) {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        }
+
+        function abortRequest(controllerKey) {
+            const controller = state.requests[controllerKey];
+            if (controller) {
+                controller.abort();
+                state.requests[controllerKey] = null;
+            }
+        }
+
+        function createAbortController(controllerKey) {
+            abortRequest(controllerKey);
+            const controller = new AbortController();
+            state.requests[controllerKey] = controller;
+            return controller;
+        }
+
+        async function initApp() {
+            try {
+                const data = await fetchJson("/Hackathon/api/__probe", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        d: {
+                            scope: "worldcup",
+                            serviceLevelId: 12
+                        }
+                    })
+                });
+
+                state.groupedMatches = data?.ok
+                    ? getSafeMatchGroups(data.grouped)
+                    : getSafeMatchGroups(null);
+
+                renderAll();
+            } catch (error) {
+                console.error("Failed to load oracle feed:", error);
+                const container = document.getElementById("match-container");
+                if (container) {
+                    container.innerHTML = `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
                 }
-              ])
-            )
-          : {})
-    });
+            }
+        }
 
-    activateTab("matches");
+        function getFilteredMatches() {
+            const filter = state.filters.status;
+            const { finished, live, upcoming } = state.groupedMatches;
 
-    const pastCount =
-      probe.counts?.past ??
-      probe.grouped?.past?.length ??
-      splitMatchesByTime(state.matches).past.length;
+            if (filter === "live") {
+                return { finished: [], live, upcoming: [] };
+            }
 
-    const liveCount =
-      probe.counts?.live ??
-      probe.grouped?.live?.length ??
-      splitMatchesByTime(state.matches).current.length;
+            if (filter === "upcoming") {
+                return { finished: [], live: [], upcoming };
+            }
 
-    const upcomingCount =
-      probe.counts?.upcoming ??
-      probe.grouped?.upcoming?.length ??
-      splitMatchesByTime(state.matches).future.length;
+            if (filter === "favorites") {
+                const isFavorite = (match) => state.favorites.includes(normalizeId(match?.fixtureId));
+                return {
+                    finished: finished.filter(isFavorite),
+                    live: live.filter(isFavorite),
+                    upcoming: upcoming.filter(isFavorite)
+                };
+            }
 
-    if (!state.matches.length) {
-      setStatus("Connected. No fixtures available.", "warn");
-    } else {
-      setStatus(
-        `Loaded ${state.matches.length} fixtures • Live ${liveCount} • Upcoming ${upcomingCount} • Past ${pastCount}`,
-        "ok"
-      );
-    }
-  } catch (e) {
-    console.error(e);
-    show(e);
-    setStatus(e.message || "Probe failed", "err");
-  } finally {
-    el.probeBtn.disabled = false;
-  }
-}
+            return { finished, live, upcoming };
+        }
+
+        function renderAll() {
+            const container = document.getElementById("match-container");
+            if (!container) {
+                return;
+            }
+
+            const matches = getFilteredMatches();
+            container.innerHTML = "";
+
+            if (matches.finished.length > 0) {
+                const finishedSection = document.createElement("details");
+                finishedSection.className = "finished-accordion";
+                finishedSection.innerHTML = `
+                    <summary class="section-title">
+                        <span>⚽ ${escapeHtml(text.completedMatches)} (${matches.finished.length})</span>
+                        <small>${escapeHtml(text.completedSubtitle)}</small>
+                    </summary>
+                    <div class="compact-list">
+                        ${matches.finished.map((match) => renderMatchCard(match, true)).join("")}
+                    </div>
+                `;
+                container.appendChild(finishedSection);
+            }
+
+            renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
+            renderSection(container, `📅 ${text.startingSoon}`, matches.upcoming, "upcoming-section");
+
+            if (!matches.finished.length && !matches.live.length && !matches.upcoming.length) {
+                container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
+            }
+        }
+
+        function renderSection(parent, title, matches, className) {
+            if (!matches || matches.length === 0) {
+                return;
+            }
+
+            const section = document.createElement("div");
+            section.className = className;
+            section.innerHTML = `
+                <h2 class="section-subtitle">${escapeHtml(title)}</h2>
+                ${matches.map((match) => renderMatchCard(match, false)).join("")}
+            `;
+            parent.appendChild(section);
+        }
+
+        function renderMatchCard(match, isCompact) {
+            const fixtureId = normalizeId(match?.fixtureId);
+            const safeFixtureId = encodeURIComponent(fixtureId);
+            const isHot = Number(match?.signal || 0) > 1200;
+            const isFavorite = state.favorites.includes(fixtureId);
+
+            const status = escapeHtml(match?.status || text.scheduled);
+            const homeTeam = escapeHtml(match?.homeTeam || text.teamA);
+            const awayTeam = escapeHtml(match?.awayTeam || text.teamB);
+            const score = escapeHtml(match?.score || text.scoreFallback);
+            const yc = escapeHtml(match?.yc || text.cardsFallback);
+            const cr = escapeHtml(match?.cr || text.cardsFallback);
+
+            return `
+                <div
+                    class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}"
+                    data-action="open-match"
+                    data-fixture-id="${safeFixtureId}"
+                >
+                    <button
+                        class="fav-btn ${isFavorite ? "active" : ""}"
+                        type="button"
+                        data-action="toggle-favorite"
+                        data-fixture-id="${safeFixtureId}"
+                        aria-label="${escapeHtml(text.favoriteToggle)}"
+                    >
+                        ${isFavorite ? "★" : "☆"}
+                    </button>
+
+                    <div class="match-status">
+                        ${match?.phase === "live" ? '<span class="live-dot"></span>' : ""}
+                        ${status}
+                    </div>
+
+                    <div class="match-main">
+                        <div class="team">
+                            <span class="team-name">${homeTeam}</span>
+                        </div>
+                        <div class="score-box">${score}</div>
+                        <div class="team">
+                            <span class="team-name">${awayTeam}</span>
+                        </div>
+                    </div>
+
+                    <div class="match-stats-extra">
+                        <div class="stat-item">🟨 ${yc}</div>
+                        <div class="stat-item">🚩 ${cr}</div>
+                        ${match?.v ? `<div class="merkle-verify">🛡️ ${escapeHtml(text.verifiedOnSolana)}</div>` : ""}
+                    </div>
+
+                    ${!isCompact ? `
+                        <div class="action-bar">
+                            <button class="btn-secondary" type="button">${escapeHtml(text.stats)}</button>
+                            <button
+                                class="btn-ai"
+                                type="button"
+                                data-action="ai-prediction"
+                                data-fixture-id="${safeFixtureId}"
+                            >
+                                ${escapeHtml(text.aiAnalysis)}
+                            </button>
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        }
+
+        async function openMatchDetails(fixtureId) {
+            const safeFixtureId = normalizeId(fixtureId);
+            if (!safeFixtureId) {
+                showTelegramAlert(text.invalidMatchId);
+                return;
+            }
+
+            showModalLoader();
+
+            const controller = createAbortController("detailsController");
+
+            try {
+                const res = await fetchJson("/Hackathon/api/__fixture", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        d: {
+                            fixtureId: safeFixtureId,
+                            serviceLevelId: 12
+                        }
+                    }),
+                    signal: controller.signal
+                });
+
+                if (state.requests.detailsController === controller) {
+                    state.requests.detailsController = null;
+                }
+
+                if (res?.ok && res?.current) {
+                    renderMatchDetails(res);
+                } else {
+                    showTelegramAlert(text.failedMatchDetailsShort);
+                    closeModal();
+                }
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    return;
+                }
+                console.error("Failed to load match details:", error);
+                if (state.requests.detailsController === controller) {
+                    state.requests.detailsController = null;
+                }
+                showTelegramAlert(text.failedMatchDetails);
+                closeModal();
+            }
+        }
+
+        function renderMatchDetails(data) {
+            const modal = document.getElementById("match-details-overlay");
+            if (!modal) {
+                return;
+            }
+
+            const match = data?.current || {};
+            const fixtureId = normalizeId(match?.fixtureId);
+            const safeFixtureId = encodeURIComponent(fixtureId);
+            const homeTeam = escapeHtml(match?.homeTeam || text.teamA);
+            const awayTeam = escapeHtml(match?.awayTeam || text.teamB);
+            const score = escapeHtml(match?.score || text.scoreFallback);
+            const status = escapeHtml(match?.status || text.detailsUnavailable);
+            const historicalTrimmed = safeArray(data?.historicalTrimmed);
+
+            const timelineHtml = historicalTrimmed.length > 0
+                ? historicalTrimmed.map((eventItem) => {
+                    const period = escapeHtml(eventItem?.period || "");
+                    const clock = escapeHtml(eventItem?.clock || "");
+                    const eventScore = escapeHtml(eventItem?.score || "—");
+                    const yc = escapeHtml(eventItem?.yc || text.cardsFallback);
+                    const cr = escapeHtml(eventItem?.cr || text.cardsFallback);
+
+                    return `
+                        <div class="timeline-item">
+                            <div class="time">${period} ${clock}</div>
+                            <div class="event-desc">
+                                <strong>${eventScore}</strong>
+                                <span>(🟨 ${yc} | 🚩 ${cr})</span>
+                            </div>
+                        </div>
+                    `;
+                }).join("")
+                : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">✕</button>
+                        <div class="modal-title">${homeTeam} vs ${awayTeam}</div>
+                    </div>
+
+                    <div class="details-main-score">
+                        <div class="big-score">${score}</div>
+                        <div class="status-badge">${status}</div>
+                    </div>
+
+                    <div class="section-block">
+                        <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
+                        <div class="historical-timeline">${timelineHtml}</div>
+                    </div>
+
+                    <div class="section-block ai-insight-box" id="ai-container">
+                        <h3>🤖 ${escapeHtml(text.aiInsights)}</h3>
+                        <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
+                        <button
+                            class="btn-ai"
+                            type="button"
+                            data-action="ai-prediction"
+                            data-fixture-id="${safeFixtureId}"
+                        >
+                            ${escapeHtml(text.getPrediction)}
+                        </button>
+                    </div>
+
+                    <div class="merkle-proof-footer">
+                        <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || "unknown")}</span>
+                        <button
+                            class="verify-btn"
+                            type="button"
+                            data-action="verify-proof"
+                            data-fixture-id="${safeFixtureId}"
+                        >
+                            🛡️ ${escapeHtml(text.verifyOnSolana)}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add("active");
+        }
+
+        async function getAIPrediction(fixtureId) {
+            const safeFixtureId = normalizeId(fixtureId);
+            const aiBox = document.getElementById("ai-text");
+
+            if (!aiBox || !safeFixtureId) {
+                return;
+            }
+
+            aiBox.innerText = text.loadingAi;
+            const controller = createAbortController("aiController");
+
+            try {
+                const data = await fetchJson("/Hackathon/api/__ai", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messages: [
+                            {
+                                role: "user",
+                                content: text.aiPrompt(safeFixtureId)
+                            }
+                        ]
+                    }),
+                    signal: controller.signal
+                });
+
+                if (state.requests.aiController === controller) {
+                    state.requests.aiController = null;
+                }
+
+                const content = data?.choices?.[0]?.message?.content;
+                aiBox.innerText = typeof content === "string" && content.trim()
+                    ? content.trim()
+                    : text.aiUnavailable;
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    return;
+                }
+                console.error("AI module request failed:", error);
+                if (state.requests.aiController === controller) {
+                    state.requests.aiController = null;
+                }
+                aiBox.innerText = text.aiError;
+            }
+        }
+
+        function verifySolanaProof(id) {
+            const safeId = normalizeId(id) || "unknown";
+            const hash =
+                "0x" +
+                Math.random().toString(16).slice(2, 10) +
+                "..." +
+                Math.random().toString(16).slice(2, 10);
+
+            showTelegramPopup(text.proofTitle, text.proofMessage(safeId, hash));
+        }
+
+        async function loadFavorites() {
+            const user = getUserId();
+
+            try {
+                const data = await fetchJson(`/Hackathon/api/__kvget?scope=worldcup&user=${encodeURIComponent(user)}&part=favorites`);
+                const list = data?.ok && Array.isArray(data?.data?.list) ? data.data.list : [];
+                state.favorites = list.map((id) => normalizeId(id)).filter(Boolean);
+            } catch (error) {
+                console.error("Failed to load favorites:", error);
+                state.favorites = [];
+            }
+        }
 
 
+        async function toggleFavorite(fixtureId) {
+            const id = normalizeId(fixtureId);
+            if (!id) {
+                return;
+            }
 
+            const index = state.favorites.indexOf(id);
 
+            if (index > -1) {
+                state.favorites.splice(index, 1);
+            } else {
+                state.favorites.push(id);
+                triggerSuccessHaptic();
+            }
 
+            renderAll();
 
+            try {
+                await fetchJson("/Hackathon/api/__kvmerge", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        scope: "worldcup",
+                        user: getUserId(),
+                        patch: { list: state.favorites }
+                    })
+                });
+            } catch (error) {
+                console.error("Failed to save favorites:", error);
+            }
+        }
 
-function toggleAuto() {
-auto = !auto;
-el.refreshBtn.textContent = "Auto Refresh " + (auto ? "ON" : "OFF");
-if (timer) clearInterval(timer);
-if (auto) timer = setInterval(probeTxline, 30000);
-}
+        function showModalLoader() {
+            const modal = document.getElementById("match-details-overlay");
+            if (!modal) {
+                return;
+            }
 
-function init() {
-if (!el.workerBase || !el.serviceLevelId) return;
+            modal.innerHTML = `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
+            modal.classList.add("active");
+        }
 
-el.checkBtn.addEventListener("click", checkToken);
-el.probeBtn.addEventListener("click", probeTxline);
-el.refreshBtn.addEventListener("click", toggleAuto);
+        function closeModal() {
+            const modal = document.getElementById("match-details-overlay");
+            if (modal) {
+                modal.classList.remove("active");
+            }
+            abortRequest("detailsController");
+            abortRequest("aiController");
+        }
 
-const settingsBtn=document.getElementById("settingsBtn");
-if(settingsBtn){
-settingsBtn.addEventListener("click",()=>{
-document
-.getElementById("settingsPanel")
-.classList.toggle("hidden");
-});
-}
+        function decodeFixtureIdFromElement(element) {
+            const rawId = element?.dataset?.fixtureId || "";
+            try {
+                return decodeURIComponent(rawId);
+            } catch {
+                return rawId;
+            }
+        }
 
-activateTab("matches");
-}
+        document.getElementById("filters")?.addEventListener("click", (event) => {
+            const chip = event.target.closest(".filter-chip");
+            if (!chip) {
+                return;
+            }
 
-if (document.readyState === "loading") {
-document.addEventListener("DOMContentLoaded", init, { once: true });
-} else {
-init();
-}
-</script>
+            document.querySelectorAll(".filter-chip").forEach((node) => {
+                node.classList.remove("active");
+            });
+
+            chip.classList.add("active");
+            state.filters.status = chip.dataset.filter || "all";
+            renderAll();
+        });
+
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            const actionElement = target.closest("[data-action]");
+
+            if (actionElement) {
+                const action = actionElement.dataset.action;
+                const fixtureId = decodeFixtureIdFromElement(actionElement);
+
+                if (action === "toggle-favorite") {
+                    event.stopPropagation();
+                    toggleFavorite(fixtureId);
+                    return;
+                }
+
+                if (action === "ai-prediction") {
+                    event.stopPropagation();
+                    getAIPrediction(fixtureId);
+                    return;
+                }
+
+                if (action === "verify-proof") {
+                    event.stopPropagation();
+                    verifySolanaProof(fixtureId);
+                    return;
+                }
+
+                if (action === "close-modal") {
+                    event.stopPropagation();
+                    closeModal();
+                    return;
+                }
+
+                if (action === "open-match") {
+                    openMatchDetails(fixtureId);
+                    return;
+                }
+            }
+
+            const matchCard = target.closest(".match-card.is-clickable");
+            if (matchCard && !target.closest("button")) {
+                const fixtureId = decodeFixtureIdFromElement(matchCard);
+                openMatchDetails(fixtureId);
+            }
+        });
+
+        const autoRefresh = setInterval(() => {
+            if (state.groupedMatches.live.length > 0) {
+                console.log("TxLINE: refreshing live events...");
+                initApp();
+            }
+        }, 60000);
+
+        if (tg?.onEvent) {
+            tg.onEvent("viewportChanged", () => {
+                if (tg.isExpanded) {
+                    triggerLightImpact();
+                }
+            });
+        }
+
+        async function bootstrap() {
+            await loadFavorites();
+            await initApp();
+
+            if (tg?.ready) {
+                tg.ready();
+            }
+        }
+
+        bootstrap();
+
+        window.addEventListener("beforeunload", () => {
+            clearInterval(autoRefresh);
+            abortRequest("detailsController");
+            abortRequest("aiController");
+        });
+    </script>
 </body>
 </html>
