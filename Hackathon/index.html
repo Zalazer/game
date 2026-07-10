@@ -627,7 +627,7 @@ function renderAll() {
     }
 
     renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
-    renderSection(container, `📅 ${text.startingSoon}`, matches.upcoming, "upcoming-section");
+    renderSection(container, `▶️ ${text.startingSoon}`, matches.upcoming, "upcoming-section");
 
     if (!matches.finished.length && !matches.live.length && !matches.upcoming.length) {
         container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
@@ -814,6 +814,28 @@ function buildTimelineItems(data) {
 }
 
 
+function formatKickoff(value) {
+    if (value == null || value === "") return "";
+
+    const n = Number(value);
+    const date = Number.isFinite(n) ? new Date(n) : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    const datePart = date.toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short"
+    });
+
+    const timePart = date.toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    return `${datePart}, ${timePart}`;
+}
+
+
+
 
 
 
@@ -854,15 +876,17 @@ function renderMatchCard(match, isCompact) {
     const yc = escapeHtml(match?.yc || text.cardsFallback);
     const cr = escapeHtml(match?.cr || text.cardsFallback);
 
-    const kickoff =
-        match?.startTime ||
-        match?.kickoff ||
-        match?.date ||
-        match?.datetime ||
-        match?.startsAt ||
+    const kickoffRaw =
+        match?.startTime ??
+        match?.kickoff ??
+        match?.date ??
+        match?.datetime ??
+        match?.startsAt ??
+        match?.time ??
         "";
 
-    const kickoffHtml = kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : "";
+    const kickoff = formatKickoff(kickoffRaw);
+    const kickoffHtml = kickoff ? `<div class="card-kickoff">📅 ${escapeHtml(kickoff)}</div>` : "";
 
     return `
         <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
@@ -889,6 +913,9 @@ function renderMatchCard(match, isCompact) {
     `;
 }
 
+
+
+
 function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
@@ -903,21 +930,19 @@ function renderMatchDetails(data) {
     const score = escapeHtml(getMatchScore(data));
     const status = escapeHtml(getMatchStatus(data));
 
-    const kickoff =
-        current?.startTime ||
-        current?.kickoff ||
-        current?.date ||
-        current?.datetime ||
-        current?.startsAt ||
-        data?.startTime ||
-        data?.kickoff ||
-        data?.date ||
-        data?.datetime ||
+    const kickoffRaw =
+        current?.startTime ??
+        current?.kickoff ??
+        current?.date ??
+        current?.datetime ??
+        current?.startsAt ??
+        data?.startTime ??
+        data?.kickoff ??
+        data?.date ??
+        data?.datetime ??
         "";
 
-    const kickoffHtml = kickoff
-        ? `<div class="status-badge">${escapeHtml(kickoff)}</div>`
-        : `<div class="status-badge">${status}</div>`;
+    const kickoff = formatKickoff(kickoffRaw);
 
     const timelineItems = buildTimelineItems(data);
 
@@ -962,7 +987,9 @@ function renderMatchDetails(data) {
             </div>
             <div class="details-main-score">
                 <div class="big-score">${score}</div>
-                ${kickoffHtml}
+                <div class="status-badge">
+                    ${kickoff ? `${escapeHtml(kickoff)} • ` : ""}${status}
+                </div>
             </div>
             <div class="section-block">
                 <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
@@ -982,6 +1009,8 @@ function renderMatchDetails(data) {
     `;
     modal.classList.add("active");
 }
+
+
 
 async function openMatchDetails(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
