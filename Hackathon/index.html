@@ -765,6 +765,7 @@ function getMatchStatus(data) {
     return String(current?.status || current?.gameState || data?.status || text.detailsUnavailable);
 }
 
+
 function buildTimelineItems(data) {
     const source =
         data?.timeline ||
@@ -777,10 +778,12 @@ function buildTimelineItems(data) {
 
     return source
         .map((item) => {
-            const title = String(item?.title || item?.name || item?.type || item?.status || "").trim();
-            const minuteRaw = item?.minute ?? item?.min ?? item?.seconds ?? item?.time ?? null;
+            const titleRaw = item?.title || item?.name || item?.type || item?.status || item?.event || item?.description || "";
+            const title = String(titleRaw).trim();
 
+            const minuteRaw = item?.minute ?? item?.min ?? item?.seconds ?? item?.time ?? null;
             let minuteText = "";
+
             if (minuteRaw != null && minuteRaw !== "") {
                 const n = Number(minuteRaw);
                 if (Number.isFinite(n)) {
@@ -792,6 +795,7 @@ function buildTimelineItems(data) {
 
             const score =
                 item?.score ||
+                item?.result ||
                 (item?.homeScore != null && item?.awayScore != null
                     ? `${item.homeScore}-${item.awayScore}`
                     : "");
@@ -799,10 +803,10 @@ function buildTimelineItems(data) {
             const yc = item?.yc ?? item?.yellowCards ?? item?.homeYc ?? item?.awayYc ?? "";
             const cr = item?.cr ?? item?.corners ?? item?.homeCorners ?? item?.awayCorners ?? "";
 
-            const line = [minuteText, title].filter(Boolean).join(" — ").trim();
+            const label = [minuteText, title].filter(Boolean).join(" — ").trim();
 
             return {
-                title: line || title,
+                title: label || title || "Event",
                 score,
                 yc,
                 cr,
@@ -811,15 +815,13 @@ function buildTimelineItems(data) {
         })
         .filter((item) => {
             if (!item.title) return false;
-            if (/^0's*—s*soccer$/i.test(item.title)) return false;
-            if (/^0'$/i.test(item.title)) return false;
-            if (/^soccer$/i.test(item.rawTitle)) return false;
             if (/^comment$/i.test(item.rawTitle)) return false;
             if (/^disconnected$/i.test(item.rawTitle)) return false;
-            if (/^—$/i.test(item.title)) return false;
+            if (/^undefined$/i.test(item.rawTitle)) return false;
             return true;
         });
 }
+
 
 
 
@@ -952,9 +954,15 @@ function renderMatchDetails(data) {
         "";
 
     const kickoff = formatKickoff(kickoffRaw);
-    const kickoffLabel = kickoff ? ` • ${escapeHtml(kickoff)}` : "";
 
     const timelineItems = buildTimelineItems(data);
+
+    const fallbackMeta = [
+        { label: "Status", value: status },
+        { label: "Kickoff", value: kickoff || "—" },
+        { label: "Score", value: score || "—" },
+        { label: "Fixture", value: fixtureId || "unknown" }
+    ];
 
     const timelineHtml = timelineItems.length > 0
         ? timelineItems.map((item) => {
@@ -969,7 +977,14 @@ function renderMatchDetails(data) {
                 </div>
             `;
         }).join("")
-        : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
+        : `
+            <div class="match-stats-extra">
+                ${fallbackMeta.map((row) => `
+                    <div class="stat-item">${escapeHtml(row.label)}: ${escapeHtml(row.value)}</div>
+                `).join("")}
+            </div>
+            <div class="no-data">${escapeHtml(text.timelinePending)}</div>
+        `;
 
     const oddsPreview = current?.oddsPreview || null;
     const oddsHtml = oddsPreview && Array.isArray(oddsPreview.selections) && oddsPreview.selections.length
@@ -995,7 +1010,7 @@ function renderMatchDetails(data) {
 
             <div class="details-main-score">
                 <div class="big-score">${score}</div>
-                <div class="status-badge">${status}${kickoffLabel}</div>
+                <div class="status-badge">${status}${kickoff ? ` • ${escapeHtml(kickoff)}` : ""}</div>
             </div>
 
             <div class="section-block">
@@ -1025,6 +1040,7 @@ function renderMatchDetails(data) {
 
     modal.classList.add("active");
 }
+
 
 
 
