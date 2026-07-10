@@ -645,15 +645,146 @@ function renderSection(parent, title, matches, className) {
     parent.appendChild(section);
 }
 
+
+
+function formatMinuteFromSeconds(seconds) {
+    const n = Number(seconds);
+    if (!Number.isFinite(n) || n < 0) return "";
+    const minute = Math.floor(n / 60);
+    const extra = minute > 90 ? minute - 90 : 0;
+    return extra > 0 ? `90+${extra}'` : `${minute}'`;
+}
+
+function pickRawEventLabel(item) {
+    const raw = item?.raw || item || {};
+    const running = raw?.Running ?? raw?.running;
+    const seconds = raw?.Seconds ?? raw?.seconds;
+    const period = String(item?.period || raw?.period || raw?.Period || "").trim();
+    const clock = String(item?.clock || raw?.clock || raw?.Clock || "").trim();
+
+    if (period || clock) return `${period}${period && clock ? " " : ""}${clock}`.trim();
+    if (running === true && seconds != null) return `${formatMinuteFromSeconds(seconds)} — Live`;
+    if (running === false && Number(seconds) === 0) return "FT";
+    return "";
+}
+
+function extractStatPair(item) {
+    const raw = item?.raw || item || {};
+    const p1 = raw?.Participant1 || raw?.participant1 || {};
+    const p2 = raw?.Participant2 || raw?.participant2 || {};
+
+    const readTotal = (obj, key) => {
+        const total = obj?.Total || obj?.total || {};
+        return Number(total?.[key] ?? 0) || 0;
+    };
+
+    const yc1 = readTotal(p1, "YellowCards");
+    const yc2 = readTotal(p2, "YellowCards");
+    const cr1 = readTotal(p1, "Corners");
+    const cr2 = readTotal(p2, "Corners");
+
+    const hasAny = yc1 || yc2 || cr1 || cr2;
+    if (!hasAny) return null;
+
+    return {
+        yc: `${yc1}-${yc2}`,
+        cr: `${cr1}-${cr2}`
+    };
+}
+
+function formatTimelineEvent(item, index = 0) {
+    if (!item || typeof item !== "object") return null;
+
+    const raw = item?.raw || item;
+    const label = pickRawEventLabel(item);
+
+    const score =
+        item?.score ||
+        raw?.score ||
+        (item?.homeScore != null && item?.awayScore != null
+            ? `${item.homeScore}-${item.awayScore}`
+            : "");
+
+    const statPair = extractStatPair(item);
+    const yc = item?.yc || statPair?.yc || text.cardsFallback;
+    const cr = item?.cr || statPair?.cr || text.cardsFallback;
+
+    const type = String(item?.type || raw?.Type || raw?.type || "").trim().toLowerCase();
+    const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim();
+
+    const timeText =
+        label ||
+        formatMinuteFromSeconds(item?.timestamp ?? item?.time ?? raw?.Seconds ?? raw?.seconds) ||
+        "";
+
+    const parts = [];
+    if (timeText) parts.push(timeText);
+    if (score && score !== "—") parts.push(score);
+    if (detail && detail !== "{}") parts.push(detail);
+    if (type && type !== "update") parts.push(type);
+
+    const title = parts.join(" — ") || "Event";
+    return {
+        key: `${item?.timestamp ?? item?.time ?? index}-${index}`,
+        title,
+        yc,
+        cr,
+        score: score || "—",
+        raw
+    };
+}
+
+function buildTimelineItems(data) {
+    const pool = [
+        ...safeArray(data?.historical),
+        ...safeArray(data?.events),
+        ...safeArray(data?.snapshot)
+    ];
+
+    const items = pool
+        .map((item, index) => {
+            const formatted = formatTimelineEvent(item, index);
+            if (!formatted) return null;
+            return {
+                ...formatted,
+                timestamp: Number(item?.timestamp ?? item?.time ?? item?.ts ?? item?.Ts ?? item?.raw?.Seconds ?? item?.raw?.seconds ?? index) || index
+            };
+        })
+        .filter(Boolean);
+
+    const unique = [];
+    const seen = new Set();
+
+    for (const item of items) {
+        const signature = [
+            String(item.title || ""),
+            String(item.score || ""),
+            String(item.yc || ""),
+            String(item.cr || "")
+        ].join("|");
+
+        if (seen.has(signature)) continue;
+        seen.add(signature);
+        unique.push(item);
+    }
+
+    unique.sort((a, b) => a.timestamp - b.timestamp);
+
+    return unique;
+}
+
+
+
+
 function renderMatchCard(match, isCompact) {
     const fixtureId = normalizeId(match?.fixtureId);
     const safeFixtureId = encodeURIComponent(fixtureId);
     const isHot = Number(match?.signal || 0) > 1200;
     const isFavorite = state.favorites.includes(fixtureId);
 
-    const homeTeam = escapeHtml(match?.home || match?.homeTeam || text.teamA);
-    const awayTeam = escapeHtml(match?.away || match?.awayTeam || text.teamB);
-    const score = escapeHtml(match?.score || text.scoreFallback);
+    const homeTeam = escapeHtml(match?.home || match?.homeTeam || match?.participant1 || text.teamA);
+    const awayTeam = escapeHtml(match?.away || match?.awayTeam || match?.participant2 || text.teamB);
+    const score = escapeHtml(match?.score || (match?.homeScore != null && match?.awayScore != null ? `${match.homeScore}-${match.awayScore}` : text.scoreFallback));
     const status = escapeHtml(match?.status || match?.gameState || text.scheduled);
     const yc = escapeHtml(match?.yc || text.cardsFallback);
     const cr = escapeHtml(match?.cr || text.cardsFallback);
@@ -682,6 +813,8 @@ function renderMatchCard(match, isCompact) {
     `;
 }
 
+
+
 function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
@@ -695,6 +828,8 @@ function renderMatchDetails(data) {
         current?.homeTeam ||
         current?.participant1 ||
         current?.Participant1 ||
+        data?.match?.home ||
+        data?.match?.homeTeam ||
         text.teamA
     );
 
@@ -703,14 +838,17 @@ function renderMatchDetails(data) {
         current?.awayTeam ||
         current?.participant2 ||
         current?.Participant2 ||
+        data?.match?.away ||
+        data?.match?.awayTeam ||
         text.teamB
     );
 
     const score = escapeHtml(
         current?.score ||
         data?.score ||
-        `${current?.homeScore ?? "—"}-${current?.awayScore ?? "—"}` ||
-        text.scoreFallback
+        (current?.homeScore != null && current?.awayScore != null
+            ? `${current.homeScore}-${current.awayScore}`
+            : text.scoreFallback)
     );
 
     const status = escapeHtml(
@@ -720,35 +858,18 @@ function renderMatchDetails(data) {
         text.detailsUnavailable
     );
 
-    const timelineSource = [
-        ...safeArray(data?.historical),
-        ...safeArray(data?.events),
-        ...safeArray(data?.snapshot)
-    ];
+    const timelineItems = buildTimelineItems(data);
 
-    const timelineHtml = timelineSource.length > 0
-        ? timelineSource.map((eventItem) => {
-            const period = escapeHtml(eventItem?.period || "");
-            const clock = escapeHtml(eventItem?.clock || "");
-            const eventScore = escapeHtml(
-                eventItem?.score ||
-                (eventItem?.homeScore != null && eventItem?.awayScore != null
-                    ? `${eventItem.homeScore}-${eventItem.awayScore}`
-                    : "—")
-            );
-            const yc = escapeHtml(eventItem?.yc || text.cardsFallback);
-            const cr = escapeHtml(eventItem?.cr || text.cardsFallback);
-
-            return `
-                <div class="timeline-item">
-                    <div class="time">${period} ${clock}</div>
-                    <div class="event-desc">
-                        <strong>${eventScore}</strong>
-                        <span>(🟨 ${yc} | 🚩 ${cr})</span>
-                    </div>
+    const timelineHtml = timelineItems.length > 0
+        ? timelineItems.map((item) => `
+            <div class="timeline-item">
+                <div class="time">${escapeHtml(item.title)}</div>
+                <div class="event-desc">
+                    <strong>${escapeHtml(item.score || "—")}</strong>
+                    <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
                 </div>
-            `;
-        }).join("")
+            </div>
+        `).join("")
         : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
     const oddsPreview = current?.oddsPreview || null;
@@ -796,6 +917,8 @@ function renderMatchDetails(data) {
 }
 
 
+
+
 async function openMatchDetails(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
     if (!safeFixtureId) return showTelegramAlert(text.invalidMatchId);
@@ -828,6 +951,8 @@ async function openMatchDetails(fixtureId) {
         closeModal();
     }
 }
+
+
 
 
 async function getAIPrediction(fixtureId) {
