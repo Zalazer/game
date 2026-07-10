@@ -772,56 +772,56 @@ function buildTimelineItems(data) {
         data?.events ||
         data?.matchEvents ||
         data?.current?.timeline ||
+        data?.current?.events ||
+        data?.current?.matchEvents ||
         [];
 
     if (!Array.isArray(source)) return [];
 
-    return source
-        .map((item) => {
-            const titleRaw = item?.title || item?.name || item?.type || item?.status || item?.event || item?.description || "";
-            const title = String(titleRaw).trim();
+    return source.map((item) => {
+        const title =
+            String(
+                item?.title ||
+                item?.name ||
+                item?.type ||
+                item?.status ||
+                item?.event ||
+                item?.description ||
+                item?.label ||
+                "Event"
+            ).trim();
 
-            const minuteRaw = item?.minute ?? item?.min ?? item?.seconds ?? item?.time ?? null;
-            let minuteText = "";
+        const minuteRaw = item?.minute ?? item?.min ?? item?.seconds ?? item?.time ?? null;
+        let minuteText = "";
 
-            if (minuteRaw != null && minuteRaw !== "") {
-                const n = Number(minuteRaw);
-                if (Number.isFinite(n)) {
-                    minuteText = n > 120 ? formatMinuteFromSeconds(n) : `${Math.round(n)}'`;
-                } else {
-                    minuteText = String(minuteRaw).trim();
-                }
+        if (minuteRaw != null && minuteRaw !== "") {
+            const n = Number(minuteRaw);
+            if (Number.isFinite(n)) {
+                minuteText = n > 120 ? formatMinuteFromSeconds(n) : `${Math.round(n)}'`;
+            } else {
+                minuteText = String(minuteRaw).trim();
             }
+        }
 
-            const score =
-                item?.score ||
-                item?.result ||
-                (item?.homeScore != null && item?.awayScore != null
-                    ? `${item.homeScore}-${item.awayScore}`
-                    : "");
+        const score =
+            item?.score ||
+            item?.result ||
+            item?.state ||
+            (item?.homeScore != null && item?.awayScore != null
+                ? `${item.homeScore}-${item.awayScore}`
+                : "");
 
-            const yc = item?.yc ?? item?.yellowCards ?? item?.homeYc ?? item?.awayYc ?? "";
-            const cr = item?.cr ?? item?.corners ?? item?.homeCorners ?? item?.awayCorners ?? "";
+        const yc = item?.yc ?? item?.yellowCards ?? item?.homeYc ?? item?.awayYc ?? "";
+        const cr = item?.cr ?? item?.corners ?? item?.homeCorners ?? item?.awayCorners ?? "";
 
-            const label = [minuteText, title].filter(Boolean).join(" — ").trim();
-
-            return {
-                title: label || title || "Event",
-                score,
-                yc,
-                cr,
-                rawTitle: title.toLowerCase()
-            };
-        })
-        .filter((item) => {
-            if (!item.title) return false;
-            if (/^comment$/i.test(item.rawTitle)) return false;
-            if (/^disconnected$/i.test(item.rawTitle)) return false;
-            if (/^undefined$/i.test(item.rawTitle)) return false;
-            return true;
-        });
+        return {
+            title: [minuteText, title].filter(Boolean).join(" — "),
+            score,
+            yc,
+            cr
+        };
+    });
 }
-
 
 
 
@@ -932,14 +932,60 @@ function renderMatchDetails(data) {
     if (!modal) return;
 
     const current = data?.current || {};
-    const fixtureId = normalizeId(data?.fixtureId || current?.fixtureId || current?.id);
+
+    const fixtureId = normalizeId(
+        data?.fixtureId ||
+        current?.fixtureId ||
+        current?.id ||
+        data?.id ||
+        data?.fixture_id
+    );
+
     const safeFixtureId = encodeURIComponent(fixtureId);
 
-    const teams = getMatchTeams(data);
-    const homeTeam = escapeHtml(teams.home);
-    const awayTeam = escapeHtml(teams.away);
-    const score = escapeHtml(getMatchScore(data));
-    const status = escapeHtml(getMatchStatus(data));
+    const homeRaw =
+        current?.home ||
+        current?.homeTeam ||
+        current?.participant1 ||
+        current?.Participant1 ||
+        data?.home ||
+        data?.homeTeam ||
+        data?.participant1 ||
+        data?.Participant1 ||
+        data?.match?.home ||
+        data?.match?.homeTeam ||
+        text.teamA;
+
+    const awayRaw =
+        current?.away ||
+        current?.awayTeam ||
+        current?.participant2 ||
+        current?.Participant2 ||
+        data?.away ||
+        data?.awayTeam ||
+        data?.participant2 ||
+        data?.Participant2 ||
+        data?.match?.away ||
+        data?.match?.awayTeam ||
+        text.teamB;
+
+    const scoreRaw =
+        current?.score ||
+        data?.score ||
+        current?.result ||
+        data?.result ||
+        ((current?.homeScore != null && current?.awayScore != null)
+            ? `${current.homeScore}-${current.awayScore}`
+            : "");
+
+    const statusRaw =
+        current?.status ||
+        current?.gameState ||
+        data?.status ||
+        data?.gameState ||
+        current?.state ||
+        data?.state ||
+        text.detailsUnavailable;
 
     const kickoffRaw =
         current?.startTime ??
@@ -951,17 +997,16 @@ function renderMatchDetails(data) {
         data?.kickoff ??
         data?.date ??
         data?.datetime ??
+        data?.startsAt ??
         "";
-
-    const kickoff = formatKickoff(kickoffRaw);
 
     const timelineItems = buildTimelineItems(data);
 
-    const fallbackMeta = [
-        { label: "Status", value: status },
-        { label: "Kickoff", value: kickoff || "—" },
-        { label: "Score", value: score || "—" },
-        { label: "Fixture", value: fixtureId || "unknown" }
+    const fallbackRows = [
+        ["Status", statusRaw],
+        ["Kickoff", kickoffRaw ? formatKickoff(kickoffRaw) : "—"],
+        ["Score", scoreRaw || "—"],
+        ["Fixture", fixtureId || "unknown"]
     ];
 
     const timelineHtml = timelineItems.length > 0
@@ -969,7 +1014,7 @@ function renderMatchDetails(data) {
             const hasStats = item.yc !== "" || item.cr !== "";
             return `
                 <div class="timeline-item">
-                    <div class="time">${escapeHtml(item.title)}</div>
+                    <div class="time">${escapeHtml(item.title || "Event")}</div>
                     <div class="event-desc">
                         <strong>${escapeHtml(item.score || "—")}</strong>
                         ${hasStats ? `<span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>` : ""}
@@ -979,14 +1024,14 @@ function renderMatchDetails(data) {
         }).join("")
         : `
             <div class="match-stats-extra">
-                ${fallbackMeta.map((row) => `
-                    <div class="stat-item">${escapeHtml(row.label)}: ${escapeHtml(row.value)}</div>
+                ${fallbackRows.map(([k, v]) => `
+                    <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(v || "—")}</div>
                 `).join("")}
             </div>
             <div class="no-data">${escapeHtml(text.timelinePending)}</div>
         `;
 
-    const oddsPreview = current?.oddsPreview || null;
+    const oddsPreview = current?.oddsPreview || data?.oddsPreview || null;
     const oddsHtml = oddsPreview && Array.isArray(oddsPreview.selections) && oddsPreview.selections.length
         ? `
             <div class="section-block">
@@ -1005,20 +1050,20 @@ function renderMatchDetails(data) {
         <div class="modal-content">
             <div class="modal-header">
                 <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">✕</button>
-                <div class="modal-title">${homeTeam} vs ${awayTeam}</div>
+                <div class="modal-title">${escapeHtml(homeRaw)} vs ${escapeHtml(awayRaw)}</div>
             </div>
 
             <div class="details-main-score">
-                <div class="big-score">${score}</div>
-                <div class="status-badge">${status}${kickoff ? ` • ${escapeHtml(kickoff)}` : ""}</div>
+                <div class="big-score">${escapeHtml(scoreRaw || "—")}</div>
+                <div class="status-badge">${escapeHtml(statusRaw)}${kickoffRaw ? ` • ${escapeHtml(formatKickoff(kickoffRaw))}` : ""}</div>
             </div>
 
             <div class="section-block">
                 <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
                 <div class="match-stats-extra">
-                    <div class="stat-item">🏠 ${homeTeam}</div>
-                    <div class="stat-item">✈️ ${awayTeam}</div>
-                    <div class="stat-item">⏱️ ${kickoff ? escapeHtml(kickoff) : "—"}</div>
+                    <div class="stat-item">🏠 ${escapeHtml(homeRaw)}</div>
+                    <div class="stat-item">✈️ ${escapeHtml(awayRaw)}</div>
+                    <div class="stat-item">⏱️ ${kickoffRaw ? escapeHtml(formatKickoff(kickoffRaw)) : "—"}</div>
                 </div>
                 <div class="historical-timeline">${timelineHtml}</div>
             </div>
