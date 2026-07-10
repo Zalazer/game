@@ -686,20 +686,56 @@ function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
 
-    const match = data?.current || {};
-    const fixtureId = normalizeId(match?.fixtureId || data?.fixtureId);
+    const current = data?.current || {};
+    const fixtureId = normalizeId(data?.fixtureId || current?.fixtureId || current?.id);
     const safeFixtureId = encodeURIComponent(fixtureId);
-    const homeTeam = escapeHtml(match?.home || match?.homeTeam || text.teamA);
-    const awayTeam = escapeHtml(match?.away || match?.awayTeam || text.teamB);
-    const score = escapeHtml(match?.score || text.scoreFallback);
-    const status = escapeHtml(match?.status || match?.gameState || text.detailsUnavailable);
-    const historicalTrimmed = safeArray(data?.historical || data?.snapshot || data?.events);
 
-    const timelineHtml = historicalTrimmed.length > 0
-        ? historicalTrimmed.map((eventItem) => {
+    const homeTeam = escapeHtml(
+        current?.home ||
+        current?.homeTeam ||
+        current?.participant1 ||
+        current?.Participant1 ||
+        text.teamA
+    );
+
+    const awayTeam = escapeHtml(
+        current?.away ||
+        current?.awayTeam ||
+        current?.participant2 ||
+        current?.Participant2 ||
+        text.teamB
+    );
+
+    const score = escapeHtml(
+        current?.score ||
+        data?.score ||
+        `${current?.homeScore ?? "—"}-${current?.awayScore ?? "—"}` ||
+        text.scoreFallback
+    );
+
+    const status = escapeHtml(
+        current?.status ||
+        current?.gameState ||
+        data?.status ||
+        text.detailsUnavailable
+    );
+
+    const timelineSource = [
+        ...safeArray(data?.historical),
+        ...safeArray(data?.events),
+        ...safeArray(data?.snapshot)
+    ];
+
+    const timelineHtml = timelineSource.length > 0
+        ? timelineSource.map((eventItem) => {
             const period = escapeHtml(eventItem?.period || "");
             const clock = escapeHtml(eventItem?.clock || "");
-            const eventScore = escapeHtml(eventItem?.score || "—");
+            const eventScore = escapeHtml(
+                eventItem?.score ||
+                (eventItem?.homeScore != null && eventItem?.awayScore != null
+                    ? `${eventItem.homeScore}-${eventItem.awayScore}`
+                    : "—")
+            );
             const yc = escapeHtml(eventItem?.yc || text.cardsFallback);
             const cr = escapeHtml(eventItem?.cr || text.cardsFallback);
 
@@ -715,6 +751,21 @@ function renderMatchDetails(data) {
         }).join("")
         : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
+    const oddsPreview = current?.oddsPreview || null;
+    const oddsHtml = oddsPreview && Array.isArray(oddsPreview.selections) && oddsPreview.selections.length
+        ? `
+            <div class="section-block">
+                <h3>📈 Odds preview</h3>
+                <div class="match-stats-extra">
+                    <div class="stat-item">🏷️ ${escapeHtml(oddsPreview.bookmaker || "—")}</div>
+                    <div class="stat-item">ตลาด: ${escapeHtml(oddsPreview.market || "—")}</div>
+                    <div class="stat-item">ช่วง: ${escapeHtml(oddsPreview.marketPeriod || "—")}</div>
+                    <div class="stat-item">เส้น: ${escapeHtml(oddsPreview.line || "—")}</div>
+                </div>
+            </div>
+        `
+        : "";
+
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
@@ -729,6 +780,7 @@ function renderMatchDetails(data) {
                 <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
                 <div class="historical-timeline">${timelineHtml}</div>
             </div>
+            ${oddsHtml}
             <div class="section-block ai-insight-box" id="ai-container">
                 <h3>🤖 ${escapeHtml(text.aiInsights)}</h3>
                 <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
@@ -742,6 +794,7 @@ function renderMatchDetails(data) {
     `;
     modal.classList.add("active");
 }
+
 
 async function openMatchDetails(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
@@ -759,8 +812,11 @@ async function openMatchDetails(fixtureId) {
 
         if (state.requests.detailsController === controller) state.requests.detailsController = null;
 
-        if (res.ok && res.body?.ok) renderMatchDetails(res.body);
-        else {
+        const body = res?.body || {};
+        if (res.ok && body.ok) {
+            renderMatchDetails(body);
+        } else {
+            console.error("Fixture details response:", body);
             showTelegramAlert(text.failedMatchDetailsShort);
             closeModal();
         }
@@ -773,6 +829,7 @@ async function openMatchDetails(fixtureId) {
     }
 }
 
+
 async function getAIPrediction(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
     const aiBox = document.getElementById("ai-text");
@@ -782,14 +839,41 @@ async function getAIPrediction(fixtureId) {
     const controller = createAbortController("aiController");
 
     try {
-        const res = await abortableEmit(controller, {
-            type: "txline_ai_proxy",
-            messages: [{ role: "user", content: text.aiPrompt(safeFixtureId) }]
+        const base = getWorkerBase();
+        if (!base) throw new Error("Worker URL is empty");
+
+        const ticketRes = await fetch(`${base}/__ticket`, { method: "POST", signal: controller.signal });
+        if (!ticketRes.ok) throw new Error(`__ticket failed: ${ticketRes.status}`);
+        const ticket = await ticketRes.json();
+
+        const aiRes = await fetch(`${base}/__ai`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
+            body: JSON.stringify({
+                k: ticket.k,
+                messages: [
+                    {
+                        role: "user",
+                        content: text.aiPrompt(safeFixtureId)
+                    }
+                ]
+            })
         });
+
+        const raw = await aiRes.text();
+        let body = null;
+        try { body = JSON.parse(raw); } catch { body = { raw }; }
 
         if (state.requests.aiController === controller) state.requests.aiController = null;
 
-        const content = res.body?.content || res.body?.raw?.choices?.[0]?.message?.content || "";
+        if (!aiRes.ok || !body?.ok) {
+            console.error("AI response error:", body);
+            aiBox.innerText = text.aiUnavailable;
+            return;
+        }
+
+        const content = body?.content || body?.raw?.choices?.[0]?.message?.content || "";
         aiBox.innerText = typeof content === "string" && content.trim() ? content.trim() : text.aiUnavailable;
     } catch (error) {
         if (error.name === "AbortError") return;
@@ -798,6 +882,7 @@ async function getAIPrediction(fixtureId) {
         aiBox.innerText = text.aiError;
     }
 }
+
 
 function verifySolanaProof(id) {
     const safeId = normalizeId(id) || "unknown";
@@ -877,51 +962,54 @@ document.getElementById("filters")?.addEventListener("click", (event) => {
     renderAll();
 });
 
+
 document.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
-    if (!target) return;
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
 
-    const actionElement = target.closest("[data-action]");
-    if (actionElement) {
-        const action = actionElement.dataset.action;
-        const fixtureId = decodeFixtureIdFromElement(actionElement);
+  const actionElement = target.closest("[data-action]");
+  if (actionElement) {
+    const action = actionElement.dataset.action;
+    const fixtureId = decodeFixtureIdFromElement(actionElement);
 
-        if (action === "toggle-favorite") {
-            event.stopPropagation();
-            toggleFavorite(fixtureId);
-            return;
-        }
-
-        if (action === "ai-prediction") {
-            event.stopPropagation();
-            getAIPrediction(fixtureId);
-            return;
-        }
-
-        if (action === "verify-proof") {
-            event.stopPropagation();
-            verifySolanaProof(fixtureId);
-            return;
-        }
-
-        if (action === "close-modal") {
-            event.stopPropagation();
-            closeModal();
-            return;
-        }
-
-        if (action === "open-match") {
-            openMatchDetails(fixtureId);
-            return;
-        }
+    if (action === "toggle-favorite") {
+      event.stopPropagation();
+      toggleFavorite(fixtureId);
+      return;
     }
 
-    const matchCard = target.closest(".match-card.is-clickable");
-    if (matchCard && !target.closest("button")) {
-        const fixtureId = decodeFixtureIdFromElement(matchCard);
-        openMatchDetails(fixtureId);
+    if (action === "ai-prediction") {
+      event.stopPropagation();
+      getAIPrediction(fixtureId);
+      return;
     }
+
+    if (action === "verify-proof") {
+      event.stopPropagation();
+      verifySolanaProof(fixtureId);
+      return;
+    }
+
+    if (action === "close-modal") {
+      event.stopPropagation();
+      closeModal();
+      return;
+    }
+
+    if (action === "open-match") {
+      event.stopPropagation();
+      openMatchDetails(fixtureId);
+      return;
+    }
+  }
+
+  const matchCard = target.closest(".match-card.is-clickable");
+  if (matchCard) {
+    const fixtureId = decodeFixtureIdFromElement(matchCard);
+    openMatchDetails(fixtureId);
+  }
 });
+
 
 const autoRefresh = setInterval(() => {
     if (state.groupedMatches.live.length > 0) initApp();
