@@ -650,7 +650,7 @@ function renderSection(parent, title, matches, className) {
 function normalizeTimelineSeconds(value) {
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0) return null;
-    if (n > 100000) return null;
+    if (n > 1000000) return null;
     return n;
 }
 
@@ -662,111 +662,95 @@ function formatMinuteFromSeconds(seconds) {
     return extra > 0 ? `90+${extra}'` : `${minute}'`;
 }
 
-function isStatBlob(obj) {
-    return !!(obj && typeof obj === "object" && (obj.Participant1 || obj.Participant2 || obj.participant1 || obj.participant2));
+function readTotalStat(node, key) {
+    const total = node?.Total || node?.total || {};
+    const direct = node?.[key];
+    const val = direct != null ? direct : total?.[key];
+    const n = Number(val);
+    return Number.isFinite(n) ? n : 0;
 }
 
-function extractStatPair(item) {
-    const raw = item?.raw || item || {};
+function summarizeStatBlob(raw) {
     const p1 = raw?.Participant1 || raw?.participant1 || null;
     const p2 = raw?.Participant2 || raw?.participant2 || null;
+    if (!p1 && !p2) return null;
 
-    const read = (node, key) => {
-        const total = node?.Total || node?.total || {};
-        const direct = node?.[key];
-        if (Number.isFinite(Number(direct))) return Number(direct);
-        if (Number.isFinite(Number(total?.[key]))) return Number(total[key]);
-        return 0;
-    };
+    const goals1 = readTotalStat(p1, "Goals");
+    const goals2 = readTotalStat(p2, "Goals");
+    const yc1 = readTotalStat(p1, "YellowCards");
+    const yc2 = readTotalStat(p2, "YellowCards");
+    const cr1 = readTotalStat(p1, "Corners");
+    const cr2 = readTotalStat(p2, "Corners");
 
-    const yc1 = read(p1, "YellowCards");
-    const yc2 = read(p2, "YellowCards");
-    const cr1 = read(p1, "Corners");
-    const cr2 = read(p2, "Corners");
-    const goals1 = read(p1, "Goals");
-    const goals2 = read(p2, "Goals");
+    const parts = [];
+    if (goals1 || goals2) parts.push(`Goals ${goals1}-${goals2}`);
+    if (yc1 || yc2) parts.push(`🟨 ${yc1}-${yc2}`);
+    if (cr1 || cr2) parts.push(`🚩 ${cr1}-${cr2}`);
 
-    const hasAny = yc1 || yc2 || cr1 || cr2 || goals1 || goals2;
-    if (!hasAny) return null;
-
-    return {
-        yc: `${yc1}-${yc2}`,
-        cr: `${cr1}-${cr2}`,
-        goals: `${goals1}-${goals2}`
-    };
+    if (!parts.length) return null;
+    return parts.join(" • ");
 }
 
-function pickRawEventLabel(item) {
+function classifyRawEvent(item) {
     const raw = item?.raw || item || {};
+    const type = String(item?.type || raw?.Type || raw?.type || "").trim().toLowerCase();
+    const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim().toLowerCase();
     const running = raw?.Running ?? raw?.running;
     const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
 
-    const period = String(item?.period || raw?.period || raw?.Period || "").trim();
-    const clock = String(item?.clock || raw?.clock || raw?.Clock || "").trim();
+    if (running === false && seconds === 0) return { kind: "fulltime", label: "Full time" };
+    if (running === true && seconds != null) return { kind: "live", label: formatMinuteFromSeconds(seconds) };
 
-    if (period || clock) return [period, clock].filter(Boolean).join(" ");
-    if (running === true && seconds != null) return formatMinuteFromSeconds(seconds);
-    if (running === false && seconds === 0) return "FT";
+    if (type === "comment" || detail === "comment") return { kind: "noise", label: "" };
+    if (type === "action discarded" || detail === "action discarded") return { kind: "noise", label: "" };
+    if (type === "disconnected" || detail === "disconnected") return { kind: "noise", label: "Disconnected" };
+    if (type === "game_finalised" || detail === "game_finalised" || type === "finalised") return { kind: "fulltime", label: "Full time" };
+    if (type === "halftime" || detail === "halftime" || type === "ht") return { kind: "halftime", label: "Halftime" };
+    if (type === "soccer" || detail === "soccer") return { kind: "sport", label: "" };
 
-    return "";
-}
+    const statSummary = summarizeStatBlob(raw);
+    if (statSummary) return { kind: "stats", label: statSummary };
 
-function cleanEventType(value) {
-    const s = String(value || "").trim().toLowerCase();
-    if (!s) return "";
-
-    const map = {
-        game_finalised: "Full time",
-        finalised: "Full time",
-        final: "Full time",
-        comment: "Comment",
-        disconnected: "Disconnected",
-        live: "Live",
-        halftime: "Halftime",
-        ht: "Halftime",
-        ft: "Full time",
-        pen: "Penalties",
-        penalties: "Penalties"
-    };
-
-    return map[s] || s.replace(/_/g, " ");
+    return { kind: "other", label: type || detail || "" };
 }
 
 function formatTimelineEvent(item, index = 0) {
     if (!item || typeof item !== "object") return null;
 
     const raw = item?.raw || item;
-    const statPair = extractStatPair(item);
-    const label = pickRawEventLabel(item);
-    const type = cleanEventType(item?.type || raw?.Type || raw?.type);
-    const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim();
+    const cls = classifyRawEvent(item);
+    if (cls.kind === "noise") return null;
+
+    const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
+    const minute = formatMinuteFromSeconds(seconds);
+    const statSummary = summarizeStatBlob(raw);
 
     const score =
         item?.score ||
         raw?.score ||
-        (statPair?.goals ? statPair.goals : "") ||
-        (item?.homeScore != null && item?.awayScore != null ? `${item.homeScore}-${item.awayScore}` : "");
+        (item?.homeScore != null && item?.awayScore != null
+            ? `${item.homeScore}-${item.awayScore}`
+            : "—");
 
-    let title = "";
+    let title = cls.label;
+    if (!title) {
+        if (statSummary) title = statSummary;
+        else if (minute) title = minute;
+        else title = "Event";
+    }
 
-    if (type) title = type;
-    else if (label) title = label;
-    else if (detail) title = detail;
-    else if (isStatBlob(raw)) title = "Stats update";
-    else title = "Event";
-
-    const extras = [];
-    if (statPair?.yc) extras.push(`🟨 ${statPair.yc}`);
-    if (statPair?.cr) extras.push(`🚩 ${statPair.cr}`);
+    if (cls.kind === "live" && minute) title = minute;
+    if (cls.kind === "fulltime") title = "Full time";
+    if (cls.kind === "halftime") title = "Halftime";
+    if (cls.kind === "stats" && statSummary) title = statSummary;
 
     return {
         key: `${item?.timestamp ?? item?.time ?? index}-${index}`,
         title,
-        label,
-        score: score || "—",
-        yc: statPair?.yc || text.cardsFallback,
-        cr: statPair?.cr || text.cardsFallback,
-        extras: extras.join(" | "),
+        score,
+        yc: item?.yc || text.cardsFallback,
+        cr: item?.cr || text.cardsFallback,
+        seconds,
         raw
     };
 }
@@ -779,49 +763,33 @@ function buildTimelineItems(data) {
     ];
 
     const items = pool
-        .map((item, index) => {
-            const formatted = formatTimelineEvent(item, index);
-            if (!formatted) return null;
-
-            const raw = item?.raw || item || {};
-            const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
-            const timestamp =
-                Number(item?.timestamp ?? item?.time ?? item?.ts ?? item?.Ts) ||
-                (seconds != null ? seconds : index);
-
-            return {
-                ...formatted,
-                timestamp,
-                seconds
-            };
-        })
+        .map((item, index) => formatTimelineEvent(item, index))
         .filter(Boolean);
 
-    const unique = [];
+    const out = [];
     const seen = new Set();
 
     for (const item of items) {
         const signature = [
             String(item.title || ""),
-            String(item.label || ""),
             String(item.score || ""),
-            String(item.yc || ""),
-            String(item.cr || "")
+            String(item.seconds ?? "")
         ].join("|");
 
         if (seen.has(signature)) continue;
         seen.add(signature);
-        unique.push(item);
+        out.push(item);
     }
 
-    unique.sort((a, b) => {
-        const at = a.seconds != null ? a.seconds : a.timestamp;
-        const bt = b.seconds != null ? b.seconds : b.timestamp;
+    out.sort((a, b) => {
+        const at = a.seconds != null ? a.seconds : Number.MAX_SAFE_INTEGER;
+        const bt = b.seconds != null ? b.seconds : Number.MAX_SAFE_INTEGER;
         return at - bt;
     });
 
-    return unique;
+    return out;
 }
+
 
 
 
@@ -912,22 +880,15 @@ function renderMatchDetails(data) {
     const timelineItems = buildTimelineItems(data);
 
     const timelineHtml = timelineItems.length > 0
-        ? timelineItems.map((item) => {
-            const timeLine = [
-                item.label || "",
-                item.title || ""
-            ].filter(Boolean).join(" — ");
-
-            return `
-                <div class="timeline-item">
-                    <div class="time">${escapeHtml(timeLine || "Event")}</div>
-                    <div class="event-desc">
-                        <strong>${escapeHtml(item.score || "—")}</strong>
-                        <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
-                    </div>
+        ? timelineItems.map((item) => `
+            <div class="timeline-item">
+                <div class="time">${escapeHtml(item.title)}</div>
+                <div class="event-desc">
+                    <strong>${escapeHtml(item.score || "—")}</strong>
+                    <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
                 </div>
-            `;
-        }).join("")
+            </div>
+        `).join("")
         : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
     const oddsPreview = current?.oddsPreview || null;
@@ -973,6 +934,7 @@ function renderMatchDetails(data) {
     `;
     modal.classList.add("active");
 }
+
 
 
 
