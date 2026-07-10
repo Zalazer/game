@@ -687,72 +687,82 @@ function summarizeStatBlob(raw) {
     if (yc1 || yc2) parts.push(`🟨 ${yc1}-${yc2}`);
     if (cr1 || cr2) parts.push(`🚩 ${cr1}-${cr2}`);
 
-    if (!parts.length) return null;
-    return parts.join(" • ");
+    return parts.length ? parts.join(" • ") : null;
 }
 
-function classifyRawEvent(item) {
-    const raw = item?.raw || item || {};
-    const type = String(item?.type || raw?.Type || raw?.type || "").trim().toLowerCase();
-    const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim().toLowerCase();
-    const running = raw?.Running ?? raw?.running;
-    const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
+function cleanEventType(value) {
+    const s = String(value || "").trim().toLowerCase();
+    if (!s) return "";
 
-    if (running === false && seconds === 0) return { kind: "fulltime", label: "Full time" };
-    if (running === true && seconds != null) return { kind: "live", label: formatMinuteFromSeconds(seconds) };
-
-    if (type === "comment" || detail === "comment") return { kind: "noise", label: "" };
-    if (type === "action discarded" || detail === "action discarded") return { kind: "noise", label: "" };
-    if (type === "disconnected" || detail === "disconnected") return { kind: "noise", label: "Disconnected" };
-    if (type === "game_finalised" || detail === "game_finalised" || type === "finalised") return { kind: "fulltime", label: "Full time" };
-    if (type === "halftime" || detail === "halftime" || type === "ht") return { kind: "halftime", label: "Halftime" };
-    if (type === "soccer" || detail === "soccer") return { kind: "sport", label: "" };
-
-    const statSummary = summarizeStatBlob(raw);
-    if (statSummary) return { kind: "stats", label: statSummary };
-
-    return { kind: "other", label: type || detail || "" };
-}
-
-function formatTimelineEvent(item, index = 0) {
-    if (!item || typeof item !== "object") return null;
-
-    const raw = item?.raw || item;
-    const cls = classifyRawEvent(item);
-    if (cls.kind === "noise") return null;
-
-    const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
-    const minute = formatMinuteFromSeconds(seconds);
-    const statSummary = summarizeStatBlob(raw);
-
-    const score =
-        item?.score ||
-        raw?.score ||
-        (item?.homeScore != null && item?.awayScore != null
-            ? `${item.homeScore}-${item.awayScore}`
-            : "—");
-
-    let title = cls.label;
-    if (!title) {
-        if (statSummary) title = statSummary;
-        else if (minute) title = minute;
-        else title = "Event";
-    }
-
-    if (cls.kind === "live" && minute) title = minute;
-    if (cls.kind === "fulltime") title = "Full time";
-    if (cls.kind === "halftime") title = "Halftime";
-    if (cls.kind === "stats" && statSummary) title = statSummary;
-
-    return {
-        key: `${item?.timestamp ?? item?.time ?? index}-${index}`,
-        title,
-        score,
-        yc: item?.yc || text.cardsFallback,
-        cr: item?.cr || text.cardsFallback,
-        seconds,
-        raw
+    const map = {
+        game_finalised: "Full time",
+        finalised: "Full time",
+        final: "Full time",
+        comment: "Comment",
+        disconnected: "Disconnected",
+        live: "Live",
+        halftime: "Halftime",
+        ht: "Halftime",
+        ft: "Full time",
+        pen: "Penalties",
+        penalties: "Penalties",
+        action_discarded: ""
     };
+
+    return map[s] ?? s.replace(/_/g, " ");
+}
+
+function getMatchTeams(data) {
+    const current = data?.current || {};
+    const snapshot = data?.snapshot || {};
+    const meta = data?.meta || {};
+    const source = data?.currentCompact || {};
+
+    const home =
+        current?.home ||
+        current?.homeTeam ||
+        current?.participant1 ||
+        current?.Participant1 ||
+        source?.home ||
+        source?.homeTeam ||
+        source?.participant1 ||
+        snapshot?.home ||
+        snapshot?.homeTeam ||
+        meta?.home ||
+        meta?.homeTeam ||
+        text.teamA;
+
+    const away =
+        current?.away ||
+        current?.awayTeam ||
+        current?.participant2 ||
+        current?.Participant2 ||
+        source?.away ||
+        source?.awayTeam ||
+        source?.participant2 ||
+        snapshot?.away ||
+        snapshot?.awayTeam ||
+        meta?.away ||
+        meta?.awayTeam ||
+        text.teamB;
+
+    return { home, away };
+}
+
+function getMatchScore(data) {
+    const current = data?.current || {};
+    const snapshot = data?.snapshot || {};
+
+    if (current?.score) return String(current.score);
+    if (data?.score) return String(data.score);
+    if (current?.homeScore != null && current?.awayScore != null) return `${current.homeScore}-${current.awayScore}`;
+    if (snapshot?.homeScore != null && snapshot?.awayScore != null) return `${snapshot.homeScore}-${snapshot.awayScore}`;
+    return text.scoreFallback;
+}
+
+function getMatchStatus(data) {
+    const current = data?.current || {};
+    return String(current?.status || current?.gameState || data?.status || text.detailsUnavailable);
 }
 
 function buildTimelineItems(data) {
@@ -763,31 +773,44 @@ function buildTimelineItems(data) {
     ];
 
     const items = pool
-        .map((item, index) => formatTimelineEvent(item, index))
+        .map((item, index) => {
+            const raw = item?.raw || item || {};
+            const type = cleanEventType(item?.type || raw?.Type || raw?.type);
+            const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
+            const labelFromTime = formatMinuteFromSeconds(seconds);
+            const statSummary = summarizeStatBlob(raw);
+
+            let title = "";
+            if (type) title = type;
+            else if (statSummary) title = statSummary;
+            else if (labelFromTime) title = labelFromTime;
+            else if (typeof item === "string") title = item.trim();
+
+            if (!title) return null;
+
+            return {
+                key: `${item?.timestamp ?? item?.time ?? index}-${index}`,
+                title,
+                score: item?.score || raw?.score || "—",
+                yc: item?.yc || text.cardsFallback,
+                cr: item?.cr || text.cardsFallback,
+                seconds: seconds != null ? seconds : index
+            };
+        })
         .filter(Boolean);
 
-    const out = [];
+    const unique = [];
     const seen = new Set();
 
     for (const item of items) {
-        const signature = [
-            String(item.title || ""),
-            String(item.score || ""),
-            String(item.seconds ?? "")
-        ].join("|");
-
+        const signature = [item.title, item.score, item.seconds].join("|");
         if (seen.has(signature)) continue;
         seen.add(signature);
-        out.push(item);
+        unique.push(item);
     }
 
-    out.sort((a, b) => {
-        const at = a.seconds != null ? a.seconds : Number.MAX_SAFE_INTEGER;
-        const bt = b.seconds != null ? b.seconds : Number.MAX_SAFE_INTEGER;
-        return at - bt;
-    });
-
-    return out;
+    unique.sort((a, b) => a.seconds - b.seconds);
+    return unique;
 }
 
 
@@ -795,23 +818,57 @@ function buildTimelineItems(data) {
 
 
 
+
 function renderMatchCard(match, isCompact) {
-    const fixtureId = normalizeId(match?.fixtureId);
+    const fixtureId = normalizeId(match?.fixtureId || match?.id || match?.fixture_id);
     const safeFixtureId = encodeURIComponent(fixtureId);
     const isHot = Number(match?.signal || 0) > 1200;
     const isFavorite = state.favorites.includes(fixtureId);
 
-    const homeTeam = escapeHtml(match?.home || match?.homeTeam || match?.participant1 || text.teamA);
-    const awayTeam = escapeHtml(match?.away || match?.awayTeam || match?.participant2 || text.teamB);
-    const score = escapeHtml(match?.score || (match?.homeScore != null && match?.awayScore != null ? `${match.homeScore}-${match.awayScore}` : text.scoreFallback));
-    const status = escapeHtml(match?.status || match?.gameState || text.scheduled);
+    const homeTeam = escapeHtml(
+        match?.home ||
+        match?.homeTeam ||
+        match?.participant1 ||
+        match?.Participant1 ||
+        match?.team1 ||
+        text.teamA
+    );
+
+    const awayTeam = escapeHtml(
+        match?.away ||
+        match?.awayTeam ||
+        match?.participant2 ||
+        match?.Participant2 ||
+        match?.team2 ||
+        text.teamB
+    );
+
+    const score = escapeHtml(
+        match?.score ||
+        (match?.homeScore != null && match?.awayScore != null
+            ? `${match.homeScore}-${match.awayScore}`
+            : text.scoreFallback)
+    );
+
+    const status = escapeHtml(match?.status || match?.gameState || match?.phase || text.scheduled);
     const yc = escapeHtml(match?.yc || text.cardsFallback);
     const cr = escapeHtml(match?.cr || text.cardsFallback);
+
+    const kickoff =
+        match?.startTime ||
+        match?.kickoff ||
+        match?.date ||
+        match?.datetime ||
+        match?.startsAt ||
+        "";
+
+    const kickoffHtml = kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : "";
 
     return `
         <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
             <button class="fav-btn ${isFavorite ? "active" : ""}" type="button" data-action="toggle-favorite" data-fixture-id="${safeFixtureId}" aria-label="${escapeHtml(text.favoriteToggle)}">${isFavorite ? "★" : "☆"}</button>
             <div class="match-status">${match?.phase === "live" ? '<span class="live-dot"></span>' : ""}${status}</div>
+            ${kickoffHtml}
             <div class="match-main">
                 <div class="team"><span class="team-name">${homeTeam}</span></div>
                 <div class="score-box">${score}</div>
@@ -832,8 +889,6 @@ function renderMatchCard(match, isCompact) {
     `;
 }
 
-
-
 function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
@@ -842,53 +897,46 @@ function renderMatchDetails(data) {
     const fixtureId = normalizeId(data?.fixtureId || current?.fixtureId || current?.id);
     const safeFixtureId = encodeURIComponent(fixtureId);
 
-    const homeTeam = escapeHtml(
-        current?.home ||
-        current?.homeTeam ||
-        current?.participant1 ||
-        current?.Participant1 ||
-        data?.match?.home ||
-        data?.match?.homeTeam ||
-        text.teamA
-    );
+    const teams = getMatchTeams(data);
+    const homeTeam = escapeHtml(teams.home);
+    const awayTeam = escapeHtml(teams.away);
+    const score = escapeHtml(getMatchScore(data));
+    const status = escapeHtml(getMatchStatus(data));
 
-    const awayTeam = escapeHtml(
-        current?.away ||
-        current?.awayTeam ||
-        current?.participant2 ||
-        current?.Participant2 ||
-        data?.match?.away ||
-        data?.match?.awayTeam ||
-        text.teamB
-    );
+    const kickoff =
+        current?.startTime ||
+        current?.kickoff ||
+        current?.date ||
+        current?.datetime ||
+        current?.startsAt ||
+        data?.startTime ||
+        data?.kickoff ||
+        data?.date ||
+        data?.datetime ||
+        "";
 
-    const score = escapeHtml(
-        current?.score ||
-        data?.score ||
-        (current?.homeScore != null && current?.awayScore != null
-            ? `${current.homeScore}-${current.awayScore}`
-            : text.scoreFallback)
-    );
-
-    const status = escapeHtml(
-        current?.status ||
-        current?.gameState ||
-        data?.status ||
-        text.detailsUnavailable
-    );
+    const kickoffHtml = kickoff
+        ? `<div class="status-badge">${escapeHtml(kickoff)}</div>`
+        : `<div class="status-badge">${status}</div>`;
 
     const timelineItems = buildTimelineItems(data);
 
     const timelineHtml = timelineItems.length > 0
-        ? timelineItems.map((item) => `
-            <div class="timeline-item">
-                <div class="time">${escapeHtml(item.title)}</div>
-                <div class="event-desc">
-                    <strong>${escapeHtml(item.score || "—")}</strong>
-                    <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
+        ? timelineItems.map((item) => {
+            const label = String(item.title || "").trim();
+            const timeText = item.seconds != null ? formatMinuteFromSeconds(item.seconds) : "";
+            const head = [timeText, label].filter(Boolean).join(" — ") || label || "Event";
+
+            return `
+                <div class="timeline-item">
+                    <div class="time">${escapeHtml(head)}</div>
+                    <div class="event-desc">
+                        <strong>${escapeHtml(item.score || "—")}</strong>
+                        <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
+                    </div>
                 </div>
-            </div>
-        `).join("")
+            `;
+        }).join("")
         : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
     const oddsPreview = current?.oddsPreview || null;
@@ -914,7 +962,7 @@ function renderMatchDetails(data) {
             </div>
             <div class="details-main-score">
                 <div class="big-score">${score}</div>
-                <div class="status-badge">${status}</div>
+                ${kickoffHtml}
             </div>
             <div class="section-block">
                 <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
@@ -934,10 +982,6 @@ function renderMatchDetails(data) {
     `;
     modal.classList.add("active");
 }
-
-
-
-
 
 async function openMatchDetails(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
