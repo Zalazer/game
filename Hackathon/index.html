@@ -766,52 +766,61 @@ function getMatchStatus(data) {
 }
 
 function buildTimelineItems(data) {
-    const pool = [
-        ...safeArray(data?.historical),
-        ...safeArray(data?.events),
-        ...safeArray(data?.snapshot)
-    ];
+    const source =
+        data?.timeline ||
+        data?.events ||
+        data?.matchEvents ||
+        data?.current?.timeline ||
+        [];
 
-    const items = pool
-        .map((item, index) => {
-            const raw = item?.raw || item || {};
-            const type = cleanEventType(item?.type || raw?.Type || raw?.type);
-            const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
-            const labelFromTime = formatMinuteFromSeconds(seconds);
-            const statSummary = summarizeStatBlob(raw);
+    if (!Array.isArray(source)) return [];
 
-            let title = "";
-            if (type) title = type;
-            else if (statSummary) title = statSummary;
-            else if (labelFromTime) title = labelFromTime;
-            else if (typeof item === "string") title = item.trim();
+    return source
+        .map((item) => {
+            const title = String(item?.title || item?.name || item?.type || item?.status || "").trim();
+            const minuteRaw = item?.minute ?? item?.min ?? item?.seconds ?? item?.time ?? null;
 
-            if (!title) return null;
+            let minuteText = "";
+            if (minuteRaw != null && minuteRaw !== "") {
+                const n = Number(minuteRaw);
+                if (Number.isFinite(n)) {
+                    minuteText = n > 120 ? formatMinuteFromSeconds(n) : `${Math.round(n)}'`;
+                } else {
+                    minuteText = String(minuteRaw).trim();
+                }
+            }
+
+            const score =
+                item?.score ||
+                (item?.homeScore != null && item?.awayScore != null
+                    ? `${item.homeScore}-${item.awayScore}`
+                    : "");
+
+            const yc = item?.yc ?? item?.yellowCards ?? item?.homeYc ?? item?.awayYc ?? "";
+            const cr = item?.cr ?? item?.corners ?? item?.homeCorners ?? item?.awayCorners ?? "";
+
+            const line = [minuteText, title].filter(Boolean).join(" — ").trim();
 
             return {
-                key: `${item?.timestamp ?? item?.time ?? index}-${index}`,
-                title,
-                score: item?.score || raw?.score || "—",
-                yc: item?.yc || text.cardsFallback,
-                cr: item?.cr || text.cardsFallback,
-                seconds: seconds != null ? seconds : index
+                title: line || title,
+                score,
+                yc,
+                cr,
+                rawTitle: title.toLowerCase()
             };
         })
-        .filter(Boolean);
-
-    const unique = [];
-    const seen = new Set();
-
-    for (const item of items) {
-        const signature = [item.title, item.score, item.seconds].join("|");
-        if (seen.has(signature)) continue;
-        seen.add(signature);
-        unique.push(item);
-    }
-
-    unique.sort((a, b) => a.seconds - b.seconds);
-    return unique;
+        .filter((item) => {
+            if (!item.title) return false;
+            if (/^0's*—s*soccer$/i.test(item.title)) return false;
+            if (/^0'$/i.test(item.title)) return false;
+            if (/^soccer$/i.test(item.rawTitle)) return false;
+            if (/^comment$/i.test(item.rawTitle)) return false;
+            if (/^disconnected$/i.test(item.rawTitle)) return false;
+            if (/^—$/i.test(item.title)) return false;
+            return true;
+        });
 }
+
 
 
 function formatKickoff(value) {
@@ -886,7 +895,7 @@ function renderMatchCard(match, isCompact) {
         "";
 
     const kickoff = formatKickoff(kickoffRaw);
-    const kickoffHtml = kickoff ? `<div class="card-kickoff">📅 ${escapeHtml(kickoff)}</div>` : "";
+    const kickoffHtml = kickoff ? `<div class="card-kickoff"> ${escapeHtml(kickoff)}</div>` : "";
 
     return `
         <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
@@ -943,21 +952,19 @@ function renderMatchDetails(data) {
         "";
 
     const kickoff = formatKickoff(kickoffRaw);
+    const kickoffLabel = kickoff ? ` • ${escapeHtml(kickoff)}` : "";
 
     const timelineItems = buildTimelineItems(data);
 
     const timelineHtml = timelineItems.length > 0
         ? timelineItems.map((item) => {
-            const label = String(item.title || "").trim();
-            const timeText = item.seconds != null ? formatMinuteFromSeconds(item.seconds) : "";
-            const head = [timeText, label].filter(Boolean).join(" — ") || label || "Event";
-
+            const hasStats = item.yc !== "" || item.cr !== "";
             return `
                 <div class="timeline-item">
-                    <div class="time">${escapeHtml(head)}</div>
+                    <div class="time">${escapeHtml(item.title)}</div>
                     <div class="event-desc">
                         <strong>${escapeHtml(item.score || "—")}</strong>
-                        <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
+                        ${hasStats ? `<span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>` : ""}
                     </div>
                 </div>
             `;
@@ -985,28 +992,37 @@ function renderMatchDetails(data) {
                 <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">✕</button>
                 <div class="modal-title">${homeTeam} vs ${awayTeam}</div>
             </div>
+
             <div class="details-main-score">
                 <div class="big-score">${score}</div>
-                <div class="status-badge">
-                    ${kickoff ? `${escapeHtml(kickoff)} • ` : ""}${status}
-                </div>
+                <div class="status-badge">${status}${kickoffLabel}</div>
             </div>
+
             <div class="section-block">
                 <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
+                <div class="match-stats-extra">
+                    <div class="stat-item">🏠 ${homeTeam}</div>
+                    <div class="stat-item">✈️ ${awayTeam}</div>
+                    <div class="stat-item">⏱️ ${kickoff ? escapeHtml(kickoff) : "—"}</div>
+                </div>
                 <div class="historical-timeline">${timelineHtml}</div>
             </div>
+
             ${oddsHtml}
+
             <div class="section-block ai-insight-box" id="ai-container">
                 <h3>🤖 ${escapeHtml(text.aiInsights)}</h3>
                 <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
                 <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.getPrediction)}</button>
             </div>
+
             <div class="merkle-proof-footer">
                 <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || "unknown")}</span>
                 <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">🛡️ ${escapeHtml(text.verifyOnSolana)}</button>
             </div>
         </div>
     `;
+
     modal.classList.add("active");
 }
 
