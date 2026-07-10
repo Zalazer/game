@@ -369,7 +369,6 @@
 </div>
 
 <div id="match-details-overlay"></div>
-
 <input id="workerBase" type="hidden" value="https://game.shooleeyack.workers.dev">
 
 <script>
@@ -462,15 +461,6 @@ function triggerSuccessHaptic() {
 
 function triggerLightImpact() {
     tg?.HapticFeedback?.impactOccurred?.("light");
-}
-
-function getSafeMatchGroups(rawGrouped) {
-    const grouped = rawGrouped && typeof rawGrouped === "object" ? rawGrouped : {};
-    return {
-        finished: safeArray(grouped.finished),
-        live: safeArray(grouped.live),
-        upcoming: safeArray(grouped.upcoming)
-    };
 }
 
 function getWorkerBase() {
@@ -597,9 +587,27 @@ function regroupMatches(matches) {
     return grouped;
 }
 
+function getFilteredMatches() {
+    const filter = state.filters.status;
+    const { finished, live, upcoming } = state.groupedMatches;
+
+    if (filter === "live") return { finished: [], live, upcoming: [] };
+    if (filter === "upcoming") return { finished: [], live: [], upcoming };
+    if (filter === "favorites") {
+        const isFavorite = (match) => state.favorites.includes(normalizeId(match?.fixtureId));
+        return {
+            finished: finished.filter(isFavorite),
+            live: live.filter(isFavorite),
+            upcoming: upcoming.filter(isFavorite)
+        };
+    }
+    return { finished, live, upcoming };
+}
+
 function renderAll() {
     const container = document.getElementById("match-container");
     if (!container) return;
+
     const matches = getFilteredMatches();
     container.innerHTML = "";
 
@@ -626,23 +634,6 @@ function renderAll() {
     }
 }
 
-function getFilteredMatches() {
-    const filter = state.filters.status;
-    const { finished, live, upcoming } = state.groupedMatches;
-
-    if (filter === "live") return { finished: [], live, upcoming: [] };
-    if (filter === "upcoming") return { finished: [], live: [], upcoming };
-    if (filter === "favorites") {
-        const isFavorite = (match) => state.favorites.includes(normalizeId(match?.fixtureId));
-        return {
-            finished: finished.filter(isFavorite),
-            live: live.filter(isFavorite),
-            upcoming: upcoming.filter(isFavorite)
-        };
-    }
-    return { finished, live, upcoming };
-}
-
 function renderSection(parent, title, matches, className) {
     if (!matches || matches.length === 0) return;
     const section = document.createElement("div");
@@ -660,10 +651,10 @@ function renderMatchCard(match, isCompact) {
     const isHot = Number(match?.signal || 0) > 1200;
     const isFavorite = state.favorites.includes(fixtureId);
 
-    const status = escapeHtml(match?.status || text.scheduled);
-    const homeTeam = escapeHtml(match?.homeTeam || text.teamA);
-    const awayTeam = escapeHtml(match?.awayTeam || text.teamB);
+    const homeTeam = escapeHtml(match?.home || match?.homeTeam || text.teamA);
+    const awayTeam = escapeHtml(match?.away || match?.awayTeam || text.teamB);
     const score = escapeHtml(match?.score || text.scoreFallback);
+    const status = escapeHtml(match?.status || match?.gameState || text.scheduled);
     const yc = escapeHtml(match?.yc || text.cardsFallback);
     const cr = escapeHtml(match?.cr || text.cardsFallback);
 
@@ -698,11 +689,11 @@ function renderMatchDetails(data) {
     const match = data?.current || {};
     const fixtureId = normalizeId(match?.fixtureId || data?.fixtureId);
     const safeFixtureId = encodeURIComponent(fixtureId);
-    const homeTeam = escapeHtml(match?.homeTeam || text.teamA);
-    const awayTeam = escapeHtml(match?.awayTeam || text.teamB);
+    const homeTeam = escapeHtml(match?.home || match?.homeTeam || text.teamA);
+    const awayTeam = escapeHtml(match?.away || match?.awayTeam || text.teamB);
     const score = escapeHtml(match?.score || text.scoreFallback);
-    const status = escapeHtml(match?.status || text.detailsUnavailable);
-    const historicalTrimmed = safeArray(data?.historical || data?.historicalTrimmed);
+    const status = escapeHtml(match?.status || match?.gameState || text.detailsUnavailable);
+    const historicalTrimmed = safeArray(data?.historical || data?.snapshot || data?.events);
 
     const timelineHtml = historicalTrimmed.length > 0
         ? historicalTrimmed.map((eventItem) => {
@@ -711,6 +702,7 @@ function renderMatchDetails(data) {
             const eventScore = escapeHtml(eventItem?.score || "—");
             const yc = escapeHtml(eventItem?.yc || text.cardsFallback);
             const cr = escapeHtml(eventItem?.cr || text.cardsFallback);
+
             return `
                 <div class="timeline-item">
                     <div class="time">${period} ${clock}</div>
@@ -750,7 +742,6 @@ function renderMatchDetails(data) {
     `;
     modal.classList.add("active");
 }
-
 
 async function openMatchDetails(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
@@ -941,8 +932,6 @@ if (tg?.onEvent) {
         if (tg.isExpanded) triggerLightImpact();
     });
 }
-
-
 
 async function initApp() {
     try {
