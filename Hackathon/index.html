@@ -647,89 +647,126 @@ function renderSection(parent, title, matches, className) {
 
 
 
+function normalizeTimelineSeconds(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return null;
+    if (n > 100000) return null;
+    return n;
+}
+
 function formatMinuteFromSeconds(seconds) {
-    const n = Number(seconds);
-    if (!Number.isFinite(n) || n < 0) return "";
+    const n = normalizeTimelineSeconds(seconds);
+    if (n == null) return "";
     const minute = Math.floor(n / 60);
     const extra = minute > 90 ? minute - 90 : 0;
     return extra > 0 ? `90+${extra}'` : `${minute}'`;
 }
 
-function pickRawEventLabel(item) {
-    const raw = item?.raw || item || {};
-    const running = raw?.Running ?? raw?.running;
-    const seconds = raw?.Seconds ?? raw?.seconds;
-    const period = String(item?.period || raw?.period || raw?.Period || "").trim();
-    const clock = String(item?.clock || raw?.clock || raw?.Clock || "").trim();
-
-    if (period || clock) return `${period}${period && clock ? " " : ""}${clock}`.trim();
-    if (running === true && seconds != null) return `${formatMinuteFromSeconds(seconds)} — Live`;
-    if (running === false && Number(seconds) === 0) return "FT";
-    return "";
+function isStatBlob(obj) {
+    return !!(obj && typeof obj === "object" && (obj.Participant1 || obj.Participant2 || obj.participant1 || obj.participant2));
 }
 
 function extractStatPair(item) {
     const raw = item?.raw || item || {};
-    const p1 = raw?.Participant1 || raw?.participant1 || {};
-    const p2 = raw?.Participant2 || raw?.participant2 || {};
+    const p1 = raw?.Participant1 || raw?.participant1 || null;
+    const p2 = raw?.Participant2 || raw?.participant2 || null;
 
-    const readTotal = (obj, key) => {
-        const total = obj?.Total || obj?.total || {};
-        return Number(total?.[key] ?? 0) || 0;
+    const read = (node, key) => {
+        const total = node?.Total || node?.total || {};
+        const direct = node?.[key];
+        if (Number.isFinite(Number(direct))) return Number(direct);
+        if (Number.isFinite(Number(total?.[key]))) return Number(total[key]);
+        return 0;
     };
 
-    const yc1 = readTotal(p1, "YellowCards");
-    const yc2 = readTotal(p2, "YellowCards");
-    const cr1 = readTotal(p1, "Corners");
-    const cr2 = readTotal(p2, "Corners");
+    const yc1 = read(p1, "YellowCards");
+    const yc2 = read(p2, "YellowCards");
+    const cr1 = read(p1, "Corners");
+    const cr2 = read(p2, "Corners");
+    const goals1 = read(p1, "Goals");
+    const goals2 = read(p2, "Goals");
 
-    const hasAny = yc1 || yc2 || cr1 || cr2;
+    const hasAny = yc1 || yc2 || cr1 || cr2 || goals1 || goals2;
     if (!hasAny) return null;
 
     return {
         yc: `${yc1}-${yc2}`,
-        cr: `${cr1}-${cr2}`
+        cr: `${cr1}-${cr2}`,
+        goals: `${goals1}-${goals2}`
     };
+}
+
+function pickRawEventLabel(item) {
+    const raw = item?.raw || item || {};
+    const running = raw?.Running ?? raw?.running;
+    const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
+
+    const period = String(item?.period || raw?.period || raw?.Period || "").trim();
+    const clock = String(item?.clock || raw?.clock || raw?.Clock || "").trim();
+
+    if (period || clock) return [period, clock].filter(Boolean).join(" ");
+    if (running === true && seconds != null) return formatMinuteFromSeconds(seconds);
+    if (running === false && seconds === 0) return "FT";
+
+    return "";
+}
+
+function cleanEventType(value) {
+    const s = String(value || "").trim().toLowerCase();
+    if (!s) return "";
+
+    const map = {
+        game_finalised: "Full time",
+        finalised: "Full time",
+        final: "Full time",
+        comment: "Comment",
+        disconnected: "Disconnected",
+        live: "Live",
+        halftime: "Halftime",
+        ht: "Halftime",
+        ft: "Full time",
+        pen: "Penalties",
+        penalties: "Penalties"
+    };
+
+    return map[s] || s.replace(/_/g, " ");
 }
 
 function formatTimelineEvent(item, index = 0) {
     if (!item || typeof item !== "object") return null;
 
     const raw = item?.raw || item;
+    const statPair = extractStatPair(item);
     const label = pickRawEventLabel(item);
+    const type = cleanEventType(item?.type || raw?.Type || raw?.type);
+    const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim();
 
     const score =
         item?.score ||
         raw?.score ||
-        (item?.homeScore != null && item?.awayScore != null
-            ? `${item.homeScore}-${item.awayScore}`
-            : "");
+        (statPair?.goals ? statPair.goals : "") ||
+        (item?.homeScore != null && item?.awayScore != null ? `${item.homeScore}-${item.awayScore}` : "");
 
-    const statPair = extractStatPair(item);
-    const yc = item?.yc || statPair?.yc || text.cardsFallback;
-    const cr = item?.cr || statPair?.cr || text.cardsFallback;
+    let title = "";
 
-    const type = String(item?.type || raw?.Type || raw?.type || "").trim().toLowerCase();
-    const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim();
+    if (type) title = type;
+    else if (label) title = label;
+    else if (detail) title = detail;
+    else if (isStatBlob(raw)) title = "Stats update";
+    else title = "Event";
 
-    const timeText =
-        label ||
-        formatMinuteFromSeconds(item?.timestamp ?? item?.time ?? raw?.Seconds ?? raw?.seconds) ||
-        "";
+    const extras = [];
+    if (statPair?.yc) extras.push(`🟨 ${statPair.yc}`);
+    if (statPair?.cr) extras.push(`🚩 ${statPair.cr}`);
 
-    const parts = [];
-    if (timeText) parts.push(timeText);
-    if (score && score !== "—") parts.push(score);
-    if (detail && detail !== "{}") parts.push(detail);
-    if (type && type !== "update") parts.push(type);
-
-    const title = parts.join(" — ") || "Event";
     return {
         key: `${item?.timestamp ?? item?.time ?? index}-${index}`,
         title,
-        yc,
-        cr,
+        label,
         score: score || "—",
+        yc: statPair?.yc || text.cardsFallback,
+        cr: statPair?.cr || text.cardsFallback,
+        extras: extras.join(" | "),
         raw
     };
 }
@@ -745,9 +782,17 @@ function buildTimelineItems(data) {
         .map((item, index) => {
             const formatted = formatTimelineEvent(item, index);
             if (!formatted) return null;
+
+            const raw = item?.raw || item || {};
+            const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds);
+            const timestamp =
+                Number(item?.timestamp ?? item?.time ?? item?.ts ?? item?.Ts) ||
+                (seconds != null ? seconds : index);
+
             return {
                 ...formatted,
-                timestamp: Number(item?.timestamp ?? item?.time ?? item?.ts ?? item?.Ts ?? item?.raw?.Seconds ?? item?.raw?.seconds ?? index) || index
+                timestamp,
+                seconds
             };
         })
         .filter(Boolean);
@@ -758,6 +803,7 @@ function buildTimelineItems(data) {
     for (const item of items) {
         const signature = [
             String(item.title || ""),
+            String(item.label || ""),
             String(item.score || ""),
             String(item.yc || ""),
             String(item.cr || "")
@@ -768,10 +814,15 @@ function buildTimelineItems(data) {
         unique.push(item);
     }
 
-    unique.sort((a, b) => a.timestamp - b.timestamp);
+    unique.sort((a, b) => {
+        const at = a.seconds != null ? a.seconds : a.timestamp;
+        const bt = b.seconds != null ? b.seconds : b.timestamp;
+        return at - bt;
+    });
 
     return unique;
 }
+
 
 
 
@@ -861,15 +912,22 @@ function renderMatchDetails(data) {
     const timelineItems = buildTimelineItems(data);
 
     const timelineHtml = timelineItems.length > 0
-        ? timelineItems.map((item) => `
-            <div class="timeline-item">
-                <div class="time">${escapeHtml(item.title)}</div>
-                <div class="event-desc">
-                    <strong>${escapeHtml(item.score || "—")}</strong>
-                    <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
+        ? timelineItems.map((item) => {
+            const timeLine = [
+                item.label || "",
+                item.title || ""
+            ].filter(Boolean).join(" — ");
+
+            return `
+                <div class="timeline-item">
+                    <div class="time">${escapeHtml(timeLine || "Event")}</div>
+                    <div class="event-desc">
+                        <strong>${escapeHtml(item.score || "—")}</strong>
+                        <span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>
+                    </div>
                 </div>
-            </div>
-        `).join("")
+            `;
+        }).join("")
         : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
     const oddsPreview = current?.oddsPreview || null;
