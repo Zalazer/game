@@ -537,18 +537,20 @@ function collectMatchesFromProbe(probe) {
         for (const row of safeArray(arr)) {
             const fixtureId = normalizeId(row?.fixtureId ?? row?.id ?? row?.fixture_id);
             if (!fixtureId) continue;
+
             rows.push({
                 ...row,
                 fixtureId,
                 phase: row?.phase || phase,
                 status: row?.status || text.scheduled,
-                homeTeam: row?.homeTeam ?? row?.home_name ?? row?.home ?? text.teamA,
-                awayTeam: row?.awayTeam ?? row?.away_name ?? row?.away ?? text.teamB,
+                homeTeam: row?.homeTeam ?? row?.home_name ?? row?.home ?? row?.participant1 ?? row?.Participant1 ?? text.teamA,
+                awayTeam: row?.awayTeam ?? row?.away_name ?? row?.away ?? row?.participant2 ?? row?.Participant2 ?? text.teamB,
                 score: row?.score ?? row?.result ?? text.scoreFallback,
                 yc: row?.yc ?? text.cardsFallback,
                 cr: row?.cr ?? text.cardsFallback,
                 signal: row?.signal ?? 0,
-                v: !!row?.v
+                v: !!row?.v,
+                oddsPreview: row?.oddsPreview ?? null
             });
         }
     }
@@ -557,18 +559,20 @@ function collectMatchesFromProbe(probe) {
         for (const row of probe.matches) {
             const fixtureId = normalizeId(row?.fixtureId ?? row?.id ?? row?.fixture_id);
             if (!fixtureId) continue;
+
             rows.push({
                 ...row,
                 fixtureId,
                 phase: row?.phase || "upcoming",
                 status: row?.status || text.scheduled,
-                homeTeam: row?.homeTeam ?? row?.home_name ?? row?.home ?? text.teamA,
-                awayTeam: row?.awayTeam ?? row?.away_name ?? row?.away ?? text.teamB,
+                homeTeam: row?.homeTeam ?? row?.home_name ?? row?.home ?? row?.participant1 ?? row?.Participant1 ?? text.teamA,
+                awayTeam: row?.awayTeam ?? row?.away_name ?? row?.away ?? row?.participant2 ?? row?.Participant2 ?? text.teamB,
                 score: row?.score ?? row?.result ?? text.scoreFallback,
                 yc: row?.yc ?? text.cardsFallback,
                 cr: row?.cr ?? text.cardsFallback,
                 signal: row?.signal ?? 0,
-                v: !!row?.v
+                v: !!row?.v,
+                oddsPreview: row?.oddsPreview ?? null
             });
         }
     }
@@ -576,16 +580,20 @@ function collectMatchesFromProbe(probe) {
     return rows;
 }
 
+
 function regroupMatches(matches) {
     const grouped = { finished: [], live: [], upcoming: [] };
+
     for (const match of safeArray(matches)) {
         const phase = String(match?.phase || "").toLowerCase();
         if (phase === "live" || phase === "current") grouped.live.push(match);
         else if (phase === "finished" || phase === "past") grouped.finished.push(match);
         else grouped.upcoming.push(match);
     }
+
     return grouped;
 }
+
 
 function getFilteredMatches() {
     const filter = state.filters.status;
@@ -601,8 +609,11 @@ function getFilteredMatches() {
             upcoming: upcoming.filter(isFavorite)
         };
     }
+
     return { finished, live, upcoming };
 }
+
+
 
 function renderAll() {
     const container = document.getElementById("match-container");
@@ -634,8 +645,10 @@ function renderAll() {
     }
 }
 
+
 function renderSection(parent, title, matches, className) {
     if (!matches || matches.length === 0) return;
+
     const section = document.createElement("div");
     section.className = className;
     section.innerHTML = `
@@ -654,6 +667,7 @@ function normalizeTimelineSeconds(value) {
     return n;
 }
 
+
 function formatMinuteFromSeconds(seconds) {
     const n = normalizeTimelineSeconds(seconds);
     if (n == null) return "";
@@ -662,6 +676,8 @@ function formatMinuteFromSeconds(seconds) {
     return extra > 0 ? `90+${extra}'` : `${minute}'`;
 }
 
+
+
 function readTotalStat(node, key) {
     const total = node?.Total || node?.total || {};
     const direct = node?.[key];
@@ -669,6 +685,7 @@ function readTotalStat(node, key) {
     const n = Number(val);
     return Number.isFinite(n) ? n : 0;
 }
+
 
 function summarizeStatBlob(raw) {
     const p1 = raw?.Participant1 || raw?.participant1 || null;
@@ -689,6 +706,8 @@ function summarizeStatBlob(raw) {
 
     return parts.length ? parts.join(" • ") : null;
 }
+
+
 
 function cleanEventType(value) {
     const s = String(value || "").trim().toLowerCase();
@@ -711,6 +730,7 @@ function cleanEventType(value) {
 
     return map[s] ?? s.replace(/_/g, " ");
 }
+
 
 function getMatchTeams(data) {
     const current = data?.current || {};
@@ -749,6 +769,7 @@ function getMatchTeams(data) {
     return { home, away };
 }
 
+
 function getMatchScore(data) {
     const current = data?.current || {};
     const snapshot = data?.snapshot || {};
@@ -760,10 +781,12 @@ function getMatchScore(data) {
     return text.scoreFallback;
 }
 
+
 function getMatchStatus(data) {
     const current = data?.current || {};
     return String(current?.status || current?.gameState || data?.status || text.detailsUnavailable);
 }
+
 
 function formatKickoff(value) {
     if (value == null || value === "") return "";
@@ -784,6 +807,7 @@ function formatKickoff(value) {
 
     return `${datePart}, ${timePart}`;
 }
+
 
 function buildTimelineItems(data) {
     const source =
@@ -900,7 +924,6 @@ function buildTimelineItems(data) {
 
 
 
-
 function renderMatchCard(match, isCompact) {
     const fixtureId = normalizeId(match?.fixtureId || match?.id || match?.fixture_id);
     const safeFixtureId = encodeURIComponent(fixtureId);
@@ -972,7 +995,6 @@ function renderMatchCard(match, isCompact) {
         </div>
     `;
 }
-
 
 
 
@@ -1228,11 +1250,13 @@ async function getAIPrediction(fixtureId) {
 }
 
 
+
 function verifySolanaProof(id) {
     const safeId = normalizeId(id) || "unknown";
     const hash = "0x" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 10);
     showTelegramPopup(text.proofTitle, text.proofMessage(safeId, hash));
 }
+
 
 async function loadFavorites() {
     const user = getUserId();
@@ -1247,6 +1271,7 @@ async function loadFavorites() {
         state.favorites = [];
     }
 }
+
 
 async function toggleFavorite(fixtureId) {
     const id = normalizeId(fixtureId);
@@ -1277,12 +1302,14 @@ async function toggleFavorite(fixtureId) {
     } catch {}
 }
 
+
 function showModalLoader() {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
     modal.innerHTML = `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
     modal.classList.add("active");
 }
+
 
 function closeModal() {
     const modal = document.getElementById("match-details-overlay");
@@ -1291,10 +1318,12 @@ function closeModal() {
     abortRequest("aiController");
 }
 
+
 function decodeFixtureIdFromElement(element) {
     const rawId = element?.dataset?.fixtureId || "";
     try { return decodeURIComponent(rawId); } catch { return rawId; }
 }
+
 
 document.getElementById("filters")?.addEventListener("click", (event) => {
     const chip = event.target.closest(".filter-chip");
@@ -1306,64 +1335,66 @@ document.getElementById("filters")?.addEventListener("click", (event) => {
     renderAll();
 });
 
-
 document.addEventListener("click", (event) => {
-  const target = event.target instanceof Element ? event.target : null;
-  if (!target) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
 
-  const actionElement = target.closest("[data-action]");
-  if (actionElement) {
-    const action = actionElement.dataset.action;
-    const fixtureId = decodeFixtureIdFromElement(actionElement);
+    const actionElement = target.closest("[data-action]");
+    if (actionElement) {
+        const action = actionElement.dataset.action;
+        const fixtureId = decodeFixtureIdFromElement(actionElement);
 
-    if (action === "toggle-favorite") {
-      event.stopPropagation();
-      toggleFavorite(fixtureId);
-      return;
+        if (action === "toggle-favorite") {
+            event.stopPropagation();
+            toggleFavorite(fixtureId);
+            return;
+        }
+
+        if (action === "ai-prediction") {
+            event.stopPropagation();
+            getAIPrediction(fixtureId);
+            return;
+        }
+
+        if (action === "verify-proof") {
+            event.stopPropagation();
+            verifySolanaProof(fixtureId);
+            return;
+        }
+
+        if (action === "close-modal") {
+            event.stopPropagation();
+            closeModal();
+            return;
+        }
+
+        if (action === "open-match") {
+            event.stopPropagation();
+            openMatchDetails(fixtureId);
+            return;
+        }
     }
 
-    if (action === "ai-prediction") {
-      event.stopPropagation();
-      getAIPrediction(fixtureId);
-      return;
+    const matchCard = target.closest(".match-card.is-clickable");
+    if (matchCard) {
+        const fixtureId = decodeFixtureIdFromElement(matchCard);
+        openMatchDetails(fixtureId);
     }
-
-    if (action === "verify-proof") {
-      event.stopPropagation();
-      verifySolanaProof(fixtureId);
-      return;
-    }
-
-    if (action === "close-modal") {
-      event.stopPropagation();
-      closeModal();
-      return;
-    }
-
-    if (action === "open-match") {
-      event.stopPropagation();
-      openMatchDetails(fixtureId);
-      return;
-    }
-  }
-
-  const matchCard = target.closest(".match-card.is-clickable");
-  if (matchCard) {
-    const fixtureId = decodeFixtureIdFromElement(matchCard);
-    openMatchDetails(fixtureId);
-  }
 });
+
 
 
 const autoRefresh = setInterval(() => {
     if (state.groupedMatches.live.length > 0) initApp();
 }, 60000);
 
+
 if (tg?.onEvent) {
     tg.onEvent("viewportChanged", () => {
         if (tg.isExpanded) triggerLightImpact();
     });
 }
+
 
 async function initApp() {
     try {
@@ -1401,6 +1432,7 @@ async function initApp() {
     }
 }
 
+
 async function bootstrap() {
     await loadFavorites();
     await initApp();
@@ -1409,11 +1441,13 @@ async function bootstrap() {
 
 bootstrap();
 
+
 window.addEventListener("beforeunload", () => {
     clearInterval(autoRefresh);
     abortRequest("detailsController");
     abortRequest("aiController");
 });
+
 </script>
 </body>
 </html>
