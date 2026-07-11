@@ -946,7 +946,7 @@ function renderMatchCard(match, isCompact) {
         "";
 
     const kickoff = formatKickoff(kickoffRaw);
-    const kickoffHtml = kickoff ? `<div class="card-kickoff">📅 ${escapeHtml(kickoff)}</div>` : "";
+    const kickoffHtml = kickoff ? `<div class="card-kickoff"> ${escapeHtml(kickoff)}</div>` : "";
 
     return `
         <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
