@@ -1134,7 +1134,7 @@ function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
 
-    const current = data?.current || data?.match || data || {};
+    const current = data?.current || data?.currentCompact || data?.match || data || {};
 
     const fixtureId = normalizeId(
         data?.fixtureId ||
@@ -1177,18 +1177,15 @@ function renderMatchDetails(data) {
         data?.result ||
         ((current?.homeScore != null && current?.awayScore != null)
             ? `${current.homeScore}-${current.awayScore}`
-            : "");
+            : text.scoreFallback);
 
+    const phaseValue = String(current?.phase || data?.phase || "").toLowerCase();
     const statusRaw =
         current?.status ||
         current?.gameState ||
-        current?.phase &&
-            txlinePhaseLabel
-            ? txlinePhaseLabel(current.phase)
-            : null ||
         data?.status ||
         data?.gameState ||
-        current?.state ||
+        (phaseValue ? phaseValue.charAt(0).toUpperCase() + phaseValue.slice(1) : "") ||
         text.detailsUnavailable;
 
     const kickoffRaw =
@@ -1206,15 +1203,18 @@ function renderMatchDetails(data) {
         "";
 
     const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : "";
+
     const timelineSource =
+        data?.historical ||
+        data?.events ||
+        data?.snapshot ||
+        current?.historical ||
+        current?.events ||
+        current?.snapshot ||
         current?.eventPreview ||
         data?.eventPreview ||
-        current?.historical ||
-        data?.historical ||
         current?.timeline ||
         data?.timeline ||
-        current?.events ||
-        data?.events ||
         current?.matchEvents ||
         data?.matchEvents ||
         [];
@@ -1224,6 +1224,7 @@ function renderMatchDetails(data) {
         timeline: Array.isArray(timelineSource) ? timelineSource : [],
         events: Array.isArray(timelineSource) ? timelineSource : [],
         matchEvents: Array.isArray(timelineSource) ? timelineSource : [],
+        snapshot: Array.isArray(timelineSource) ? timelineSource : [],
         current
     });
 
@@ -1233,6 +1234,15 @@ function renderMatchDetails(data) {
         ["Score", scoreRaw || "—"],
         ["Fixture", fixtureId || "unknown"]
     ];
+
+    const errorBlock = data?.ok === false
+        ? `
+            <div class="section-block">
+                <h3>⚠️ ${escapeHtml(text.detailsUnavailable)}</h3>
+                <div class="no-data">${escapeHtml(data?.error || text.failedMatchDetailsShort)}</div>
+            </div>
+        `
+        : "";
 
     const timelineHtml = timelineItems.length > 0
         ? timelineItems.map((item) => {
@@ -1256,7 +1266,7 @@ function renderMatchDetails(data) {
             <div class="no-data">${escapeHtml(text.timelinePending)}</div>
         `;
 
-    const oddsPreview = current?.oddsPreview || data?.oddsPreview || null;
+    const oddsPreview = data?.oddsPreview || data?.oddsTop || current?.oddsPreview || null;
     const oddsHtml = oddsPreview && (
         Array.isArray(oddsPreview.selections) ? oddsPreview.selections.length > 0 : true
     )
@@ -1284,6 +1294,8 @@ function renderMatchDetails(data) {
                 <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">✕</button>
                 <div class="modal-title">${escapeHtml(homeRaw)} vs ${escapeHtml(awayRaw)}</div>
             </div>
+
+            ${errorBlock}
 
             <div class="details-main-score">
                 <div class="big-score">${escapeHtml(scoreRaw || "—")}</div>
@@ -1320,6 +1332,7 @@ function renderMatchDetails(data) {
 
 
 
+
 async function openMatchDetails(fixtureId) {
     const safeFixtureId = normalizeId(fixtureId);
     if (!safeFixtureId) return showTelegramAlert(text.invalidMatchId);
@@ -1336,20 +1349,28 @@ async function openMatchDetails(fixtureId) {
 
         if (state.requests.detailsController === controller) state.requests.detailsController = null;
 
-        const body = res?.body || {};
-        if (res.ok && body.ok) {
+        const body = res?.body;
+
+        if (res.ok && body && body.ok !== false) {
             renderMatchDetails(body);
-        } else {
-            console.error("Fixture details response:", body);
-            showTelegramAlert(text.failedMatchDetailsShort);
-            closeModal();
+            return;
         }
+
+        console.error("Fixture details response:", res);
+        renderMatchDetails({
+            ok: false,
+            fixtureId: safeFixtureId,
+            error: body?.error || res?.raw || "Unable to load match details"
+        });
     } catch (error) {
         if (error.name === "AbortError") return;
         console.error("Failed to load match details:", error);
         if (state.requests.detailsController === controller) state.requests.detailsController = null;
-        showTelegramAlert(text.failedMatchDetails);
-        closeModal();
+        renderMatchDetails({
+            ok: false,
+            fixtureId: safeFixtureId,
+            error: error?.message || text.failedMatchDetails
+        });
     }
 }
 
