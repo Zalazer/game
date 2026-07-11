@@ -534,23 +534,18 @@ function collectMatchesFromProbe(probe) {
         if (!fixtureId || seen.has(fixtureId)) return;
         seen.add(fixtureId);
 
-        const homeTeam =
-            row?.homeTeam ??
-            row?.home_name ??
-            row?.home ??
-            row?.participant1 ??
-            row?.Participant1 ??
-            row?.team1 ??
-            text.teamA;
+        const p1 = row?.Participant1 ?? row?.participant1 ?? row?.home ?? row?.homeTeam ?? "";
+        const p2 = row?.Participant2 ?? row?.participant2 ?? row?.away ?? row?.awayTeam ?? "";
 
-        const awayTeam =
-            row?.awayTeam ??
-            row?.away_name ??
-            row?.away ??
-            row?.participant2 ??
-            row?.Participant2 ??
-            row?.team2 ??
-            text.teamB;
+        const participant1IsHome = row?.Participant1IsHome ?? row?.participant1IsHome ?? row?.homeIsParticipant1 ?? null;
+
+        const homeTeam = participant1IsHome === false
+            ? (p2 || text.teamA)
+            : (p1 || text.teamA);
+
+        const awayTeam = participant1IsHome === false
+            ? (p1 || text.teamB)
+            : (p2 || text.teamB);
 
         const homeScore = row?.homeScore != null ? Number(row.homeScore) : null;
         const awayScore = row?.awayScore != null ? Number(row.awayScore) : null;
@@ -576,9 +571,6 @@ function collectMatchesFromProbe(probe) {
             row?.startsAt ??
             null;
 
-        const oddsPreview = row?.oddsPreview ?? null;
-        const eventPreview = row?.eventPreview ?? null;
-
         rows.push({
             ...row,
             fixtureId,
@@ -587,8 +579,11 @@ function collectMatchesFromProbe(probe) {
             status,
             homeTeam,
             awayTeam,
-            home: row?.home ?? homeTeam,
-            away: row?.away ?? awayTeam,
+            home: homeTeam,
+            away: awayTeam,
+            Participant1: row?.Participant1 ?? p1,
+            Participant2: row?.Participant2 ?? p2,
+            Participant1IsHome: participant1IsHome,
             homeScore,
             awayScore,
             score,
@@ -597,13 +592,12 @@ function collectMatchesFromProbe(probe) {
             cr: row?.cr ?? text.cardsFallback,
             signal: Number(row?.signal ?? 0),
             v: !!row?.v,
-            oddsPreview,
-            eventPreview
+            oddsPreview: row?.oddsPreview ?? null,
+            eventPreview: row?.eventPreview ?? null
         });
     };
 
     const grouped = probe?.grouped || {};
-
     const groups = [
         ["live", grouped.live],
         ["upcoming", grouped.upcoming],
@@ -614,15 +608,11 @@ function collectMatchesFromProbe(probe) {
     ];
 
     for (const [phase, arr] of groups) {
-        for (const row of safeArray(arr)) {
-            pushRow(row, phase);
-        }
+        for (const row of safeArray(arr)) pushRow(row, phase);
     }
 
     if (!rows.length && Array.isArray(probe?.matches)) {
-        for (const row of probe.matches) {
-            pushRow(row, row?.phase || "upcoming");
-        }
+        for (const row of probe.matches) pushRow(row, row?.phase || "upcoming");
     }
 
     if (!rows.length && probe?.featured) {
@@ -642,6 +632,7 @@ function collectMatchesFromProbe(probe) {
 
     return rows;
 }
+
 
 
 
@@ -866,40 +857,77 @@ function cleanEventType(value) {
 
 function getMatchTeams(data) {
     const current = data?.current || {};
+    const compact = data?.currentCompact || {};
     const snapshot = data?.snapshot || {};
     const meta = data?.meta || {};
-    const source = data?.currentCompact || {};
+    const source = data?.match || data || {};
 
-    const home =
-        current?.home ||
-        current?.homeTeam ||
-        current?.participant1 ||
+    const p1 =
         current?.Participant1 ||
-        source?.home ||
-        source?.homeTeam ||
-        source?.participant1 ||
-        snapshot?.home ||
+        current?.participant1 ||
+        current?.homeTeam ||
+        current?.home ||
+        compact?.Participant1 ||
+        compact?.participant1 ||
+        compact?.homeTeam ||
+        compact?.home ||
+        snapshot?.Participant1 ||
+        snapshot?.participant1 ||
         snapshot?.homeTeam ||
-        meta?.home ||
+        snapshot?.home ||
+        source?.Participant1 ||
+        source?.participant1 ||
+        source?.homeTeam ||
+        source?.home ||
+        meta?.Participant1 ||
+        meta?.participant1 ||
         meta?.homeTeam ||
+        meta?.home ||
         text.teamA;
 
-    const away =
-        current?.away ||
-        current?.awayTeam ||
-        current?.participant2 ||
+    const p2 =
         current?.Participant2 ||
-        source?.away ||
-        source?.awayTeam ||
-        source?.participant2 ||
-        snapshot?.away ||
+        current?.participant2 ||
+        current?.awayTeam ||
+        current?.away ||
+        compact?.Participant2 ||
+        compact?.participant2 ||
+        compact?.awayTeam ||
+        compact?.away ||
+        snapshot?.Participant2 ||
+        snapshot?.participant2 ||
         snapshot?.awayTeam ||
-        meta?.away ||
+        snapshot?.away ||
+        source?.Participant2 ||
+        source?.participant2 ||
+        source?.awayTeam ||
+        source?.away ||
+        meta?.Participant2 ||
+        meta?.participant2 ||
         meta?.awayTeam ||
+        meta?.away ||
         text.teamB;
 
-    return { home, away };
+    const participant1IsHome =
+        current?.Participant1IsHome ??
+        current?.participant1IsHome ??
+        compact?.Participant1IsHome ??
+        compact?.participant1IsHome ??
+        snapshot?.Participant1IsHome ??
+        snapshot?.participant1IsHome ??
+        source?.Participant1IsHome ??
+        source?.participant1IsHome ??
+        meta?.Participant1IsHome ??
+        meta?.participant1IsHome ??
+        null;
+
+    if (participant1IsHome === false) {
+        return { home: p2, away: p1 };
+    }
+
+    return { home: p1, away: p2 };
 }
+
 
 
 function getMatchScore(data) {
@@ -1062,23 +1090,9 @@ function renderMatchCard(match, isCompact) {
     const isHot = Number(match?.signal || 0) > 1200;
     const isFavorite = state.favorites.includes(fixtureId);
 
-    const homeTeam = escapeHtml(
-        match?.home ||
-        match?.homeTeam ||
-        match?.participant1 ||
-        match?.Participant1 ||
-        match?.team1 ||
-        text.teamA
-    );
-
-    const awayTeam = escapeHtml(
-        match?.away ||
-        match?.awayTeam ||
-        match?.participant2 ||
-        match?.Participant2 ||
-        match?.team2 ||
-        text.teamB
-    );
+    const teams = getMatchTeams({ match, current: match, currentCompact: match, snapshot: match });
+    const homeTeam = escapeHtml(teams.home || text.teamA);
+    const awayTeam = escapeHtml(teams.away || text.teamB);
 
     const score = escapeHtml(
         match?.score ||
@@ -1130,11 +1144,13 @@ function renderMatchCard(match, isCompact) {
 
 
 
+
 function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
 
     const current = data?.current || data?.currentCompact || data?.match || data || {};
+    const teams = getMatchTeams(data);
 
     const fixtureId = normalizeId(
         data?.fixtureId ||
@@ -1146,29 +1162,8 @@ function renderMatchDetails(data) {
 
     const safeFixtureId = encodeURIComponent(fixtureId);
 
-    const homeRaw =
-        current?.home ||
-        current?.homeTeam ||
-        current?.participant1 ||
-        current?.Participant1 ||
-        data?.home ||
-        data?.homeTeam ||
-        data?.participant1 ||
-        data?.Participant1 ||
-        current?.raw?.Participant1 ||
-        text.teamA;
-
-    const awayRaw =
-        current?.away ||
-        current?.awayTeam ||
-        current?.participant2 ||
-        current?.Participant2 ||
-        data?.away ||
-        data?.awayTeam ||
-        data?.participant2 ||
-        data?.Participant2 ||
-        current?.raw?.Participant2 ||
-        text.teamB;
+    const homeRaw = teams.home || current?.home || current?.homeTeam || current?.Participant1 || text.teamA;
+    const awayRaw = teams.away || current?.away || current?.awayTeam || current?.Participant2 || text.teamB;
 
     const scoreRaw =
         current?.score ||
