@@ -527,58 +527,122 @@ function createAbortController(controllerKey) {
 
 function collectMatchesFromProbe(probe) {
     const rows = [];
+    const seen = new Set();
+
+    const pushRow = (row, phaseHint) => {
+        const fixtureId = normalizeId(row?.fixtureId ?? row?.FixtureId ?? row?.id ?? row?.fixture_id);
+        if (!fixtureId || seen.has(fixtureId)) return;
+        seen.add(fixtureId);
+
+        const homeTeam =
+            row?.homeTeam ??
+            row?.home_name ??
+            row?.home ??
+            row?.participant1 ??
+            row?.Participant1 ??
+            row?.team1 ??
+            text.teamA;
+
+        const awayTeam =
+            row?.awayTeam ??
+            row?.away_name ??
+            row?.away ??
+            row?.participant2 ??
+            row?.Participant2 ??
+            row?.team2 ??
+            text.teamB;
+
+        const homeScore = row?.homeScore != null ? Number(row.homeScore) : null;
+        const awayScore = row?.awayScore != null ? Number(row.awayScore) : null;
+
+        const score =
+            row?.score ??
+            row?.result ??
+            ((homeScore != null && awayScore != null) ? `${homeScore}-${awayScore}` : text.scoreFallback);
+
+        const phase = String(row?.phase || phaseHint || "upcoming").toLowerCase();
+        const status =
+            row?.status ||
+            row?.gameState ||
+            row?.state ||
+            (phase === "finished" ? "Finished" : phase === "live" ? "Live" : phase === "upcoming" ? "Not started" : text.scheduled);
+
+        const kickoff =
+            row?.kickoff ??
+            row?.startTime ??
+            row?.StartTime ??
+            row?.date ??
+            row?.datetime ??
+            row?.startsAt ??
+            null;
+
+        const oddsPreview = row?.oddsPreview ?? null;
+        const eventPreview = row?.eventPreview ?? null;
+
+        rows.push({
+            ...row,
+            fixtureId,
+            id: row?.id ?? fixtureId,
+            phase,
+            status,
+            homeTeam,
+            awayTeam,
+            home: row?.home ?? homeTeam,
+            away: row?.away ?? awayTeam,
+            homeScore,
+            awayScore,
+            score,
+            kickoff,
+            yc: row?.yc ?? text.cardsFallback,
+            cr: row?.cr ?? text.cardsFallback,
+            signal: Number(row?.signal ?? 0),
+            v: !!row?.v,
+            oddsPreview,
+            eventPreview
+        });
+    };
+
+    const grouped = probe?.grouped || {};
+
     const groups = [
-        ["finished", probe?.grouped?.finished],
-        ["live", probe?.grouped?.live],
-        ["upcoming", probe?.grouped?.upcoming]
+        ["live", grouped.live],
+        ["upcoming", grouped.upcoming],
+        ["finished", grouped.finished],
+        ["stopped", grouped.stopped],
+        ["unknown", grouped.unknown],
+        ["past", grouped.past]
     ];
 
     for (const [phase, arr] of groups) {
         for (const row of safeArray(arr)) {
-            const fixtureId = normalizeId(row?.fixtureId ?? row?.id ?? row?.fixture_id);
-            if (!fixtureId) continue;
-
-            rows.push({
-                ...row,
-                fixtureId,
-                phase: row?.phase || phase,
-                status: row?.status || text.scheduled,
-                homeTeam: row?.homeTeam ?? row?.home_name ?? row?.home ?? row?.participant1 ?? row?.Participant1 ?? text.teamA,
-                awayTeam: row?.awayTeam ?? row?.away_name ?? row?.away ?? row?.participant2 ?? row?.Participant2 ?? text.teamB,
-                score: row?.score ?? row?.result ?? text.scoreFallback,
-                yc: row?.yc ?? text.cardsFallback,
-                cr: row?.cr ?? text.cardsFallback,
-                signal: row?.signal ?? 0,
-                v: !!row?.v,
-                oddsPreview: row?.oddsPreview ?? null
-            });
+            pushRow(row, phase);
         }
     }
 
     if (!rows.length && Array.isArray(probe?.matches)) {
         for (const row of probe.matches) {
-            const fixtureId = normalizeId(row?.fixtureId ?? row?.id ?? row?.fixture_id);
-            if (!fixtureId) continue;
-
-            rows.push({
-                ...row,
-                fixtureId,
-                phase: row?.phase || "upcoming",
-                status: row?.status || text.scheduled,
-                homeTeam: row?.homeTeam ?? row?.home_name ?? row?.home ?? row?.participant1 ?? row?.Participant1 ?? text.teamA,
-                awayTeam: row?.awayTeam ?? row?.away_name ?? row?.away ?? row?.participant2 ?? row?.Participant2 ?? text.teamB,
-                score: row?.score ?? row?.result ?? text.scoreFallback,
-                yc: row?.yc ?? text.cardsFallback,
-                cr: row?.cr ?? text.cardsFallback,
-                signal: row?.signal ?? 0,
-                v: !!row?.v,
-                oddsPreview: row?.oddsPreview ?? null
-            });
+            pushRow(row, row?.phase || "upcoming");
         }
     }
 
+    if (!rows.length && probe?.featured) {
+        pushRow(probe.featured, probe.featured?.phase || "upcoming");
+    }
+
+    rows.sort((a, b) => {
+        const phaseOrder = { live: 0, upcoming: 1, finished: 2, stopped: 3, unknown: 4 };
+        const pa = phaseOrder[a.phase] ?? 4;
+        const pb = phaseOrder[b.phase] ?? 4;
+        if (pa !== pb) return pa - pb;
+
+        const ka = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+        const kb = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+        return ka - kb;
+    });
+
     return rows;
 }
+
 
 
 function regroupMatches(matches) {
@@ -596,22 +660,59 @@ function regroupMatches(matches) {
 
 
 function getFilteredMatches() {
-    const filter = state.filters.status;
-    const { finished, live, upcoming } = state.groupedMatches;
+    const filter = String(state.filters.status || "all").toLowerCase();
+    const grouped = state.groupedMatches || {};
+    const finished = safeArray(grouped.finished);
+    const live = safeArray(grouped.live);
+    const upcoming = safeArray(grouped.upcoming);
+    const stopped = safeArray(grouped.stopped);
+    const unknown = safeArray(grouped.unknown);
+    const all = [...live, ...upcoming, ...finished, ...stopped, ...unknown];
 
-    if (filter === "live") return { finished: [], live, upcoming: [] };
-    if (filter === "upcoming") return { finished: [], live: [], upcoming };
-    if (filter === "favorites") {
-        const isFavorite = (match) => state.favorites.includes(normalizeId(match?.fixtureId));
+    const isFavorite = (match) => {
+        const id = normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id);
+        return id && state.favorites.includes(id);
+    };
+
+    if (filter === "live") {
         return {
-            finished: finished.filter(isFavorite),
-            live: live.filter(isFavorite),
-            upcoming: upcoming.filter(isFavorite)
+            finished: [],
+            live: live.filter((match) => normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id)),
+            upcoming: [],
+            stopped: [],
+            unknown: []
         };
     }
 
-    return { finished, live, upcoming };
+    if (filter === "upcoming") {
+        return {
+            finished: [],
+            live: [],
+            upcoming: upcoming.filter((match) => normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id)),
+            stopped: [],
+            unknown: []
+        };
+    }
+
+    if (filter === "favorites") {
+        return {
+            finished: finished.filter(isFavorite),
+            live: live.filter(isFavorite),
+            upcoming: upcoming.filter(isFavorite),
+            stopped: stopped.filter(isFavorite),
+            unknown: unknown.filter(isFavorite)
+        };
+    }
+
+    return {
+        finished,
+        live,
+        upcoming,
+        stopped,
+        unknown
+    };
 }
+
 
 
 
@@ -622,12 +723,20 @@ function renderAll() {
     const matches = getFilteredMatches();
     container.innerHTML = "";
 
-    if (matches.finished.length > 0) {
+    const hasFinished = Array.isArray(matches.finished) && matches.finished.length > 0;
+    const hasLive = Array.isArray(matches.live) && matches.live.length > 0;
+    const hasUpcoming = Array.isArray(matches.upcoming) && matches.upcoming.length > 0;
+
+    const renderCount = (label, list) => `${label} (${Array.isArray(list) ? list.length : 0})`;
+
+    if (hasFinished) {
         const finishedSection = document.createElement("details");
         finishedSection.className = "finished-accordion";
+        finishedSection.open = false;
+
         finishedSection.innerHTML = `
             <summary class="section-title">
-                <span>⚽ ${escapeHtml(text.completedMatches)} (${matches.finished.length})</span>
+                <span>⚽ ${escapeHtml(renderCount(text.completedMatches, matches.finished))}</span>
                 <small>${escapeHtml(text.completedSubtitle)}</small>
             </summary>
             <div class="compact-list">
@@ -637,24 +746,47 @@ function renderAll() {
         container.appendChild(finishedSection);
     }
 
-    renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
-    renderSection(container, `▶️ ${text.startingSoon}`, matches.upcoming, "upcoming-section");
+    if (hasLive) {
+        renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
+    }
 
-    if (!matches.finished.length && !matches.live.length && !matches.upcoming.length) {
+    if (hasUpcoming) {
+        renderSection(container, `▶️ ${text.startingSoon}`, matches.upcoming, "upcoming-section");
+    }
+
+    if (!hasFinished && !hasLive && !hasUpcoming) {
         container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
+        return;
+    }
+
+    const visibleTotal = (hasFinished ? matches.finished.length : 0) + (hasLive ? matches.live.length : 0) + (hasUpcoming ? matches.upcoming.length : 0);
+    const statusBar = document.getElementById("status");
+    if (statusBar) {
+        statusBar.textContent = `Loaded ${visibleTotal} fixtures`;
     }
 }
 
 
+
+
 function renderSection(parent, title, matches, className) {
-    if (!matches || matches.length === 0) return;
+    if (!parent || !Array.isArray(matches) || matches.length === 0) return;
+
+    const visibleMatches = matches.filter((match) => {
+        const fixtureId = normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id);
+        return !!fixtureId;
+    });
+
+    if (!visibleMatches.length) return;
 
     const section = document.createElement("div");
     section.className = className;
+
     section.innerHTML = `
         <h2 class="section-subtitle">${escapeHtml(title)}</h2>
-        ${matches.map((match) => renderMatchCard(match, false)).join("")}
+        ${visibleMatches.map((match) => renderMatchCard(match, false)).join("")}
     `;
+
     parent.appendChild(section);
 }
 
@@ -969,7 +1101,7 @@ function renderMatchCard(match, isCompact) {
         "";
 
     const kickoff = formatKickoff(kickoffRaw);
-    const kickoffHtml = kickoff ? `<div class="card-kickoff"> ${escapeHtml(kickoff)}</div>` : "";
+    const kickoffHtml = kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : "";
 
     return `
         <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
@@ -1002,7 +1134,7 @@ function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
 
-    const current = data?.current || {};
+    const current = data?.current || data?.match || data || {};
 
     const fixtureId = normalizeId(
         data?.fixtureId ||
@@ -1023,8 +1155,7 @@ function renderMatchDetails(data) {
         data?.homeTeam ||
         data?.participant1 ||
         data?.Participant1 ||
-        data?.match?.home ||
-        data?.match?.homeTeam ||
+        current?.raw?.Participant1 ||
         text.teamA;
 
     const awayRaw =
@@ -1036,8 +1167,7 @@ function renderMatchDetails(data) {
         data?.awayTeam ||
         data?.participant2 ||
         data?.Participant2 ||
-        data?.match?.away ||
-        data?.match?.awayTeam ||
+        current?.raw?.Participant2 ||
         text.teamB;
 
     const scoreRaw =
@@ -1052,10 +1182,13 @@ function renderMatchDetails(data) {
     const statusRaw =
         current?.status ||
         current?.gameState ||
+        current?.phase &&
+            txlinePhaseLabel
+            ? txlinePhaseLabel(current.phase)
+            : null ||
         data?.status ||
         data?.gameState ||
         current?.state ||
-        data?.state ||
         text.detailsUnavailable;
 
     const kickoffRaw =
@@ -1069,10 +1202,30 @@ function renderMatchDetails(data) {
         data?.date ??
         data?.datetime ??
         data?.startsAt ??
+        current?.raw?.StartTime ??
         "";
 
     const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : "";
-    const timelineItems = buildTimelineItems(data);
+    const timelineSource =
+        current?.eventPreview ||
+        data?.eventPreview ||
+        current?.historical ||
+        data?.historical ||
+        current?.timeline ||
+        data?.timeline ||
+        current?.events ||
+        data?.events ||
+        current?.matchEvents ||
+        data?.matchEvents ||
+        [];
+
+    const timelineItems = buildTimelineItems({
+        historical: Array.isArray(timelineSource) ? timelineSource : [],
+        timeline: Array.isArray(timelineSource) ? timelineSource : [],
+        events: Array.isArray(timelineSource) ? timelineSource : [],
+        matchEvents: Array.isArray(timelineSource) ? timelineSource : [],
+        current
+    });
 
     const fallbackRows = [
         ["Status", statusRaw],
@@ -1104,7 +1257,9 @@ function renderMatchDetails(data) {
         `;
 
     const oddsPreview = current?.oddsPreview || data?.oddsPreview || null;
-    const oddsHtml = oddsPreview && Array.isArray(oddsPreview.selections) && oddsPreview.selections.length
+    const oddsHtml = oddsPreview && (
+        Array.isArray(oddsPreview.selections) ? oddsPreview.selections.length > 0 : true
+    )
         ? `
             <div class="section-block">
                 <h3>📈 Odds preview</h3>
@@ -1118,6 +1273,11 @@ function renderMatchDetails(data) {
         `
         : "";
 
+    const statusLine = [
+        escapeHtml(statusRaw),
+        kickoffText ? escapeHtml(kickoffText) : ""
+    ].filter(Boolean).join(" • ");
+
     modal.innerHTML = `
         <div class="modal-content">
             <div class="modal-header">
@@ -1127,7 +1287,7 @@ function renderMatchDetails(data) {
 
             <div class="details-main-score">
                 <div class="big-score">${escapeHtml(scoreRaw || "—")}</div>
-                <div class="status-badge">${escapeHtml(statusRaw)}${kickoffText ? ` • ${escapeHtml(kickoffText)}` : ""}</div>
+                <div class="status-badge">${statusLine || escapeHtml(text.detailsUnavailable)}</div>
             </div>
 
             <div class="section-block">
