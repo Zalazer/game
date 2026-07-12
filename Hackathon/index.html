@@ -525,69 +525,34 @@ function createAbortController(controllerKey) {
     return controller;
 }
 
+
+
 function collectMatchesFromProbe(probe) {
     const rows = [];
     const seen = new Set();
 
     const pushRow = (row, phaseHint) => {
-        const fixtureId = normalizeId(row?.fixtureId ?? row?.FixtureId ?? row?.id ?? row?.fixture_id);
+        const fixtureId = normalizeId(row?.fixtureId ?? row?.id);
         if (!fixtureId || seen.has(fixtureId)) return;
         seen.add(fixtureId);
 
-        const p1 = row?.Participant1 ?? row?.participant1 ?? row?.home ?? row?.homeTeam ?? "";
-        const p2 = row?.Participant2 ?? row?.participant2 ?? row?.away ?? row?.awayTeam ?? "";
-
-        const participant1IsHome = row?.Participant1IsHome ?? row?.participant1IsHome ?? row?.homeIsParticipant1 ?? null;
-
-        const homeTeam = participant1IsHome === false
-            ? (p2 || text.teamA)
-            : (p1 || text.teamA);
-
-        const awayTeam = participant1IsHome === false
-            ? (p1 || text.teamB)
-            : (p2 || text.teamB);
-
         const homeScore = row?.homeScore != null ? Number(row.homeScore) : null;
         const awayScore = row?.awayScore != null ? Number(row.awayScore) : null;
-
-        const score =
-            row?.score ??
-            row?.result ??
-            ((homeScore != null && awayScore != null) ? `${homeScore}-${awayScore}` : text.scoreFallback);
-
-        const phase = String(row?.phase || phaseHint || "upcoming").toLowerCase();
-        const status =
-            row?.status ||
-            row?.gameState ||
-            row?.state ||
-            (phase === "finished" ? "Finished" : phase === "live" ? "Live" : phase === "upcoming" ? "Not started" : text.scheduled);
-
-        const kickoff =
-            row?.kickoff ??
-            row?.startTime ??
-            row?.StartTime ??
-            row?.date ??
-            row?.datetime ??
-            row?.startsAt ??
-            null;
 
         rows.push({
             ...row,
             fixtureId,
             id: row?.id ?? fixtureId,
-            phase,
-            status,
-            homeTeam,
-            awayTeam,
-            home: homeTeam,
-            away: awayTeam,
-            Participant1: row?.Participant1 ?? p1,
-            Participant2: row?.Participant2 ?? p2,
-            Participant1IsHome: participant1IsHome,
+            phase: String(row?.phase || phaseHint || "upcoming").toLowerCase(),
+            status: row?.status || text.scheduled,
+            home: row?.home || text.teamA,
+            away: row?.away || text.teamB,
+            homeTeam: row?.home || text.teamA,
+            awayTeam: row?.away || text.teamB,
             homeScore,
             awayScore,
-            score,
-            kickoff,
+            score: row?.score ?? ((homeScore != null && awayScore != null) ? `${homeScore}-${awayScore}` : text.scoreFallback),
+            kickoff: row?.kickoff ?? null,
             yc: row?.yc ?? text.cardsFallback,
             cr: row?.cr ?? text.cardsFallback,
             signal: Number(row?.signal ?? 0),
@@ -598,36 +563,29 @@ function collectMatchesFromProbe(probe) {
     };
 
     const grouped = probe?.grouped || {};
-    const groups = [
+
+    [
         ["live", grouped.live],
         ["upcoming", grouped.upcoming],
         ["finished", grouped.finished],
         ["stopped", grouped.stopped],
         ["unknown", grouped.unknown],
         ["past", grouped.past]
-    ];
+    ].forEach(([phase, arr]) => safeArray(arr).forEach(row => pushRow(row, phase)));
 
-    for (const [phase, arr] of groups) {
-        for (const row of safeArray(arr)) pushRow(row, phase);
-    }
-
-    if (!rows.length && Array.isArray(probe?.matches)) {
-        for (const row of probe.matches) pushRow(row, row?.phase || "upcoming");
-    }
+    if (!rows.length) safeArray(probe?.matches).forEach(row => pushRow(row, row?.phase));
 
     if (!rows.length && probe?.featured) {
-        pushRow(probe.featured, probe.featured?.phase || "upcoming");
+        pushRow(probe.featured, probe.featured.phase);
     }
 
+    const phaseOrder = { live: 0, upcoming: 1, finished: 2, stopped: 3, unknown: 4 };
+
     rows.sort((a, b) => {
-        const phaseOrder = { live: 0, upcoming: 1, finished: 2, stopped: 3, unknown: 4 };
         const pa = phaseOrder[a.phase] ?? 4;
         const pb = phaseOrder[b.phase] ?? 4;
         if (pa !== pb) return pa - pb;
-
-        const ka = a.kickoff ? new Date(a.kickoff).getTime() : 0;
-        const kb = b.kickoff ? new Date(b.kickoff).getTime() : 0;
-        return ka - kb;
+        return new Date(a.kickoff || 0) - new Date(b.kickoff || 0);
     });
 
     return rows;
@@ -858,93 +816,48 @@ function cleanEventType(value) {
 function getMatchTeams(data) {
     const current = data?.current || {};
     const compact = data?.currentCompact || {};
-    const snapshot = data?.snapshot || {};
-    const meta = data?.meta || {};
     const source = data?.match || data || {};
 
-    const p1 =
-        current?.Participant1 ||
-        current?.participant1 ||
-        current?.homeTeam ||
-        current?.home ||
-        compact?.Participant1 ||
-        compact?.participant1 ||
-        compact?.homeTeam ||
-        compact?.home ||
-        snapshot?.Participant1 ||
-        snapshot?.participant1 ||
-        snapshot?.homeTeam ||
-        snapshot?.home ||
-        source?.Participant1 ||
-        source?.participant1 ||
-        source?.homeTeam ||
-        source?.home ||
-        meta?.Participant1 ||
-        meta?.participant1 ||
-        meta?.homeTeam ||
-        meta?.home ||
-        text.teamA;
+    return {
+        home:
+            current.home ||
+            current.homeTeam ||
+            compact.home ||
+            compact.homeTeam ||
+            source.home ||
+            source.homeTeam ||
+            text.teamA,
 
-    const p2 =
-        current?.Participant2 ||
-        current?.participant2 ||
-        current?.awayTeam ||
-        current?.away ||
-        compact?.Participant2 ||
-        compact?.participant2 ||
-        compact?.awayTeam ||
-        compact?.away ||
-        snapshot?.Participant2 ||
-        snapshot?.participant2 ||
-        snapshot?.awayTeam ||
-        snapshot?.away ||
-        source?.Participant2 ||
-        source?.participant2 ||
-        source?.awayTeam ||
-        source?.away ||
-        meta?.Participant2 ||
-        meta?.participant2 ||
-        meta?.awayTeam ||
-        meta?.away ||
-        text.teamB;
-
-    const participant1IsHome =
-        current?.Participant1IsHome ??
-        current?.participant1IsHome ??
-        compact?.Participant1IsHome ??
-        compact?.participant1IsHome ??
-        snapshot?.Participant1IsHome ??
-        snapshot?.participant1IsHome ??
-        source?.Participant1IsHome ??
-        source?.participant1IsHome ??
-        meta?.Participant1IsHome ??
-        meta?.participant1IsHome ??
-        null;
-
-    if (participant1IsHome === false) {
-        return { home: p2, away: p1 };
-    }
-
-    return { home: p1, away: p2 };
+        away:
+            current.away ||
+            current.awayTeam ||
+            compact.away ||
+            compact.awayTeam ||
+            source.away ||
+            source.awayTeam ||
+            text.teamB
+    };
 }
 
 
 
 function getMatchScore(data) {
     const current = data?.current || {};
-    const snapshot = data?.snapshot || {};
 
-    if (current?.score) return String(current.score);
+    if (current.score) return String(current.score);
     if (data?.score) return String(data.score);
-    if (current?.homeScore != null && current?.awayScore != null) return `${current.homeScore}-${current.awayScore}`;
-    if (snapshot?.homeScore != null && snapshot?.awayScore != null) return `${snapshot.homeScore}-${snapshot.awayScore}`;
+
+    if (current.homeScore != null && current.awayScore != null) {
+        return `${current.homeScore}-${current.awayScore}`;
+    }
+
     return text.scoreFallback;
 }
 
 
+
 function getMatchStatus(data) {
-    const current = data?.current || {};
-    return String(current?.status || current?.gameState || data?.status || text.detailsUnavailable);
+    return String(data?.current?.status || data?.status || text.detailsUnavailable);
 }
 
 
@@ -1085,53 +998,45 @@ function buildTimelineItems(data) {
 
 
 function renderMatchCard(match, isCompact) {
-    const fixtureId = normalizeId(match?.fixtureId || match?.id || match?.fixture_id);
+    const fixtureId = normalizeId(match?.fixtureId ?? match?.id);
     const safeFixtureId = encodeURIComponent(fixtureId);
-    const isHot = Number(match?.signal || 0) > 1200;
+    const isHot = Number(match?.signal ?? 0) > 1200;
     const isFavorite = state.favorites.includes(fixtureId);
 
-    const teams = getMatchTeams({ match, current: match, currentCompact: match, snapshot: match });
-    const homeTeam = escapeHtml(teams.home || text.teamA);
-    const awayTeam = escapeHtml(teams.away || text.teamB);
+    const { home, away } = getMatchTeams({ current: match });
 
     const score = escapeHtml(
-        match?.score ||
-        (match?.homeScore != null && match?.awayScore != null
+        match?.score ??
+        ((match?.homeScore != null && match?.awayScore != null)
             ? `${match.homeScore}-${match.awayScore}`
             : text.scoreFallback)
     );
 
-    const status = escapeHtml(match?.status || match?.gameState || match?.phase || text.scheduled);
-    const yc = escapeHtml(match?.yc || text.cardsFallback);
-    const cr = escapeHtml(match?.cr || text.cardsFallback);
-
-    const kickoffRaw =
-        match?.startTime ??
-        match?.kickoff ??
-        match?.date ??
-        match?.datetime ??
-        match?.startsAt ??
-        match?.time ??
-        "";
-
-    const kickoff = formatKickoff(kickoffRaw);
-    const kickoffHtml = kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : "";
+    const status = escapeHtml(match?.status || match?.phase || text.scheduled);
+    const kickoff = formatKickoff(match?.kickoff);
+    const yc = escapeHtml(match?.yc ?? text.cardsFallback);
+    const cr = escapeHtml(match?.cr ?? text.cardsFallback);
 
     return `
         <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
             <button class="fav-btn ${isFavorite ? "active" : ""}" type="button" data-action="toggle-favorite" data-fixture-id="${safeFixtureId}" aria-label="${escapeHtml(text.favoriteToggle)}">${isFavorite ? "★" : "☆"}</button>
+
             <div class="match-status">${match?.phase === "live" ? '<span class="live-dot"></span>' : ""}${status}</div>
-            ${kickoffHtml}
+
+            ${kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : ""}
+
             <div class="match-main">
-                <div class="team"><span class="team-name">${homeTeam}</span></div>
+                <div class="team"><span class="team-name">${escapeHtml(home)}</span></div>
                 <div class="score-box">${score}</div>
-                <div class="team"><span class="team-name">${awayTeam}</span></div>
+                <div class="team"><span class="team-name">${escapeHtml(away)}</span></div>
             </div>
+
             <div class="match-stats-extra">
                 <div class="stat-item">🟨 ${yc}</div>
                 <div class="stat-item">🚩 ${cr}</div>
                 ${match?.v ? `<div class="merkle-verify">🛡️ ${escapeHtml(text.verifiedOnSolana)}</div>` : ""}
             </div>
+
             ${!isCompact ? `
                 <div class="action-bar">
                     <button class="btn-secondary" type="button">${escapeHtml(text.stats)}</button>
@@ -1160,28 +1065,14 @@ function renderMatchDetails(data) {
         data?.fixture_id
     );
 
-    const safeFixtureId = encodeURIComponent(fixtureId);
+    const safeFixtureId = encodeURIComponent(fixtureId || "");
 
-    const homeRaw = teams.home || current?.home || current?.homeTeam || current?.Participant1 || text.teamA;
-    const awayRaw = teams.away || current?.away || current?.awayTeam || current?.Participant2 || text.teamB;
+    const homeRaw = teams.home;
+    const awayRaw = teams.away;
 
-    const scoreRaw =
-        current?.score ||
-        data?.score ||
-        current?.result ||
-        data?.result ||
-        ((current?.homeScore != null && current?.awayScore != null)
-            ? `${current.homeScore}-${current.awayScore}`
-            : text.scoreFallback);
+    const scoreRaw = getMatchScore(data);
 
-    const phaseValue = String(current?.phase || data?.phase || "").toLowerCase();
-    const statusRaw =
-        current?.status ||
-        current?.gameState ||
-        data?.status ||
-        data?.gameState ||
-        (phaseValue ? phaseValue.charAt(0).toUpperCase() + phaseValue.slice(1) : "") ||
-        text.detailsUnavailable;
+    const statusRaw = getMatchStatus(data);
 
     const kickoffRaw =
         current?.startTime ??
@@ -1199,29 +1090,7 @@ function renderMatchDetails(data) {
 
     const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : "";
 
-    const timelineSource =
-        data?.historical ||
-        data?.events ||
-        data?.snapshot ||
-        current?.historical ||
-        current?.events ||
-        current?.snapshot ||
-        current?.eventPreview ||
-        data?.eventPreview ||
-        current?.timeline ||
-        data?.timeline ||
-        current?.matchEvents ||
-        data?.matchEvents ||
-        [];
-
-    const timelineItems = buildTimelineItems({
-        historical: Array.isArray(timelineSource) ? timelineSource : [],
-        timeline: Array.isArray(timelineSource) ? timelineSource : [],
-        events: Array.isArray(timelineSource) ? timelineSource : [],
-        matchEvents: Array.isArray(timelineSource) ? timelineSource : [],
-        snapshot: Array.isArray(timelineSource) ? timelineSource : [],
-        current
-    });
+    const timelineItems = buildTimelineItems(data);
 
     const fallbackRows = [
         ["Status", statusRaw],
