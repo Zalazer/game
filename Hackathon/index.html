@@ -373,13 +373,24 @@
 
 <script>
 const tg = window.Telegram?.WebApp || null;
-if (tg?.expand) tg.expand();
+tg?.expand?.();
 
 const state = {
-    groupedMatches: { finished: [], live: [], upcoming: [] },
-    filters: { status: "all" },
+    groupedMatches: {
+        live: [],
+        upcoming: [],
+        finished: [],
+        stopped: [],
+        unknown: []
+    },
+    filters: {
+        status: "all"
+    },
     favorites: [],
-    requests: { detailsController: null, aiController: null },
+    requests: {
+        detailsController: null,
+        aiController: null
+    },
     probe: null
 };
 
@@ -412,20 +423,22 @@ const text = {
     close: "Close",
     teamA: "Team A",
     teamB: "Team B",
-    scoreFallback: "0 - 0",
+    scoreFallback: "—",
     cardsFallback: "0-0",
     proofTitle: "Solana verification",
-    proofMessage: (id, hash) => `Match data ${id} has been confirmed on-chain. Merkle Root: ${hash}. Verification completed through the TxLINE oracle.`,
-    aiPrompt: (fixtureId) => `Analyze football match ID ${fixtureId}. Provide a short prediction.`
+    proofMessage: (id, hash) =>
+        `Match data ${id} has been confirmed on-chain. Merkle Root: ${hash}. Verification completed through the TxLINE oracle.`,
+    aiPrompt: (fixtureId) =>
+        `Analyze football match ID ${fixtureId}. Provide a short prediction.`
 };
 
 function escapeHtml(value) {
     return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
 }
 
 function normalizeId(value) {
@@ -437,615 +450,524 @@ function safeArray(value) {
 }
 
 function getUserId() {
-    return String(tg?.initDataUnsafe?.user?.id || "anon");
+    return String(tg?.initDataUnsafe?.user?.id ?? "anon");
 }
 
 function showTelegramAlert(message) {
-    if (tg?.showAlert) return tg.showAlert(String(message));
-    alert(String(message));
+    return tg?.showAlert
+        ? tg.showAlert(String(message))
+        : alert(String(message));
 }
 
 function showTelegramPopup(title, message) {
     if (tg?.showPopup) {
-        tg.showPopup({ title: String(title), message: String(message), buttons: [{ type: "ok" }] });
+        tg.showPopup({
+            title: String(title),
+            message: String(message),
+            buttons: [{ type: "ok" }]
+        });
         return;
     }
-    alert(`${title}
 
-${message}`);
+    alert(`${title}\n\n${message}`);
 }
 
-function triggerSuccessHaptic() {
+const triggerSuccessHaptic = () =>
     tg?.HapticFeedback?.notificationOccurred?.("success");
-}
 
-function triggerLightImpact() {
+const triggerLightImpact = () =>
     tg?.HapticFeedback?.impactOccurred?.("light");
-}
 
 function getWorkerBase() {
-    const node = document.getElementById("workerBase");
-    const base = node?.value?.trim();
-    return base ? base.replace(/\/$/, "") : "";
+    return (
+        document
+            .getElementById("workerBase")
+            ?.value?.trim()
+            ?.replace(/\/$/, "") || ""
+    );
 }
 
 async function fetchJson(url, options = {}) {
     const response = await fetch(url, options);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
     return response.json();
 }
 
-async function emit(payload) {
+async function emit(payload, signal) {
     const base = getWorkerBase();
-    if (!base) throw new Error("Worker URL is empty");
-    const ticketRes = await fetch(`${base}/__ticket`, { method: "POST" });
-    if (!ticketRes.ok) throw new Error(`__ticket failed: ${ticketRes.status}`);
-    const ticket = await ticketRes.json();
-    const emitRes = await fetch(`${base}/__emit`, {
+
+    if (!base) {
+        throw new Error("Worker URL is empty");
+    }
+
+    const ticketResponse = await fetch(`${base}/__ticket`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ k: ticket.k, d: payload })
+        signal
     });
-    const raw = await emitRes.text();
+
+    if (!ticketResponse.ok) {
+        throw new Error(`__ticket failed: ${ticketResponse.status}`);
+    }
+
+    const { k } = await ticketResponse.json();
+
+    const response = await fetch(`${base}/__emit`, {
+        method: "POST",
+        signal,
+        headers: {
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            k,
+            d: payload
+        })
+    });
+
+    const raw = await response.text();
+
     let body;
-    try { body = JSON.parse(raw); } catch { body = raw; }
-    return { ok: emitRes.ok, status: emitRes.status, body, raw };
+
+    try {
+        body = JSON.parse(raw);
+    } catch {
+        body = raw;
+    }
+
+    return {
+        ok: response.ok,
+        status: response.status,
+        body,
+        raw
+    };
+}
+
+function abortRequest(key) {
+    state.requests[key]?.abort();
+    state.requests[key] = null;
+}
+
+function createAbortController(key) {
+    abortRequest(key);
+
+    const controller = new AbortController();
+    state.requests[key] = controller;
+
+    return controller;
 }
 
 async function abortableEmit(controller, payload) {
-    const base = getWorkerBase();
-    if (!base) throw new Error("Worker URL is empty");
-    const ticketRes = await fetch(`${base}/__ticket`, { method: "POST", signal: controller.signal });
-    if (!ticketRes.ok) throw new Error(`__ticket failed: ${ticketRes.status}`);
-    const ticket = await ticketRes.json();
-    const emitRes = await fetch(`${base}/__emit`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ k: ticket.k, d: payload }),
-        signal: controller.signal
-    });
-    const raw = await emitRes.text();
-    let body;
-    try { body = JSON.parse(raw); } catch { body = raw; }
-    return { ok: emitRes.ok, status: emitRes.status, body, raw };
+    return emit(payload, controller.signal);
 }
 
-function abortRequest(controllerKey) {
-    const controller = state.requests[controllerKey];
-    if (controller) {
-        controller.abort();
-        state.requests[controllerKey] = null;
-    }
-}
 
-function createAbortController(controllerKey) {
-    abortRequest(controllerKey);
-    const controller = new AbortController();
-    state.requests[controllerKey] = controller;
-    return controller;
-}
+
+
+
+
 
 
 
 function collectMatchesFromProbe(probe) {
-    const rows = [];
-    const seen = new Set();
-
-    const pushRow = (row, phaseHint) => {
-        const fixtureId = normalizeId(row?.fixtureId ?? row?.id);
-        if (!fixtureId || seen.has(fixtureId)) return;
-        seen.add(fixtureId);
-
-        const homeScore = row?.homeScore != null ? Number(row.homeScore) : null;
-        const awayScore = row?.awayScore != null ? Number(row.awayScore) : null;
-
-        rows.push({
-            ...row,
-            fixtureId,
-            id: row?.id ?? fixtureId,
-            phase: String(row?.phase || phaseHint || "upcoming").toLowerCase(),
-            status: row?.status || text.scheduled,
-            home: row?.home || text.teamA,
-            away: row?.away || text.teamB,
-            homeTeam: row?.home || text.teamA,
-            awayTeam: row?.away || text.teamB,
-            homeScore,
-            awayScore,
-            score: row?.score ?? ((homeScore != null && awayScore != null) ? `${homeScore}-${awayScore}` : text.scoreFallback),
-            kickoff: row?.kickoff ?? null,
-            yc: row?.yc ?? text.cardsFallback,
-            cr: row?.cr ?? text.cardsFallback,
-            signal: Number(row?.signal ?? 0),
-            v: !!row?.v,
-            oddsPreview: row?.oddsPreview ?? null,
-            eventPreview: row?.eventPreview ?? null
-        });
-    };
-
     const grouped = probe?.grouped || {};
 
-    [
-        ["live", grouped.live],
-        ["upcoming", grouped.upcoming],
-        ["finished", grouped.finished],
-        ["stopped", grouped.stopped],
-        ["unknown", grouped.unknown],
-        ["past", grouped.past]
-    ].forEach(([phase, arr]) => safeArray(arr).forEach(row => pushRow(row, phase)));
-
-    if (!rows.length) safeArray(probe?.matches).forEach(row => pushRow(row, row?.phase));
-
-    if (!rows.length && probe?.featured) {
-        pushRow(probe.featured, probe.featured.phase);
-    }
-
-    const phaseOrder = { live: 0, upcoming: 1, finished: 2, stopped: 3, unknown: 4 };
-
-    rows.sort((a, b) => {
-        const pa = phaseOrder[a.phase] ?? 4;
-        const pb = phaseOrder[b.phase] ?? 4;
-        if (pa !== pb) return pa - pb;
-        return new Date(a.kickoff || 0) - new Date(b.kickoff || 0);
-    });
-
-    return rows;
+    return [
+        ...safeArray(grouped.live),
+        ...safeArray(grouped.upcoming),
+        ...safeArray(grouped.finished),
+        ...safeArray(grouped.stopped),
+        ...safeArray(grouped.unknown)
+    ];
 }
 
-
-
-
 function regroupMatches(matches) {
-    const grouped = { finished: [], live: [], upcoming: [] };
+    const grouped = {
+        live: [],
+        upcoming: [],
+        finished: [],
+        stopped: [],
+        unknown: []
+    };
 
     for (const match of safeArray(matches)) {
-        const phase = String(match?.phase || "").toLowerCase();
-        if (phase === "live" || phase === "current") grouped.live.push(match);
-        else if (phase === "finished" || phase === "past") grouped.finished.push(match);
-        else grouped.upcoming.push(match);
+        const phase = String(match?.phase || "unknown").toLowerCase();
+
+        switch (phase) {
+            case "live":
+                grouped.live.push(match);
+                break;
+
+            case "finished":
+                grouped.finished.push(match);
+                break;
+
+            case "stopped":
+                grouped.stopped.push(match);
+                break;
+
+            case "unknown":
+                grouped.unknown.push(match);
+                break;
+
+            default:
+                grouped.upcoming.push(match);
+                break;
+        }
     }
 
     return grouped;
 }
 
-
 function getFilteredMatches() {
-    const filter = String(state.filters.status || "all").toLowerCase();
     const grouped = state.groupedMatches || {};
-    const finished = safeArray(grouped.finished);
-    const live = safeArray(grouped.live);
-    const upcoming = safeArray(grouped.upcoming);
-    const stopped = safeArray(grouped.stopped);
-    const unknown = safeArray(grouped.unknown);
-    const all = [...live, ...upcoming, ...finished, ...stopped, ...unknown];
 
-    const isFavorite = (match) => {
-        const id = normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id);
-        return id && state.favorites.includes(id);
+    const result = {
+        live: safeArray(grouped.live),
+        upcoming: safeArray(grouped.upcoming),
+        finished: safeArray(grouped.finished),
+        stopped: safeArray(grouped.stopped),
+        unknown: safeArray(grouped.unknown)
     };
 
-    if (filter === "live") {
-        return {
-            finished: [],
-            live: live.filter((match) => normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id)),
-            upcoming: [],
-            stopped: [],
-            unknown: []
-        };
-    }
-
-    if (filter === "upcoming") {
-        return {
-            finished: [],
-            live: [],
-            upcoming: upcoming.filter((match) => normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id)),
-            stopped: [],
-            unknown: []
-        };
-    }
+    const filter = String(state.filters.status || "all").toLowerCase();
 
     if (filter === "favorites") {
+        const fav = (m) => state.favorites.includes(normalizeId(m?.fixtureId));
+
         return {
-            finished: finished.filter(isFavorite),
-            live: live.filter(isFavorite),
-            upcoming: upcoming.filter(isFavorite),
-            stopped: stopped.filter(isFavorite),
-            unknown: unknown.filter(isFavorite)
+            live: result.live.filter(fav),
+            upcoming: result.upcoming.filter(fav),
+            finished: result.finished.filter(fav),
+            stopped: result.stopped.filter(fav),
+            unknown: result.unknown.filter(fav)
         };
     }
 
-    return {
-        finished,
-        live,
-        upcoming,
-        stopped,
-        unknown
-    };
+    if (filter !== "all") {
+        return {
+            live: filter === "live" ? result.live : [],
+            upcoming: filter === "upcoming" ? result.upcoming : [],
+            finished: filter === "finished" ? result.finished : [],
+            stopped: filter === "stopped" ? result.stopped : [],
+            unknown: filter === "unknown" ? result.unknown : []
+        };
+    }
+
+    return result;
 }
-
-
-
 
 function renderAll() {
     const container = document.getElementById("match-container");
     if (!container) return;
 
-    const matches = getFilteredMatches();
     container.innerHTML = "";
 
-    const hasFinished = Array.isArray(matches.finished) && matches.finished.length > 0;
-    const hasLive = Array.isArray(matches.live) && matches.live.length > 0;
-    const hasUpcoming = Array.isArray(matches.upcoming) && matches.upcoming.length > 0;
+    const matches = getFilteredMatches();
 
-    const renderCount = (label, list) => `${label} (${Array.isArray(list) ? list.length : 0})`;
+    if (matches.finished.length) {
+        const section = document.createElement("details");
+        section.className = "finished-accordion";
 
-    if (hasFinished) {
-        const finishedSection = document.createElement("details");
-        finishedSection.className = "finished-accordion";
-        finishedSection.open = false;
-
-        finishedSection.innerHTML = `
+        section.innerHTML = `
             <summary class="section-title">
-                <span>⚽ ${escapeHtml(renderCount(text.completedMatches, matches.finished))}</span>
+                <span>⚽ ${escapeHtml(text.completedMatches)} (${matches.finished.length})</span>
                 <small>${escapeHtml(text.completedSubtitle)}</small>
             </summary>
             <div class="compact-list">
-                ${matches.finished.map((match) => renderMatchCard(match, true)).join("")}
+                ${matches.finished.map(x => renderMatchCard(x, true)).join("")}
             </div>
         `;
-        container.appendChild(finishedSection);
+
+        container.appendChild(section);
     }
 
-    if (hasLive) {
-        renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
+    renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
+    renderSection(container, `▶️ ${text.startingSoon}`, matches.upcoming, "upcoming-section");
+
+    if (matches.stopped.length) {
+        renderSection(container, "⛔ Stopped", matches.stopped, "stopped-section");
     }
 
-    if (hasUpcoming) {
-        renderSection(container, `▶️ ${text.startingSoon}`, matches.upcoming, "upcoming-section");
+    if (matches.unknown.length) {
+        renderSection(container, "❔ Unknown", matches.unknown, "unknown-section");
     }
 
-    if (!hasFinished && !hasLive && !hasUpcoming) {
+    if (
+        !matches.live.length &&
+        !matches.upcoming.length &&
+        !matches.finished.length &&
+        !matches.stopped.length &&
+        !matches.unknown.length
+    ) {
         container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
-        return;
-    }
-
-    const visibleTotal = (hasFinished ? matches.finished.length : 0) + (hasLive ? matches.live.length : 0) + (hasUpcoming ? matches.upcoming.length : 0);
-    const statusBar = document.getElementById("status");
-    if (statusBar) {
-        statusBar.textContent = `Loaded ${visibleTotal} fixtures`;
     }
 }
 
-
-
-
 function renderSection(parent, title, matches, className) {
-    if (!parent || !Array.isArray(matches) || matches.length === 0) return;
-
-    const visibleMatches = matches.filter((match) => {
-        const fixtureId = normalizeId(match?.fixtureId ?? match?.id ?? match?.fixture_id);
-        return !!fixtureId;
-    });
-
-    if (!visibleMatches.length) return;
+    if (!matches.length) return;
 
     const section = document.createElement("div");
     section.className = className;
 
     section.innerHTML = `
         <h2 class="section-subtitle">${escapeHtml(title)}</h2>
-        ${visibleMatches.map((match) => renderMatchCard(match, false)).join("")}
+        ${matches.map(match => renderMatchCard(match, false)).join("")}
     `;
 
     parent.appendChild(section);
 }
 
-
-
 function normalizeTimelineSeconds(value) {
     const n = Number(value);
-    if (!Number.isFinite(n) || n < 0) return null;
-    if (n > 1000000) return null;
-    return n;
+    return Number.isFinite(n) && n >= 0 && n <= 1000000 ? n : null;
 }
-
 
 function formatMinuteFromSeconds(seconds) {
-    const n = normalizeTimelineSeconds(seconds);
-    if (n == null) return "";
-    const minute = Math.floor(n / 60);
-    const extra = minute > 90 ? minute - 90 : 0;
-    return extra > 0 ? `90+${extra}'` : `${minute}'`;
+    const s = normalizeTimelineSeconds(seconds);
+    if (s == null) return "";
+
+    const minute = Math.floor(s / 60);
+
+    return minute > 90
+        ? `90+${minute - 90}'`
+        : `${minute}'`;
 }
 
-
-
 function readTotalStat(node, key) {
-    const total = node?.Total || node?.total || {};
-    const direct = node?.[key];
-    const val = direct != null ? direct : total?.[key];
-    const n = Number(val);
+    const n = Number(node?.[key] ?? node?.Total?.[key] ?? node?.total?.[key]);
     return Number.isFinite(n) ? n : 0;
 }
 
-
 function summarizeStatBlob(raw) {
-    const p1 = raw?.Participant1 || raw?.participant1 || null;
-    const p2 = raw?.Participant2 || raw?.participant2 || null;
-    if (!p1 && !p2) return null;
+    const home = raw?.Participant1 || raw?.participant1;
+    const away = raw?.Participant2 || raw?.participant2;
 
-    const goals1 = readTotalStat(p1, "Goals");
-    const goals2 = readTotalStat(p2, "Goals");
-    const yc1 = readTotalStat(p1, "YellowCards");
-    const yc2 = readTotalStat(p2, "YellowCards");
-    const cr1 = readTotalStat(p1, "Corners");
-    const cr2 = readTotalStat(p2, "Corners");
+    if (!home || !away) return null;
 
-    const parts = [];
-    if (goals1 || goals2) parts.push(`Goals ${goals1}-${goals2}`);
-    if (yc1 || yc2) parts.push(`🟨 ${yc1}-${yc2}`);
-    if (cr1 || cr2) parts.push(`🚩 ${cr1}-${cr2}`);
+    const out = [];
 
-    return parts.length ? parts.join(" • ") : null;
+    const g1 = readTotalStat(home, "Goals");
+    const g2 = readTotalStat(away, "Goals");
+
+    const y1 = readTotalStat(home, "YellowCards");
+    const y2 = readTotalStat(away, "YellowCards");
+
+    const c1 = readTotalStat(home, "Corners");
+    const c2 = readTotalStat(away, "Corners");
+
+    if (g1 || g2) out.push(`Goals ${g1}-${g2}`);
+    if (y1 || y2) out.push(`🟨 ${y1}-${y2}`);
+    if (c1 || c2) out.push(`🚩 ${c1}-${c2}`);
+
+    return out.length ? out.join(" • ") : null;
 }
 
-
-
 function cleanEventType(value) {
-    const s = String(value || "").trim().toLowerCase();
-    if (!s) return "";
-
-    const map = {
+    return ({
         game_finalised: "Full time",
         finalised: "Full time",
         final: "Full time",
-        comment: "Comment",
-        disconnected: "Disconnected",
-        live: "Live",
         halftime: "Halftime",
         ht: "Halftime",
         ft: "Full time",
-        pen: "Penalties",
+        live: "Live",
         penalties: "Penalties",
+        pen: "Penalties",
+        comment: "",
+        disconnected: "Disconnected",
         action_discarded: ""
-    };
-
-    return map[s] ?? s.replace(/_/g, " ");
+    }[String(value || "").trim().toLowerCase()] ?? String(value || "").replace(/_/g, " "));
 }
-
 
 function getMatchTeams(data) {
-    const current = data?.current || {};
-    const compact = data?.currentCompact || {};
-    const source = data?.match || data || {};
+    const current = data?.current || data || {};
 
     return {
-        home:
-            current.home ||
-            current.homeTeam ||
-            compact.home ||
-            compact.homeTeam ||
-            source.home ||
-            source.homeTeam ||
-            text.teamA,
-
-        away:
-            current.away ||
-            current.awayTeam ||
-            compact.away ||
-            compact.awayTeam ||
-            source.away ||
-            source.awayTeam ||
-            text.teamB
+        home: current.home || current.homeTeam || text.teamA,
+        away: current.away || current.awayTeam || text.teamB
     };
 }
 
-
-
 function getMatchScore(data) {
-    const current = data?.current || {};
+    const current = data?.current || data || {};
 
     if (current.score) return String(current.score);
-    if (data?.score) return String(data.score);
 
-    if (current.homeScore != null && current.awayScore != null) {
+    if (
+        current.homeScore != null &&
+        current.awayScore != null
+    ) {
         return `${current.homeScore}-${current.awayScore}`;
     }
 
-    return text.scoreFallback;
+    return "—";
 }
-
-
 
 function getMatchStatus(data) {
-    return String(data?.current?.status || data?.status || text.detailsUnavailable);
+    return String(
+        data?.current?.status ??
+        data?.status ??
+        text.detailsUnavailable
+    );
 }
+
+
+
+
+
+
+
+
+
 
 
 function formatKickoff(value) {
     if (value == null || value === "") return "";
 
-    const n = Number(value);
-    const date = Number.isFinite(n) ? new Date(n) : new Date(String(value));
+    const date = new Date(Number(value) || value);
     if (Number.isNaN(date.getTime())) return String(value);
 
-    const datePart = date.toLocaleDateString(undefined, {
+    return date.toLocaleString(undefined, {
+        month: "short",
         day: "numeric",
-        month: "short"
-    });
-
-    const timePart = date.toLocaleTimeString(undefined, {
         hour: "2-digit",
         minute: "2-digit"
     });
-
-    return `${datePart}, ${timePart}`;
 }
-
 
 function buildTimelineItems(data) {
-    const source =
-        data?.historical ||
+    const events =
         data?.timeline ||
+        data?.historical ||
         data?.events ||
-        data?.matchEvents ||
-        data?.snapshot ||
         data?.current?.timeline ||
-        data?.current?.events ||
-        data?.current?.matchEvents ||
         [];
 
-    if (!Array.isArray(source)) return [];
+    if (!Array.isArray(events)) return [];
 
-    const items = source
-        .map((item, index) => {
-            if (!item || typeof item !== "object") return null;
+    return events
+        .map((event, index) => {
+            const raw = event?.raw || event;
 
-            const raw = item?.raw || item;
-            const type = String(item?.type || raw?.Type || raw?.type || item?.event || raw?.event || "").trim();
-            const detail = String(item?.detail || raw?.Detail || raw?.detail || "").trim();
-            const running = raw?.Running ?? raw?.running;
-            const seconds = normalizeTimelineSeconds(raw?.Seconds ?? raw?.seconds ?? item?.Seconds ?? item?.seconds);
+            const seconds = normalizeTimelineSeconds(
+                raw?.Seconds ??
+                raw?.seconds ??
+                event?.seconds
+            );
 
-            const statSummary = summarizeStatBlob(raw);
-            const cleanType = cleanEventType(type || detail);
+            const minute = seconds != null
+                ? formatMinuteFromSeconds(seconds)
+                : "";
 
-            if (cleanType.toLowerCase() === "comment") return null;
-            if (cleanType.toLowerCase() === "disconnected") return { key: `${index}-disc`, title: "Disconnected", score: "—", yc: "", cr: "", seconds, raw };
-            if (!cleanType && !statSummary && seconds == null) return null;
+            const stats = summarizeStatBlob(raw);
 
-            const liveMinute = running === true && seconds != null ? formatMinuteFromSeconds(seconds) : "";
-            const eventMinute = seconds != null ? formatMinuteFromSeconds(seconds) : "";
-
-            let title = cleanType || detail || statSummary || "Event";
-            if (cleanType.toLowerCase() === "full time" || running === false) title = "Full time";
-            else if (cleanType.toLowerCase() === "halftime") title = "Halftime";
-            else if (statSummary) title = statSummary;
-            else if (liveMinute) title = liveMinute;
-            else if (eventMinute) title = eventMinute;
-
-            if (cleanType.toLowerCase() === "soccer") {
-                title = statSummary || eventMinute || "";
-            }
-
-            const score =
-                item?.score ||
-                raw?.score ||
-                item?.result ||
-                raw?.result ||
-                (item?.homeScore != null && item?.awayScore != null
-                    ? `${item.homeScore}-${item.awayScore}`
-                    : (raw?.homeScore != null && raw?.awayScore != null ? `${raw.homeScore}-${raw.awayScore}` : "—"));
-
-            const yc =
-                item?.yc ??
-                raw?.yc ??
-                item?.yellowCards ??
-                raw?.yellowCards ??
-                item?.homeYc ??
-                raw?.homeYc ??
-                "";
-
-            const cr =
-                item?.cr ??
-                raw?.cr ??
-                item?.corners ??
-                raw?.corners ??
-                item?.homeCorners ??
-                raw?.homeCorners ??
-                "";
-
-            const minuteTag = eventMinute || liveMinute;
-            const label = minuteTag && title !== minuteTag ? `${minuteTag} — ${title}` : title;
+            const title =
+                cleanEventType(
+                    event?.type ||
+                    raw?.Type ||
+                    raw?.type ||
+                    event?.detail ||
+                    raw?.Detail
+                ) ||
+                stats ||
+                minute ||
+                "Event";
 
             return {
-                key: `${item?.timestamp ?? item?.time ?? seconds ?? index}-${index}`,
-                title: label,
-                score,
-                yc,
-                cr,
-                seconds,
-                raw
+                key: `${index}-${seconds ?? 0}`,
+                title: minute && title !== minute ? `${minute} — ${title}` : title,
+                score:
+                    event?.score ??
+                    raw?.score ??
+                    (
+                        raw?.homeScore != null &&
+                        raw?.awayScore != null
+                    )
+                        ? `${raw.homeScore}-${raw.awayScore}`
+                        : "—",
+                yc: event?.yc ?? raw?.yc ?? "",
+                cr: event?.cr ?? raw?.cr ?? "",
+                seconds
             };
         })
-        .filter(Boolean);
-
-    const out = [];
-    const seen = new Set();
-
-    for (const item of items) {
-        const signature = [
-            String(item.title || ""),
-            String(item.score || ""),
-            String(item.seconds ?? ""),
-            String(item.yc || ""),
-            String(item.cr || "")
-        ].join("|");
-
-        if (seen.has(signature)) continue;
-        seen.add(signature);
-        out.push(item);
-    }
-
-    out.sort((a, b) => {
-        const at = a.seconds != null ? a.seconds : Number.MAX_SAFE_INTEGER;
-        const bt = b.seconds != null ? b.seconds : Number.MAX_SAFE_INTEGER;
-        return at - bt;
-    });
-
-    return out;
+        .filter(x => x.title)
+        .sort((a, b) => (a.seconds ?? 999999) - (b.seconds ?? 999999));
 }
-
-
 
 function renderMatchCard(match, isCompact) {
-    const fixtureId = normalizeId(match?.fixtureId ?? match?.id);
+    const fixtureId = normalizeId(match?.fixtureId);
     const safeFixtureId = encodeURIComponent(fixtureId);
-    const isHot = Number(match?.signal ?? 0) > 1200;
-    const isFavorite = state.favorites.includes(fixtureId);
 
-    const { home, away } = getMatchTeams({ current: match });
+    const teams = getMatchTeams(match);
+    const score = getMatchScore(match);
+    const status = getMatchStatus(match);
 
-    const score = escapeHtml(
-        match?.score ??
-        ((match?.homeScore != null && match?.awayScore != null)
-            ? `${match.homeScore}-${match.awayScore}`
-            : text.scoreFallback)
-    );
-
-    const status = escapeHtml(match?.status || match?.phase || text.scheduled);
     const kickoff = formatKickoff(match?.kickoff);
-    const yc = escapeHtml(match?.yc ?? text.cardsFallback);
-    const cr = escapeHtml(match?.cr ?? text.cardsFallback);
+    const favorite = state.favorites.includes(fixtureId);
+    const hot = Number(match?.signal || 0) > 1200;
 
     return `
-        <div class="match-card is-clickable ${isHot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
-            <button class="fav-btn ${isFavorite ? "active" : ""}" type="button" data-action="toggle-favorite" data-fixture-id="${safeFixtureId}" aria-label="${escapeHtml(text.favoriteToggle)}">${isFavorite ? "★" : "☆"}</button>
+<div class="match-card is-clickable ${hot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
 
-            <div class="match-status">${match?.phase === "live" ? '<span class="live-dot"></span>' : ""}${status}</div>
+<button class="fav-btn ${favorite ? "active" : ""}" data-action="toggle-favorite" data-fixture-id="${safeFixtureId}">
+${favorite ? "★" : "☆"}
+</button>
 
-            ${kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : ""}
+<div class="match-status">
+${match.phase === "live" ? '<span class="live-dot"></span>' : ""}
+${escapeHtml(status)}
+</div>
 
-            <div class="match-main">
-                <div class="team"><span class="team-name">${escapeHtml(home)}</span></div>
-                <div class="score-box">${score}</div>
-                <div class="team"><span class="team-name">${escapeHtml(away)}</span></div>
-            </div>
+${kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : ""}
 
-            <div class="match-stats-extra">
-                <div class="stat-item">🟨 ${yc}</div>
-                <div class="stat-item">🚩 ${cr}</div>
-                ${match?.v ? `<div class="merkle-verify">🛡️ ${escapeHtml(text.verifiedOnSolana)}</div>` : ""}
-            </div>
+<div class="match-main">
+<div class="team">
+<span class="team-name">${escapeHtml(teams.home)}</span>
+</div>
 
-            ${!isCompact ? `
-                <div class="action-bar">
-                    <button class="btn-secondary" type="button">${escapeHtml(text.stats)}</button>
-                    <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.aiAnalysis)}</button>
-                </div>
-            ` : ""}
-        </div>
-    `;
+<div class="score-box">
+${escapeHtml(score)}
+</div>
+
+<div class="team">
+<span class="team-name">${escapeHtml(teams.away)}</span>
+</div>
+</div>
+
+<div class="match-stats-extra">
+<div class="stat-item">🟨 ${escapeHtml(match?.yc ?? "0-0")}</div>
+<div class="stat-item">🚩 ${escapeHtml(match?.cr ?? "0-0")}</div>
+${match?.v ? `<div class="merkle-verify">🛡️ ${escapeHtml(text.verifiedOnSolana)}</div>` : ""}
+</div>
+
+${
+!isCompact
+? `
+<div class="action-bar">
+<button class="btn-secondary">${escapeHtml(text.stats)}</button>
+<button class="btn-ai" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">
+${escapeHtml(text.aiAnalysis)}
+</button>
+</div>
+`
+: ""
 }
+
+</div>`;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1054,444 +976,410 @@ function renderMatchDetails(data) {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
 
-    const current = data?.current || data?.currentCompact || data?.match || data || {};
-    const teams = getMatchTeams(data);
+    const match = data?.current || data?.match || data || {};
 
-    const fixtureId = normalizeId(
-        data?.fixtureId ||
-        current?.fixtureId ||
-        current?.id ||
-        data?.id ||
-        data?.fixture_id
+    const fixtureId = normalizeId(match.fixtureId || match.id || data.fixtureId);
+    const safeFixtureId = encodeURIComponent(fixtureId);
+
+    const teams = getMatchTeams(match);
+    const score = getMatchScore(match);
+    const status = getMatchStatus(match);
+
+    const kickoff = formatKickoff(
+        match.kickoff ||
+        match.startTime ||
+        match.startsAt ||
+        match.date
     );
 
-    const safeFixtureId = encodeURIComponent(fixtureId || "");
+    const timeline = buildTimelineItems(data);
 
-    const homeRaw = teams.home;
-    const awayRaw = teams.away;
-
-    const scoreRaw = getMatchScore(data);
-
-    const statusRaw = getMatchStatus(data);
-
-    const kickoffRaw =
-        current?.startTime ??
-        current?.kickoff ??
-        current?.date ??
-        current?.datetime ??
-        current?.startsAt ??
-        data?.startTime ??
-        data?.kickoff ??
-        data?.date ??
-        data?.datetime ??
-        data?.startsAt ??
-        current?.raw?.StartTime ??
-        "";
-
-    const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : "";
-
-    const timelineItems = buildTimelineItems(data);
-
-    const fallbackRows = [
-        ["Status", statusRaw],
-        ["Kickoff", kickoffText || "—"],
-        ["Score", scoreRaw || "—"],
-        ["Fixture", fixtureId || "unknown"]
-    ];
-
-    const errorBlock = data?.ok === false
-        ? `
-            <div class="section-block">
-                <h3>⚠️ ${escapeHtml(text.detailsUnavailable)}</h3>
-                <div class="no-data">${escapeHtml(data?.error || text.failedMatchDetailsShort)}</div>
-            </div>
-        `
-        : "";
-
-    const timelineHtml = timelineItems.length > 0
-        ? timelineItems.map((item) => {
-            const hasStats = item.yc !== "" || item.cr !== "";
-            return `
-                <div class="timeline-item">
-                    <div class="time">${escapeHtml(item.title || "Event")}</div>
-                    <div class="event-desc">
-                        <strong>${escapeHtml(item.score || "—")}</strong>
-                        ${hasStats ? `<span>(🟨 ${escapeHtml(item.yc || text.cardsFallback)} | 🚩 ${escapeHtml(item.cr || text.cardsFallback)})</span>` : ""}
-                    </div>
-                </div>
-            `;
-        }).join("")
-        : `
-            <div class="match-stats-extra">
-                ${fallbackRows.map(([k, v]) => `
-                    <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(v || "—")}</div>
-                `).join("")}
-            </div>
-            <div class="no-data">${escapeHtml(text.timelinePending)}</div>
-        `;
-
-    const oddsPreview = data?.oddsPreview || data?.oddsTop || current?.oddsPreview || null;
-    const oddsHtml = oddsPreview && (
-        Array.isArray(oddsPreview.selections) ? oddsPreview.selections.length > 0 : true
-    )
-        ? `
-            <div class="section-block">
-                <h3>📈 Odds preview</h3>
-                <div class="match-stats-extra">
-                    <div class="stat-item">🏷️ ${escapeHtml(oddsPreview.bookmaker || "—")}</div>
-                    <div class="stat-item">ตลาด: ${escapeHtml(oddsPreview.market || "—")}</div>
-                    <div class="stat-item">ช่วง: ${escapeHtml(oddsPreview.marketPeriod || "—")}</div>
-                    <div class="stat-item">เส้น: ${escapeHtml(oddsPreview.line || "—")}</div>
+    const timelineHtml = timeline.length
+        ? timeline.map(item => `
+            <div class="timeline-item">
+                <div class="time">${escapeHtml(item.title)}</div>
+                <div class="event-desc">
+                    <strong>${escapeHtml(item.score || "—")}</strong>
+                    ${
+                        item.yc || item.cr
+                            ? `<span>(🟨 ${escapeHtml(item.yc || "0-0")} | 🚩 ${escapeHtml(item.cr || "0-0")})</span>`
+                            : ""
+                    }
                 </div>
             </div>
-        `
-        : "";
-
-    const statusLine = [
-        escapeHtml(statusRaw),
-        kickoffText ? escapeHtml(kickoffText) : ""
-    ].filter(Boolean).join(" • ");
+        `).join("")
+        : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
     modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">✕</button>
-                <div class="modal-title">${escapeHtml(homeRaw)} vs ${escapeHtml(awayRaw)}</div>
-            </div>
+<div class="modal-content">
 
-            ${errorBlock}
+<div class="modal-header">
+<button class="close-btn" data-action="close-modal">✕</button>
+<div class="modal-title">${escapeHtml(teams.home)} vs ${escapeHtml(teams.away)}</div>
+</div>
 
-            <div class="details-main-score">
-                <div class="big-score">${escapeHtml(scoreRaw || "—")}</div>
-                <div class="status-badge">${statusLine || escapeHtml(text.detailsUnavailable)}</div>
-            </div>
+<div class="details-main-score">
+<div class="big-score">${escapeHtml(score)}</div>
+<div class="status-badge">
+${escapeHtml(status)}
+${kickoff ? " • " + escapeHtml(kickoff) : ""}
+</div>
+</div>
 
-            <div class="section-block">
-                <h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
-                <div class="match-stats-extra">
-                    <div class="stat-item">🏠 ${escapeHtml(homeRaw)}</div>
-                    <div class="stat-item">✈️ ${escapeHtml(awayRaw)}</div>
-                    <div class="stat-item">⏱️ ${kickoffText ? escapeHtml(kickoffText) : "—"}</div>
-                </div>
-                <div class="historical-timeline">${timelineHtml}</div>
-            </div>
+<div class="section-block">
 
-            ${oddsHtml}
+<h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
 
-            <div class="section-block ai-insight-box" id="ai-container">
-                <h3>🤖 ${escapeHtml(text.aiInsights)}</h3>
-                <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
-                <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.getPrediction)}</button>
-            </div>
+<div class="match-stats-extra">
+<div class="stat-item">🏠 ${escapeHtml(teams.home)}</div>
+<div class="stat-item">✈️ ${escapeHtml(teams.away)}</div>
+${kickoff ? `<div class="stat-item">⏱️ ${escapeHtml(kickoff)}</div>` : ""}
+</div>
 
-            <div class="merkle-proof-footer">
-                <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || "unknown")}</span>
-                <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">🛡️ ${escapeHtml(text.verifyOnSolana)}</button>
-            </div>
-        </div>
-    `;
+<div class="historical-timeline">
+${timelineHtml}
+</div>
+
+</div>
+
+<div class="section-block ai-insight-box">
+<h3>🤖 ${escapeHtml(text.aiInsights)}</h3>
+<p id="ai-text">${escapeHtml(text.getPrediction)}</p>
+
+<button
+class="btn-ai"
+data-action="ai-prediction"
+data-fixture-id="${safeFixtureId}">
+${escapeHtml(text.getPrediction)}
+</button>
+
+</div>
+
+<div class="merkle-proof-footer">
+<span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId)}</span>
+
+<button
+class="verify-btn"
+data-action="verify-proof"
+data-fixture-id="${safeFixtureId}">
+🛡️ ${escapeHtml(text.verifyOnSolana)}
+</button>
+
+</div>
+
+</div>`;
 
     modal.classList.add("active");
 }
 
-
-
-
 async function openMatchDetails(fixtureId) {
-    const safeFixtureId = normalizeId(fixtureId);
-    if (!safeFixtureId) return showTelegramAlert(text.invalidMatchId);
+    fixtureId = normalizeId(fixtureId);
+
+    if (!fixtureId) {
+        showTelegramAlert(text.invalidMatchId);
+        return;
+    }
 
     showModalLoader();
+
     const controller = createAbortController("detailsController");
 
     try {
         const res = await abortableEmit(controller, {
             type: "txline_fixture_details",
-            fixtureId: safeFixtureId,
-            serviceLevelId: Number(document.getElementById("serviceLevelId")?.value || 12)
+            fixtureId,
+            serviceLevelId: 12
         });
 
-        if (state.requests.detailsController === controller) state.requests.detailsController = null;
+        if (state.requests.detailsController === controller)
+            state.requests.detailsController = null;
 
-        const body = res?.body;
-
-        if (res.ok && body && body.ok !== false) {
-            renderMatchDetails(body);
+        if (res.ok && res.body?.ok !== false) {
+            renderMatchDetails(res.body);
             return;
         }
 
-        console.error("Fixture details response:", res);
         renderMatchDetails({
             ok: false,
-            fixtureId: safeFixtureId,
-            error: body?.error || res?.raw || "Unable to load match details"
+            fixtureId,
+            error: res.body?.error || text.failedMatchDetails
         });
-    } catch (error) {
-        if (error.name === "AbortError") return;
-        console.error("Failed to load match details:", error);
-        if (state.requests.detailsController === controller) state.requests.detailsController = null;
+
+    } catch (e) {
+
+        if (e.name === "AbortError") return;
+
+        if (state.requests.detailsController === controller)
+            state.requests.detailsController = null;
+
         renderMatchDetails({
             ok: false,
-            fixtureId: safeFixtureId,
-            error: error?.message || text.failedMatchDetails
+            fixtureId,
+            error: e.message || text.failedMatchDetails
         });
     }
 }
+
+
+
+
+
+
 
 
 
 
 async function getAIPrediction(fixtureId) {
-    const safeFixtureId = normalizeId(fixtureId);
+    const id = normalizeId(fixtureId);
     const aiBox = document.getElementById("ai-text");
-    if (!aiBox || !safeFixtureId) return;
+    if (!id || !aiBox) return;
 
-    aiBox.innerText = text.loadingAi;
+    aiBox.textContent = text.loadingAi;
+
     const controller = createAbortController("aiController");
 
     try {
-        const base = getWorkerBase();
-        if (!base) throw new Error("Worker URL is empty");
-
-        const ticketRes = await fetch(`${base}/__ticket`, { method: "POST", signal: controller.signal });
-        if (!ticketRes.ok) throw new Error(`__ticket failed: ${ticketRes.status}`);
-        const ticket = await ticketRes.json();
-
-        const aiRes = await fetch(`${base}/__ai`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            signal: controller.signal,
-            body: JSON.stringify({
-                k: ticket.k,
-                messages: [
-                    {
-                        role: "user",
-                        content: text.aiPrompt(safeFixtureId)
-                    }
-                ]
-            })
+        const res = await abortableEmit(controller, {
+            type: "txline_ai_prediction",
+            fixtureId: id
         });
 
-        const raw = await aiRes.text();
-        let body = null;
-        try { body = JSON.parse(raw); } catch { body = { raw }; }
+        if (state.requests.aiController === controller) {
+            state.requests.aiController = null;
+        }
 
-        if (state.requests.aiController === controller) state.requests.aiController = null;
+        const body = res.body || {};
 
-        if (!aiRes.ok || !body?.ok) {
-            console.error("AI response error:", body);
-            aiBox.innerText = text.aiUnavailable;
+        if (!res.ok || body.ok === false) {
+            aiBox.textContent = body.error || text.aiUnavailable;
             return;
         }
 
-        const content = body?.content || body?.raw?.choices?.[0]?.message?.content || "";
-        aiBox.innerText = typeof content === "string" && content.trim() ? content.trim() : text.aiUnavailable;
-    } catch (error) {
-        if (error.name === "AbortError") return;
-        console.error("AI module request failed:", error);
-        if (state.requests.aiController === controller) state.requests.aiController = null;
-        aiBox.innerText = text.aiError;
+        aiBox.textContent =
+            body.prediction ||
+            body.analysis ||
+            body.content ||
+            text.aiUnavailable;
+
+    } catch (err) {
+        if (err.name === "AbortError") return;
+
+        if (state.requests.aiController === controller) {
+            state.requests.aiController = null;
+        }
+
+        console.error(err);
+        aiBox.textContent = text.aiError;
     }
 }
 
+function verifySolanaProof(fixtureId) {
+    const id = normalizeId(fixtureId);
+    if (!id) return;
 
-
-function verifySolanaProof(id) {
-    const safeId = normalizeId(id) || "unknown";
-    const hash = "0x" + Math.random().toString(16).slice(2, 10) + "..." + Math.random().toString(16).slice(2, 10);
-    showTelegramPopup(text.proofTitle, text.proofMessage(safeId, hash));
+    openMatchDetails(id);
 }
 
-
 async function loadFavorites() {
-    const user = getUserId();
-    const base = getWorkerBase();
-    if (!base) return;
-
     try {
-        const data = await fetchJson(`${base}/__kvget?scope=worldcup&user=${encodeURIComponent(user)}&part=favorites`);
-        const list = data?.ok && Array.isArray(data?.data?.list) ? data.data.list : [];
-        state.favorites = list.map((id) => normalizeId(id)).filter(Boolean);
+        const base = getWorkerBase();
+
+        const res = await fetchJson(
+            `${base}/__kvget?scope=worldcup&user=${encodeURIComponent(getUserId())}&part=favorites`
+        );
+
+        state.favorites = Array.isArray(res?.data?.list)
+            ? res.data.list.map(normalizeId).filter(Boolean)
+            : [];
+
     } catch {
         state.favorites = [];
     }
 }
 
-
 async function toggleFavorite(fixtureId) {
     const id = normalizeId(fixtureId);
     if (!id) return;
 
-    const index = state.favorites.indexOf(id);
-    if (index > -1) state.favorites.splice(index, 1);
-    else {
-        state.favorites.push(id);
-        triggerSuccessHaptic();
-    }
+    const exists = state.favorites.includes(id);
+
+    state.favorites = exists
+        ? state.favorites.filter(v => v !== id)
+        : [...state.favorites, id];
+
+    if (!exists) triggerSuccessHaptic();
 
     renderAll();
 
-    const base = getWorkerBase();
-    if (!base) return;
-
     try {
-        await fetchJson(`${base}/__kvmerge`, {
+        await fetchJson(`${getWorkerBase()}/__kvmerge`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({
                 scope: "worldcup",
                 user: getUserId(),
-                patch: { list: state.favorites }
+                patch: {
+                    list: state.favorites
+                }
             })
         });
     } catch {}
 }
 
-
 function showModalLoader() {
     const modal = document.getElementById("match-details-overlay");
     if (!modal) return;
-    modal.innerHTML = `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
+
     modal.classList.add("active");
+    modal.innerHTML =
+        `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
 }
 
-
 function closeModal() {
-    const modal = document.getElementById("match-details-overlay");
-    if (modal) modal.classList.remove("active");
+    document.getElementById("match-details-overlay")?.classList.remove("active");
+
     abortRequest("detailsController");
     abortRequest("aiController");
 }
 
-
-function decodeFixtureIdFromElement(element) {
-    const rawId = element?.dataset?.fixtureId || "";
-    try { return decodeURIComponent(rawId); } catch { return rawId; }
+function decodeFixtureIdFromElement(el) {
+    try {
+        return decodeURIComponent(el?.dataset?.fixtureId || "");
+    } catch {
+        return el?.dataset?.fixtureId || "";
+    }
 }
 
+document.getElementById("filters")?.addEventListener("click", e => {
 
-document.getElementById("filters")?.addEventListener("click", (event) => {
-    const chip = event.target.closest(".filter-chip");
+    const chip = e.target.closest(".filter-chip");
     if (!chip) return;
 
-    document.querySelectorAll(".filter-chip").forEach((node) => node.classList.remove("active"));
+    document.querySelectorAll(".filter-chip")
+        .forEach(n => n.classList.remove("active"));
+
     chip.classList.add("active");
+
     state.filters.status = chip.dataset.filter || "all";
+
     renderAll();
 });
 
-document.addEventListener("click", (event) => {
-    const target = event.target instanceof Element ? event.target : null;
+document.addEventListener("click", e => {
+
+    const target = e.target.closest("[data-action], .match-card.is-clickable");
     if (!target) return;
 
-    const actionElement = target.closest("[data-action]");
-    if (actionElement) {
-        const action = actionElement.dataset.action;
-        const fixtureId = decodeFixtureIdFromElement(actionElement);
+    const action =
+        target.dataset.action ||
+        "open-match";
 
-        if (action === "toggle-favorite") {
-            event.stopPropagation();
-            toggleFavorite(fixtureId);
-            return;
-        }
+    const fixtureId = decodeFixtureIdFromElement(target);
 
-        if (action === "ai-prediction") {
-            event.stopPropagation();
-            getAIPrediction(fixtureId);
-            return;
-        }
+    e.stopPropagation();
 
-        if (action === "verify-proof") {
-            event.stopPropagation();
-            verifySolanaProof(fixtureId);
-            return;
-        }
+    switch (action) {
 
-        if (action === "close-modal") {
-            event.stopPropagation();
-            closeModal();
-            return;
-        }
+        case "toggle-favorite":
+            return toggleFavorite(fixtureId);
 
-        if (action === "open-match") {
-            event.stopPropagation();
-            openMatchDetails(fixtureId);
-            return;
-        }
-    }
+        case "ai-prediction":
+            return getAIPrediction(fixtureId);
 
-    const matchCard = target.closest(".match-card.is-clickable");
-    if (matchCard) {
-        const fixtureId = decodeFixtureIdFromElement(matchCard);
-        openMatchDetails(fixtureId);
+        case "verify-proof":
+            return verifySolanaProof(fixtureId);
+
+        case "close-modal":
+            return closeModal();
+
+        default:
+            return openMatchDetails(fixtureId);
     }
 });
 
-
-
 const autoRefresh = setInterval(() => {
-    if (state.groupedMatches.live.length > 0) initApp();
+
+    if (state.groupedMatches.live.length) {
+        initApp();
+    }
+
 }, 60000);
 
+tg?.onEvent?.("viewportChanged", () => {
 
-if (tg?.onEvent) {
-    tg.onEvent("viewportChanged", () => {
-        if (tg.isExpanded) triggerLightImpact();
-    });
-}
+    if (tg.isExpanded) {
+        triggerLightImpact();
+    }
 
+});
 
 async function initApp() {
+
     try {
+
         const res = await emit({
             type: "txline_probe_feed",
             scope: "worldcup",
-            serviceLevelId: Number(document.getElementById("serviceLevelId")?.value || 12)
+            serviceLevelId: Number(
+                document.getElementById("serviceLevelId")?.value || 12
+            )
         });
 
-        if (!res.ok) throw new Error(res.body?.error || "Probe failed");
+        if (!res.ok) {
+            throw new Error(res.body?.error || "Probe failed");
+        }
 
-        const probe = typeof res.body === "object" && res.body ? res.body : {};
-        const matches = collectMatchesFromProbe(probe);
-        state.groupedMatches = regroupMatches(matches);
-        state.probe = probe;
+        state.probe = res.body || {};
+        state.groupedMatches = regroupMatches(
+            collectMatchesFromProbe(state.probe)
+        );
 
         renderAll();
 
-        const statusNode = document.getElementById("status");
-        if (statusNode) {
-            if (!matches.length) {
-                statusNode.textContent = "Connected. No fixtures available.";
-                statusNode.className = "status warn";
-            } else {
-                statusNode.textContent = `Loaded ${matches.length} fixtures`;
-                statusNode.className = "status ok";
-            }
+        const total =
+            state.groupedMatches.live.length +
+            state.groupedMatches.upcoming.length +
+            state.groupedMatches.finished.length;
+
+        const status = document.getElementById("status");
+
+        if (status) {
+            status.className = total ? "status ok" : "status warn";
+            status.textContent = total
+                ? `Loaded ${total} fixtures`
+                : "Connected. No fixtures available.";
         }
-    } catch (error) {
-        console.error("Failed to load oracle feed:", error);
-        const container = document.getElementById("match-container");
-        if (container) {
-            container.innerHTML = `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
-        }
+
+    } catch (err) {
+
+        console.error(err);
+
+        document.getElementById("match-container").innerHTML =
+            `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
     }
 }
 
-
 async function bootstrap() {
+
     await loadFavorites();
     await initApp();
-    if (tg?.ready) tg.ready();
+
+    tg?.ready?.();
 }
 
 bootstrap();
 
-
 window.addEventListener("beforeunload", () => {
+
     clearInterval(autoRefresh);
+
     abortRequest("detailsController");
     abortRequest("aiController");
+
 });
+
 
 </script>
 </body>
