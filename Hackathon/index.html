@@ -1,1386 +1,1130 @@
 ﻿<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TxLINE World Cup 2026 Insider</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        :root {
-            --bg-color: var(--tg-theme-bg-color, #ffffff);
-            --text-color: var(--tg-theme-text-color, #222222);
-            --hint-color: var(--tg-theme-hint-color, #999999);
-            --link-color: var(--tg-theme-link-color, #2481cc);
-            --button-color: var(--tg-theme-button-color, #2481cc);
-            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
-            --secondary-bg: var(--tg-theme-secondary-bg-color, #f5f5f5);
-            --accent-hot: #ff4d4d;
-            --accent-live: #4caf50;
-            --accent-merkle: #673ab7;
-            --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-        * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            -webkit-font-smoothing: antialiased;
-        }
-        button, input, textarea, select { font: inherit; }
-        #app { padding: 16px; max-width: 600px; margin: 0 auto; }
-        .header-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 12px;
-        }
-        .header-section h1 {
-            font-size: 22px;
-            font-weight: 800;
-            margin: 0;
-            letter-spacing: -0.5px;
-        }
-        .filter-bar {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-            scrollbar-width: none;
-        }
-        .filter-bar::-webkit-scrollbar { display: none; }
-        .filter-chip {
-            padding: 6px 14px;
-            background: var(--secondary-bg);
-            border-radius: 20px;
-            font-size: 13px;
-            white-space: nowrap;
-            cursor: pointer;
-            border: 1px solid transparent;
-            user-select: none;
-        }
-        .filter-chip.active {
-            background: var(--button-color);
-            color: var(--button-text-color);
-        }
-        .match-card {
-            background: var(--bg-color);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            position: relative;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .match-card.is-clickable { cursor: pointer; }
-        .match-card:active { transform: scale(0.98); }
-        .match-card.hot-event {
-            border: 1.5px solid var(--accent-hot);
-        }
-        .match-card.hot-event::before {
-            content: "🔥 HOT";
-            position: absolute;
-            top: -10px;
-            right: 16px;
-            background: var(--accent-hot);
-            color: #ffffff;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .match-main {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            gap: 8px;
-        }
-        .team { flex: 1; text-align: center; min-width: 0; }
-        .team-name {
-            font-weight: 600;
-            font-size: 14px;
-            margin-top: 4px;
-            display: block;
-            word-break: break-word;
-        }
-        .score-box {
-            flex: 0 0 100px;
-            text-align: center;
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            color: var(--text-color);
-        }
-        .match-status {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--accent-live);
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .live-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background: var(--accent-live);
-            border-radius: 50%;
-            margin-right: 4px;
-            animation: blink 1s infinite;
-            vertical-align: middle;
-        }
-        .match-stats-extra {
-            display: flex;
-            justify-content: space-around;
-            background: var(--secondary-bg);
-            border-radius: 8px;
-            padding: 8px;
-            font-size: 12px;
-            color: var(--hint-color);
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .stat-item { display: flex; align-items: center; gap: 4px; }
-        .merkle-verify {
-            margin-top: 12px;
-            font-size: 11px;
-            color: var(--accent-merkle);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            opacity: 0.8;
-        }
-        .merkle-verify:hover { opacity: 1; text-decoration: underline; }
-        .action-bar {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 15px;
-        }
-        .btn-secondary,
-        .btn-ai,
-        .verify-btn,
-        .fav-btn,
-        .close-btn { cursor: pointer; }
-        .btn-secondary {
-            background: var(--secondary-bg);
-            color: var(--text-color);
-            border: none;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .btn-ai {
-            background: linear-gradient(135deg, #2481cc, #673ab7);
-            color: #ffffff;
-            border: none;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        .section-title {
-            padding: 12px;
-            background: var(--secondary-bg);
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 700;
-            margin: 10px 0;
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-        }
-        .section-title small {
-            color: var(--hint-color);
-            font-weight: 400;
-            font-size: 11px;
-        }
-        .section-subtitle {
-            font-size: 16px;
-            margin: 20px 0 10px 5px;
-            color: var(--hint-color);
-        }
-        .match-card.compact {
-            padding: 8px 12px;
-            opacity: 0.88;
-        }
-        .match-card.compact .score-box {
-            font-size: 18px;
-            flex: 0 0 60px;
-        }
-        .match-card.compact .action-bar { display: none; }
-        #match-details-overlay {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-color);
-            z-index: 1000;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-y: auto;
-        }
-        #match-details-overlay.active { transform: translateY(0); }
-        .modal-content { min-height: 100%; }
-        .modal-header {
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--secondary-bg);
-            position: sticky;
-            top: 0;
-            background: var(--bg-color);
-            z-index: 2;
-        }
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-color);
-            margin-right: 15px;
-        }
-        .modal-title {
-            font-weight: 700;
-            font-size: 16px;
-            word-break: break-word;
-        }
-        .details-main-score,
-        .section-block { padding: 16px; }
-        .big-score {
-            font-size: 48px;
-            font-weight: 900;
-            text-align: center;
-            margin: 20px 0;
-            letter-spacing: 5px;
-        }
-        .status-badge {
-            text-align: center;
-            color: var(--hint-color);
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .historical-timeline {
-            border-left: 2px solid var(--secondary-bg);
-            margin-left: 10px;
-            padding-left: 20px;
-        }
-        .timeline-item {
-            position: relative;
-            margin-bottom: 15px;
-        }
-        .timeline-item::before {
-            content: "";
-            position: absolute;
-            left: -26px;
-            top: 5px;
-            width: 10px;
-            height: 10px;
-            background: var(--button-color);
-            border-radius: 50%;
-        }
-        .timeline-item .time {
-            font-size: 11px;
-            color: var(--hint-color);
-        }
-        .timeline-item .event-desc { font-size: 14px; }
-        .no-data {
-            color: var(--hint-color);
-            font-size: 14px;
-        }
-        .merkle-proof-footer {
-            padding: 20px;
-            background: var(--secondary-bg);
-            text-align: center;
-            margin-top: 30px;
-        }
-        .verify-btn {
-            display: block;
-            width: 100%;
-            margin-top: 10px;
-            padding: 12px;
-            border: 1px solid var(--accent-merkle);
-            color: var(--accent-merkle);
-            background: transparent;
-            border-radius: 8px;
-            font-weight: 700;
-        }
-        .fav-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 20px;
-            background: none;
-            border: none;
-            z-index: 10;
-            line-height: 1;
-            padding: 0;
-        }
-        .fav-btn.active { color: #ffca28; }
-        .loader-centered,
-        .empty-state {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 180px;
-            color: var(--hint-color);
-            font-size: 14px;
-            text-align: center;
-        }
-        .hidden { display: none; }
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-        @media (prefers-color-scheme: dark) {
-            .match-card {
-                background: #1c1c1d;
-                border-color: #2c2c2e;
-            }
-            .score-box { color: #ffffff; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TxLINE World Cup 2026 Insider</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: var(--tg-theme-bg-color, #ffffff);
+      --text-color: var(--tg-theme-text-color, #222222);
+      --hint-color: var(--tg-theme-hint-color, #999999);
+      --link-color: var(--tg-theme-link-color, #2481cc);
+      --button-color: var(--tg-theme-button-color, #2481cc);
+      --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+      --secondary-bg: var(--tg-theme-secondary-bg-color, #f5f5f5);
+      --accent-hot: #ff4d4d;
+      --accent-live: #4caf50;
+      --accent-merkle: #673ab7;
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea, select { font: inherit; }
+    #app { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 12px; }
+    .header-section h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+
+    .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      padding: 6px 14px;
+      background: var(--secondary-bg);
+      border-radius: 20px;
+      font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+    .filter-chip.active { background: var(--button-color); color: var(--button-text-color); }
+
+    .status { font-size: 12px; color: var(--hint-color); margin: 6px 0 14px 2px; }
+    .status.ok { color: var(--accent-live); }
+    .status.warn { color: var(--accent-hot); }
+
+    .featured-banner {
+      background: linear-gradient(135deg, rgba(36,129,204,0.12), rgba(103,58,183,0.10));
+      border: 1px solid rgba(103,58,183,0.15);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--card-shadow);
+    }
+    .featured-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--accent-merkle); margin-bottom: 6px; }
+    .featured-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .featured-meta { font-size: 12px; color: var(--hint-color); display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .match-card {
+      background: var(--bg-color);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      position: relative;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .match-card.is-clickable { cursor: pointer; }
+    .match-card:active { transform: scale(0.98); }
+    .match-card.hot-event { border: 1.5px solid var(--accent-hot); }
+    .match-card.hot-event::before {
+      content: 'HOT';
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: var(--accent-hot);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .match-main { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+    .team { flex: 1; text-align: center; min-width: 0; }
+    .team-name { font-weight: 600; font-size: 14px; margin-top: 4px; display: block; word-break: break-word; }
+    .score-box {
+      flex: 0 0 100px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--text-color);
+    }
+
+    .match-status {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent-live);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .match-status.is-finished,
+    .match-status.is-upcoming,
+    .match-status.is-stopped,
+    .match-status.is-unknown { color: var(--hint-color); }
+
+    .live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--accent-live);
+      border-radius: 50%;
+      margin-right: 4px;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+
+    .card-kickoff { text-align: center; font-size: 12px; color: var(--hint-color); margin-top: -4px; margin-bottom: 10px; }
+
+    .match-stats-extra {
+      display: flex;
+      justify-content: space-around;
+      background: var(--secondary-bg);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 12px;
+      color: var(--hint-color);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .stat-item { display: flex; align-items: center; gap: 4px; }
+
+    .merkle-verify {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--accent-merkle);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    .merkle-verify:hover { opacity: 1; text-decoration: underline; }
+
+    .action-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+    .btn-secondary, .btn-ai, .verify-btn, .fav-btn, .close-btn {
+      cursor: pointer;
+      border: none;
+    }
+    .btn-secondary {
+      background: var(--secondary-bg);
+      color: var(--text-color);
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn-ai {
+      background: linear-gradient(135deg, #2481cc, #673ab7);
+      color: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .section-title {
+      padding: 12px;
+      background: var(--secondary-bg);
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      margin: 10px 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+    }
+    .section-title small { color: var(--hint-color); font-weight: 400; font-size: 11px; }
+    .section-subtitle { font-size: 16px; margin: 20px 0 10px 5px; color: var(--hint-color); }
+
+    .match-card.compact { padding: 8px 12px; opacity: 0.88; }
+    .match-card.compact .score-box { font-size: 18px; flex: 0 0 60px; }
+    .match-card.compact .action-bar { display: none; }
+
+    .match-details-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-color);
+      z-index: 1000;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+    }
+    .match-details-overlay.active { transform: translateY(0); }
+
+    .modal-content { min-height: 100%; }
+    .modal-header {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--secondary-bg);
+      position: sticky;
+      top: 0;
+      background: var(--bg-color);
+      z-index: 2;
+    }
+    .close-btn { background: none; font-size: 24px; color: var(--text-color); margin-right: 15px; padding: 0; }
+    .modal-title { font-weight: 700; font-size: 16px; word-break: break-word; }
+
+    .details-main-score, .section-block { padding: 16px; }
+    .big-score { font-size: 48px; font-weight: 900; text-align: center; margin: 20px 0; letter-spacing: 5px; }
+    .status-badge { text-align: center; color: var(--hint-color); font-size: 14px; font-weight: 600; }
+
+    .historical-timeline { border-left: 2px solid var(--secondary-bg); margin-left: 10px; padding-left: 20px; }
+    .timeline-item { position: relative; margin-bottom: 15px; }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      background: var(--button-color);
+      border-radius: 50%;
+    }
+    .timeline-item .time { font-size: 11px; color: var(--hint-color); }
+    .timeline-item .event-desc { font-size: 14px; }
+    .no-data { color: var(--hint-color); font-size: 14px; }
+
+    .merkle-proof-footer { padding: 20px; background: var(--secondary-bg); text-align: center; margin-top: 30px; }
+    .verify-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--accent-merkle);
+      color: var(--accent-merkle);
+      background: transparent;
+      border-radius: 8px;
+      font-weight: 700;
+    }
+
+    .fav-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 20px;
+      background: none;
+      z-index: 10;
+      line-height: 1;
+      padding: 0;
+    }
+    .fav-btn.active { color: #ffca28; }
+
+    .loader-centered, .empty-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+      color: var(--hint-color);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @keyframes blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .match-card, .featured-banner { background: #1c1c1d; border-color: #2c2c2e; }
+      .score-box { color: #fff; }
+    }
+  </style>
 </head>
 <body>
-<div id="app">
+  <div id="app">
     <div class="header-section">
-        <h1 id="title">FIFA 2026 Live</h1>
-        <div id="connection-status" class="live-dot" aria-hidden="true"></div>
+      <h1 id="title">FIFA 2026 Live</h1>
+      <div id="connection-status" class="live-dot" aria-hidden="true"></div>
     </div>
 
     <div class="filter-bar" id="filters">
-        <div class="filter-chip active" data-filter="all">All matches</div>
-        <div class="filter-chip" data-filter="live">Live</div>
-        <div class="filter-chip" data-filter="upcoming">Upcoming</div>
-        <div class="filter-chip" data-filter="favorites">Favorites</div>
+      <div class="filter-chip active" data-filter="all">All matches</div>
+      <div class="filter-chip" data-filter="live">Live</div>
+      <div class="filter-chip" data-filter="upcoming">Upcoming</div>
+      <div class="filter-chip" data-filter="favorites">Favorites</div>
     </div>
 
+    <div id="status" class="status">Loading oracle data...</div>
+    <div id="featured-slot"></div>
     <div id="match-container">
-        <div id="loader" style="text-align: center; padding: 50px; color: var(--hint-color);">
-            Loading oracle data...
-        </div>
+      <div id="loader" style="text-align:center;padding:50px;color:var(--hint-color);">Loading oracle data...</div>
     </div>
-</div>
+  </div>
 
-<div id="match-details-overlay"></div>
-<input id="workerBase" type="hidden" value="https://game.shooleeyack.workers.dev">
+  <div id="match-details-overlay" class="match-details-overlay"></div>
+  <input id="workerBase" type="hidden" value="https://game.shooleeyack.workers.dev" />
 
-<script>
-const tg = window.Telegram?.WebApp || null;
-tg?.expand?.();
+  <script>
+    const tg = window.Telegram?.WebApp || null;
+    if (tg?.expand) tg.expand();
 
-const state = {
-    groupedMatches: {
-        live: [],
-        upcoming: [],
-        finished: [],
-        stopped: [],
-        unknown: []
-    },
-    filters: {
-        status: "all"
-    },
-    favorites: [],
-    requests: {
-        detailsController: null,
-        aiController: null
-    },
-    probe: null
-};
+    const state = {
+      groupedMatches: { live: [], upcoming: [], finished: [], stopped: [], unknown: [] },
+      filters: { status: 'all' },
+      favorites: [],
+      requests: { detailsController: null, aiController: null },
+      probe: null,
+      featured: null
+    };
 
-const text = {
-    scheduled: "Scheduled",
-    invalidMatchId: "Invalid match ID",
-    failedMatchDetails: "Unable to load match details",
-    failedMatchDetailsShort: "Unable to fetch match details",
-    loadingOracle: "Loading oracle data...",
-    loadingAi: "AI is analyzing oracle data...",
-    aiUnavailable: "Analytics are temporarily unavailable",
-    aiError: "Failed to reach the AI module",
-    oracleConnectionError: "Oracle connection error",
-    noMatches: "No matches found",
-    timelinePending: "The event timeline for this match is still being built...",
-    detailsUnavailable: "Status unavailable",
-    verifiedOnSolana: "Verified on Solana",
-    stats: "Stats",
-    aiAnalysis: "AI Analysis",
-    getPrediction: "Get prediction",
-    matchDynamics: "Match dynamics",
-    aiInsights: "AI insights",
-    verifyOnSolana: "Verify on Solana",
-    oracleDataId: "Oracle Data ID",
-    completedMatches: "Completed matches",
-    completedSubtitle: "Review match history and team form",
-    liveNow: "Live now",
-    startingSoon: "Starting soon",
-    favoriteToggle: "Toggle favorite",
-    close: "Close",
-    teamA: "Team A",
-    teamB: "Team B",
-    scoreFallback: "—",
-    cardsFallback: "0-0",
-    proofTitle: "Solana verification",
-    proofMessage: (id, hash) =>
-        `Match data ${id} has been confirmed on-chain. Merkle Root: ${hash}. Verification completed through the TxLINE oracle.`,
-    aiPrompt: (fixtureId) =>
-        `Analyze football match ID ${fixtureId}. Provide a short prediction.`
-};
+    const text = {
+      invalidMatchId: 'Invalid match ID',
+      loadingOracle: 'Loading oracle data...',
+      loadingAi: 'AI is analyzing oracle data...',
+      aiUnavailable: 'Analytics are temporarily unavailable',
+      aiError: 'Failed to reach the AI module',
+      oracleConnectionError: 'Oracle connection error',
+      noMatches: 'No matches found',
+      timelinePending: 'The event timeline for this match is still being built...',
+      detailsUnavailable: 'Status unavailable',
+      verifiedOnSolana: 'Verified on Solana',
+      stats: 'Stats',
+      aiAnalysis: 'AI Analysis',
+      getPrediction: 'Get prediction',
+      matchDynamics: 'Match dynamics',
+      aiInsights: 'AI insights',
+      verifyOnSolana: 'Verify on Solana',
+      oracleDataId: 'Oracle Data ID',
+      completedMatches: 'Completed matches',
+      completedSubtitle: 'Review match history and team form',
+      liveNow: 'Live now',
+      startingSoon: 'Starting soon',
+      favoriteToggle: 'Toggle favorite',
+      close: 'Close',
+      teamA: 'Team A',
+      teamB: 'Team B',
+      scoreFallback: '0 - 0',
+      cardsFallback: '0-0',
+      proofTitle: 'Solana verification',
+      proofMessage: (id, hash) => `Match data ${id} has been confirmed on-chain. Merkle Root: ${hash}. Verification completed through the TxLINE oracle.`,
+      aiPrompt: fixtureId => `Analyze football match ID ${fixtureId}. Provide a short prediction.`,
+      featured: 'Featured match',
+      oddsPreview: 'Odds preview',
+      sourceDiagnostics: 'Source diagnostics',
+      noData: 'No data'
+    };
 
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-}
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
-function normalizeId(value) {
-    return String(value ?? "").trim();
-}
+    function normalizeId(value) { return String(value ?? '').trim(); }
+    function safeArray(value) { return Array.isArray(value) ? value : []; }
+    function getUserId() { return String(tg?.initDataUnsafe?.user?.id || 'anon'); }
 
-function safeArray(value) {
-    return Array.isArray(value) ? value : [];
-}
+    function showTelegramAlert(message) {
+      return tg?.showAlert ? tg.showAlert(String(message)) : alert(String(message));
+    }
 
-function getUserId() {
-    return String(tg?.initDataUnsafe?.user?.id ?? "anon");
-}
+    function showTelegramPopup(title, message) {
+      if (tg?.showPopup) {
+        return tg.showPopup({ title: String(title), message: String(message), buttons: [{ type: 'ok' }] });
+      }
+      return alert(`${title}
 
-function showTelegramAlert(message) {
-    return tg?.showAlert
-        ? tg.showAlert(String(message))
-        : alert(String(message));
-}
+${message}`);
+    }
 
-function showTelegramPopup(title, message) {
-    if (tg?.showPopup) {
-        tg.showPopup({
-            title: String(title),
-            message: String(message),
-            buttons: [{ type: "ok" }]
-        });
+    function triggerSuccessHaptic() { tg?.HapticFeedback?.notificationOccurred?.('success'); }
+    function triggerLightImpact() { tg?.HapticFeedback?.impactOccurred?.('light'); }
+
+    function getWorkerBase() {
+      const node = document.getElementById('workerBase');
+      const base = node?.value?.trim() || '';
+      return base.replace(/\/+$/, '');
+    }
+
+    async function fetchJson(url, options) {
+      const response = await fetch(url, options);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    async function emit(payload) {
+      const base = getWorkerBase();
+      if (!base) throw new Error('Worker URL is empty');
+      const ticketRes = await fetch(`${base}/ticket`, { method: 'POST' });
+      if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
+      const ticket = await ticketRes.json();
+      const emitRes = await fetch(`${base}/emit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ k: ticket.k, d: payload })
+      });
+      const raw = await emitRes.text();
+      let body;
+      try { body = JSON.parse(raw); } catch { body = raw; }
+      return { ok: emitRes.ok, status: emitRes.status, body, raw };
+    }
+
+    async function abortableEmit(controller, payload) {
+      const base = getWorkerBase();
+      if (!base) throw new Error('Worker URL is empty');
+      const ticketRes = await fetch(`${base}/ticket`, { method: 'POST', signal: controller.signal });
+      if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
+      const ticket = await ticketRes.json();
+      const emitRes = await fetch(`${base}/emit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ k: ticket.k, d: payload }),
+        signal: controller.signal
+      });
+      const raw = await emitRes.text();
+      let body;
+      try { body = JSON.parse(raw); } catch { body = raw; }
+      return { ok: emitRes.ok, status: emitRes.status, body, raw };
+    }
+
+    function abortRequest(controllerKey) {
+      const controller = state.requests[controllerKey];
+      if (controller) controller.abort();
+      state.requests[controllerKey] = null;
+    }
+
+    function createAbortController(controllerKey) {
+      abortRequest(controllerKey);
+      const controller = new AbortController();
+      state.requests[controllerKey] = controller;
+      return controller;
+    }
+
+    function formatKickoff(value) {
+      if (value == null || value === '') return '';
+      const n = Number(value);
+      const date = Number.isFinite(n) ? new Date(n) : new Date(String(value));
+      if (Number.isNaN(date.getTime())) return String(value);
+      const datePart = date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      const timePart = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      return `${datePart}, ${timePart}`;
+    }
+
+    function phaseLabel(phase) {
+      const p = String(phase || '').toLowerCase();
+      if (p === 'live') return 'Live';
+      if (p === 'finished') return 'Finished';
+      if (p === 'upcoming') return 'Not started';
+      if (p === 'stopped') return 'Stopped';
+      return 'Unknown';
+    }
+
+    function normalizeMatch(row, phaseHint = '') {
+      const fixtureId = normalizeId(row?.fixtureId ?? row?.id ?? row?.fixtureid ?? row?.FixtureId);
+      const home = row?.home ?? row?.homeTeam ?? row?.participant1 ?? row?.Participant1 ?? row?.team1 ?? row?.Team1 ?? text.teamA;
+      const away = row?.away ?? row?.awayTeam ?? row?.participant2 ?? row?.Participant2 ?? row?.team2 ?? row?.Team2 ?? text.teamB;
+      const score = row?.score ?? row?.currentScore ?? row?.MatchScore ?? row?.scoreText ?? text.scoreFallback;
+
+      return {
+        ...row,
+        fixtureId,
+        id: row?.id ?? fixtureId,
+        phase: String(row?.phase || phaseHint || '').toLowerCase() || 'unknown',
+        status: row?.status || row?.statusLabel || phaseLabel(row?.phase || phaseHint),
+        home,
+        away,
+        homeTeam: home,
+        awayTeam: away,
+        score: String(score),
+        homeScore: row?.homeScore ?? null,
+        awayScore: row?.awayScore ?? null,
+        kickoff: row?.kickoff ?? row?.StartTime ?? row?.startTime ?? null,
+        signal: Number(row?.signal ?? 0),
+        v: !!row?.v,
+        yc: row?.yc ?? row?.yellowCards ?? null,
+        cr: row?.cr ?? row?.redCards ?? null,
+        oddsPreview: row?.oddsPreview ?? null,
+        oddsTop: row?.oddsTop ?? null,
+        eventPreview: row?.eventPreview ?? null
+      };
+    }
+
+    function normalizeGroupedProbe(probe) {
+      const grouped = probe?.grouped || {};
+      return {
+        live: safeArray(grouped.live).map(m => normalizeMatch(m, 'live')),
+        upcoming: safeArray(grouped.upcoming).map(m => normalizeMatch(m, 'upcoming')),
+        finished: safeArray(grouped.finished).map(m => normalizeMatch(m, 'finished')),
+        stopped: safeArray(grouped.stopped).map(m => normalizeMatch(m, 'stopped')),
+        unknown: safeArray(grouped.unknown).map(m => normalizeMatch(m, 'unknown'))
+      };
+    }
+
+    function getAllMatches() {
+      const g = state.groupedMatches;
+      return [...safeArray(g.live), ...safeArray(g.upcoming), ...safeArray(g.finished), ...safeArray(g.stopped), ...safeArray(g.unknown)];
+    }
+
+    function isFavoriteMatch(match) {
+      const id = normalizeId(match?.fixtureId ?? match?.id ?? match?.fixtureid);
+      return id && state.favorites.includes(id);
+    }
+
+    function getFilteredMatches() {
+      const filter = String(state.filters.status || 'all').toLowerCase();
+      const g = state.groupedMatches;
+
+      const filterFav = arr => safeArray(arr).filter(isFavoriteMatch);
+
+      if (filter === 'live') return { live: safeArray(g.live), upcoming: [], finished: [], stopped: [], unknown: [] };
+      if (filter === 'upcoming') return { live: [], upcoming: safeArray(g.upcoming), finished: [], stopped: [], unknown: [] };
+      if (filter === 'favorites') {
+        return {
+          live: filterFav(g.live),
+          upcoming: filterFav(g.upcoming),
+          finished: filterFav(g.finished),
+          stopped: filterFav(g.stopped),
+          unknown: filterFav(g.unknown)
+        };
+      }
+
+      return {
+        live: safeArray(g.live),
+        upcoming: safeArray(g.upcoming),
+        finished: safeArray(g.finished),
+        stopped: safeArray(g.stopped),
+        unknown: safeArray(g.unknown)
+      };
+    }
+
+    function getMatchTeams(data) {
+      const current = data?.current || {};
+      const compact = data?.currentCompact || {};
+      const source = data?.fixture || data?.match || data || {};
+      return {
+        home: current.home || current.homeTeam || compact.home || compact.homeTeam || source.home || source.homeTeam || text.teamA,
+        away: current.away || current.awayTeam || compact.away || compact.awayTeam || source.away || source.awayTeam || text.teamB
+      };
+    }
+
+    function getMatchScore(data) {
+      const current = data?.current || {};
+      if (current.score) return String(current.score);
+      if (data?.score) return String(data.score);
+      if (current.homeScore != null && current.awayScore != null) return `${current.homeScore}-${current.awayScore}`;
+      return text.scoreFallback;
+    }
+
+    function getMatchStatus(data) {
+      return String(data?.current?.status || data?.status || data?.phase || text.detailsUnavailable);
+    }
+
+    function formatStatusClass(phase) {
+      const value = String(phase || '').toLowerCase();
+      if (value === 'live') return 'match-status';
+      if (value === 'finished') return 'match-status is-finished';
+      if (value === 'upcoming') return 'match-status is-upcoming';
+      if (value === 'stopped') return 'match-status is-stopped';
+      return 'match-status is-unknown';
+    }
+
+    function renderFeatured() {
+      const slot = document.getElementById('featured-slot');
+      if (!slot) return;
+      const featured = state.featured ? normalizeMatch(state.featured, state.featured.phase) : null;
+      if (!featured || state.filters.status === 'favorites') {
+        slot.innerHTML = '';
         return;
+      }
+      const kickoff = formatKickoff(featured.kickoff);
+      slot.innerHTML = `
+        <div class="featured-banner" data-action="open-match" data-fixture-id="${encodeURIComponent(featured.fixtureId)}">
+          <div class="featured-label">${escapeHtml(text.featured)}</div>
+          <div class="featured-title">${escapeHtml(featured.home)} vs ${escapeHtml(featured.away)}</div>
+          <div class="featured-meta">
+            <span>${escapeHtml(featured.status || featured.phase || 'Scheduled')}</span>
+            <span>${escapeHtml(featured.score || text.scoreFallback)}</span>
+            ${kickoff ? `<span>${escapeHtml(kickoff)}</span>` : ''}
+          </div>
+        </div>
+      `;
     }
 
-    alert(`${title}\n\n${message}`);
-}
+    function renderMatchCard(match, isCompact) {
+      const fixtureId = normalizeId(match?.fixtureId ?? match?.id);
+      const safeFixtureId = encodeURIComponent(fixtureId);
+      const isHot = Number(match?.signal ?? 0) >= 1200;
+      const isFavorite = state.favorites.includes(fixtureId);
+      const home = match?.home || match?.homeTeam || text.teamA;
+      const away = match?.away || match?.awayTeam || text.teamB;
+      const score = escapeHtml(match?.score || (match?.homeScore != null && match?.awayScore != null ? `${match.homeScore}-${match.awayScore}` : text.scoreFallback));
+      const status = escapeHtml(match?.status || match?.phase || 'Scheduled');
+      const kickoff = formatKickoff(match?.kickoff);
+      const yc = escapeHtml(match?.yc ?? text.cardsFallback);
+      const cr = escapeHtml(match?.cr ?? text.cardsFallback);
+      const phase = String(match?.phase || '').toLowerCase();
 
-const triggerSuccessHaptic = () =>
-    tg?.HapticFeedback?.notificationOccurred?.("success");
-
-const triggerLightImpact = () =>
-    tg?.HapticFeedback?.impactOccurred?.("light");
-
-function getWorkerBase() {
-    return (
-        document
-            .getElementById("workerBase")
-            ?.value?.trim()
-            ?.replace(/\/$/, "") || ""
-    );
-}
-
-async function fetchJson(url, options = {}) {
-    const response = await fetch(url, options);
-
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-    }
-
-    return response.json();
-}
-
-async function emit(payload, signal) {
-    const base = getWorkerBase();
-
-    if (!base) {
-        throw new Error("Worker URL is empty");
-    }
-
-    const ticketResponse = await fetch(`${base}/__ticket`, {
-        method: "POST",
-        signal
-    });
-
-    if (!ticketResponse.ok) {
-        throw new Error(`__ticket failed: ${ticketResponse.status}`);
-    }
-
-    const { k } = await ticketResponse.json();
-
-    const response = await fetch(`${base}/__emit`, {
-        method: "POST",
-        signal,
-        headers: {
-            "content-type": "application/json"
-        },
-        body: JSON.stringify({
-            k,
-            d: payload
-        })
-    });
-
-    const raw = await response.text();
-
-    let body;
-
-    try {
-        body = JSON.parse(raw);
-    } catch {
-        body = raw;
-    }
-
-    return {
-        ok: response.ok,
-        status: response.status,
-        body,
-        raw
-    };
-}
-
-function abortRequest(key) {
-    state.requests[key]?.abort();
-    state.requests[key] = null;
-}
-
-function createAbortController(key) {
-    abortRequest(key);
-
-    const controller = new AbortController();
-    state.requests[key] = controller;
-
-    return controller;
-}
-
-async function abortableEmit(controller, payload) {
-    return emit(payload, controller.signal);
-}
-
-
-
-
-
-
-
-
-
-function collectMatchesFromProbe(probe) {
-    const grouped = probe?.grouped || {};
-
-    return [
-        ...safeArray(grouped.live),
-        ...safeArray(grouped.upcoming),
-        ...safeArray(grouped.finished),
-        ...safeArray(grouped.stopped),
-        ...safeArray(grouped.unknown)
-    ];
-}
-
-function regroupMatches(matches) {
-    const grouped = {
-        live: [],
-        upcoming: [],
-        finished: [],
-        stopped: [],
-        unknown: []
-    };
-
-    for (const match of safeArray(matches)) {
-        const phase = String(match?.phase || "unknown").toLowerCase();
-
-        switch (phase) {
-            case "live":
-                grouped.live.push(match);
-                break;
-
-            case "finished":
-                grouped.finished.push(match);
-                break;
-
-            case "stopped":
-                grouped.stopped.push(match);
-                break;
-
-            case "unknown":
-                grouped.unknown.push(match);
-                break;
-
-            default:
-                grouped.upcoming.push(match);
-                break;
-        }
-    }
-
-    return grouped;
-}
-
-function getFilteredMatches() {
-    const grouped = state.groupedMatches || {};
-
-    const result = {
-        live: safeArray(grouped.live),
-        upcoming: safeArray(grouped.upcoming),
-        finished: safeArray(grouped.finished),
-        stopped: safeArray(grouped.stopped),
-        unknown: safeArray(grouped.unknown)
-    };
-
-    const filter = String(state.filters.status || "all").toLowerCase();
-
-    if (filter === "favorites") {
-        const fav = (m) => state.favorites.includes(normalizeId(m?.fixtureId));
-
-        return {
-            live: result.live.filter(fav),
-            upcoming: result.upcoming.filter(fav),
-            finished: result.finished.filter(fav),
-            stopped: result.stopped.filter(fav),
-            unknown: result.unknown.filter(fav)
-        };
-    }
-
-    if (filter !== "all") {
-        return {
-            live: filter === "live" ? result.live : [],
-            upcoming: filter === "upcoming" ? result.upcoming : [],
-            finished: filter === "finished" ? result.finished : [],
-            stopped: filter === "stopped" ? result.stopped : [],
-            unknown: filter === "unknown" ? result.unknown : []
-        };
-    }
-
-    return result;
-}
-
-function renderAll() {
-    const container = document.getElementById("match-container");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    const matches = getFilteredMatches();
-
-    if (matches.finished.length) {
-        const section = document.createElement("details");
-        section.className = "finished-accordion";
-
-        section.innerHTML = `
-            <summary class="section-title">
-                <span>⚽ ${escapeHtml(text.completedMatches)} (${matches.finished.length})</span>
-                <small>${escapeHtml(text.completedSubtitle)}</small>
-            </summary>
-            <div class="compact-list">
-                ${matches.finished.map(x => renderMatchCard(x, true)).join("")}
+      return `
+        <div class="match-card is-clickable ${isHot ? 'hot-event' : ''} ${isCompact ? 'compact' : ''}" data-action="open-match" data-fixture-id="${safeFixtureId}">
+          <button class="fav-btn ${isFavorite ? 'active' : ''}" type="button" data-action="toggle-favorite" data-fixture-id="${safeFixtureId}" aria-label="${escapeHtml(text.favoriteToggle)}">${isFavorite ? '★' : '☆'}</button>
+          <div class="${formatStatusClass(phase)}">${phase === 'live' ? '<span class="live-dot"></span>' : ''}${status}</div>
+          ${kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : ''}
+          <div class="match-main">
+            <div class="team"><span class="team-name">${escapeHtml(home)}</span></div>
+            <div class="score-box">${score}</div>
+            <div class="team"><span class="team-name">${escapeHtml(away)}</span></div>
+          </div>
+          <div class="match-stats-extra">
+            <div class="stat-item">YC ${yc}</div>
+            <div class="stat-item">CR ${cr}</div>
+            ${match?.eventPreview?.type ? `<div class="stat-item">${escapeHtml(match.eventPreview.type)}</div>` : ''}
+            ${safeArray(match?.oddsPreview).length > 0 ? `<div class="stat-item">Odds</div>` : ''}
+          </div>
+          ${match?.v ? `<div class="merkle-verify">${escapeHtml(text.verifiedOnSolana)}</div>` : ''}
+          ${!isCompact ? `
+            <div class="action-bar">
+              <button class="btn-secondary" type="button">${escapeHtml(text.stats)}</button>
+              <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.aiAnalysis)}</button>
             </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderSection(parent, title, matches, className) {
+      if (!parent || !Array.isArray(matches) || !matches.length) return;
+      const visibleMatches = matches.filter(match => !!normalizeId(match?.fixtureId ?? match?.id ?? match?.fixtureid));
+      if (!visibleMatches.length) return;
+      const section = document.createElement('div');
+      section.className = className;
+      section.innerHTML = `<h2 class="section-subtitle">${escapeHtml(title)}</h2>${visibleMatches.map(match => renderMatchCard(match, false)).join('')}`;
+      parent.appendChild(section);
+    }
+
+    function renderAll() {
+      const container = document.getElementById('match-container');
+      if (!container) return;
+      renderFeatured();
+
+      const matches = getFilteredMatches();
+      container.innerHTML = '';
+
+      const hasFinished = Array.isArray(matches.finished) && matches.finished.length > 0;
+      const hasLive = Array.isArray(matches.live) && matches.live.length > 0;
+      const hasUpcoming = Array.isArray(matches.upcoming) && matches.upcoming.length > 0;
+      const hasStopped = Array.isArray(matches.stopped) && matches.stopped.length > 0;
+      const hasUnknown = Array.isArray(matches.unknown) && matches.unknown.length > 0;
+
+      const renderCount = (label, list) => `${label} (${Array.isArray(list) ? list.length : 0})`;
+
+      if (hasFinished) {
+        const finishedSection = document.createElement('details');
+        finishedSection.className = 'finished-accordion';
+        finishedSection.open = false;
+        finishedSection.innerHTML = `
+          <summary class="section-title">
+            <span>${escapeHtml(renderCount(text.completedMatches, matches.finished))}</span>
+            <small>${escapeHtml(text.completedSubtitle)}</small>
+          </summary>
+          <div class="compact-list">${matches.finished.map(match => renderMatchCard(match, true)).join('')}</div>
         `;
+        container.appendChild(finishedSection);
+      }
 
-        container.appendChild(section);
-    }
+      if (hasLive) renderSection(container, text.liveNow, matches.live, 'live-section');
+      if (hasUpcoming) renderSection(container, text.startingSoon, matches.upcoming, 'upcoming-section');
+      if (hasStopped) renderSection(container, 'Stopped', matches.stopped, 'stopped-section');
+      if (hasUnknown) renderSection(container, 'Other', matches.unknown, 'unknown-section');
 
-    renderSection(container, `🔥 ${text.liveNow}`, matches.live, "live-section");
-    renderSection(container, `▶️ ${text.startingSoon}`, matches.upcoming, "upcoming-section");
-
-    if (matches.stopped.length) {
-        renderSection(container, "⛔ Stopped", matches.stopped, "stopped-section");
-    }
-
-    if (matches.unknown.length) {
-        renderSection(container, "❔ Unknown", matches.unknown, "unknown-section");
-    }
-
-    if (
-        !matches.live.length &&
-        !matches.upcoming.length &&
-        !matches.finished.length &&
-        !matches.stopped.length &&
-        !matches.unknown.length
-    ) {
+      if (!hasFinished && !hasLive && !hasUpcoming && !hasStopped && !hasUnknown) {
         container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
-    }
-}
-
-function renderSection(parent, title, matches, className) {
-    if (!matches.length) return;
-
-    const section = document.createElement("div");
-    section.className = className;
-
-    section.innerHTML = `
-        <h2 class="section-subtitle">${escapeHtml(title)}</h2>
-        ${matches.map(match => renderMatchCard(match, false)).join("")}
-    `;
-
-    parent.appendChild(section);
-}
-
-function normalizeTimelineSeconds(value) {
-    const n = Number(value);
-    return Number.isFinite(n) && n >= 0 && n <= 1000000 ? n : null;
-}
-
-function formatMinuteFromSeconds(seconds) {
-    const s = normalizeTimelineSeconds(seconds);
-    if (s == null) return "";
-
-    const minute = Math.floor(s / 60);
-
-    return minute > 90
-        ? `90+${minute - 90}'`
-        : `${minute}'`;
-}
-
-function readTotalStat(node, key) {
-    const n = Number(node?.[key] ?? node?.Total?.[key] ?? node?.total?.[key]);
-    return Number.isFinite(n) ? n : 0;
-}
-
-function summarizeStatBlob(raw) {
-    const home = raw?.Participant1 || raw?.participant1;
-    const away = raw?.Participant2 || raw?.participant2;
-
-    if (!home || !away) return null;
-
-    const out = [];
-
-    const g1 = readTotalStat(home, "Goals");
-    const g2 = readTotalStat(away, "Goals");
-
-    const y1 = readTotalStat(home, "YellowCards");
-    const y2 = readTotalStat(away, "YellowCards");
-
-    const c1 = readTotalStat(home, "Corners");
-    const c2 = readTotalStat(away, "Corners");
-
-    if (g1 || g2) out.push(`Goals ${g1}-${g2}`);
-    if (y1 || y2) out.push(`🟨 ${y1}-${y2}`);
-    if (c1 || c2) out.push(`🚩 ${c1}-${c2}`);
-
-    return out.length ? out.join(" • ") : null;
-}
-
-function cleanEventType(value) {
-    return ({
-        game_finalised: "Full time",
-        finalised: "Full time",
-        final: "Full time",
-        halftime: "Halftime",
-        ht: "Halftime",
-        ft: "Full time",
-        live: "Live",
-        penalties: "Penalties",
-        pen: "Penalties",
-        comment: "",
-        disconnected: "Disconnected",
-        action_discarded: ""
-    }[String(value || "").trim().toLowerCase()] ?? String(value || "").replace(/_/g, " "));
-}
-
-function getMatchTeams(data) {
-    const current = data?.current || data || {};
-
-    return {
-        home: current.home || current.homeTeam || text.teamA,
-        away: current.away || current.awayTeam || text.teamB
-    };
-}
-
-function getMatchScore(data) {
-    const current = data?.current || data || {};
-
-    if (current.score) return String(current.score);
-
-    if (
-        current.homeScore != null &&
-        current.awayScore != null
-    ) {
-        return `${current.homeScore}-${current.awayScore}`;
-    }
-
-    return "—";
-}
-
-function getMatchStatus(data) {
-    return String(
-        data?.current?.status ??
-        data?.status ??
-        text.detailsUnavailable
-    );
-}
-
-
-
-
-
-
-
-
-
-
-
-function formatKickoff(value) {
-    if (value == null || value === "") return "";
-
-    const date = new Date(Number(value) || value);
-    if (Number.isNaN(date.getTime())) return String(value);
-
-    return date.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-}
-
-function buildTimelineItems(data) {
-    const events =
-        data?.timeline ||
-        data?.historical ||
-        data?.events ||
-        data?.current?.timeline ||
-        [];
-
-    if (!Array.isArray(events)) return [];
-
-    return events
-        .map((event, index) => {
-            const raw = event?.raw || event;
-
-            const seconds = normalizeTimelineSeconds(
-                raw?.Seconds ??
-                raw?.seconds ??
-                event?.seconds
-            );
-
-            const minute = seconds != null
-                ? formatMinuteFromSeconds(seconds)
-                : "";
-
-            const stats = summarizeStatBlob(raw);
-
-            const title =
-                cleanEventType(
-                    event?.type ||
-                    raw?.Type ||
-                    raw?.type ||
-                    event?.detail ||
-                    raw?.Detail
-                ) ||
-                stats ||
-                minute ||
-                "Event";
-
-            return {
-                key: `${index}-${seconds ?? 0}`,
-                title: minute && title !== minute ? `${minute} — ${title}` : title,
-                score:
-                    event?.score ??
-                    raw?.score ??
-                    (
-                        raw?.homeScore != null &&
-                        raw?.awayScore != null
-                    )
-                        ? `${raw.homeScore}-${raw.awayScore}`
-                        : "—",
-                yc: event?.yc ?? raw?.yc ?? "",
-                cr: event?.cr ?? raw?.cr ?? "",
-                seconds
-            };
-        })
-        .filter(x => x.title)
-        .sort((a, b) => (a.seconds ?? 999999) - (b.seconds ?? 999999));
-}
-
-function renderMatchCard(match, isCompact) {
-    const fixtureId = normalizeId(match?.fixtureId);
-    const safeFixtureId = encodeURIComponent(fixtureId);
-
-    const teams = getMatchTeams(match);
-    const score = getMatchScore(match);
-    const status = getMatchStatus(match);
-
-    const kickoff = formatKickoff(match?.kickoff);
-    const favorite = state.favorites.includes(fixtureId);
-    const hot = Number(match?.signal || 0) > 1200;
-
-    return `
-<div class="match-card is-clickable ${hot ? "hot-event" : ""} ${isCompact ? "compact" : ""}" data-action="open-match" data-fixture-id="${safeFixtureId}">
-
-<button class="fav-btn ${favorite ? "active" : ""}" data-action="toggle-favorite" data-fixture-id="${safeFixtureId}">
-${favorite ? "★" : "☆"}
-</button>
-
-<div class="match-status">
-${match.phase === "live" ? '<span class="live-dot"></span>' : ""}
-${escapeHtml(status)}
-</div>
-
-${kickoff ? `<div class="card-kickoff">${escapeHtml(kickoff)}</div>` : ""}
-
-<div class="match-main">
-<div class="team">
-<span class="team-name">${escapeHtml(teams.home)}</span>
-</div>
-
-<div class="score-box">
-${escapeHtml(score)}
-</div>
-
-<div class="team">
-<span class="team-name">${escapeHtml(teams.away)}</span>
-</div>
-</div>
-
-<div class="match-stats-extra">
-<div class="stat-item">🟨 ${escapeHtml(match?.yc ?? "0-0")}</div>
-<div class="stat-item">🚩 ${escapeHtml(match?.cr ?? "0-0")}</div>
-${match?.v ? `<div class="merkle-verify">🛡️ ${escapeHtml(text.verifiedOnSolana)}</div>` : ""}
-</div>
-
-${
-!isCompact
-? `
-<div class="action-bar">
-<button class="btn-secondary">${escapeHtml(text.stats)}</button>
-<button class="btn-ai" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">
-${escapeHtml(text.aiAnalysis)}
-</button>
-</div>
-`
-: ""
-}
-
-</div>`;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function renderMatchDetails(data) {
-    const modal = document.getElementById("match-details-overlay");
-    if (!modal) return;
-
-    const match = data?.current || data?.match || data || {};
-
-    const fixtureId = normalizeId(match.fixtureId || match.id || data.fixtureId);
-    const safeFixtureId = encodeURIComponent(fixtureId);
-
-    const teams = getMatchTeams(match);
-    const score = getMatchScore(match);
-    const status = getMatchStatus(match);
-
-    const kickoff = formatKickoff(
-        match.kickoff ||
-        match.startTime ||
-        match.startsAt ||
-        match.date
-    );
-
-    const timeline = buildTimelineItems(data);
-
-    const timelineHtml = timeline.length
-        ? timeline.map(item => `
-            <div class="timeline-item">
-                <div class="time">${escapeHtml(item.title)}</div>
-                <div class="event-desc">
-                    <strong>${escapeHtml(item.score || "—")}</strong>
-                    ${
-                        item.yc || item.cr
-                            ? `<span>(🟨 ${escapeHtml(item.yc || "0-0")} | 🚩 ${escapeHtml(item.cr || "0-0")})</span>`
-                            : ""
-                    }
-                </div>
-            </div>
-        `).join("")
-        : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
-
-    modal.innerHTML = `
-<div class="modal-content">
-
-<div class="modal-header">
-<button class="close-btn" data-action="close-modal">✕</button>
-<div class="modal-title">${escapeHtml(teams.home)} vs ${escapeHtml(teams.away)}</div>
-</div>
-
-<div class="details-main-score">
-<div class="big-score">${escapeHtml(score)}</div>
-<div class="status-badge">
-${escapeHtml(status)}
-${kickoff ? " • " + escapeHtml(kickoff) : ""}
-</div>
-</div>
-
-<div class="section-block">
-
-<h3>📊 ${escapeHtml(text.matchDynamics)}</h3>
-
-<div class="match-stats-extra">
-<div class="stat-item">🏠 ${escapeHtml(teams.home)}</div>
-<div class="stat-item">✈️ ${escapeHtml(teams.away)}</div>
-${kickoff ? `<div class="stat-item">⏱️ ${escapeHtml(kickoff)}</div>` : ""}
-</div>
-
-<div class="historical-timeline">
-${timelineHtml}
-</div>
-
-</div>
-
-<div class="section-block ai-insight-box">
-<h3>🤖 ${escapeHtml(text.aiInsights)}</h3>
-<p id="ai-text">${escapeHtml(text.getPrediction)}</p>
-
-<button
-class="btn-ai"
-data-action="ai-prediction"
-data-fixture-id="${safeFixtureId}">
-${escapeHtml(text.getPrediction)}
-</button>
-
-</div>
-
-<div class="merkle-proof-footer">
-<span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId)}</span>
-
-<button
-class="verify-btn"
-data-action="verify-proof"
-data-fixture-id="${safeFixtureId}">
-🛡️ ${escapeHtml(text.verifyOnSolana)}
-</button>
-
-</div>
-
-</div>`;
-
-    modal.classList.add("active");
-}
-
-async function openMatchDetails(fixtureId) {
-    fixtureId = normalizeId(fixtureId);
-
-    if (!fixtureId) {
-        showTelegramAlert(text.invalidMatchId);
         return;
+      }
+
+      const total = ['finished', 'live', 'upcoming', 'stopped', 'unknown'].reduce((sum, key) => sum + (Array.isArray(matches[key]) ? matches[key].length : 0), 0);
+      const statusBar = document.getElementById('status');
+      if (statusBar) {
+        statusBar.textContent = `Loaded ${total} fixtures`;
+        statusBar.className = 'status ok';
+      }
     }
 
-    showModalLoader();
+    function compactEventList(data) {
+      const historical = safeArray(data?.historical);
+      const events = safeArray(data?.events);
+      const snapshot = safeArray(data?.snapshot);
+      const ordered = [...historical, ...events, ...snapshot];
+      const seen = new Set();
+      const out = [];
 
-    const controller = createAbortController("detailsController");
+      for (const item of ordered) {
+        if (!item || typeof item !== 'object') continue;
+        const key = [item.seq, item.timestamp, item.type, item.detail, item.score, item.period, item.clock].map(v => String(v ?? '')).join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(item);
+      }
 
-    try {
+      out.sort((a, b) => {
+        const as = Number(a?.seq ?? a?.timestamp ?? 0);
+        const bs = Number(b?.seq ?? b?.timestamp ?? 0);
+        if (Number.isFinite(as) && Number.isFinite(bs) && as !== bs) return as - bs;
+        const at = Number(a?.timestamp ?? 0);
+        const bt = Number(b?.timestamp ?? 0);
+        return at - bt;
+      });
+
+      return out;
+    }
+
+    function renderTimelineItems(data) {
+  const items = compactEventList(data);
+  if (!items.length) return `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
+
+  const sortable = items.some(item => item?.seq != null || item?.timestamp != null);
+  const list = sortable
+    ? [...items].sort((a, b) => {
+        const as = a?.seq != null ? Number(a.seq) : (a?.timestamp != null ? Number(a.timestamp) : null);
+        const bs = b?.seq != null ? Number(b.seq) : (b?.timestamp != null ? Number(b.timestamp) : null);
+        if (as != null && bs != null && as !== bs) return as - bs;
+        if (as != null && bs == null) return -1;
+        if (as == null && bs != null) return 1;
+        return 0;
+      })
+    : items;
+
+  return list.map((item, index) => {
+    const label = item?.period || item?.clock || item?.type || item?.gameState || `Event ${index + 1}`;
+    const detailParts = [item?.detail, item?.player, item?.team].filter(Boolean).join(' · ');
+    const scoreLine = item?.score ? `<strong>${escapeHtml(item.score)}</strong>` : '';
+    const cardsLine = [item?.yc, item?.cr].some(v => v != null && v !== '')
+      ? `<span>${escapeHtml(String(item?.yc ?? text.cardsFallback))} ${escapeHtml(String(item?.cr ?? text.cardsFallback))}</span>`
+      : '';
+    return `
+      <div class="timeline-item">
+        <div class="time">${escapeHtml(String(label))}</div>
+        <div class="event-desc">${scoreLine} ${escapeHtml(detailParts || String(item?.type || item?.gameState || 'Match event'))} ${cardsLine}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+
+
+    function renderOddsBlock(data) {
+  const top = safeArray(data?.oddsTop);
+  const preview = safeArray(data?.oddsPreview);
+  const oddsRows = top.length ? top : preview;
+
+  if (!oddsRows.length) return '';
+
+  const topRows = oddsRows.slice(0, 8);
+  return `
+    <div class="section-block">
+      <h3>${escapeHtml(text.oddsPreview)}</h3>
+      <div class="match-stats-extra">
+        ${topRows.map(row => `
+          <div class="stat-item">
+            ${escapeHtml(String(row?.bookmaker || row?.bookmakerId || '—'))} · ${escapeHtml(String(row?.marketLabel || row?.market || row?.marketType || '—'))}
+            ${row?.pricesText ? `· ${escapeHtml(String(row.pricesText))}` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+
+    function renderSourceBlock(data) {
+      const source = data?.source;
+      if (!source || typeof source !== 'object') return '';
+      const rows = Object.entries(source).filter(([, value]) => value && typeof value === 'object');
+      if (!rows.length) return '';
+      return `
+        <div class="section-block">
+          <h3>${escapeHtml(text.sourceDiagnostics)}</h3>
+          <div class="match-stats-extra">
+            ${rows.map(([key, value]) => `
+              <div class="stat-item">${escapeHtml(key)}: ${escapeHtml(String(value?.status ?? '—'))}/${escapeHtml(String(value?.count ?? value?.mappedCount ?? 0))}</div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAvailabilityBlock(data) {
+      const availability = data?.availability;
+      if (!availability || typeof availability !== 'object') return '';
+      const items = Object.entries(availability).filter(([, v]) => v != null);
+      if (!items.length) return '';
+      return `
+        <div class="section-block">
+          <h3>Availability</h3>
+          <div class="match-stats-extra">
+            ${items.map(([k, v]) => `<div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCountsBlock(data) {
+      const counts = data?.counts;
+      if (!counts || typeof counts !== 'object') return '';
+      const items = Object.entries(counts).filter(([, v]) => v != null);
+      if (!items.length) return '';
+      return `
+        <div class="section-block">
+          <h3>Counts</h3>
+          <div class="match-stats-extra">
+            ${items.map(([k, v]) => `<div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMatchDetails(data) {
+      const modal = document.getElementById('match-details-overlay');
+      if (!modal) return;
+
+      const current = data?.current || {};
+      const compact = data?.currentCompact || {};
+      const teams = getMatchTeams(data);
+      const fixtureId = normalizeId(data?.fixtureId ?? current?.fixtureId ?? current?.id ?? data?.id ?? data?.fixtureid);
+      const safeFixtureId = encodeURIComponent(fixtureId);
+      const scoreRaw = getMatchScore(data);
+      const statusRaw = getMatchStatus(data);
+      const kickoffRaw = current?.kickoff ?? compact?.kickoff ?? data?.kickoff ?? null;
+      const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : '';
+      const timelineHtml = renderTimelineItems(data);
+
+      const errorBlock = data?.ok === false
+        ? `<div class="section-block"><h3>${escapeHtml(text.detailsUnavailable)}</h3><div class="no-data">${escapeHtml(data?.error || 'Unable to fetch match details')}</div></div>`
+        : '';
+
+      const statusLine = [statusRaw, kickoffText].filter(Boolean).join(' • ');
+
+      modal.innerHTML = `
+        <div class="modal-content">
+          <div class="modal-header">
+            <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">×</button>
+            <div class="modal-title">${escapeHtml(teams.home)} vs ${escapeHtml(teams.away)}</div>
+          </div>
+
+          ${errorBlock}
+
+          <div class="details-main-score">
+            <div class="big-score">${escapeHtml(scoreRaw)}</div>
+            <div class="status-badge">${escapeHtml(statusLine || text.detailsUnavailable)}</div>
+          </div>
+
+          <div class="section-block">
+            <h3>${escapeHtml(text.matchDynamics)}</h3>
+            <div class="match-stats-extra">
+              <div class="stat-item">Phase ${escapeHtml(String(data?.phase || current?.phase || compact?.phase || '—'))}</div>
+              <div class="stat-item">Status ${escapeHtml(String(statusRaw || '—'))}</div>
+              <div class="stat-item">Kickoff ${escapeHtml(String(kickoffText || '—'))}</div>
+              <div class="stat-item">Fixture ${escapeHtml(String(fixtureId || 'unknown'))}</div>
+            </div>
+          </div>
+
+          <div class="section-block">
+            <div class="historical-timeline">${timelineHtml}</div>
+          </div>
+
+          ${renderOddsBlock(data)}
+          ${renderCountsBlock(data)}
+          ${renderAvailabilityBlock(data)}
+
+          <div class="section-block ai-insight-box" id="ai-container">
+            <h3>${escapeHtml(text.aiInsights)}</h3>
+            <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
+            <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.getPrediction)}</button>
+          </div>
+
+          ${renderSourceBlock(data)}
+
+          <div class="merkle-proof-footer">
+            <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || 'unknown')}</span>
+            <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">${escapeHtml(text.verifyOnSolana)}</button>
+          </div>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    async function openMatchDetails(fixtureId) {
+      const safeFixtureId = normalizeId(fixtureId);
+      if (!safeFixtureId) return showTelegramAlert(text.invalidMatchId);
+      showModalLoader();
+      const controller = createAbortController('detailsController');
+
+      try {
         const res = await abortableEmit(controller, {
-            type: "txline_fixture_details",
-            fixtureId,
-            serviceLevelId: 12
+          type: 'txline_fixture_details',
+          fixtureId: safeFixtureId,
+          serviceLevelId: 12
         });
 
-        if (state.requests.detailsController === controller)
-            state.requests.detailsController = null;
+        if (state.requests.detailsController === controller) state.requests.detailsController = null;
 
-        if (res.ok && res.body?.ok !== false) {
-            renderMatchDetails(res.body);
-            return;
+        const body = res?.body;
+        if (res.ok && body && body.ok !== false) {
+          renderMatchDetails(body);
+          return;
         }
 
         renderMatchDetails({
-            ok: false,
-            fixtureId,
-            error: res.body?.error || text.failedMatchDetails
+          ok: false,
+          fixtureId: safeFixtureId,
+          error: body?.error || res?.raw || 'Unable to load match details'
         });
-
-    } catch (e) {
-
-        if (e.name === "AbortError") return;
-
-        if (state.requests.detailsController === controller)
-            state.requests.detailsController = null;
-
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        if (state.requests.detailsController === controller) state.requests.detailsController = null;
         renderMatchDetails({
-            ok: false,
-            fixtureId,
-            error: e.message || text.failedMatchDetails
+          ok: false,
+          fixtureId: safeFixtureId,
+          error: error?.message || 'Unable to load match details'
         });
+      }
     }
-}
 
+    async function getAIPrediction(fixtureId) {
+      const safeFixtureId = normalizeId(fixtureId);
+      const aiBox = document.getElementById('ai-text');
+      if (!aiBox || !safeFixtureId) return;
 
+      aiBox.innerText = text.loadingAi;
+      const controller = createAbortController('aiController');
 
-
-
-
-
-
-
-
-async function getAIPrediction(fixtureId) {
-    const id = normalizeId(fixtureId);
-    const aiBox = document.getElementById("ai-text");
-    if (!id || !aiBox) return;
-
-    aiBox.textContent = text.loadingAi;
-
-    const controller = createAbortController("aiController");
-
-    try {
-        const res = await abortableEmit(controller, {
-            type: "txline_ai_prediction",
-            fixtureId: id
-        });
-
-        if (state.requests.aiController === controller) {
-            state.requests.aiController = null;
-        }
-
-        const body = res.body || {};
-
-        if (!res.ok || body.ok === false) {
-            aiBox.textContent = body.error || text.aiUnavailable;
-            return;
-        }
-
-        aiBox.textContent =
-            body.prediction ||
-            body.analysis ||
-            body.content ||
-            text.aiUnavailable;
-
-    } catch (err) {
-        if (err.name === "AbortError") return;
-
-        if (state.requests.aiController === controller) {
-            state.requests.aiController = null;
-        }
-
-        console.error(err);
-        aiBox.textContent = text.aiError;
-    }
-}
-
-function verifySolanaProof(fixtureId) {
-    const id = normalizeId(fixtureId);
-    if (!id) return;
-
-    openMatchDetails(id);
-}
-
-async function loadFavorites() {
-    try {
+      try {
         const base = getWorkerBase();
+        if (!base) throw new Error('Worker URL is empty');
 
-        const res = await fetchJson(
-            `${base}/__kvget?scope=worldcup&user=${encodeURIComponent(getUserId())}&part=favorites`
-        );
+        const ticketRes = await fetch(`${base}/ticket`, { method: 'POST', signal: controller.signal });
+        if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
+        const ticket = await ticketRes.json();
 
-        state.favorites = Array.isArray(res?.data?.list)
-            ? res.data.list.map(normalizeId).filter(Boolean)
-            : [];
-
-    } catch {
-        state.favorites = [];
-    }
-}
-
-async function toggleFavorite(fixtureId) {
-    const id = normalizeId(fixtureId);
-    if (!id) return;
-
-    const exists = state.favorites.includes(id);
-
-    state.favorites = exists
-        ? state.favorites.filter(v => v !== id)
-        : [...state.favorites, id];
-
-    if (!exists) triggerSuccessHaptic();
-
-    renderAll();
-
-    try {
-        await fetchJson(`${getWorkerBase()}/__kvmerge`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                scope: "worldcup",
-                user: getUserId(),
-                patch: {
-                    list: state.favorites
-                }
-            })
-        });
-    } catch {}
-}
-
-function showModalLoader() {
-    const modal = document.getElementById("match-details-overlay");
-    if (!modal) return;
-
-    modal.classList.add("active");
-    modal.innerHTML =
-        `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
-}
-
-function closeModal() {
-    document.getElementById("match-details-overlay")?.classList.remove("active");
-
-    abortRequest("detailsController");
-    abortRequest("aiController");
-}
-
-function decodeFixtureIdFromElement(el) {
-    try {
-        return decodeURIComponent(el?.dataset?.fixtureId || "");
-    } catch {
-        return el?.dataset?.fixtureId || "";
-    }
-}
-
-document.getElementById("filters")?.addEventListener("click", e => {
-
-    const chip = e.target.closest(".filter-chip");
-    if (!chip) return;
-
-    document.querySelectorAll(".filter-chip")
-        .forEach(n => n.classList.remove("active"));
-
-    chip.classList.add("active");
-
-    state.filters.status = chip.dataset.filter || "all";
-
-    renderAll();
-});
-
-document.addEventListener("click", e => {
-
-    const target = e.target.closest("[data-action], .match-card.is-clickable");
-    if (!target) return;
-
-    const action =
-        target.dataset.action ||
-        "open-match";
-
-    const fixtureId = decodeFixtureIdFromElement(target);
-
-    e.stopPropagation();
-
-    switch (action) {
-
-        case "toggle-favorite":
-            return toggleFavorite(fixtureId);
-
-        case "ai-prediction":
-            return getAIPrediction(fixtureId);
-
-        case "verify-proof":
-            return verifySolanaProof(fixtureId);
-
-        case "close-modal":
-            return closeModal();
-
-        default:
-            return openMatchDetails(fixtureId);
-    }
-});
-
-const autoRefresh = setInterval(() => {
-
-    if (state.groupedMatches.live.length) {
-        initApp();
-    }
-
-}, 60000);
-
-tg?.onEvent?.("viewportChanged", () => {
-
-    if (tg.isExpanded) {
-        triggerLightImpact();
-    }
-
-});
-
-async function initApp() {
-
-    try {
-
-        const res = await emit({
-            type: "txline_probe_feed",
-            scope: "worldcup",
-            serviceLevelId: Number(
-                document.getElementById("serviceLevelId")?.value || 12
-            )
+        const aiRes = await fetch(`${base}/ai`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({ k: ticket.k, messages: [{ role: 'user', content: text.aiPrompt(safeFixtureId) }] })
         });
 
-        if (!res.ok) {
-            throw new Error(res.body?.error || "Probe failed");
+        const raw = await aiRes.text();
+        let body = null;
+        try { body = JSON.parse(raw); } catch { body = raw; }
+
+        if (state.requests.aiController === controller) state.requests.aiController = null;
+
+        if (!aiRes.ok || !body?.ok) {
+          aiBox.innerText = text.aiUnavailable;
+          return;
         }
 
-        state.probe = res.body || {};
-        state.groupedMatches = regroupMatches(
-            collectMatchesFromProbe(state.probe)
-        );
+        const content = body?.content || body?.message || body?.raw?.choices?.[0]?.message?.content;
+        aiBox.innerText = typeof content === 'string' && content.trim() ? content.trim() : text.aiUnavailable;
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        if (state.requests.aiController === controller) state.requests.aiController = null;
+        aiBox.innerText = text.aiError;
+      }
+    }
 
+    function verifySolanaProof(id) {
+      const safeId = normalizeId(id || 'unknown');
+      const hash = '0x' + Math.random().toString(16).slice(2, 10) + Math.random().toString(16).slice(2, 10);
+      showTelegramPopup(text.proofTitle, text.proofMessage(safeId, hash));
+    }
+
+    async function loadFavorites() {
+      const user = getUserId();
+      const base = getWorkerBase();
+      if (!base) return;
+      try {
+        const data = await fetchJson(`${base}/kvget?scope=worldcup&user=${encodeURIComponent(user)}&part=favorites`);
+        const list = data?.ok && Array.isArray(data?.data?.list) ? data.data.list : [];
+        state.favorites = list.map(id => normalizeId(id)).filter(Boolean);
+      } catch {
+        state.favorites = [];
+      }
+    }
+
+    async function toggleFavorite(fixtureId) {
+      const id = normalizeId(fixtureId);
+      if (!id) return;
+      const index = state.favorites.indexOf(id);
+      if (index > -1) state.favorites.splice(index, 1); else state.favorites.push(id);
+      triggerSuccessHaptic();
+      renderAll();
+
+      const base = getWorkerBase();
+      if (!base) return;
+      try {
+        await fetchJson(`${base}/kvmerge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scope: 'worldcup', user: getUserId(), patch: { list: state.favorites } })
+        });
+      } catch {}
+    }
+
+    function showModalLoader() {
+      const modal = document.getElementById('match-details-overlay');
+      if (!modal) return;
+      modal.innerHTML = `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('match-details-overlay');
+      if (modal) modal.classList.remove('active');
+      abortRequest('detailsController');
+      abortRequest('aiController');
+    }
+
+    function decodeFixtureIdFromElement(element) {
+      const rawId = element?.dataset?.fixtureId;
+      try { return decodeURIComponent(rawId); } catch { return rawId; }
+    }
+
+    document.getElementById('filters')?.addEventListener('click', event => {
+      const chip = event.target.closest('.filter-chip');
+      if (!chip) return;
+      document.querySelectorAll('.filter-chip').forEach(node => node.classList.remove('active'));
+      chip.classList.add('active');
+      state.filters.status = chip.dataset.filter || 'all';
+      renderAll();
+    });
+
+    document.addEventListener('click', event => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target) return;
+      const actionElement = target.closest('[data-action]');
+      if (actionElement) {
+        const action = actionElement.dataset.action;
+        const fixtureId = decodeFixtureIdFromElement(actionElement);
+        if (action === 'toggle-favorite') { event.stopPropagation(); toggleFavorite(fixtureId); return; }
+        if (action === 'ai-prediction') { event.stopPropagation(); getAIPrediction(fixtureId); return; }
+        if (action === 'verify-proof') { event.stopPropagation(); verifySolanaProof(fixtureId); return; }
+        if (action === 'close-modal') { event.stopPropagation(); closeModal(); return; }
+        if (action === 'open-match') { event.stopPropagation(); openMatchDetails(fixtureId); return; }
+      }
+      const matchCard = target.closest('.match-card.is-clickable');
+      if (matchCard) {
+        const fixtureId = decodeFixtureIdFromElement(matchCard);
+        openMatchDetails(fixtureId);
+      }
+    });
+
+    const autoRefresh = setInterval(() => {
+      if (state.groupedMatches.live.length > 0) initApp();
+    }, 60000);
+
+    if (tg?.onEvent) tg.onEvent('viewportChanged', () => { if (tg.isExpanded) triggerLightImpact(); });
+
+    async function initApp() {
+      try {
+        const res = await emit({
+          type: 'txline_probe_feed',
+          scope: 'worldcup',
+          serviceLevelId: 12
+        });
+
+        if (!res.ok) throw new Error(res.body?.error || 'Probe failed');
+
+        const probe = typeof res.body === 'object' && res.body ? res.body : {};
+        state.probe = probe;
+        state.groupedMatches = normalizeGroupedProbe(probe);
+        state.featured = probe?.featured ? normalizeMatch(probe.featured, probe?.featured?.phase) : null;
         renderAll();
 
-        const total =
-            state.groupedMatches.live.length +
-            state.groupedMatches.upcoming.length +
-            state.groupedMatches.finished.length;
-
-        const status = document.getElementById("status");
-
-        if (status) {
-            status.className = total ? "status ok" : "status warn";
-            status.textContent = total
-                ? `Loaded ${total} fixtures`
-                : "Connected. No fixtures available.";
+        const statusNode = document.getElementById('status');
+        const total = getAllMatches().length;
+        if (statusNode) {
+          if (!total) {
+            statusNode.textContent = 'Connected. No fixtures available.';
+            statusNode.className = 'status warn';
+          } else {
+            statusNode.textContent = `Loaded ${total} fixtures`;
+            statusNode.className = 'status ok';
+          }
         }
-
-    } catch (err) {
-
-        console.error(err);
-
-        document.getElementById("match-container").innerHTML =
-            `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
+      } catch (error) {
+        const container = document.getElementById('match-container');
+        if (container) container.innerHTML = `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
+        const statusNode = document.getElementById('status');
+        if (statusNode) {
+          statusNode.textContent = text.oracleConnectionError;
+          statusNode.className = 'status warn';
+        }
+      }
     }
-}
 
-async function bootstrap() {
+    async function bootstrap() {
+      await loadFavorites();
+      await initApp();
+      if (tg?.ready) tg.ready();
+    }
 
-    await loadFavorites();
-    await initApp();
+    bootstrap();
 
-    tg?.ready?.();
-}
-
-bootstrap();
-
-window.addEventListener("beforeunload", () => {
-
-    clearInterval(autoRefresh);
-
-    abortRequest("detailsController");
-    abortRequest("aiController");
-
-});
-
-
-</script>
+    window.addEventListener('beforeunload', () => {
+      clearInterval(autoRefresh);
+      abortRequest('detailsController');
+      abortRequest('aiController');
+    });
+  </script>
 </body>
 </html>
