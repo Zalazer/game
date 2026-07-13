@@ -390,6 +390,7 @@ ${message}`);
     function triggerSuccessHaptic() { tg?.HapticFeedback?.notificationOccurred?.('success'); }
     function triggerLightImpact() { tg?.HapticFeedback?.impactOccurred?.('light'); }
 
+
     function getWorkerBase() {
       const node = document.getElementById('workerBase');
       const base = node?.value?.trim() || '';
@@ -403,39 +404,62 @@ ${message}`);
     }
 
     async function emit(payload) {
-      const base = getWorkerBase();
-      if (!base) throw new Error('Worker URL is empty');
-      const ticketRes = await fetch(`${base}/ticket`, { method: 'POST' });
-      if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
-      const ticket = await ticketRes.json();
-      const emitRes = await fetch(`${base}/emit`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ k: ticket.k, d: payload })
-      });
-      const raw = await emitRes.text();
-      let body;
-      try { body = JSON.parse(raw); } catch { body = raw; }
-      return { ok: emitRes.ok, status: emitRes.status, body, raw };
-    }
+  const base = getWorkerBase();
+  if (!base) throw new Error('Worker URL is empty');
+
+  const ticketRes = await fetch(`${base}/ticket`, { method: 'POST' });
+  if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
+  const ticket = await ticketRes.json();
+
+  const emitRes = await fetch(`${base}/emit`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ k: ticket.k, d: payload })
+  });
+
+  const raw = await emitRes.text();
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    body = raw;
+  }
+
+  return { ok: emitRes.ok, status: emitRes.status, body, raw };
+}
+
+
 
     async function abortableEmit(controller, payload) {
-      const base = getWorkerBase();
-      if (!base) throw new Error('Worker URL is empty');
-      const ticketRes = await fetch(`${base}/ticket`, { method: 'POST', signal: controller.signal });
-      if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
-      const ticket = await ticketRes.json();
-      const emitRes = await fetch(`${base}/emit`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ k: ticket.k, d: payload }),
-        signal: controller.signal
-      });
-      const raw = await emitRes.text();
-      let body;
-      try { body = JSON.parse(raw); } catch { body = raw; }
-      return { ok: emitRes.ok, status: emitRes.status, body, raw };
-    }
+  const base = getWorkerBase();
+  if (!base) throw new Error('Worker URL is empty');
+
+  const ticketRes = await fetch(`${base}/ticket`, {
+    method: 'POST',
+    signal: controller.signal
+  });
+  if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
+  const ticket = await ticketRes.json();
+
+  const emitRes = await fetch(`${base}/emit`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ k: ticket.k, d: payload }),
+    signal: controller.signal
+  });
+
+  const raw = await emitRes.text();
+  let body;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    body = raw;
+  }
+
+  return { ok: emitRes.ok, status: emitRes.status, body, raw };
+}
+
+
 
     function abortRequest(controllerKey) {
       const controller = state.requests[controllerKey];
@@ -500,15 +524,15 @@ ${message}`);
     }
 
     function normalizeGroupedProbe(probe) {
-      const grouped = probe?.grouped || {};
-      return {
-        live: safeArray(grouped.live).map(m => normalizeMatch(m, 'live')),
-        upcoming: safeArray(grouped.upcoming).map(m => normalizeMatch(m, 'upcoming')),
-        finished: safeArray(grouped.finished).map(m => normalizeMatch(m, 'finished')),
-        stopped: safeArray(grouped.stopped).map(m => normalizeMatch(m, 'stopped')),
-        unknown: safeArray(grouped.unknown).map(m => normalizeMatch(m, 'unknown'))
-      };
-    }
+  const grouped = probe?.grouped || {};
+  return {
+    live: safeArray(grouped.live).map(m => normalizeMatch(m, 'live')),
+    upcoming: safeArray(grouped.upcoming).map(m => normalizeMatch(m, 'upcoming')),
+    finished: safeArray(grouped.finished).map(m => normalizeMatch(m, 'finished')),
+    stopped: safeArray(grouped.stopped).map(m => normalizeMatch(m, 'stopped')),
+    unknown: safeArray(grouped.unknown).map(m => normalizeMatch(m, 'unknown'))
+  };
+}
 
     function getAllMatches() {
       const g = state.groupedMatches;
@@ -652,52 +676,61 @@ ${message}`);
     }
 
     function renderAll() {
-      const container = document.getElementById('match-container');
-      if (!container) return;
-      renderFeatured();
+  const container = document.getElementById('match-container');
+  if (!container) return;
 
-      const matches = getFilteredMatches();
-      container.innerHTML = '';
+  renderFeatured();
 
-      const hasFinished = Array.isArray(matches.finished) && matches.finished.length > 0;
-      const hasLive = Array.isArray(matches.live) && matches.live.length > 0;
-      const hasUpcoming = Array.isArray(matches.upcoming) && matches.upcoming.length > 0;
-      const hasStopped = Array.isArray(matches.stopped) && matches.stopped.length > 0;
-      const hasUnknown = Array.isArray(matches.unknown) && matches.unknown.length > 0;
+  const matches = getFilteredMatches();
+  container.innerHTML = '';
 
-      const renderCount = (label, list) => `${label} (${Array.isArray(list) ? list.length : 0})`;
+  const hasFinished = Array.isArray(matches.finished) && matches.finished.length > 0;
+  const hasLive = Array.isArray(matches.live) && matches.live.length > 0;
+  const hasUpcoming = Array.isArray(matches.upcoming) && matches.upcoming.length > 0;
+  const hasStopped = Array.isArray(matches.stopped) && matches.stopped.length > 0;
+  const hasUnknown = Array.isArray(matches.unknown) && matches.unknown.length > 0;
 
-      if (hasFinished) {
-        const finishedSection = document.createElement('details');
-        finishedSection.className = 'finished-accordion';
-        finishedSection.open = false;
-        finishedSection.innerHTML = `
-          <summary class="section-title">
-            <span>${escapeHtml(renderCount(text.completedMatches, matches.finished))}</span>
-            <small>${escapeHtml(text.completedSubtitle)}</small>
-          </summary>
-          <div class="compact-list">${matches.finished.map(match => renderMatchCard(match, true)).join('')}</div>
-        `;
-        container.appendChild(finishedSection);
-      }
+  const total =
+    (Array.isArray(matches.finished) ? matches.finished.length : 0) +
+    (Array.isArray(matches.live) ? matches.live.length : 0) +
+    (Array.isArray(matches.upcoming) ? matches.upcoming.length : 0) +
+    (Array.isArray(matches.stopped) ? matches.stopped.length : 0) +
+    (Array.isArray(matches.unknown) ? matches.unknown.length : 0);
 
-      if (hasLive) renderSection(container, text.liveNow, matches.live, 'live-section');
-      if (hasUpcoming) renderSection(container, text.startingSoon, matches.upcoming, 'upcoming-section');
-      if (hasStopped) renderSection(container, 'Stopped', matches.stopped, 'stopped-section');
-      if (hasUnknown) renderSection(container, 'Other', matches.unknown, 'unknown-section');
+  if (!total) {
+    container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
+    return;
+  }
 
-      if (!hasFinished && !hasLive && !hasUpcoming && !hasStopped && !hasUnknown) {
-        container.innerHTML = `<div class="empty-state">${escapeHtml(text.noMatches)}</div>`;
-        return;
-      }
+  if (hasFinished) {
+    const finishedSection = document.createElement('details');
+    finishedSection.className = 'finished-accordion';
+    finishedSection.open = false;
+    finishedSection.innerHTML = `
+      <summary class="section-title">
+        <span>${escapeHtml(text.completedMatches)} (${matches.finished.length})</span>
+        <small>${escapeHtml(text.completedSubtitle)}</small>
+      </summary>
+      <div class="compact-list">
+        ${matches.finished.map(match => renderMatchCard(match, true)).join('')}
+      </div>
+    `;
+    container.appendChild(finishedSection);
+  }
 
-      const total = ['finished', 'live', 'upcoming', 'stopped', 'unknown'].reduce((sum, key) => sum + (Array.isArray(matches[key]) ? matches[key].length : 0), 0);
-      const statusBar = document.getElementById('status');
-      if (statusBar) {
-        statusBar.textContent = `Loaded ${total} fixtures`;
-        statusBar.className = 'status ok';
-      }
-    }
+  if (hasLive) renderSection(container, text.liveNow, matches.live, 'live-section');
+  if (hasUpcoming) renderSection(container, text.startingSoon, matches.upcoming, 'upcoming-section');
+  if (hasStopped) renderSection(container, 'Stopped', matches.stopped, 'stopped-section');
+  if (hasUnknown) renderSection(container, 'Other', matches.unknown, 'unknown-section');
+
+  const statusBar = document.getElementById('status');
+  if (statusBar) {
+    statusBar.textContent = `Loaded ${total} fixtures`;
+    statusBar.className = 'status ok';
+  }
+}
+
+
 
     function compactEventList(data) {
       const historical = safeArray(data?.historical);
@@ -760,7 +793,6 @@ ${message}`);
 }
 
 
-
     function renderOddsBlock(data) {
   const top = safeArray(data?.oddsTop);
   const preview = safeArray(data?.oddsPreview);
@@ -783,6 +815,8 @@ ${message}`);
     </div>
   `;
 }
+
+
 
 
     function renderSourceBlock(data) {
@@ -833,154 +867,279 @@ ${message}`);
     }
 
     function renderMatchDetails(data) {
-      const modal = document.getElementById('match-details-overlay');
-      if (!modal) return;
+  const modal = document.getElementById('match-details-overlay');
+  if (!modal) return;
 
-      const current = data?.current || {};
-      const compact = data?.currentCompact || {};
-      const teams = getMatchTeams(data);
-      const fixtureId = normalizeId(data?.fixtureId ?? current?.fixtureId ?? current?.id ?? data?.id ?? data?.fixtureid);
-      const safeFixtureId = encodeURIComponent(fixtureId);
-      const scoreRaw = getMatchScore(data);
-      const statusRaw = getMatchStatus(data);
-      const kickoffRaw = current?.kickoff ?? compact?.kickoff ?? data?.kickoff ?? null;
-      const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : '';
-      const timelineHtml = renderTimelineItems(data);
+  const current = data?.current || {};
+  const compact = data?.currentCompact || {};
+  const teams = getMatchTeams(data);
+  const fixtureId = normalizeId(
+    data?.fixtureId ??
+    current?.fixtureId ??
+    current?.id ??
+    data?.id ??
+    data?.fixtureid
+  );
 
-      const errorBlock = data?.ok === false
-        ? `<div class="section-block"><h3>${escapeHtml(text.detailsUnavailable)}</h3><div class="no-data">${escapeHtml(data?.error || 'Unable to fetch match details')}</div></div>`
-        : '';
+  const safeFixtureId = encodeURIComponent(fixtureId);
+  const scoreRaw = getMatchScore(data);
+  const statusRaw = getMatchStatus(data);
+  const kickoffRaw =
+    current?.startTime ??
+    current?.kickoff ??
+    current?.date ??
+    current?.datetime ??
+    current?.startsAt ??
+    data?.startTime ??
+    data?.kickoff ??
+    data?.date ??
+    data?.datetime ??
+    data?.startsAt ??
+    current?.raw?.StartTime ??
+    null;
 
-      const statusLine = [statusRaw, kickoffText].filter(Boolean).join(' • ');
+  const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : '';
+  const statusLine = [statusRaw, kickoffText].filter(Boolean).join(' • ');
 
-      modal.innerHTML = `
-        <div class="modal-content">
-          <div class="modal-header">
-            <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">×</button>
-            <div class="modal-title">${escapeHtml(teams.home)} vs ${escapeHtml(teams.away)}</div>
-          </div>
-
-          ${errorBlock}
-
-          <div class="details-main-score">
-            <div class="big-score">${escapeHtml(scoreRaw)}</div>
-            <div class="status-badge">${escapeHtml(statusLine || text.detailsUnavailable)}</div>
-          </div>
-
-          <div class="section-block">
-            <h3>${escapeHtml(text.matchDynamics)}</h3>
-            <div class="match-stats-extra">
-              <div class="stat-item">Phase ${escapeHtml(String(data?.phase || current?.phase || compact?.phase || '—'))}</div>
-              <div class="stat-item">Status ${escapeHtml(String(statusRaw || '—'))}</div>
-              <div class="stat-item">Kickoff ${escapeHtml(String(kickoffText || '—'))}</div>
-              <div class="stat-item">Fixture ${escapeHtml(String(fixtureId || 'unknown'))}</div>
+  const timelineItems = buildTimelineItems(data);
+  const timelineHtml = timelineItems.length
+    ? timelineItems.map((item, index) => {
+        const title = item?.title || `Event ${index + 1}`;
+        const scorePart = item?.score ? `<strong>${escapeHtml(String(item.score))}</strong>` : '';
+        const cardsPart = [item?.yc, item?.cr].some(v => v != null && v !== '')
+          ? `<span>${escapeHtml(String(item?.yc ?? text.cardsFallback))} ${escapeHtml(String(item?.cr ?? text.cardsFallback))}</span>`
+          : '';
+        return `
+          <div class="timeline-item">
+            <div class="time">${escapeHtml(String(title))}</div>
+            <div class="event-desc">
+              ${scorePart}
+              ${scorePart ? ' ' : ''}
+              ${escapeHtml(String(item?.title || item?.raw?.Type || item?.raw?.type || 'Match event'))}
+              ${cardsPart ? ` ${cardsPart}` : ''}
             </div>
           </div>
+        `;
+      }).join('')
+    : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
-          <div class="section-block">
-            <div class="historical-timeline">${timelineHtml}</div>
-          </div>
-
-          ${renderOddsBlock(data)}
-          ${renderCountsBlock(data)}
-          ${renderAvailabilityBlock(data)}
-
-          <div class="section-block ai-insight-box" id="ai-container">
-            <h3>${escapeHtml(text.aiInsights)}</h3>
-            <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
-            <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.getPrediction)}</button>
-          </div>
-
-          ${renderSourceBlock(data)}
-
-          <div class="merkle-proof-footer">
-            <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || 'unknown')}</span>
-            <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">${escapeHtml(text.verifyOnSolana)}</button>
-          </div>
+  const oddsSource = safeArray(data?.oddsTop).length ? data?.oddsTop : data?.oddsPreview;
+  const oddsHtml = safeArray(oddsSource).length
+    ? `
+      <div class="section-block">
+        <h3>${escapeHtml(text.oddsPreview)}</h3>
+        <div class="match-stats-extra">
+          ${safeArray(oddsSource).slice(0, 8).map(row => `
+            <div class="stat-item">
+              ${escapeHtml(String(row?.bookmaker || row?.bookmakerId || '—'))} · ${escapeHtml(String(row?.marketLabel || row?.market || row?.marketType || '—'))}
+              ${row?.pricesText ? `· ${escapeHtml(String(row.pricesText))}` : ''}
+            </div>
+          `).join('')}
         </div>
-      `;
-      modal.classList.add('active');
-    }
+      </div>
+    `
+    : '';
+
+  const countsHtml = data?.counts && typeof data.counts === 'object'
+    ? `
+      <div class="section-block">
+        <h3>Counts</h3>
+        <div class="match-stats-extra">
+          ${Object.entries(data.counts).filter(([, v]) => v != null).map(([k, v]) => `
+            <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>
+          `).join('')}
+        </div>
+      </div>
+    `
+    : '';
+
+  const availabilityHtml = data?.availability && typeof data.availability === 'object'
+    ? `
+      <div class="section-block">
+        <h3>Availability</h3>
+        <div class="match-stats-extra">
+          ${Object.entries(data.availability).filter(([, v]) => v != null).map(([k, v]) => `
+            <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>
+          `).join('')}
+        </div>
+      </div>
+    `
+    : '';
+
+  const sourceHtml = data?.source && typeof data.source === 'object'
+    ? `
+      <div class="section-block">
+        <h3>${escapeHtml(text.sourceDiagnostics)}</h3>
+        <div class="match-stats-extra">
+          ${Object.entries(data.source).filter(([, v]) => v && typeof v === 'object').map(([k, v]) => `
+            <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v?.status ?? '—'))}/${escapeHtml(String(v?.count ?? v?.mappedCount ?? 0))}</div>
+          `).join('')}
+        </div>
+      </div>
+    `
+    : '';
+
+  const errorBlock = data?.ok === false
+    ? `
+      <div class="section-block">
+        <h3>${escapeHtml(text.detailsUnavailable)}</h3>
+        <div class="no-data">${escapeHtml(data?.error || text.failedMatchDetailsShort)}</div>
+      </div>
+    `
+    : '';
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">×</button>
+        <div class="modal-title">${escapeHtml(teams.home)} vs ${escapeHtml(teams.away)}</div>
+      </div>
+
+      ${errorBlock}
+
+      <div class="details-main-score">
+        <div class="big-score">${escapeHtml(scoreRaw)}</div>
+        <div class="status-badge">${escapeHtml(statusLine || text.detailsUnavailable)}</div>
+      </div>
+
+      <div class="section-block">
+        <h3>${escapeHtml(text.matchDynamics)}</h3>
+        <div class="match-stats-extra">
+          <div class="stat-item">Phase ${escapeHtml(String(data?.phase || current?.phase || compact?.phase || '—'))}</div>
+          <div class="stat-item">Status ${escapeHtml(String(statusRaw || '—'))}</div>
+          <div class="stat-item">Kickoff ${escapeHtml(String(kickoffText || '—'))}</div>
+          <div class="stat-item">Fixture ${escapeHtml(String(fixtureId || 'unknown'))}</div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="historical-timeline">${timelineHtml}</div>
+      </div>
+
+      ${oddsHtml}
+      ${countsHtml}
+      ${availabilityHtml}
+
+      <div class="section-block ai-insight-box" id="ai-container">
+        <h3>${escapeHtml(text.aiInsights)}</h3>
+        <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
+        <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.getPrediction)}</button>
+      </div>
+
+      ${sourceHtml}
+
+      <div class="merkle-proof-footer">
+        <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || 'unknown')}</span>
+        <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">${escapeHtml(text.verifyOnSolana)}</button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
 
     async function openMatchDetails(fixtureId) {
-      const safeFixtureId = normalizeId(fixtureId);
-      if (!safeFixtureId) return showTelegramAlert(text.invalidMatchId);
-      showModalLoader();
-      const controller = createAbortController('detailsController');
+  const safeFixtureId = normalizeId(fixtureId);
+  if (!safeFixtureId) return showTelegramAlert(text.invalidMatchId);
 
-      try {
-        const res = await abortableEmit(controller, {
-          type: 'txline_fixture_details',
-          fixtureId: safeFixtureId,
-          serviceLevelId: 12
-        });
+  showModalLoader();
+  const controller = createAbortController('detailsController');
 
-        if (state.requests.detailsController === controller) state.requests.detailsController = null;
+  try {
+    const serviceLevelId = Number(document.getElementById('serviceLevelId')?.value || 12);
 
-        const body = res?.body;
-        if (res.ok && body && body.ok !== false) {
-          renderMatchDetails(body);
-          return;
-        }
+    const res = await abortableEmit(controller, {
+      type: 'txline_fixture_details',
+      fixtureId: safeFixtureId,
+      serviceLevelId
+    });
 
-        renderMatchDetails({
-          ok: false,
-          fixtureId: safeFixtureId,
-          error: body?.error || res?.raw || 'Unable to load match details'
-        });
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-        if (state.requests.detailsController === controller) state.requests.detailsController = null;
-        renderMatchDetails({
-          ok: false,
-          fixtureId: safeFixtureId,
-          error: error?.message || 'Unable to load match details'
-        });
-      }
+    if (state.requests.detailsController === controller) state.requests.detailsController = null;
+
+    const body = res?.body;
+    if (res.ok && body && body.ok !== false) {
+      renderMatchDetails(body);
+      return;
     }
+
+    console.error('Fixture details response error', res);
+    renderMatchDetails({
+      ok: false,
+      fixtureId: safeFixtureId,
+      error: body?.error || res?.raw || 'Unable to load match details'
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+
+    console.error('Failed to load match details', error);
+    if (state.requests.detailsController === controller) state.requests.detailsController = null;
+
+    renderMatchDetails({
+      ok: false,
+      fixtureId: safeFixtureId,
+      error: error?.message || text.failedMatchDetails
+    });
+  }
+}
+
 
     async function getAIPrediction(fixtureId) {
-      const safeFixtureId = normalizeId(fixtureId);
-      const aiBox = document.getElementById('ai-text');
-      if (!aiBox || !safeFixtureId) return;
+  const safeFixtureId = normalizeId(fixtureId);
+  const aiBox = document.getElementById('ai-text');
+  if (!aiBox || !safeFixtureId) return;
 
-      aiBox.innerText = text.loadingAi;
-      const controller = createAbortController('aiController');
+  aiBox.innerText = text.loadingAi;
+  const controller = createAbortController('aiController');
 
-      try {
-        const base = getWorkerBase();
-        if (!base) throw new Error('Worker URL is empty');
+  try {
+    const base = getWorkerBase();
+    if (!base) throw new Error('Worker URL is empty');
 
-        const ticketRes = await fetch(`${base}/ticket`, { method: 'POST', signal: controller.signal });
-        if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
-        const ticket = await ticketRes.json();
+    const ticketRes = await fetch(`${base}/ticket`, {
+      method: 'POST',
+      signal: controller.signal
+    });
+    if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
+    const ticket = await ticketRes.json();
 
-        const aiRes = await fetch(`${base}/ai`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({ k: ticket.k, messages: [{ role: 'user', content: text.aiPrompt(safeFixtureId) }] })
-        });
+    const aiRes = await fetch(`${base}/ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        k: ticket.k,
+        messages: [{ role: 'user', content: text.aiPrompt(safeFixtureId) }]
+      })
+    });
 
-        const raw = await aiRes.text();
-        let body = null;
-        try { body = JSON.parse(raw); } catch { body = raw; }
-
-        if (state.requests.aiController === controller) state.requests.aiController = null;
-
-        if (!aiRes.ok || !body?.ok) {
-          aiBox.innerText = text.aiUnavailable;
-          return;
-        }
-
-        const content = body?.content || body?.message || body?.raw?.choices?.[0]?.message?.content;
-        aiBox.innerText = typeof content === 'string' && content.trim() ? content.trim() : text.aiUnavailable;
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-        if (state.requests.aiController === controller) state.requests.aiController = null;
-        aiBox.innerText = text.aiError;
-      }
+    const raw = await aiRes.text();
+    let body = null;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      body = raw;
     }
+
+    if (state.requests.aiController === controller) state.requests.aiController = null;
+
+    if (!aiRes.ok || !body?.ok) {
+      console.error('AI response error', body);
+      aiBox.innerText = text.aiUnavailable;
+      return;
+    }
+
+    const content = body?.content || body?.message || body?.raw?.choices?.[0]?.message?.content;
+    aiBox.innerText = typeof content === 'string' && content.trim() ? content.trim() : text.aiUnavailable;
+  } catch (error) {
+    if (error.name === 'AbortError') return;
+
+    console.error('AI module request failed', error);
+    if (state.requests.aiController === controller) state.requests.aiController = null;
+    aiBox.innerText = text.aiError;
+  }
+}
+
 
     function verifySolanaProof(id) {
       const safeId = normalizeId(id || 'unknown');
@@ -1075,42 +1234,63 @@ ${message}`);
     if (tg?.onEvent) tg.onEvent('viewportChanged', () => { if (tg.isExpanded) triggerLightImpact(); });
 
     async function initApp() {
-      try {
-        const res = await emit({
-          type: 'txline_probe_feed',
-          scope: 'worldcup',
-          serviceLevelId: 12
-        });
+  try {
+    const serviceLevelId = Number(document.getElementById('serviceLevelId')?.value || 12);
 
-        if (!res.ok) throw new Error(res.body?.error || 'Probe failed');
+    const res = await emit({
+      type: 'txline_probe_feed',
+      scope: 'worldcup',
+      serviceLevelId
+    });
 
-        const probe = typeof res.body === 'object' && res.body ? res.body : {};
-        state.probe = probe;
-        state.groupedMatches = normalizeGroupedProbe(probe);
-        state.featured = probe?.featured ? normalizeMatch(probe.featured, probe?.featured?.phase) : null;
-        renderAll();
+    if (!res.ok) {
+      throw new Error(res.body?.error || res.raw || 'Probe failed');
+    }
 
-        const statusNode = document.getElementById('status');
-        const total = getAllMatches().length;
-        if (statusNode) {
-          if (!total) {
-            statusNode.textContent = 'Connected. No fixtures available.';
-            statusNode.className = 'status warn';
-          } else {
-            statusNode.textContent = `Loaded ${total} fixtures`;
-            statusNode.className = 'status ok';
-          }
-        }
-      } catch (error) {
-        const container = document.getElementById('match-container');
-        if (container) container.innerHTML = `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
-        const statusNode = document.getElementById('status');
-        if (statusNode) {
-          statusNode.textContent = text.oracleConnectionError;
-          statusNode.className = 'status warn';
-        }
+    const probe = typeof res.body === 'object' && res.body ? res.body : {};
+    if (probe.ok === false) {
+      throw new Error(probe.error || 'Probe failed');
+    }
+
+    state.probe = probe;
+    state.groupedMatches = normalizeGroupedProbe(probe);
+    state.featured = probe?.featured ? normalizeMatch(probe.featured, probe?.featured?.phase) : null;
+
+    renderAll();
+
+    const statusNode = document.getElementById('status');
+    const total =
+      safeArray(state.groupedMatches.live).length +
+      safeArray(state.groupedMatches.upcoming).length +
+      safeArray(state.groupedMatches.finished).length +
+      safeArray(state.groupedMatches.stopped).length +
+      safeArray(state.groupedMatches.unknown).length;
+
+    if (statusNode) {
+      if (!total) {
+        statusNode.textContent = 'Connected. No fixtures available.';
+        statusNode.className = 'status warn';
+      } else {
+        statusNode.textContent = `Loaded ${total} fixtures`;
+        statusNode.className = 'status ok';
       }
     }
+  } catch (error) {
+    console.error('Failed to load oracle feed', error);
+
+    const container = document.getElementById('match-container');
+    if (container) {
+      container.innerHTML = `<div class="empty-state">${escapeHtml(text.oracleConnectionError)}</div>`;
+    }
+
+    const statusNode = document.getElementById('status');
+    if (statusNode) {
+      statusNode.textContent = text.oracleConnectionError;
+      statusNode.className = 'status warn';
+    }
+  }
+}
+
 
     async function bootstrap() {
       await loadFavorites();
