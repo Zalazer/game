@@ -876,10 +876,10 @@ ${message}`);
   modal.classList.add('active');
 
   const bundle = data && typeof data === 'object' ? data : {};
-  const match = bundle.match || bundle.fixture || bundle.current || {};
+  const match = bundle.match || bundle.fixture || bundle.current || bundle || {};
   const current = bundle.current || match || {};
   const compact = bundle.currentCompact || {};
-  const teams = getMatchTeams(bundle.match || bundle.fixture || bundle.current || bundle);
+  const teams = getMatchTeams(match);
 
   const fixtureId = normalizeId(
     bundle.fixtureId ??
@@ -892,43 +892,37 @@ ${message}`);
     bundle?.id
   );
 
-  const safeFixtureId = encodeURIComponent(fixtureId || '');
-
   const scoreRaw =
-    txlineScalar(bundle?.match?.score) ||
-    txlineScalar(bundle?.fixture?.score) ||
-    txlineScalar(current?.score) ||
+    txlineScalar(match?.score) ||
     txlineScalar(bundle?.score) ||
-    '—';
-
-  const statusRaw =
-    txlineScalar(bundle?.match?.status) ||
-    txlineScalar(bundle?.fixture?.status) ||
-    txlineScalar(current?.status) ||
-    txlineScalar(bundle?.status) ||
-    '';
+    txlineScalar(current?.score) ||
+    text.scoreFallback;
 
   const phase =
-    bundle?.match?.phase ||
-    bundle?.fixture?.phase ||
+    match?.phase ||
+    bundle?.phase ||
     current?.phase ||
-    txlineDeriveMatchPhase(bundle?.match || bundle?.fixture || current || bundle);
+    txlineDeriveMatchPhase(match);
+
+  const statusRaw =
+    txlineScalar(match?.status) ||
+    txlineScalar(bundle?.status) ||
+    txlineScalar(current?.status) ||
+    phaseLabel(phase);
 
   const kickoffRaw =
-    bundle?.match?.kickoff ??
-    bundle?.fixture?.kickoff ??
+    match?.kickoff ??
+    bundle?.kickoff ??
     current?.kickoff ??
     compact?.kickoff ??
-    bundle?.kickoff ??
     null;
 
   const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : '';
-  const statusLine = [txlinePhaseLabel(phase), statusRaw, kickoffText].filter(Boolean).join(' • ');
+  const statusLine = [phaseLabel(phase), statusRaw, kickoffText].filter(Boolean).join(' • ');
 
   const historical = Array.isArray(bundle.historical) ? bundle.historical : [];
   const snapshot = Array.isArray(bundle.snapshot) ? bundle.snapshot : [];
   const events = Array.isArray(bundle.events) ? bundle.events : [];
-  const odds = Array.isArray(bundle.odds) ? bundle.odds : [];
 
   const timelineSource = [
     ...historical.slice(-10),
@@ -939,12 +933,10 @@ ${message}`);
   const timelineHtml = timelineSource.length
     ? timelineSource.map((item, index) => {
         const title =
-          item?.period ??
-          item?.clock ??
-          item?.type ??
-          item?.gameState ??
-          item?.Status ??
-          item?.status ??
+          item?.period ||
+          item?.clock ||
+          item?.type ||
+          item?.gameState ||
           `Event ${index + 1}`;
 
         const detail =
@@ -952,7 +944,6 @@ ${message}`);
           item?.description ||
           item?.text ||
           item?.name ||
-          item?.Title ||
           item?.title ||
           item?.raw?.Type ||
           item?.raw?.type ||
@@ -975,81 +966,10 @@ ${message}`);
       }).join('')
     : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
-  const oddsSource = safeArray(bundle?.oddsPreview).length
-    ? bundle.oddsPreview
-    : safeArray(bundle?.oddsTop).length
-      ? bundle.oddsTop
-      : odds;
-
-  const oddsHtml = safeArray(oddsSource).length
-    ? `
-      <div class="section-block">
-        <h3>${escapeHtml(text.oddsPreview)}</h3>
-        <div class="match-stats-extra">
-          ${safeArray(oddsSource).slice(0, 8).map(row => `
-            <div class="stat-item">
-              ${escapeHtml(String(row?.bookmaker || row?.bookmakerId || '—'))} · ${escapeHtml(String(row?.marketLabel || row?.market || row?.marketType || '—'))}
-              ${row?.pricesText ? `· ${escapeHtml(String(row.pricesText))}` : ''}
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `
-    : '';
-
-  const counts = bundle?.counts && typeof bundle.counts === 'object'
-    ? bundle.counts
-    : {
-        historical: historical.length,
-        snapshot: snapshot.length,
-        events: events.length,
-        odds: odds.length
-      };
-
-  const countsHtml = counts
-    ? `
-      <div class="section-block">
-        <h3>Counts</h3>
-        <div class="match-stats-extra">
-          ${Object.entries(counts).filter(([, v]) => v != null).map(([k, v]) => `
-            <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>
-          `).join('')}
-        </div>
-      </div>
-    `
-    : '';
-
-  const source = bundle?.source && typeof bundle.source === 'object'
-    ? bundle.source
-    : bundle?.raw && typeof bundle.raw === 'object'
-      ? bundle.raw
-      : null;
-
-  const sourceHtml = source
-    ? `
-      <div class="section-block">
-        <h3>${escapeHtml(text.sourceDiagnostics)}</h3>
-        <div class="match-stats-extra">
-          ${Object.entries(source)
-            .filter(([, v]) => v && typeof v === 'object')
-            .map(([k, v]) => `
-              <div class="stat-item">
-                ${escapeHtml(k)}: ${escapeHtml(String(v?.status ?? v?.rawType ?? '—'))}/${escapeHtml(String(v?.count ?? v?.arrayCount ?? v?.mappedCount ?? 0))}
-              </div>
-            `).join('')}
-        </div>
-      </div>
-    `
-    : '';
-
-  const errorBlock = bundle?.ok === false
-    ? `
-      <div class="section-block">
-        <h3>${escapeHtml(text.detailsUnavailable)}</h3>
-        <div class="no-data">${escapeHtml(bundle?.error || text.failedMatchDetailsShort)}</div>
-      </div>
-    `
-    : '';
+  const oddsHtml = renderOddsBlock(bundle);
+  const sourceHtml = renderSourceBlock(bundle);
+  const availabilityHtml = renderAvailabilityBlock(bundle);
+  const countsHtml = renderCountsBlock(bundle);
 
   modal.innerHTML = `
     <div class="modal-content">
@@ -1058,7 +978,12 @@ ${message}`);
         <div class="modal-title">${escapeHtml(teams.home)} vs ${escapeHtml(teams.away)}</div>
       </div>
 
-      ${errorBlock}
+      ${bundle.ok === false ? `
+        <div class="section-block">
+          <h3>${escapeHtml(text.detailsUnavailable)}</h3>
+          <div class="no-data">${escapeHtml(bundle.error || text.oracleConnectionError)}</div>
+        </div>
+      ` : ''}
 
       <div class="details-main-score">
         <div class="big-score">${escapeHtml(scoreRaw)}</div>
@@ -1079,20 +1004,21 @@ ${message}`);
         <div class="historical-timeline">${timelineHtml}</div>
       </div>
 
-      ${oddsHtml}
-      ${countsHtml}
+      ${oddsHtml || ''}
+      ${countsHtml || ''}
+      ${availabilityHtml || ''}
 
       <div class="section-block ai-insight-box" id="ai-container">
         <h3>${escapeHtml(text.aiInsights)}</h3>
         <p id="ai-text">${escapeHtml(text.getPrediction)}</p>
-        <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${safeFixtureId}">${escapeHtml(text.getPrediction)}</button>
+        <button class="btn-ai" type="button" data-action="ai-prediction" data-fixture-id="${encodeURIComponent(fixtureId || '')}">${escapeHtml(text.getPrediction)}</button>
       </div>
 
-      ${sourceHtml}
+      ${sourceHtml || ''}
 
       <div class="merkle-proof-footer">
         <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(String(fixtureId || 'unknown'))}</span>
-        <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">${escapeHtml(text.verifyOnSolana)}</button>
+        <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${encodeURIComponent(fixtureId || '')}">${escapeHtml(text.verifyOnSolana)}</button>
       </div>
     </div>
   `;
@@ -1123,27 +1049,25 @@ ${message}`);
       (res && typeof res.data === 'object' && res.data) ||
       null;
 
-    if (res.ok && payload) {
-      renderMatchDetails(payload);
+    if (!res.ok || !payload) {
+      renderMatchDetails({
+        ok: false,
+        fixtureId: safeFixtureId,
+        error: payload?.error || res?.raw || `HTTP ${res?.status || 'unknown'}`
+      });
       return;
     }
 
-    console.error('Fixture details response error', res);
-    renderMatchDetails({
-      ok: false,
-      fixtureId: safeFixtureId,
-      error: payload?.error || res?.raw || 'Unable to load match details'
-    });
+    renderMatchDetails(payload);
   } catch (error) {
     if (error.name === 'AbortError') return;
 
-    console.error('Failed to load match details', error);
     if (state.requests.detailsController === controller) state.requests.detailsController = null;
 
     renderMatchDetails({
       ok: false,
       fixtureId: safeFixtureId,
-      error: error?.message || text.failedMatchDetails
+      error: error?.message || text.oracleConnectionError
     });
   }
 }
@@ -1247,11 +1171,20 @@ ${message}`);
     }
 
     function showModalLoader() {
-      const modal = document.getElementById('match-details-overlay');
-      if (!modal) return;
-      modal.innerHTML = `<div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>`;
-      modal.classList.add('active');
-    }
+  const modal = document.getElementById('match-details-overlay');
+  if (!modal) return;
+
+  modal.classList.add('active');
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close-btn" type="button" data-action="close-modal" aria-label="${escapeHtml(text.close)}">×</button>
+      </div>
+      <div class="loader-centered">${escapeHtml(text.loadingOracle)}</div>
+    </div>
+  `;
+}
+
 
     function closeModal() {
       const modal = document.getElementById('match-details-overlay');
