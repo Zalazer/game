@@ -868,64 +868,119 @@ ${message}`);
       `;
     }
 
+
     function renderMatchDetails(data) {
   const modal = document.getElementById('match-details-overlay');
   if (!modal) return;
 
-  const current = data?.current || {};
-  const compact = data?.currentCompact || {};
-  const teams = getMatchTeams(data);
+  modal.classList.add('active');
+
+  const bundle = data && typeof data === 'object' ? data : {};
+  const match = bundle.match || bundle.fixture || bundle.current || {};
+  const current = bundle.current || match || {};
+  const compact = bundle.currentCompact || {};
+  const teams = getMatchTeams(bundle.match || bundle.fixture || bundle.current || bundle);
+
   const fixtureId = normalizeId(
-    data?.fixtureId ??
+    bundle.fixtureId ??
+    match?.fixtureId ??
+    match?.id ??
+    bundle?.fixture?.fixtureId ??
+    bundle?.fixture?.id ??
     current?.fixtureId ??
     current?.id ??
-    data?.id ??
-    data?.fixtureid
+    bundle?.id
   );
 
-  const safeFixtureId = encodeURIComponent(fixtureId);
-  const scoreRaw = getMatchScore(data);
-  const statusRaw = getMatchStatus(data);
+  const safeFixtureId = encodeURIComponent(fixtureId || '');
+
+  const scoreRaw =
+    txlineScalar(bundle?.match?.score) ||
+    txlineScalar(bundle?.fixture?.score) ||
+    txlineScalar(current?.score) ||
+    txlineScalar(bundle?.score) ||
+    '—';
+
+  const statusRaw =
+    txlineScalar(bundle?.match?.status) ||
+    txlineScalar(bundle?.fixture?.status) ||
+    txlineScalar(current?.status) ||
+    txlineScalar(bundle?.status) ||
+    '';
+
+  const phase =
+    bundle?.match?.phase ||
+    bundle?.fixture?.phase ||
+    current?.phase ||
+    txlineDeriveMatchPhase(bundle?.match || bundle?.fixture || current || bundle);
+
   const kickoffRaw =
-    current?.startTime ??
+    bundle?.match?.kickoff ??
+    bundle?.fixture?.kickoff ??
     current?.kickoff ??
-    current?.date ??
-    current?.datetime ??
-    current?.startsAt ??
-    data?.startTime ??
-    data?.kickoff ??
-    data?.date ??
-    data?.datetime ??
-    data?.startsAt ??
-    current?.raw?.StartTime ??
+    compact?.kickoff ??
+    bundle?.kickoff ??
     null;
 
   const kickoffText = kickoffRaw ? formatKickoff(kickoffRaw) : '';
-  const statusLine = [statusRaw, kickoffText].filter(Boolean).join(' • ');
+  const statusLine = [txlinePhaseLabel(phase), statusRaw, kickoffText].filter(Boolean).join(' • ');
 
-  const timelineItems = buildTimelineItems(data);
-  const timelineHtml = timelineItems.length
-    ? timelineItems.map((item, index) => {
-        const title = item?.title || `Event ${index + 1}`;
-        const scorePart = item?.score ? `<strong>${escapeHtml(String(item.score))}</strong>` : '';
-        const cardsPart = [item?.yc, item?.cr].some(v => v != null && v !== '')
-          ? `<span>${escapeHtml(String(item?.yc ?? text.cardsFallback))} ${escapeHtml(String(item?.cr ?? text.cardsFallback))}</span>`
-          : '';
+  const historical = Array.isArray(bundle.historical) ? bundle.historical : [];
+  const snapshot = Array.isArray(bundle.snapshot) ? bundle.snapshot : [];
+  const events = Array.isArray(bundle.events) ? bundle.events : [];
+  const odds = Array.isArray(bundle.odds) ? bundle.odds : [];
+
+  const timelineSource = [
+    ...historical.slice(-10),
+    ...snapshot.slice(-10),
+    ...events.slice(-10)
+  ];
+
+  const timelineHtml = timelineSource.length
+    ? timelineSource.map((item, index) => {
+        const title =
+          item?.period ??
+          item?.clock ??
+          item?.type ??
+          item?.gameState ??
+          item?.Status ??
+          item?.status ??
+          `Event ${index + 1}`;
+
+        const detail =
+          item?.detail ||
+          item?.description ||
+          item?.text ||
+          item?.name ||
+          item?.Title ||
+          item?.title ||
+          item?.raw?.Type ||
+          item?.raw?.type ||
+          'Match event';
+
+        const scorePart =
+          item?.score || item?.Score
+            ? `<strong>${escapeHtml(String(item.score || item.Score))}</strong>`
+            : '';
+
         return `
           <div class="timeline-item">
             <div class="time">${escapeHtml(String(title))}</div>
             <div class="event-desc">
-              ${scorePart}
-              ${scorePart ? ' ' : ''}
-              ${escapeHtml(String(item?.title || item?.raw?.Type || item?.raw?.type || 'Match event'))}
-              ${cardsPart ? ` ${cardsPart}` : ''}
+              ${scorePart ? `${scorePart} ` : ''}
+              ${escapeHtml(String(detail))}
             </div>
           </div>
         `;
       }).join('')
     : `<div class="no-data">${escapeHtml(text.timelinePending)}</div>`;
 
-  const oddsSource = safeArray(data?.oddsTop).length ? data?.oddsTop : data?.oddsPreview;
+  const oddsSource = safeArray(bundle?.oddsPreview).length
+    ? bundle.oddsPreview
+    : safeArray(bundle?.oddsTop).length
+      ? bundle.oddsTop
+      : odds;
+
   const oddsHtml = safeArray(oddsSource).length
     ? `
       <div class="section-block">
@@ -942,12 +997,21 @@ ${message}`);
     `
     : '';
 
-  const countsHtml = data?.counts && typeof data.counts === 'object'
+  const counts = bundle?.counts && typeof bundle.counts === 'object'
+    ? bundle.counts
+    : {
+        historical: historical.length,
+        snapshot: snapshot.length,
+        events: events.length,
+        odds: odds.length
+      };
+
+  const countsHtml = counts
     ? `
       <div class="section-block">
         <h3>Counts</h3>
         <div class="match-stats-extra">
-          ${Object.entries(data.counts).filter(([, v]) => v != null).map(([k, v]) => `
+          ${Object.entries(counts).filter(([, v]) => v != null).map(([k, v]) => `
             <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>
           `).join('')}
         </div>
@@ -955,37 +1019,34 @@ ${message}`);
     `
     : '';
 
-  const availabilityHtml = data?.availability && typeof data.availability === 'object'
-    ? `
-      <div class="section-block">
-        <h3>Availability</h3>
-        <div class="match-stats-extra">
-          ${Object.entries(data.availability).filter(([, v]) => v != null).map(([k, v]) => `
-            <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v))}</div>
-          `).join('')}
-        </div>
-      </div>
-    `
-    : '';
+  const source = bundle?.source && typeof bundle.source === 'object'
+    ? bundle.source
+    : bundle?.raw && typeof bundle.raw === 'object'
+      ? bundle.raw
+      : null;
 
-  const sourceHtml = data?.source && typeof data.source === 'object'
+  const sourceHtml = source
     ? `
       <div class="section-block">
         <h3>${escapeHtml(text.sourceDiagnostics)}</h3>
         <div class="match-stats-extra">
-          ${Object.entries(data.source).filter(([, v]) => v && typeof v === 'object').map(([k, v]) => `
-            <div class="stat-item">${escapeHtml(k)}: ${escapeHtml(String(v?.status ?? '—'))}/${escapeHtml(String(v?.count ?? v?.mappedCount ?? 0))}</div>
-          `).join('')}
+          ${Object.entries(source)
+            .filter(([, v]) => v && typeof v === 'object')
+            .map(([k, v]) => `
+              <div class="stat-item">
+                ${escapeHtml(k)}: ${escapeHtml(String(v?.status ?? v?.rawType ?? '—'))}/${escapeHtml(String(v?.count ?? v?.arrayCount ?? v?.mappedCount ?? 0))}
+              </div>
+            `).join('')}
         </div>
       </div>
     `
     : '';
 
-  const errorBlock = data?.ok === false
+  const errorBlock = bundle?.ok === false
     ? `
       <div class="section-block">
         <h3>${escapeHtml(text.detailsUnavailable)}</h3>
-        <div class="no-data">${escapeHtml(data?.error || text.failedMatchDetailsShort)}</div>
+        <div class="no-data">${escapeHtml(bundle?.error || text.failedMatchDetailsShort)}</div>
       </div>
     `
     : '';
@@ -1007,7 +1068,7 @@ ${message}`);
       <div class="section-block">
         <h3>${escapeHtml(text.matchDynamics)}</h3>
         <div class="match-stats-extra">
-          <div class="stat-item">Phase ${escapeHtml(String(data?.phase || current?.phase || compact?.phase || '—'))}</div>
+          <div class="stat-item">Phase ${escapeHtml(String(phase || '—'))}</div>
           <div class="stat-item">Status ${escapeHtml(String(statusRaw || '—'))}</div>
           <div class="stat-item">Kickoff ${escapeHtml(String(kickoffText || '—'))}</div>
           <div class="stat-item">Fixture ${escapeHtml(String(fixtureId || 'unknown'))}</div>
@@ -1020,7 +1081,6 @@ ${message}`);
 
       ${oddsHtml}
       ${countsHtml}
-      ${availabilityHtml}
 
       <div class="section-block ai-insight-box" id="ai-container">
         <h3>${escapeHtml(text.aiInsights)}</h3>
@@ -1031,14 +1091,13 @@ ${message}`);
       ${sourceHtml}
 
       <div class="merkle-proof-footer">
-        <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(fixtureId || 'unknown')}</span>
+        <span>${escapeHtml(text.oracleDataId)}: ${escapeHtml(String(fixtureId || 'unknown'))}</span>
         <button class="verify-btn" type="button" data-action="verify-proof" data-fixture-id="${safeFixtureId}">${escapeHtml(text.verifyOnSolana)}</button>
       </div>
     </div>
   `;
-
-  modal.classList.add('active');
 }
+
 
 
     async function openMatchDetails(fixtureId) {
@@ -1059,9 +1118,13 @@ ${message}`);
 
     if (state.requests.detailsController === controller) state.requests.detailsController = null;
 
-    const body = res?.body;
-    if (res.ok && body && body.ok !== false) {
-      renderMatchDetails(body);
+    const payload =
+      (res && typeof res.body === 'object' && res.body) ||
+      (res && typeof res.data === 'object' && res.data) ||
+      null;
+
+    if (res.ok && payload) {
+      renderMatchDetails(payload);
       return;
     }
 
@@ -1069,7 +1132,7 @@ ${message}`);
     renderMatchDetails({
       ok: false,
       fixtureId: safeFixtureId,
-      error: body?.error || res?.raw || 'Unable to load match details'
+      error: payload?.error || res?.raw || 'Unable to load match details'
     });
   } catch (error) {
     if (error.name === 'AbortError') return;
@@ -1084,6 +1147,7 @@ ${message}`);
     });
   }
 }
+
 
 
 
