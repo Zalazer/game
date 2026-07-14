@@ -539,12 +539,20 @@ function renderList(){
     </div>
   `).join('');
 }
+
+
 function renderCard(m){
   const fav = state.favorites.has(String(m.fixtureId));
+  const phase = String(m.phase || m.status || '').toLowerCase();
+  const statusLabel = txPhaseLabel(phase || m.phase || m.status);
+
   return `
     <div class="match-card" onclick="openDetails('${esc(m.fixtureId)}')">
       <div>
-        <div class="status"><span class="dot ${txStatusClass(m.phase)}"></span>${esc(txPhaseLabel(m.phase))}${m.kickoff ? ' • ' + esc(formatTime(m.kickoff)) : ''}</div>
+        <div class="status">
+          <span class="dot ${txStatusClass(phase)}"></span>
+          ${esc(statusLabel)}${m.kickoff ? ' • ' + esc(formatTime(m.kickoff)) : ''}
+        </div>
         <div class="teams">${matchTitle(m)}</div>
         <div class="subline">${esc(m.competition || '')}${m.fixtureId ? ' • #' + esc(m.fixtureId) : ''}</div>
       </div>
@@ -555,6 +563,7 @@ function renderCard(m){
     </div>
   `;
 }
+
 
 function renderApp(){
   renderStats();
