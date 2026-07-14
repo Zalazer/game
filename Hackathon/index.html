@@ -375,38 +375,72 @@ function txStatusClass(p){
   if (p === 'upcoming') return 'upcoming';
   return '';
 }
-function normalizeMatch(x){
-  const fixtureId = String(x?.fixtureId ?? x?.FixtureId ?? x?.id ?? '');
-  const home = txScalar(x?.home ?? x?.participant1 ?? x?.Participant1 ?? x?.team1 ?? x?.Team1 ?? x?.homeTeam ?? x?.HomeTeam);
-  const away = txScalar(x?.away ?? x?.participant2 ?? x?.Participant2 ?? x?.team2 ?? x?.Team2 ?? x?.awayTeam ?? x?.AwayTeam);
-  const competition = txScalar(x?.competition ?? x?.Competition ?? x?.league ?? x?.League);
-  const kickoff = x?.kickoff ?? x?.StartTime ?? x?.startTime ?? null;
-  const phase = txScalar(x?.phase ?? x?.currentPhase ?? x?.Phase) || derivePhase(x);
-  const homeScore = txNum(x?.homeScore ?? x?.HomeScore);
-  const awayScore = txNum(x?.awayScore ?? x?.AwayScore);
-  const score = txScalar(x?.score ?? x?.currentScore ?? x?.MatchScore ?? x?.CurrentScore) || (
-    homeScore != null && awayScore != null ? `${homeScore}-${awayScore}` : '—'
-  );
-  const statusRaw = txScalar(x?.status ?? x?.Status ?? x?.gameState ?? x?.GameState);
-  const status = statusRaw || txPhaseLabel(phase);
-  const statusText = status === '1' ? txPhaseLabel(phase) : status;
-  return {
-    ...x,
-    fixtureId, home, away, competition, kickoff, phase,
-    homeScore, awayScore, score, status: statusText
-  };
-}
-function derivePhase(m){
-  const s = String(m?.status ?? m?.Status ?? m?.gameState ?? m?.GameState ?? '').toUpperCase();
+
+
+function derivePhase(m) {
+  const s = String(m?.status ?? m?.Status ?? m?.gameState ?? m?.GameState ?? m?.statusRaw ?? m?.rawStatus ?? '').trim();
   const n = txNum(s);
-  if (['F','FINISHED'].includes(s) || [5,10,13].includes(n)) return 'finished';
-  if (['H1','HT','H2','ET1','ET2','PE','WET','WPE'].includes(s) || [2,3,4,6,7,8,9,11,12].includes(n)) return 'live';
-  if (['NS'].includes(s) || n === 1) return 'upcoming';
-  if ([14,15,16,17,18,19].includes(n)) return 'stopped';
-  if (m?.hasEvents || m?.eventsCount) return 'live';
-  if (m?.hasHistorical) return 'finished';
+
+  if (['F', 'FINISHED', 'FINAL', 'ENDED', 'COMPLETED', 'FULL TIME', 'FULL-TIME'].includes(s.toUpperCase()) || [5, 10, 13].includes(n)) return 'finished';
+  if (['H1', 'HT', 'H2', 'ET1', 'ET2', 'PE', 'WET', 'WPE'].includes(s.toUpperCase()) || [2, 3, 4, 6, 7, 8, 9, 11, 12].includes(n)) return 'live';
+  if (['NS', 'NOT STARTED', 'SCHEDULED', 'UPCOMING'].includes(s.toUpperCase()) || n === 1) return 'upcoming';
+  if ([14, 15, 16, 17, 18, 19].includes(n)) return 'stopped';
+  if (m?.hasHistorical || m?.hasEvents || m?.hasSnapshot) return 'finished';
   return 'unknown';
 }
+
+function normalizeMatch(x) {
+  const current = x?.currentCompact ?? x?.current ?? x?.raw ?? {};
+  const fixtureId = String(x?.fixtureId ?? x?.FixtureId ?? x?.id ?? current?.fixtureId ?? current?.FixtureId ?? '');
+  const home = txScalar(x?.home ?? x?.participant1 ?? x?.Participant1 ?? x?.homeTeam ?? x?.HomeTeam ?? current?.home ?? current?.Home ?? current?.Participant1);
+  const away = txScalar(x?.away ?? x?.participant2 ?? x?.Participant2 ?? x?.awayTeam ?? x?.AwayTeam ?? current?.away ?? current?.Away ?? current?.Participant2);
+  const competition = txScalar(x?.competition ?? x?.Competition ?? x?.league ?? x?.League ?? current?.competition ?? current?.Competition);
+  const kickoff = x?.kickoff ?? x?.StartTime ?? x?.startTime ?? current?.kickoff ?? current?.StartTime ?? current?.startTime ?? null;
+
+  const homeScore = txNum(
+    x?.homeScore ??
+    x?.HomeScore ??
+    current?.homeScore ??
+    current?.HomeScore
+  );
+
+  const awayScore = txNum(
+    x?.awayScore ??
+    x?.AwayScore ??
+    current?.awayScore ??
+    current?.AwayScore
+  );
+
+  const score = txScalar(
+    x?.score ??
+    x?.currentScore ??
+    x?.MatchScore ??
+    x?.CurrentScore ??
+    current?.score ??
+    current?.currentScore ??
+    (homeScore != null && awayScore != null ? `${homeScore}-${awayScore}` : null)
+  );
+
+  const statusRaw = txScalar(x?.status ?? x?.Status ?? x?.gameState ?? x?.GameState ?? current?.status ?? current?.Status ?? current?.gameState ?? current?.GameState);
+  const phase = txScalar(x?.phase ?? x?.currentPhase ?? x?.Phase) || derivePhase({ ...x, status: statusRaw, gameState: statusRaw, hasHistorical: x?.hasHistorical ?? current?.hasHistorical, hasEvents: x?.hasEvents ?? current?.hasEvents, hasSnapshot: x?.hasSnapshot ?? current?.hasSnapshot });
+
+  return {
+    ...x,
+    fixtureId,
+    home,
+    away,
+    competition,
+    kickoff,
+    phase,
+    homeScore,
+    awayScore,
+    score,
+    status: statusRaw
+  };
+}
+
+
+
 function sortMatches(arr){
   return [...arr].sort((a,b) => {
     const pa = a.phase || 'unknown';
