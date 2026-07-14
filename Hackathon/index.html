@@ -639,13 +639,23 @@ async function openDetails(fixtureId){
     $('detailModal').innerHTML = `<div class="empty">Details failed: ${esc(e.message || e)}</div>`;
   }
 }
+
+
 function renderDetails(d){
   const current = d.current || d.currentCompact || {};
   const fixtureId = d.fixtureId || current.fixtureId || state.currentFixtureId || '';
   const home = txScalar(current.home ?? d.home ?? '');
   const away = txScalar(current.away ?? d.away ?? '');
-  const score = txScalar(d.score ?? current.score ?? '—');
   const phase = txScalar(d.phase ?? current.phase ?? derivePhase(current)) || 'unknown';
+
+  const score =
+    txScalar(d.score ?? current.score ?? '') ||
+    (
+      current.homeScore != null && current.awayScore != null
+        ? `${current.homeScore}-${current.awayScore}`
+        : '—'
+    );
+
   const events = [].concat(d.events || []).slice(-20);
   const snapshot = [].concat(d.snapshot || []).slice(-10);
   const historical = [].concat(d.historical || []).slice(-10);
@@ -654,6 +664,7 @@ function renderDetails(d){
   const avail = d.availability || {};
   const source = [].concat(d.source || []);
   const teamTitle = `${esc(home || '—')} vs ${esc(away || '—')}`;
+
   const oddsHtml = oddsTop.length ? oddsTop.map(o => `
     <div class="odd">
       <div class="m">${esc(o.bookmaker || o.market || 'Odds')}</div>
@@ -739,6 +750,8 @@ function renderDetails(d){
     </div>
   `;
 }
+
+
 
 async function checkToken(){
   try{
