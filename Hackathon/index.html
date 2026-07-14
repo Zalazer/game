@@ -407,11 +407,11 @@ ${message}`);
   const base = getWorkerBase();
   if (!base) throw new Error('Worker URL is empty');
 
-  const ticketRes = await fetch(`${base}/ticket`, { method: 'POST' });
+  const ticketRes = await fetch(`${base}/__ticket`, { method: 'POST' });
   if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
   const ticket = await ticketRes.json();
 
-  const emitRes = await fetch(`${base}/emit`, {
+  const emitRes = await fetch(`${base}/__emit`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ k: ticket.k, d: payload })
@@ -430,18 +430,19 @@ ${message}`);
 
 
 
+
     async function abortableEmit(controller, payload) {
   const base = getWorkerBase();
   if (!base) throw new Error('Worker URL is empty');
 
-  const ticketRes = await fetch(`${base}/ticket`, {
+  const ticketRes = await fetch(`${base}/__ticket`, {
     method: 'POST',
     signal: controller.signal
   });
   if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
   const ticket = await ticketRes.json();
 
-  const emitRes = await fetch(`${base}/emit`, {
+  const emitRes = await fetch(`${base}/__emit`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ k: ticket.k, d: payload }),
@@ -458,6 +459,7 @@ ${message}`);
 
   return { ok: emitRes.ok, status: emitRes.status, body, raw };
 }
+
 
 
 
@@ -1084,6 +1086,7 @@ ${message}`);
 }
 
 
+
     async function getAIPrediction(fixtureId) {
   const safeFixtureId = normalizeId(fixtureId);
   const aiBox = document.getElementById('ai-text');
@@ -1096,20 +1099,17 @@ ${message}`);
     const base = getWorkerBase();
     if (!base) throw new Error('Worker URL is empty');
 
-    const ticketRes = await fetch(`${base}/ticket`, {
-      method: 'POST',
-      signal: controller.signal
-    });
-    if (!ticketRes.ok) throw new Error(`ticket failed ${ticketRes.status}`);
-    const ticket = await ticketRes.json();
-
     const aiRes = await fetch(`${base}/ai`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
-        k: ticket.k,
-        messages: [{ role: 'user', content: text.aiPrompt(safeFixtureId) }]
+        messages: [
+          {
+            role: 'user',
+            content: text.aiPrompt(safeFixtureId)
+          }
+        ]
       })
     });
 
@@ -1129,8 +1129,10 @@ ${message}`);
       return;
     }
 
-    const content = body?.content || body?.message || body?.raw?.choices?.[0]?.message?.content;
-    aiBox.innerText = typeof content === 'string' && content.trim() ? content.trim() : text.aiUnavailable;
+    const content = body?.content || body?.raw?.choices?.[0]?.message?.content;
+    aiBox.innerText = typeof content === 'string' && content.trim()
+      ? content.trim()
+      : text.aiUnavailable;
   } catch (error) {
     if (error.name === 'AbortError') return;
 
@@ -1139,6 +1141,7 @@ ${message}`);
     aiBox.innerText = text.aiError;
   }
 }
+
 
 
     function verifySolanaProof(id) {
@@ -1233,6 +1236,8 @@ ${message}`);
 
     if (tg?.onEvent) tg.onEvent('viewportChanged', () => { if (tg.isExpanded) triggerLightImpact(); });
 
+
+
     async function initApp() {
   try {
     const serviceLevelId = Number(document.getElementById('serviceLevelId')?.value || 12);
@@ -1248,6 +1253,7 @@ ${message}`);
     }
 
     const probe = typeof res.body === 'object' && res.body ? res.body : {};
+
     if (probe.ok === false) {
       throw new Error(probe.error || 'Probe failed');
     }
@@ -1290,6 +1296,7 @@ ${message}`);
     }
   }
 }
+
 
 
     async function bootstrap() {
