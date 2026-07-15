@@ -59,16 +59,32 @@
     .brand-text{min-width:0}
     .brand-title{font-size:18px;font-weight:800;line-height:1.1}
     .brand-sub{font-size:12px;color:var(--muted);margin-top:3px}
-    .actions{display:flex;gap:17px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-    .pill, .btn, .chip{
-      border:1px solid var(--line);
-      background:rgba(16,26,51,.72);
-      color:var(--text);
-      border-radius:999px;
-      padding:10px 14px;
-      display:inline-flex;align-items:center;gap:8px;
-      box-shadow:none;
-    }
+
+.actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+
+.pill,
+.btn,
+.chip{
+    padding:6px 10px;
+    font-size:13px;
+    min-height:34px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:rgba(16,26,51,.72);
+    color:var(--text);
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    box-shadow:none;
+}
+
     .btn{cursor:pointer}
     .btn:hover,.pill:hover,.chip:hover{border-color:rgba(121,168,255,.35)}
     .btn-primary{
@@ -250,7 +266,6 @@
     <div class="actions">
       <button class="pill btn" id="btnRefresh">Refresh</button>
       <button class="pill btn" id="btnCheckToken">Check token</button>
-      <button class="pill btn" id="btnFavorites">Favorites: <span id="favCount">0</span></button>
     </div>
   </div>
 </div>
@@ -271,6 +286,7 @@
         <button class="chip" data-group="upcoming">Upcoming (0)</button>
         <button class="chip" data-group="finished">Finished (0)</button>
         <button class="chip" data-group="stopped">Stopped (0)</button>
+        <button class="chip" data-group="favorites">Favorites (0)</button>
       </div>
 
       <div class="search">
@@ -655,6 +671,9 @@ function getFeaturedMatch() {
     case "stopped":
       return state.grouped.stopped?.[0] || null;
 
+case "favorites":
+    return filterMatches()[0] || null;
+
     case "all":
     default:
       return state.workerFeatured || state.matches[0] || null;
@@ -681,6 +700,13 @@ function renderStats() {
   const stopped =
     state.grouped.stopped?.length || 0;
 
+  const favorites =
+    state.matches.filter(
+      m => state.favorites.has(
+        String(m.fixtureId)
+      )
+    ).length;
+
   document
     .querySelector('.chip[data-group="all"]')
     .textContent = `All (${total})`;
@@ -701,19 +727,13 @@ function renderStats() {
     .querySelector('.chip[data-group="stopped"]')
     .textContent = `Stopped (${stopped})`;
 
-  const visibleFavorites =
-    [...state.favorites].filter(id =>
-      state.matches.some(
-        m =>
-          String(m.fixtureId) ===
-          String(id)
-      )
-    ).length;
-
-  $("favCount").textContent =
-    `${visibleFavorites}/${state.favorites.size}`;
+  document
+    .querySelector('.chip[data-group="favorites"]')
+    .textContent = `Favorites (${favorites})`;
 
 }
+
+
 
 
 function saveFavorites(){
@@ -992,11 +1012,21 @@ function filterMatches() {
 
   let matches = state.matches;
 
-  if (state.group !== "all") {
+  if (state.group === "favorites") {
+
     matches = matches.filter(
-      m => m.phase === state.group
+        m => state.favorites.has(
+            String(m.fixtureId)
+        )
     );
-  }
+
+} else if (state.group !== "all") {
+
+    matches = matches.filter(
+        m => m.phase === state.group
+    );
+
+}
 
   if (!query) {
     return matches;
@@ -1889,13 +1919,6 @@ function applyTabs(){
 function wire(){
   $('btnRefresh').onclick = loadFeed;
 
-  $('btnFavorites').onclick = () => {
-  state.group = state.group === 'all' ? 'live' : 'all';
-  applyTabs();
-  renderList();
-  state.featured = getFeaturedMatch();
-  renderFeatured();
-};
 
   $('btnCheckToken').onclick = checkToken;
   $('searchInput').addEventListener('input', e => { state.query = e.target.value; renderList(); });
