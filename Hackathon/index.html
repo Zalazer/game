@@ -1003,6 +1003,136 @@ function formatTime(value) {
 }
 
 
+function formatMatchClock(value) {
+
+  if (!value) {
+    return "";
+  }
+
+  if (
+    typeof value === "object" &&
+    value.Seconds != null
+  ) {
+
+    const seconds =
+      Number(value.Seconds) || 0;
+
+    const mm =
+      String(
+        Math.floor(seconds / 60)
+      ).padStart(2, "0");
+
+    const ss =
+      String(
+        seconds % 60
+      ).padStart(2, "0");
+
+    return `${mm}:${ss}`;
+  }
+
+  return txScalar(value);
+}
+
+
+
+function niceScore(
+  score,
+  homeScore,
+  awayScore
+) {
+
+  if (
+    homeScore != null &&
+    awayScore != null
+  ) {
+    return `${homeScore} - ${awayScore}`;
+  }
+
+  if (
+    score &&
+    score !== "—" &&
+    score !== "null-null"
+  ) {
+    return score;
+  }
+
+  return "Score unavailable";
+}
+
+
+
+function availabilityHtml(avail) {
+
+  return `
+
+    <div class="kv">
+
+      <div>
+        <b>Live statistics</b>
+        ${avail.hasSnapshot ? "✓ Available" : "✗ Missing"}
+      </div>
+
+      <div>
+        <b>Match events</b>
+        ${avail.hasLiveEvents ? "✓ Available" : "✗ Missing"}
+      </div>
+
+      <div>
+        <b>Historical data</b>
+        ${avail.hasHistorical ? "✓ Available" : "✗ Missing"}
+      </div>
+
+      <div>
+        <b>Betting odds</b>
+        ${avail.hasOdds ? "✓ Available" : "✗ Missing"}
+      </div>
+
+    </div>
+
+  `;
+}
+
+
+
+function prettyOddsText(text) {
+
+  if (!text) {
+    return "";
+  }
+
+  return String(text)
+
+    .replaceAll(
+      "part1:",
+      "Home: "
+    )
+
+    .replaceAll(
+      "part2:",
+      "Away: "
+    )
+
+    .replaceAll(
+      "draw:",
+      "Draw: "
+    )
+
+    .replaceAll(
+      "over:",
+      "Over: "
+    )
+
+    .replaceAll(
+      "under:",
+      "Under: "
+    )
+
+    .replaceAll(
+      "|",
+      " • "
+    );
+
+}
 
 
 function filterMatches() {
@@ -1552,27 +1682,53 @@ const oddsTop =
 
 
   const oddsHtml = oddsTop.length
-    ? oddsTop.map(o => `
+
+  ? oddsTop.map(o => `
+
       <div class="odd">
+
         <div class="m">
+
           ${esc(
             o.bookmaker ||
             o.market ||
-            "Odds"
+            "Market"
           )}
+
         </div>
 
-        <div class="p">
+        <div
+          class="p"
+          style="
+            line-height:1.6;
+            font-size:15px;
+            word-break:break-word;
+          "
+        >
+
           ${esc(
-            o.pricesText ||
-            o.price ||
-            o.selection ||
-            JSON.stringify(o)
+            prettyOddsText(
+
+              o.pricesText ||
+
+              o.price ||
+
+              o.selection ||
+
+              JSON.stringify(o)
+
+            )
           )}
+
         </div>
+
       </div>
+
     `).join("")
-    : '<div class="empty">No odds data.</div>';
+
+  : '<div class="empty">No odds data.</div>';
+
+
 
 
   const eventHtml =
@@ -1642,7 +1798,137 @@ const oddsTop =
       : '<div class="empty">No source diagnostics.</div>';
 
 
+const matchClock =
+  formatMatchClock(
+    compact.clock ??
+    current.clock
+  );
+
+
+const summaryHtml = `
+
+<div class="detail-block">
+
+  <div
+    style="
+      font-size:26px;
+      font-weight:900;
+      margin-bottom:8px;
+    "
+  >
+    MATCH SUMMARY
+  </div>
+
+  <div
+    style="
+      font-size:22px;
+      font-weight:800;
+    "
+  >
+    ${teamTitle}
+  </div>
+
+  <div
+    class="muted"
+    style="margin-top:8px"
+  >
+    ${esc(
+      txPhaseLabel(phase)
+    )}
+  </div>
+
+  <div
+    style="
+      font-size:48px;
+      font-weight:900;
+      margin-top:18px;
+      margin-bottom:12px;
+    "
+  >
+    ${esc(
+      niceScore(
+        score,
+        homeScore,
+        awayScore
+      )
+    )}
+  </div>
+
+  ${
+    competition
+      ? `
+      <div class="muted">
+        Competition:
+        ${esc(competition)}
+      </div>
+      `
+      : ""
+  }
+
+  ${
+    fixtureId
+      ? `
+      <div class="muted">
+        Fixture ID:
+        ${esc(fixtureId)}
+      </div>
+      `
+      : ""
+  }
+
+  ${
+    current.startTime ||
+    compact.startTime
+      ? `
+      <div class="muted">
+        Kick-off:
+        ${esc(
+          formatTime(
+            current.startTime ??
+            compact.startTime
+          )
+        )}
+      </div>
+      `
+      : ""
+  }
+
+  ${
+    matchClock
+      ? `
+      <div class="muted">
+        Match clock:
+        ${esc(matchClock)}
+      </div>
+      `
+      : ""
+  }
+
+</div>
+
+
+
+<div
+  class="detail-block"
+  style="margin-top:12px"
+>
+
+  <h3>
+    AVAILABLE DATA
+  </h3>
+
+  ${availabilityHtml(
+    avail
+  )}
+
+</div>
+
+`;
+
+
   $("detailModal").innerHTML = `
+
+${summaryHtml}
 
     <div class="modal-head">
 
@@ -1669,6 +1955,21 @@ const oddsTop =
 
     </div>
 
+
+<div
+  style="
+    margin-top:12px;
+    margin-bottom:12px;
+    padding:14px;
+    border-radius:18px;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.03);
+    font-size:20px;
+    font-weight:900;
+  "
+>
+  DEBUG INFORMATION
+</div>
 
     <div class="detail-grid">
 
