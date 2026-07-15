@@ -378,51 +378,152 @@ function txStatusClass(p){
 
 
 function derivePhase(m) {
-  const s = String(m?.status ?? m?.Status ?? m?.gameState ?? m?.GameState ?? m?.statusRaw ?? m?.rawStatus ?? '').trim();
-  const n = txNum(s);
+  if (!m || typeof m !== "object") {
+    return "unknown";
+  }
 
-  if (['F', 'FINISHED', 'FINAL', 'ENDED', 'COMPLETED', 'FULL TIME', 'FULL-TIME'].includes(s.toUpperCase()) || [5, 10, 13].includes(n)) return 'finished';
-  if (['H1', 'HT', 'H2', 'ET1', 'ET2', 'PE', 'WET', 'WPE'].includes(s.toUpperCase()) || [2, 3, 4, 6, 7, 8, 9, 11, 12].includes(n)) return 'live';
-  if (['NS', 'NOT STARTED', 'SCHEDULED', 'UPCOMING'].includes(s.toUpperCase()) || n === 1) return 'upcoming';
-  if ([14, 15, 16, 17, 18, 19].includes(n)) return 'stopped';
-  if (m?.hasHistorical || m?.hasEvents || m?.hasSnapshot) return 'finished';
-  return 'unknown';
+  const phase = txScalar(m.phase ?? m.currentPhase);
+
+  if (
+    phase === "live" ||
+    phase === "upcoming" ||
+    phase === "finished" ||
+    phase === "stopped"
+  ) {
+    return phase;
+  }
+
+  const status = String(
+    m.status ??
+    m.gameState ??
+    m.rawStatus ??
+    ""
+  ).trim().toUpperCase();
+
+  const statusId = txNum(
+    m.statusId ??
+    m.gameState ??
+    m.rawStatus
+  );
+
+  if (
+    ["F", "FINAL", "FINISHED", "FULL TIME", "FULL-TIME"].includes(status) ||
+    [5, 10, 13, 100].includes(statusId)
+  ) {
+    return "finished";
+  }
+
+  if (
+    ["H1", "HT", "H2", "ET1", "ET2", "PE", "WET", "WPE"].includes(status) ||
+    [2, 3, 4, 6, 7, 8, 9, 11, 12].includes(statusId)
+  ) {
+    return "live";
+  }
+
+  if (
+    ["NS", "NOT STARTED", "SCHEDULED", "UPCOMING"].includes(status) ||
+    statusId === 1
+  ) {
+    return "upcoming";
+  }
+
+  if ([14, 15, 16, 17, 18, 19].includes(statusId)) {
+    return "stopped";
+  }
+
+  return "unknown";
 }
 
+
+
 function normalizeMatch(x) {
-  const current = x?.currentCompact ?? x?.current ?? x?.raw ?? {};
-  const fixtureId = String(x?.fixtureId ?? x?.FixtureId ?? x?.id ?? current?.fixtureId ?? current?.FixtureId ?? '');
-  const home = txScalar(x?.home ?? x?.participant1 ?? x?.Participant1 ?? x?.homeTeam ?? x?.HomeTeam ?? current?.home ?? current?.Home ?? current?.Participant1);
-  const away = txScalar(x?.away ?? x?.participant2 ?? x?.Participant2 ?? x?.awayTeam ?? x?.AwayTeam ?? current?.away ?? current?.Away ?? current?.Participant2);
-  const competition = txScalar(x?.competition ?? x?.Competition ?? x?.league ?? x?.League ?? current?.competition ?? current?.Competition);
-  const kickoff = x?.kickoff ?? x?.StartTime ?? x?.startTime ?? current?.kickoff ?? current?.StartTime ?? current?.startTime ?? null;
+  if (!x || typeof x !== "object") return {};
+
+  const current = x.currentCompact ?? x.current ?? {};
+
+  const fixtureId = String(
+    x.fixtureId ??
+    x.FixtureId ??
+    x.id ??
+    current.fixtureId ??
+    ""
+  );
+
+  const home = txScalar(
+    x.home ??
+    x.homeTeam ??
+    x.participant1 ??
+    x.Participant1 ??
+    current.home ??
+    current.homeTeam
+  );
+
+  const away = txScalar(
+    x.away ??
+    x.awayTeam ??
+    x.participant2 ??
+    x.Participant2 ??
+    current.away ??
+    current.awayTeam
+  );
+
+  const competition = txScalar(
+    x.competition ??
+    x.Competition ??
+    current.competition
+  );
+
+  const kickoff =
+    x.kickoff ??
+    x.startTime ??
+    x.StartTime ??
+    current.kickoff ??
+    current.startTime ??
+    null;
 
   const homeScore = txNum(
-    x?.homeScore ??
-    x?.HomeScore ??
-    current?.homeScore ??
-    current?.HomeScore
+    x.homeScore ??
+    current.homeScore
   );
 
   const awayScore = txNum(
-    x?.awayScore ??
-    x?.AwayScore ??
-    current?.awayScore ??
-    current?.AwayScore
+    x.awayScore ??
+    current.awayScore
   );
 
   const score = txScalar(
-    x?.score ??
-    x?.currentScore ??
-    x?.MatchScore ??
-    x?.CurrentScore ??
-    current?.score ??
-    current?.currentScore ??
-    (homeScore != null && awayScore != null ? `${homeScore}-${awayScore}` : null)
+    x.score ??
+    current.score ??
+    (
+      homeScore != null &&
+      awayScore != null
+        ? `${homeScore}-${awayScore}`
+        : null
+    )
+  ) || "—";
+
+  const status = txScalar(
+    x.status ??
+    x.gameState ??
+    current.status ??
+    current.gameState
   );
 
-  const statusRaw = txScalar(x?.status ?? x?.Status ?? x?.gameState ?? x?.GameState ?? current?.status ?? current?.Status ?? current?.gameState ?? current?.GameState);
-  const phase = txScalar(x?.phase ?? x?.currentPhase ?? x?.Phase) || derivePhase({ ...x, status: statusRaw, gameState: statusRaw, hasHistorical: x?.hasHistorical ?? current?.hasHistorical, hasEvents: x?.hasEvents ?? current?.hasEvents, hasSnapshot: x?.hasSnapshot ?? current?.hasSnapshot });
+  const phase =
+    txScalar(x.phase ?? current.phase) ||
+    derivePhase({
+      ...x,
+      status,
+      hasHistorical:
+        x.hasHistorical ??
+        current.hasHistorical,
+      hasEvents:
+        x.hasEvents ??
+        current.hasEvents,
+      hasSnapshot:
+        x.hasSnapshot ??
+        current.hasSnapshot
+    });
 
   return {
     ...x,
@@ -431,85 +532,318 @@ function normalizeMatch(x) {
     away,
     competition,
     kickoff,
-    phase,
     homeScore,
     awayScore,
     score,
-    status: statusRaw
+    status,
+    phase
   };
 }
 
 
 
-function sortMatches(arr){
-  return [...arr].sort((a,b) => {
-    const pa = a.phase || 'unknown';
-    const pb = b.phase || 'unknown';
-    const order = {live:0, upcoming:1, finished:2, stopped:3, unknown:4};
-    return (order[pa] ?? 9) - (order[pb] ?? 9);
+function sortMatches(arr) {
+
+  const phaseOrder = {
+    live: 0,
+    upcoming: 1,
+    finished: 2,
+    stopped: 3,
+    unknown: 4
+  };
+
+  const getTime = m => {
+    const t = Number(
+      m?.kickoffMs ??
+      new Date(m?.kickoff).getTime()
+    );
+
+    return Number.isFinite(t)
+      ? t
+      : 0;
+  };
+
+  return [...arr].sort((a, b) => {
+
+    const pa = String(
+      a?.phase || "unknown"
+    );
+
+    const pb = String(
+      b?.phase || "unknown"
+    );
+
+    const phaseDiff =
+      (phaseOrder[pa] ?? 99) -
+      (phaseOrder[pb] ?? 99);
+
+    if (phaseDiff !== 0) {
+      return phaseDiff;
+    }
+
+    const ta = getTime(a);
+    const tb = getTime(b);
+
+    switch (pa) {
+
+      case "upcoming":
+        return ta - tb;
+
+      case "finished":
+        return tb - ta;
+
+      default:
+        return ta - tb;
+    }
+
   });
+
 }
-function groupMatches(matches){
-  const grouped = {live:[], upcoming:[], finished:[], stopped:[], unknown:[]};
-  for (const m of matches) (grouped[m.phase] || grouped.unknown).push(m);
+
+
+
+function groupMatches(matches) {
+
+  const grouped = {
+    live: [],
+    upcoming: [],
+    finished: [],
+    stopped: [],
+    unknown: []
+  };
+
+  for (const match of matches) {
+
+    const phase = String(
+      match?.phase || "unknown"
+    );
+
+    if (grouped[phase]) {
+      grouped[phase].push(match);
+    } else {
+      grouped.unknown.push(match);
+    }
+
+  }
+
   return grouped;
+
 }
-function renderStats(){
-  $('statMatches').textContent = state.matches.length;
-  $('statLive').textContent = state.grouped.live?.length || 0;
-  $('statUpcoming').textContent = state.grouped.upcoming?.length || 0;
-  $('statFinished').textContent = state.grouped.finished?.length || 0;
-  $('favCount').textContent = state.favorites.size;
+
+
+
+function renderStats() {
+
+  $("statMatches").textContent =
+    state.matches.length;
+
+  $("statLive").textContent =
+    state.grouped.live?.length || 0;
+
+  $("statUpcoming").textContent =
+    state.grouped.upcoming?.length || 0;
+
+  $("statFinished").textContent =
+    state.grouped.finished?.length || 0;
+
+  const visibleFavorites =
+    [...state.favorites].filter(id =>
+      state.matches.some(
+        m =>
+          String(m.fixtureId) ===
+          String(id)
+      )
+    ).length;
+
+  $("favCount").textContent =
+    `${visibleFavorites}/${state.favorites.size}`;
+
 }
+
+
+
 function saveFavorites(){
   localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
   renderFavorites();
   renderStats();
 }
-function toggleFav(id){
-  if (!id) return;
-  if (state.favorites.has(id)) state.favorites.delete(id); else state.favorites.add(id);
-  saveFavorites();
-}
-function matchTitle(m){ return `${esc(m.home || '—')} vs ${esc(m.away || '—')}`; }
 
-function renderFeatured(){
-  const m = state.featured || state.matches[0];
-  if (!m){
-    $('featuredWrap').innerHTML = '<div class="empty">No featured match.</div>';
-    $('featuredStatus').textContent = 'No data';
-    $('featuredDot').className = 'dot';
+
+function toggleFav(id) {
+
+  id = String(id ?? "").trim();
+
+  if (!id) {
     return;
   }
-  $('featuredStatus').textContent = txPhaseLabel(m.phase);
-  $('featuredDot').className = `dot ${txStatusClass(m.phase)}`;
-  $('featuredWrap').innerHTML = `
+
+  if (state.favorites.has(id)) {
+    state.favorites.delete(id);
+  } else {
+    state.favorites.add(id);
+  }
+
+  saveFavorites();
+
+}
+
+
+
+function matchTitle(m) {
+
+  const home = txScalar(
+    m?.home ??
+    m?.homeTeam ??
+    m?.participant1
+  ) || "—";
+
+  const away = txScalar(
+    m?.away ??
+    m?.awayTeam ??
+    m?.participant2
+  ) || "—";
+
+  return `${esc(home)} vs ${esc(away)}`;
+
+}
+
+
+function renderFeatured() {
+  const m = state.featured || state.matches[0];
+
+  if (!m) {
+    $("featuredWrap").innerHTML =
+      '<div class="empty">No featured match.</div>';
+
+    $("featuredStatus").textContent = "No data";
+    $("featuredDot").className = "dot";
+    return;
+  }
+
+  const phase = String(m.phase || "unknown");
+  const status = txScalar(
+    m.status || txPhaseLabel(phase)
+  );
+
+  $("featuredStatus").textContent =
+    txPhaseLabel(phase);
+
+  $("featuredDot").className =
+    `dot ${txStatusClass(phase)}`;
+
+  $("featuredWrap").innerHTML = `
     <div class="featured">
+
       <div class="featured-main">
-        <div class="featured-meta">${esc(m.competition || 'Competition')} • ${esc(m.phase || 'unknown')} • ${esc(m.fixtureId || '')}</div>
-        <div class="featured-teams">${matchTitle(m)}</div>
-        <div class="featured-score">${esc(m.score || '—')}</div>
-        <div class="muted">${esc(m.status || txPhaseLabel(m.phase))}${m.kickoff ? ' • ' + esc(formatTime(m.kickoff)) : ''}</div>
+
+        <div class="featured-meta">
+          ${esc(m.competition || "Competition")}
+          • ${esc(status)}
+          ${m.fixtureId ? " • " + esc(m.fixtureId) : ""}
+        </div>
+
+        <div class="featured-teams">
+          ${matchTitle(m)}
+        </div>
+
+        <div class="featured-score">
+          ${esc(m.score || "—")}
+        </div>
+
+        <div class="muted">
+          ${m.kickoff
+            ? esc(formatTime(m.kickoff))
+            : ""}
+        </div>
+
       </div>
+
       <div class="featured-right">
+
         <div class="detail-block">
-          <div class="muted">Quick actions</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            <button class="btn btn-primary" onclick="openDetails('${esc(m.fixtureId)}')">Open details</button>
-            <button class="btn" onclick="toggleFav('${esc(m.fixtureId)}')">${state.favorites.has(String(m.fixtureId)) ? 'Remove favorite' : 'Add favorite'}</button>
+          <div class="muted">
+            Quick actions
+          </div>
+
+          <div
+            style="
+              display:flex;
+              gap:8px;
+              flex-wrap:wrap;
+              margin-top:10px;
+            "
+          >
+
+            <button
+              class="btn btn-primary"
+              onclick="openDetails('${esc(m.fixtureId)}')"
+            >
+              Open details
+            </button>
+
+            <button
+              class="btn"
+              onclick="toggleFav('${esc(m.fixtureId)}')"
+            >
+              ${
+                state.favorites.has(
+                  String(m.fixtureId)
+                )
+                  ? "Remove favorite"
+                  : "Add favorite"
+              }
+            </button>
+
           </div>
         </div>
+
         <div class="detail-block">
-          <div class="muted">Score</div>
-          <div style="display:flex;justify-content:space-between;align-items:end;margin-top:8px">
-            <div><div class="bigscore">${esc(m.score || '—')}</div><div class="muted">${esc(txPhaseLabel(m.phase))}</div></div>
-            <div class="score-badge">${state.favorites.has(String(m.fixtureId)) ? '★' : '☆'}</div>
+
+          <div class="muted">
+            Score
           </div>
+
+          <div
+            style="
+              display:flex;
+              justify-content:space-between;
+              align-items:end;
+              margin-top:8px;
+            "
+          >
+
+            <div>
+
+              <div class="bigscore">
+                ${esc(m.score || "—")}
+              </div>
+
+              <div class="muted">
+                ${esc(txPhaseLabel(phase))}
+              </div>
+
+            </div>
+
+            <div class="score-badge">
+              ${
+                state.favorites.has(
+                  String(m.fixtureId)
+                )
+                  ? "★"
+                  : "☆"
+              }
+            </div>
+
+          </div>
+
         </div>
+
       </div>
+
     </div>
   `;
 }
+
 
 
 function renderFavorites(){
@@ -526,10 +860,22 @@ function renderFavorites(){
         <strong>${esc(m.home || '—')} vs ${esc(m.away || '—')}</strong>
         <div><span>${esc(m.competition || '')}</span></div>
       </div>
-      <span>${esc(m.score || '—')}</span>
+      <span>
+${esc(
+  m.score ||
+  (
+    m.homeScore != null &&
+    m.awayScore != null
+      ? `${m.homeScore}-${m.awayScore}`
+      : "—"
+  )
+)}
+</span>
     </div>
   `).join('');
 }
+
+
 
 function renderOracleInfo(feed){
   const info = [
@@ -540,63 +886,309 @@ function renderOracleInfo(feed){
   $('oracleInfo').innerHTML = info.map(([k,v]) => `<div class="mini-item"><strong>${esc(k)}</strong><span>${esc(v)}</span></div>`).join('');
 }
 
-function formatTime(v){
-  const d = new Date(v);
-  if (String(d) === 'Invalid Date') return String(v);
-  return d.toLocaleString([], {month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+
+function formatTime(value) {
+
+  if (value == null) {
+    return "";
+  }
+
+  let time = value;
+
+  if (typeof time === "string") {
+
+    const numeric = Number(time);
+
+    if (Number.isFinite(numeric)) {
+      time = numeric;
+    }
+
+  }
+
+  if (typeof time === "number") {
+
+    if (time < 1000000000000) {
+      time *= 1000;
+    }
+
+  }
+
+  const date = new Date(time);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
 }
 
-function filterMatches(){
-  const q = state.query.trim().toLowerCase();
-  let arr = state.matches;
-  if (state.group !== 'all') arr = arr.filter(m => m.phase === state.group);
-  if (q) arr = arr.filter(m =>
-    [m.home,m.away,m.competition,m.fixtureId,m.status,m.score].some(x => String(x ?? '').toLowerCase().includes(q))
-  );
-  return arr;
+
+
+
+function filterMatches() {
+
+  const query =
+    state.query.trim().toLowerCase();
+
+  let matches = state.matches;
+
+  if (state.group !== "all") {
+    matches = matches.filter(
+      m => m.phase === state.group
+    );
+  }
+
+  if (!query) {
+    return matches;
+  }
+
+  return matches.filter(m => {
+
+    const searchable = [
+
+      m.home,
+      m.away,
+
+      m.competition,
+
+      m.fixtureId,
+
+      m.score,
+
+      m.status,
+
+      m.phase,
+
+      m.period,
+
+      m.clock,
+
+      m.gameState,
+
+      txPhaseLabel(m.phase)
+
+    ];
+
+    return searchable.some(value =>
+      txScalar(value)
+        .toLowerCase()
+        .includes(query)
+    );
+
+  });
+
 }
 
-function renderList(){
-  const arr = filterMatches();
-  if (!arr.length){
-    $('listWrap').innerHTML = '<div class="empty">Nothing matches your filters.</div>';
+
+
+
+function renderList() {
+
+  const matches = filterMatches();
+
+  if (!matches.length) {
+
+    $("listWrap").innerHTML =
+      '<div class="empty">Nothing matches your filters.</div>';
+
     return;
   }
-  const grouped = groupMatches(arr);
-  const order = ['live','upcoming','finished','stopped','unknown'].filter(k => grouped[k]?.length);
-  $('listWrap').innerHTML = order.map(k => `
-    <div class="matches-group">
-      <div class="group-title"><span>${esc(txPhaseLabel(k))}</span><span>${grouped[k].length}</span></div>
-      <div class="match-list">
-        ${grouped[k].map(renderCard).join('')}
+
+  const grouped =
+    groupMatches(matches);
+
+  const order = [
+    "live",
+    "upcoming",
+    "finished",
+    "stopped",
+    "unknown"
+  ].filter(
+    phase => grouped[phase]?.length
+  );
+
+  $("listWrap").innerHTML =
+    order.map(phase => `
+
+      <div class="matches-group">
+
+        <div class="group-title">
+
+          <span>
+            ${esc(txPhaseLabel(phase))}
+          </span>
+
+          <span>
+            ${grouped[phase].length}
+          </span>
+
+        </div>
+
+        <div class="match-list">
+
+          ${grouped[phase]
+            .map(renderCard)
+            .join("")}
+
+        </div>
+
       </div>
-    </div>
-  `).join('');
+
+    `).join("");
+
 }
 
 
-function renderCard(m){
-  const fav = state.favorites.has(String(m.fixtureId));
-  const phase = String(m.phase || m.status || '').toLowerCase();
-  const statusLabel = txPhaseLabel(phase || m.phase || m.status);
+
+function renderCard(m) {
+
+  const fav =
+    state.favorites.has(
+      String(m.fixtureId)
+    );
+
+  const phase =
+    String(
+      m.phase || "unknown"
+    );
+
+  const status =
+    txScalar(
+      m.status ||
+      txPhaseLabel(phase)
+    );
+
+  const clock =
+    txScalar(
+      m.clock || ""
+    );
+
+  const period =
+    txScalar(
+      m.period || ""
+    );
+
+  let score =
+    txScalar(
+      m.score || ""
+    );
+
+  if (
+    (!score || score === "—") &&
+    m.homeScore != null &&
+    m.awayScore != null
+  ) {
+    score =
+      `${m.homeScore}-${m.awayScore}`;
+  }
+
+  if (!score) {
+    score = "—";
+  }
+
+  const timeInfo =
+    clock ||
+    (m.kickoff
+      ? formatTime(m.kickoff)
+      : "");
 
   return `
-    <div class="match-card" onclick="openDetails('${esc(m.fixtureId)}')">
+
+    <div
+      class="match-card"
+      onclick="openDetails('${esc(m.fixtureId)}')"
+    >
+
       <div>
+
         <div class="status">
-          <span class="dot ${txStatusClass(phase)}"></span>
-          ${esc(statusLabel)}${m.kickoff ? ' • ' + esc(formatTime(m.kickoff)) : ''}
+
+          <span
+            class="dot ${txStatusClass(phase)}"
+          ></span>
+
+          ${esc(status)}
+
+          ${
+            timeInfo
+              ? " • " + esc(timeInfo)
+              : ""
+          }
+
         </div>
-        <div class="teams">${matchTitle(m)}</div>
-        <div class="subline">${esc(m.competition || '')}${m.fixtureId ? ' • #' + esc(m.fixtureId) : ''}</div>
+
+        <div class="teams">
+
+          ${matchTitle(m)}
+
+        </div>
+
+        <div class="subline">
+
+          ${
+            period
+              ? esc(period) + " • "
+              : ""
+          }
+
+          ${esc(
+            m.competition || ""
+          )}
+
+          ${
+            m.fixtureId
+              ? " • #" +
+                esc(m.fixtureId)
+              : ""
+          }
+
+        </div>
+
       </div>
-      <div style="display:flex;flex-direction:column;align-items:end;gap:8px">
-        <div class="score-badge small">${esc(m.score || '—')}</div>
-        <div class="favorite ${fav ? 'on' : ''}" title="Favorite" onclick="event.stopPropagation(); toggleFav('${esc(m.fixtureId)}')">${fav ? '★' : '☆'}</div>
+
+
+      <div
+        style="
+          display:flex;
+          flex-direction:column;
+          align-items:end;
+          gap:8px;
+        "
+      >
+
+        <div
+          class="score-badge small"
+        >
+          ${esc(score)}
+        </div>
+
+        <div
+          class="favorite ${
+            fav ? "on" : ""
+          }"
+          title="Favorite"
+          onclick="
+            event.stopPropagation();
+            toggleFav('${esc(m.fixtureId)}')
+          "
+        >
+          ${fav ? "★" : "☆"}
+        </div>
+
       </div>
+
     </div>
+
   `;
 }
+
+
 
 
 function renderApp(){
@@ -623,178 +1215,616 @@ async function emit(type, d){
   return await r.json();
 }
 
-async function loadFeed(){
+
+async function loadFeed() {
+
   state.loading = true;
   renderApp();
-  try{
-    const res = await emit('txline_probe_feed', {
-      serviceLevelId: 12,
-      scope: 'worldcup',
-      competitionId: null,
-      enrichLimit: 10,
-      includePast: true,
-      pastDays: 10
-    });
+
+  try {
+
+    const res = await emit(
+      "txline_probe_feed",
+      {
+        serviceLevelId: 12,
+        scope: "worldcup",
+        competitionId: null,
+        enrichLimit: 10,
+        includePast: true,
+        pastDays: 10
+      }
+    );
+
+    if (!res?.ok) {
+      throw new Error(
+        res?.error ||
+        "Worker returned an error."
+      );
+    }
 
     state.feed = res;
-    const matches = (res.matches || res.data?.matches || []).map(normalizeMatch);
-    state.matches = sortMatches(matches);
-    state.grouped = groupMatches(state.matches);
-    state.featured = normalizeMatch(res.featured || state.matches[0] || null);
-    state.enrichment = res.enrichment || null;
-    renderApp();
-  } catch (e){
-    $('listWrap').innerHTML = `<div class="empty">Load failed: ${esc(e.message || e)}</div>`;
-    $('featuredWrap').innerHTML = `<div class="empty">Load failed: ${esc(e.message || e)}</div>`;
-  } finally{
+
+    const rawMatches =
+      Array.isArray(res.matches)
+        ? res.matches
+        : Array.isArray(res.data?.matches)
+        ? res.data.matches
+        : [];
+
+    state.matches = sortMatches(
+      rawMatches.map(normalizeMatch)
+    );
+
+    state.grouped =
+      groupMatches(state.matches);
+
+    if (res.featured) {
+      state.featured =
+        normalizeMatch(res.featured);
+    } else {
+      state.featured =
+        state.matches[0] || null;
+    }
+
+    state.enrichment =
+      res.enrichment || null;
+
+  } catch (e) {
+
+    state.feed = null;
+    state.matches = [];
+    state.grouped = {
+      live: [],
+      upcoming: [],
+      finished: [],
+      stopped: [],
+      unknown: []
+    };
+    state.featured = null;
+    state.enrichment = null;
+
+    const message =
+      esc(
+        e?.message ||
+        String(e)
+      );
+
+    $("listWrap").innerHTML =
+      `<div class="empty">
+        Load failed: ${message}
+      </div>`;
+
+    $("featuredWrap").innerHTML =
+      `<div class="empty">
+        Load failed: ${message}
+      </div>`;
+
+  } finally {
+
     state.loading = false;
     renderApp();
+
   }
+
 }
+
 
 function closeDetails(){
   $('detailOverlay').classList.remove('active');
   $('detailOverlay').setAttribute('aria-hidden','true');
 }
-async function openDetails(fixtureId){
-  state.currentFixtureId = String(fixtureId);
-  $('detailOverlay').classList.add('active');
-  $('detailOverlay').setAttribute('aria-hidden','false');
-  $('detailModal').innerHTML = '<div class="loader-centered"><div><div class="spinner"></div><div>Loading details…</div></div></div>';
-  try{
-    const res = await emit('txline_fixture_details', {
-      serviceLevelId: 12,
-      fixtureId,
-      oddsLimit: 32,
-      eventLimit: 20
-    });
+
+
+async function openDetails(fixtureId) {
+  fixtureId = String(fixtureId ?? "").trim();
+
+  if (!fixtureId) {
+    return;
+  }
+
+  state.currentFixtureId = fixtureId;
+
+  $("detailOverlay").classList.add("active");
+  $("detailOverlay").setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  $("detailModal").innerHTML = `
+    <div class="loader-centered">
+      <div>
+        <div class="spinner"></div>
+        <div>Loading details…</div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const res = await emit(
+      "txline_fixture_details",
+      {
+        serviceLevelId: 12,
+        fixtureId,
+        oddsLimit: 32,
+        eventLimit: 20
+      }
+    );
+
     renderDetails(res);
-  } catch(e){
-    $('detailModal').innerHTML = `<div class="empty">Details failed: ${esc(e.message || e)}</div>`;
+
+  } catch (e) {
+
+    $("detailModal").innerHTML = `
+      <div class="empty">
+        Details failed:
+        ${esc(e?.message || String(e))}
+      </div>
+    `;
+
   }
 }
 
 
-function renderDetails(d){
-  const current = d.current || d.currentCompact || {};
-  const fixtureId = d.fixtureId || current.fixtureId || state.currentFixtureId || '';
-  const home = txScalar(current.home ?? d.home ?? '');
-  const away = txScalar(current.away ?? d.away ?? '');
-  const phase = txScalar(d.phase ?? current.phase ?? derivePhase(current)) || 'unknown';
 
-  const score =
-    txScalar(d.score ?? current.score ?? '') ||
-    (
-      current.homeScore != null && current.awayScore != null
-        ? `${current.homeScore}-${current.awayScore}`
-        : '—'
+function renderDetails(d) {
+
+  const current = d?.current || {};
+  const compact = d?.currentCompact || {};
+
+  const fixtureId =
+    String(
+      d?.fixtureId ??
+      compact?.fixtureId ??
+      current?.fixtureId ??
+      state.currentFixtureId ??
+      ""
     );
 
-  const events = [].concat(d.events || []).slice(-20);
-  const snapshot = [].concat(d.snapshot || []).slice(-10);
-  const historical = [].concat(d.historical || []).slice(-10);
-  const oddsTop = [].concat(d.oddsTop || d.oddsPreview || d.odds || []).slice(0, 12);
+  const home = txScalar(
+    compact.home ??
+    current.home ??
+    ""
+  );
+
+  const away = txScalar(
+    compact.away ??
+    current.away ??
+    ""
+  );
+
+  const phase =
+    txScalar(
+      d?.phase ??
+      compact?.phase ??
+      current?.phase
+    ) || derivePhase(current);
+
+  const homeScore = txNum(
+    compact.homeScore ??
+    current.homeScore
+  );
+
+  const awayScore = txNum(
+    compact.awayScore ??
+    current.awayScore
+  );
+
+  let score = txScalar(
+    compact.score ??
+    current.score ??
+    d.score
+  );
+
+  if (
+    (!score || score === "—") &&
+    homeScore != null &&
+    awayScore != null
+  ) {
+    score = `${homeScore}-${awayScore}`;
+  }
+
+  if (!score) {
+    score = "—";
+  }
+
+  const status = txScalar(
+    d?.status ??
+    compact?.status ??
+    current?.status ??
+    txPhaseLabel(phase)
+  );
+
+  const competition = txScalar(
+    current.competition ??
+    compact.competition ??
+    d.competition ??
+    ""
+  );
+
+  const events =
+    [].concat(d.events || []).slice(-20);
+
+  const snapshot =
+    [].concat(d.snapshot || []).slice(-10);
+
+  const historical =
+    [].concat(d.historical || []).slice(-10);
+
+  const oddsTop =
+    [].concat(
+      d.oddsTop ||
+      d.oddsPreview ||
+      d.odds ||
+      []
+    ).slice(0, 12);
+
   const counts = d.counts || {};
   const avail = d.availability || {};
   const source = [].concat(d.source || []);
-  const teamTitle = `${esc(home || '—')} vs ${esc(away || '—')}`;
 
-  const oddsHtml = oddsTop.length ? oddsTop.map(o => `
-    <div class="odd">
-      <div class="m">${esc(o.bookmaker || o.market || 'Odds')}</div>
-      <div class="p">${esc(o.pricesText || o.price || o.selection || JSON.stringify(o))}</div>
-    </div>
-  `).join('') : '<div class="empty">No odds data.</div>';
+  const teamTitle =
+    `${esc(home || "—")} vs ${esc(away || "—")}`;
 
-  const eventHtml = [...historical, ...snapshot, ...events].slice(-20).map(it => `
-    <div class="tl-item">
-      <div class="a">${esc(it.period || it.clock || it.timestamp || it.type || 'Event')}</div>
-      <div class="b">${esc(it.detail || it.description || it.text || it.name || it.title || 'Match event')}</div>
-    </div>
-  `).join('') || '<div class="empty">No events.</div>';
 
-  const sourceHtml = source.length ? source.map(s => `
-    <div class="source-item">
-      <div>
-        <strong>${esc(s.rawType || s.url || 'source')}</strong>
-        <div><small>${esc(s.url || '')}</small></div>
+  const oddsHtml = oddsTop.length
+    ? oddsTop.map(o => `
+      <div class="odd">
+        <div class="m">
+          ${esc(
+            o.bookmaker ||
+            o.market ||
+            "Odds"
+          )}
+        </div>
+
+        <div class="p">
+          ${esc(
+            o.pricesText ||
+            o.price ||
+            o.selection ||
+            JSON.stringify(o)
+          )}
+        </div>
       </div>
-      <span class="nowrap">${esc(s.ok != null ? (s.ok ? 'ok' : 'err') : (s.status || '—'))}</span>
-    </div>
-  `).join('') : '<div class="empty">No source diagnostics.</div>';
+    `).join("")
+    : '<div class="empty">No odds data.</div>';
 
-  $('detailModal').innerHTML = `
+
+  const eventHtml =
+    [...historical, ...snapshot, ...events]
+      .slice(-20)
+      .map(it => `
+        <div class="tl-item">
+
+          <div class="a">
+            ${esc(
+              it.period ||
+              it.clock ||
+              it.timestamp ||
+              it.type ||
+              "Event"
+            )}
+          </div>
+
+          <div class="b">
+            ${esc(
+              it.detail ||
+              it.description ||
+              it.text ||
+              it.name ||
+              it.title ||
+              "Match event"
+            )}
+          </div>
+
+        </div>
+      `).join("")
+      || '<div class="empty">No events.</div>';
+
+
+  const sourceHtml =
+    source.length
+      ? source.map(s => `
+        <div class="source-item">
+
+          <div>
+            <strong>
+              ${esc(
+                s.rawType ||
+                s.url ||
+                "source"
+              )}
+            </strong>
+
+            <div>
+              <small>
+                ${esc(s.url || "")}
+              </small>
+            </div>
+          </div>
+
+          <span class="nowrap">
+            ${
+              s.ok === true
+                ? "OK"
+                : s.ok === false
+                ? "ERR"
+                : esc(s.status || "—")
+            }
+          </span>
+
+        </div>
+      `).join("")
+      : '<div class="empty">No source diagnostics.</div>';
+
+
+  $("detailModal").innerHTML = `
+
     <div class="modal-head">
+
       <div>
-        <div class="modal-title">${teamTitle}</div>
-        <div class="muted">${esc(fixtureId)} • ${esc(txPhaseLabel(phase))} • ${esc(d.status || current.status || '')}</div>
+
+        <div class="modal-title">
+          ${teamTitle}
+        </div>
+
+        <div class="muted">
+          ${esc(fixtureId)}
+          • ${esc(txPhaseLabel(phase))}
+          • ${esc(status)}
+        </div>
+
       </div>
-      <button class="close-btn" onclick="closeDetails()">×</button>
+
+      <button
+        class="close-btn"
+        onclick="closeDetails()"
+      >
+        ×
+      </button>
+
     </div>
+
 
     <div class="detail-grid">
-      <div class="detail-block">
-        <div class="muted">Score</div>
-        <div class="bigscore">${esc(score || '—')}</div>
-        <div style="margin-top:8px" class="muted">${esc(d.currentCompact?.clock || current.clock || '')}</div>
-        <div class="kv">
-          <div><b>Phase</b>${esc(phase)}</div>
-          <div><b>Status</b>${esc(d.status || current.status || '—')}</div>
-          <div><b>Fixture</b>${esc(fixtureId || '—')}</div>
-          <div><b>Competition</b>${esc(current.competition || d.competition || '—')}</div>
-        </div>
-      </div>
 
       <div class="detail-block">
-        <div class="muted">Availability</div>
-        <div class="kv">
-          <div><b>Snapshot</b>${esc(avail.snapshot ?? (snapshot.length > 0 ? 'yes' : 'no'))}</div>
-          <div><b>Events</b>${esc(avail.events ?? (events.length > 0 ? 'yes' : 'no'))}</div>
-          <div><b>Historical</b>${esc(avail.historical ?? (historical.length > 0 ? 'yes' : 'no'))}</div>
-          <div><b>Odds</b>${esc(avail.odds ?? (oddsTop.length > 0 ? 'yes' : 'no'))}</div>
+
+        <div class="muted">
+          Score
         </div>
+
+        <div class="bigscore">
+          ${esc(score)}
+        </div>
+
+        <div
+          style="margin-top:8px"
+          class="muted"
+        >
+          ${esc(
+            compact.clock ||
+            current.clock ||
+            ""
+          )}
+        </div>
+
+        <div class="kv">
+
+          <div>
+            <b>Phase</b>
+            ${esc(phase)}
+          </div>
+
+          <div>
+            <b>Status</b>
+            ${esc(status)}
+          </div>
+
+          <div>
+            <b>Fixture</b>
+            ${esc(fixtureId || "—")}
+          </div>
+
+          <div>
+            <b>Competition</b>
+            ${esc(competition || "—")}
+          </div>
+
+        </div>
+
       </div>
+
+
+      <div class="detail-block">
+
+        <div class="muted">
+          Availability
+        </div>
+
+        <div class="kv">
+
+          <div>
+            <b>Snapshot</b>
+            ${avail.hasSnapshot ? "Yes" : "No"}
+          </div>
+
+          <div>
+            <b>Events</b>
+            ${avail.hasLiveEvents ? "Yes" : "No"}
+          </div>
+
+          <div>
+            <b>Historical</b>
+            ${avail.hasHistorical ? "Yes" : "No"}
+          </div>
+
+          <div>
+            <b>Odds</b>
+            ${avail.hasOdds ? "Yes" : "No"}
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
 
-    <div class="detail-grid" style="margin-top:12px">
+
+    <div
+      class="detail-grid"
+      style="margin-top:12px"
+    >
+
       <div class="detail-block">
         <h3>Timeline</h3>
-        <div class="timeline">${eventHtml}</div>
-      </div>
-      <div class="detail-block">
-        <h3>Odds</h3>
-        <div class="odds-grid">${oddsHtml}</div>
-      </div>
-    </div>
-
-    <div class="detail-grid" style="margin-top:12px">
-      <div class="detail-block">
-        <h3>Counts</h3>
-        <div class="kv">
-          <div><b>Snapshot</b>${esc(counts.snapshotCount ?? snapshot.length)}</div>
-          <div><b>Events</b>${esc(counts.eventsCount ?? events.length)}</div>
-          <div><b>Historical</b>${esc(counts.historicalCount ?? historical.length)}</div>
-          <div><b>Odds</b>${esc(counts.oddsCount ?? oddsTop.length)}</div>
+        <div class="timeline">
+          ${eventHtml}
         </div>
       </div>
+
       <div class="detail-block">
-        <h3>Source</h3>
-        <div class="source-list">${sourceHtml}</div>
+        <h3>Odds</h3>
+        <div class="odds-grid">
+          ${oddsHtml}
+        </div>
       </div>
+
     </div>
+
+
+    <div
+      class="detail-grid"
+      style="margin-top:12px"
+    >
+
+      <div class="detail-block">
+
+        <h3>Counts</h3>
+
+        <div class="kv">
+
+          <div>
+            <b>Snapshot</b>
+            ${esc(
+              counts.snapshot ??
+              snapshot.length
+            )}
+          </div>
+
+          <div>
+            <b>Events</b>
+            ${esc(
+              counts.events ??
+              events.length
+            )}
+          </div>
+
+          <div>
+            <b>Historical</b>
+            ${esc(
+              counts.historical ??
+              historical.length
+            )}
+          </div>
+
+          <div>
+            <b>Odds</b>
+            ${esc(
+              counts.odds ??
+              oddsTop.length
+            )}
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="detail-block">
+
+        <h3>Source</h3>
+
+        <div class="source-list">
+          ${sourceHtml}
+        </div>
+
+      </div>
+
+    </div>
+
   `;
 }
 
 
 
-async function checkToken(){
-  try{
-    const res = await emit('txline_check_token', {serviceLevelId:12});
-    alert(JSON.stringify(res, null, 2));
-  }catch(e){
-    alert(String(e.message || e));
+
+async function checkToken() {
+
+  try {
+
+    const res = await emit(
+      "txline_check_token",
+      {
+        serviceLevelId: 12
+      }
+    );
+
+    if (!res?.ok) {
+      alert(
+        `TxLINE token check failed.\n\n${
+          res?.error || "Unknown error."
+        }`
+      );
+      return;
+    }
+
+    const lines = [];
+
+    lines.push(
+      `Status: OK`
+    );
+
+    if (res.serviceLevelId != null) {
+      lines.push(
+        `Service Level: ${res.serviceLevelId}`
+      );
+    }
+
+    if (res.subscription) {
+      lines.push(
+        `Subscription: ${res.subscription}`
+      );
+    }
+
+    if (res.expiresAt) {
+      lines.push(
+        `Expires: ${res.expiresAt}`
+      );
+    }
+
+    if (Array.isArray(res.permissions)) {
+      lines.push(
+        `Permissions: ${res.permissions.join(", ")}`
+      );
+    }
+
+    alert(
+      lines.join("\n")
+    );
+
+  } catch (e) {
+
+    alert(
+      `Token check failed.\n\n${
+        e?.message || String(e)
+      }`
+    );
+
   }
+
 }
+
 
 function applyTabs(){
   document.querySelectorAll('#groupTabs .chip').forEach(btn => {
