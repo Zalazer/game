@@ -343,6 +343,7 @@ const state = {
   matches: [],
   grouped: {},
   featured: null,
+  workerFeatured: null,
   enrichment: null,
   favorites: new Set(JSON.parse(localStorage.getItem('favorites') || '[]')),
   group: 'all',
@@ -632,6 +633,32 @@ function groupMatches(matches) {
   }
 
   return grouped;
+
+}
+
+
+
+
+function getFeaturedMatch() {
+
+  switch (state.group) {
+
+    case "live":
+      return state.grouped.live?.[0] || null;
+
+    case "upcoming":
+      return state.grouped.upcoming?.[0] || null;
+
+    case "finished":
+      return state.grouped.finished?.[0] || null;
+
+    case "stopped":
+      return state.grouped.stopped?.[0] || null;
+
+    case "all":
+    default:
+      return state.workerFeatured || state.matches[0] || null;
+  }
 
 }
 
@@ -1219,13 +1246,22 @@ function renderCard(m) {
 
 
 function renderApp(){
+
+  state.featured = getFeaturedMatch();
+
   renderStats();
   renderFeatured();
   renderFavorites();
   renderList();
   renderOracleInfo(state.feed);
-  $('heroDesc').textContent = state.loading ? 'Loading oracle data…' : `Loaded ${state.matches.length} matches from worker contract.`;
+
+  $('heroDesc').textContent =
+    state.loading
+      ? 'Loading oracle data…'
+      : `Loaded ${state.matches.length} matches from worker contract.`;
 }
+
+
 
 async function getTicket(){
   const r = await fetch('/__ticket', {method:'POST'});
@@ -1268,6 +1304,10 @@ async function loadFeed() {
 
     state.feed = res;
 
+state.workerFeatured = res.featured
+  ? normalizeMatch(res.featured)
+  : null;
+
     const rawMatches =
       Array.isArray(res.matches)
         ? res.matches
@@ -1282,13 +1322,7 @@ async function loadFeed() {
     state.grouped =
       groupMatches(state.matches);
 
-    if (res.featured) {
-      state.featured =
-        normalizeMatch(res.featured);
-    } else {
-      state.featured =
-        state.matches[0] || null;
-    }
+    state.featured = getFeaturedMatch();
 
     state.enrichment =
       res.enrichment || null;
@@ -1854,19 +1888,34 @@ function applyTabs(){
 
 function wire(){
   $('btnRefresh').onclick = loadFeed;
+
   $('btnFavorites').onclick = () => {
-    state.group = state.group === 'all' ? 'live' : 'all';
-    applyTabs(); renderList();
-  };
+  state.group = state.group === 'all' ? 'live' : 'all';
+  applyTabs();
+  renderList();
+  state.featured = getFeaturedMatch();
+  renderFeatured();
+};
+
   $('btnCheckToken').onclick = checkToken;
   $('searchInput').addEventListener('input', e => { state.query = e.target.value; renderList(); });
   $('groupTabs').addEventListener('click', e => {
-    const btn = e.target.closest('[data-group]');
-    if (!btn) return;
-    state.group = btn.dataset.group;
-    applyTabs();
-    renderList();
-  });
+
+  const btn = e.target.closest('[data-group]');
+  if (!btn) return;
+
+  state.group = btn.dataset.group;
+
+  applyTabs();
+
+  renderList();
+
+  state.featured = getFeaturedMatch();
+
+  renderFeatured();
+
+});
+
   $('detailOverlay').addEventListener('click', e => {
     if (e.target === $('detailOverlay')) closeDetails();
   });
