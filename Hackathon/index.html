@@ -253,28 +253,27 @@
   <div class="hero">
     <div class="hero-top">
       <div>
-        <h1 class="hero-title">Match dashboard</h1>
+        <h1 class="hero-title">Match Dashboard</h1>
         <div class="hero-sub" id="heroDesc">Loading oracle data…</div>
-      </div>
-      <div class="hero-stats">
-        <div class="stat"><div class="k">Matches</div><div class="v" id="statMatches">0</div></div>
-        <div class="stat"><div class="k">Live</div><div class="v" id="statLive">0</div></div>
-        <div class="stat"><div class="k">Upcoming</div><div class="v" id="statUpcoming">0</div></div>
-        <div class="stat"><div class="k">Finished</div><div class="v" id="statFinished">0</div></div>
       </div>
     </div>
 
     <div class="controls">
-      <div class="search"><span>⌕</span><input id="searchInput" placeholder="Search teams, competition, fixture id"></div>
       <div class="seg" id="groupTabs">
-        <button class="chip active" data-group="all">All</button>
-        <button class="chip" data-group="live">Live</button>
-        <button class="chip" data-group="upcoming">Upcoming</button>
-        <button class="chip" data-group="finished">Finished</button>
-        <button class="chip" data-group="stopped">Stopped</button>
+        <button class="chip active" data-group="all">All (0)</button>
+        <button class="chip" data-group="live">Live (0)</button>
+        <button class="chip" data-group="upcoming">Upcoming (0)</button>
+        <button class="chip" data-group="finished">Finished (0)</button>
+        <button class="chip" data-group="stopped">Stopped (0)</button>
+      </div>
+
+      <div class="search">
+        <span>⌕</span>
+        <input id="searchInput" placeholder="Search teams, competition, fixture ID">
       </div>
     </div>
   </div>
+
 
   <div class="grid">
     <main class="content">
@@ -634,17 +633,40 @@ function groupMatches(matches) {
 
 function renderStats() {
 
-  $("statMatches").textContent =
+  const total =
     state.matches.length;
 
-  $("statLive").textContent =
+  const live =
     state.grouped.live?.length || 0;
 
-  $("statUpcoming").textContent =
+  const upcoming =
     state.grouped.upcoming?.length || 0;
 
-  $("statFinished").textContent =
+  const finished =
     state.grouped.finished?.length || 0;
+
+  const stopped =
+    state.grouped.stopped?.length || 0;
+
+  document
+    .querySelector('.chip[data-group="all"]')
+    .textContent = `All (${total})`;
+
+  document
+    .querySelector('.chip[data-group="live"]')
+    .textContent = `Live (${live})`;
+
+  document
+    .querySelector('.chip[data-group="upcoming"]')
+    .textContent = `Upcoming (${upcoming})`;
+
+  document
+    .querySelector('.chip[data-group="finished"]')
+    .textContent = `Finished (${finished})`;
+
+  document
+    .querySelector('.chip[data-group="stopped"]')
+    .textContent = `Stopped (${stopped})`;
 
   const visibleFavorites =
     [...state.favorites].filter(id =>
@@ -659,7 +681,6 @@ function renderStats() {
     `${visibleFavorites}/${state.favorites.size}`;
 
 }
-
 
 
 function saveFavorites(){
