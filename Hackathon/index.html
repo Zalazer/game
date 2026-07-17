@@ -311,666 +311,358 @@
 
 <script>
 const state = {
-  feed: null,
   matches: [],
-  grouped: {},
   featured: null,
-  workerFeatured: null,
-  enrichment: null,
-  favorites: new Set(JSON.parse(localStorage.getItem('favorites') || '[]')),
-  group: 'all',
-  query: '',
-  loading: false,
-  currentFixtureId: null
+  group: "all",
+  query: "",
+  currentFixtureId: null,
+  favorites: new Set(
+    JSON.parse(localStorage.getItem("favorites") || "[]")
+  )
 };
 
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '')
-  .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
-  .replaceAll('"','&quot;').replaceAll("'","&#39;");
 
-function txScalar(v){
-  if (v == null) return '';
-  if (typeof v === 'string') return v;
-  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
-  if (Array.isArray(v)) return v.map(txScalar).filter(Boolean).join(', ');
-  if (typeof v === 'object') {
-    return String(v.name ?? v.Name ?? v.label ?? v.Label ?? v.title ?? v.Title ?? v.text ?? v.Text ?? v.value ?? v.Value ?? v.code ?? v.Code ?? '');
-  }
-  return '';
-}
-function txNum(v){ const n = Number(v); return Number.isFinite(n) ? n : null; }
-function txPhaseLabel(p){
-  if (p === 'live') return 'Live';
-  if (p === 'finished') return 'Finished';
-  if (p === 'upcoming') return 'Not started';
-  if (p === 'stopped') return 'Stopped';
-  return 'Unknown';
-}
-function txStatusClass(p){
-  if (p === 'live') return 'live';
-  if (p === 'finished') return 'finished';
-  if (p === 'upcoming') return 'upcoming';
-  return '';
-}
-function derivePhase(m) {
-  if (!m || typeof m !== 'object') return 'unknown';
-  const phase = txScalar(m.phase ?? m.currentPhase);
-  if (phase === 'live' || phase === 'upcoming' || phase === 'finished' || phase === 'stopped') return phase;
-  const status = String(m.status ?? m.gameState ?? m.rawStatus ?? '').trim().toUpperCase();
-  const statusId = txNum(m.statusId ?? m.gameState ?? m.rawStatus);
-  if (['F','FINAL','FINISHED','FULL TIME','FULL-TIME'].includes(status) || [5,10,13,100].includes(statusId)) return 'finished';
-  if (['H1','HT','H2','ET1','ET2','PE','WET','WPE'].includes(status) || [2,3,4,6,7,8,9,11,12].includes(statusId)) return 'live';
-  if (['I','A','C','P','TXCC','TXCS'].includes(status) || [14,15,16,17,18,19].includes(statusId)) return 'stopped';
-  if (['NS','UPCOMING','NOT STARTED','SCHEDULED'].includes(status) || [1].includes(statusId)) return 'upcoming';
-  if (m.homeScore != null || m.awayScore != null) return 'unknown';
-  return 'unknown';
-}
-function normalizeMatch(x) {
-  if (!x || typeof x !== 'object') return {};
-  const current = x.currentCompact ?? x.current ?? {};
-  const fixtureId = String(x.fixtureId ?? x.FixtureId ?? x.id ?? current.fixtureId ?? '');
-  const home = txScalar(x.home ?? x.homeTeam ?? x.participant1 ?? x.Participant1 ?? current.home ?? current.homeTeam);
-  const away = txScalar(x.away ?? x.awayTeam ?? x.participant2 ?? x.Participant2 ?? current.away ?? current.awayTeam);
-  const competition = txScalar(x.competition ?? x.Competition ?? current.competition);
-  const kickoff = x.kickoff ?? x.startTime ?? x.StartTime ?? current.kickoff ?? current.startTime ?? null;
-  const homeScore = txNum(x.homeScore ?? current.homeScore);
-  const awayScore = txNum(x.awayScore ?? current.awayScore);
-  const score = txScalar(x.score ?? current.score) || (homeScore != null && awayScore != null ? `${homeScore}-${awayScore}` : '');
-  const phase = txScalar(x.phase ?? current.phase) || derivePhase({
-    status: x.status ?? current.status,
-    gameState: x.gameState ?? current.gameState,
-    rawStatus: x.rawStatus ?? current.rawStatus,
-    statusId: x.statusId ?? current.statusId,
-    homeScore,
-    awayScore
-  });
-  return { ...x, fixtureId, home, away, competition, kickoff, homeScore, awayScore, score: score || '—', phase, currentCompact: current };
-}
-function byFixtureId(arr){
-  const seen = new Set();
-  return (arr || []).map(normalizeMatch).filter(m => {
-    if (!m.fixtureId) return false;
-    if (seen.has(m.fixtureId)) return false;
-    seen.add(m.fixtureId);
-    return true;
-  });
-}
-function setTabActive(tab) {
-  document.querySelectorAll('.detail-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-  document.querySelectorAll('.detail-panel').forEach(panel => {
-    panel.classList.add('hidden');
-  });
-  const target = document.getElementById(`${tab}-panel`);
-  if (target) target.classList.remove('hidden');
-}
-function prettyOddsText(text) {
-  if (!text) return '';
-  return String(text)
-    .replaceAll('part1:', 'Home: ')
-    .replaceAll('part2:', 'Away: ')
-    .replaceAll('draw:', 'Draw: ')
-    .replaceAll('over:', 'Over: ')
-    .replaceAll('under:', 'Under: ')
-    .replaceAll('|', ' • ');
-}
-function saveFavorites(){
-  localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
-}
-function favoriteCount(){
-  return state.favorites.size;
-}
-function filteredMatches(){
-  let arr = [...(state.matches || [])];
-  if (state.group !== 'all') arr = arr.filter(m => (m.phase || derivePhase(m)) === state.group);
-  if (state.group === 'favorites') arr = arr.filter(m => state.favorites.has(String(m.fixtureId)));
-  const q = state.query.trim().toLowerCase();
-  if (q) {
-    arr = arr.filter(m => (
-      String(m.fixtureId || '').toLowerCase().includes(q) ||
-      String(m.home || '').toLowerCase().includes(q) ||
-      String(m.away || '').toLowerCase().includes(q) ||
-      String(m.competition || '').toLowerCase().includes(q)
-    ));
-  }
-  return arr;
-}
-function renderStats(){
-  const g = state.grouped || {};
-  const allCount = (state.matches || []).length;
-  $('statMatches').textContent = String(allCount);
-  $('statLive').textContent = String((g.live || []).length);
-  $('statFinished').textContent = String((g.finished || []).length);
-  $('statFavs').textContent = String(favoriteCount());
-  const buttons = [...document.querySelectorAll('#groupButtons button')];
-  const counts = {
-    all: allCount,
-    live: (g.live || []).length,
-    upcoming: (g.upcoming || []).length,
-    finished: (g.finished || []).length,
-    stopped: (g.stopped || []).length,
-    favorites: favoriteCount()
-  };
-  buttons.forEach(btn => {
-    const k = btn.dataset.group;
-    btn.textContent = `${k[0].toUpperCase()}${k.slice(1)} (${counts[k] ?? 0})`;
-    btn.classList.toggle('active', state.group === k);
-  });
-}
-function renderFeatured(){
-  const featured = state.workerFeatured || state.featured || null;
-  const el = $('featuredWrap');
-  $('featuredState').textContent = featured ? txPhaseLabel(featured.phase || derivePhase(featured)) : '—';
-  if (!featured) {
-    el.innerHTML = `<div class="empty">No featured match.</div>`;
-    return;
-  }
-  const phase = featured.phase || derivePhase(featured);
-  if (!featured.fixtureId) {
-    el.innerHTML = `<div class="empty">Featured match has no fixture ID.</div>`;
-    return;
-  }
-  el.innerHTML = `
-    <div class="match" onclick="openDetails('${esc(featured.fixtureId)}')">
-      <div class="match-top">
-        <div>
-          <div class="match-teams">${esc(featured.home || '—')} vs ${esc(featured.away || '—')}</div>
-          <div class="match-meta">
-            <span class="pill ${txStatusClass(phase)}">${esc(txPhaseLabel(phase))}</span>
-            <span class="pill">${esc(featured.competition || 'World Cup')}</span>
-            <span class="pill">#${esc(featured.fixtureId || '')}</span>
-          </div>
-        </div>
-        <div class="match-score">${esc(featured.score || '—')}</div>
-      </div>
-      <div class="match-meta">
-        <span class="pill">Kickoff: ${esc(featured.kickoff || '—')}</span>
-        <span class="pill">Home ${esc(featured.homeScore ?? '—')}</span>
-        <span class="pill">Away ${esc(featured.awayScore ?? '—')}</span>
-      </div>
-    </div>
-  `;
-}
-function renderMatches(){
-  const list = $('matchesList');
-  const arr = filteredMatches();
-  if (!arr.length) {
-    list.innerHTML = `<div class="empty">No matches.</div>`;
-    return;
-  }
-  list.innerHTML = arr.map(m => {
-    const phase = m.phase || derivePhase(m);
-    const fav = state.favorites.has(String(m.fixtureId));
-    return `
-      <div class="match" onclick="openDetails('${esc(m.fixtureId)}')">
-        <div class="match-top">
-          <div>
-            <div class="match-teams">${fav ? '★ ' : ''}${esc(m.home || '—')} vs ${esc(m.away || '—')}</div>
-            <div class="match-meta">
-              <span class="pill ${txStatusClass(phase)}">${esc(txPhaseLabel(phase))}</span>
-              <span class="pill">${esc(m.competition || '—')}</span>
-              <span class="pill">#${esc(m.fixtureId || '')}</span>
-            </div>
-          </div>
-          <div class="match-score">${esc(m.score || '—')}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-function renderApp(){
-  renderStats();
-  renderFeatured();
-  renderMatches();
-}
-function availabilityHtml(avail) {
-  return `
-    <div class="kv">
-      <div><b>Live statistics</b>${avail.hasSnapshot ? ' ✓ Available' : ' ✗ Missing'}</div>
-      <div><b>Match events</b>${avail.hasLiveEvents ? ' ✓ Available' : ' ✗ Missing'}</div>
-      <div><b>Historical data</b>${avail.hasHistorical ? ' ✓ Available' : ' ✗ Missing'}</div>
-      <div><b>Betting odds</b>${avail.hasOdds ? ' ✓ Available' : ' ✗ Missing'}</div>
-    </div>
-  `;
-}
-function renderTimeline(items) {
-  const panel = document.getElementById('timeline-panel');
-  if (!panel) return;
-  if (!items?.length) {
-    panel.innerHTML = `<div class="empty-box">No timeline.</div>`;
-    return;
-  }
-  panel.innerHTML = items.map(item => `
-    <div class="timeline-event">
-      <h4 style="margin:0 0 6px 0">${esc(item.time ?? '')}</h4>
-      <p style="margin:0 0 4px 0">${esc(item.event ?? '')}</p>
-      <p style="margin:0;color:var(--muted)">${esc(item.score ?? '')}</p>
-    </div>
-  `).join('');
-}
-function renderHistory(items) {
-  const panel = document.getElementById('history-panel');
-  if (!panel) return;
-  if (!items?.length) {
-    panel.innerHTML = `<div class="empty-box">No history.</div>`;
-    return;
-  }
-  panel.innerHTML = items.map(item => `
-    <div class="snapshot-item">
-      <p>Timestamp: ${esc(item.timestamp ?? '')}</p>
-      <p>Status: ${esc(item.status ?? '')}</p>
-      <p>Score: ${esc(item?.score?.home ?? '')}-${esc(item?.score?.away ?? '')}</p>
-    </div>
-  `).join('');
-}
-function renderAnalysis(data) {
-  const panel = document.getElementById('analysis-panel');
-  if (!panel) return;
-  if (!data) {
-    panel.innerHTML = `<div class="empty-box">No analysis.</div>`;
-    return;
-  }
-  panel.innerHTML = `
-    <div class="analysis-item">
-      <p>Most influential event: ${esc(data.mostInfluentialEvent ?? '')}</p>
-      <p>Largest odds movement: ${esc(data.largestOddsMovement ?? '')}</p>
-      <p>Turning point: ${esc(data.turningPoint ?? '')}</p>
-      <p>Market volatility: ${esc(data.marketVolatility ?? '')}</p>
-    </div>
-  `;
-}
-function renderOddsHistory(items) {
-  const panel = document.getElementById('odds-history-panel');
-  if (!panel) return;
-  if (!items?.length) {
-    panel.innerHTML = `<div class="empty-box">No odds history.</div>`;
-    return;
-  }
-  panel.innerHTML = items.map(item => `
-    <div class="analysis-item">
-      <p>${esc(item.time ?? '')}</p>
-      <p>Home: ${esc(item.home ?? '')}</p>
-      <p>Draw: ${esc(item.draw ?? '')}</p>
-      <p>Away: ${esc(item.away ?? '')}</p>
-    </div>
-  `).join('');
-}
-function renderAISummary(text) {
-  const panel = document.getElementById('ai-summary-panel');
-  if (!panel) return;
-  panel.innerHTML = `
-    <div class="analysis-item">
-      ${esc(text ?? '')}
-    </div>
-  `;
-}
-function renderMatchIntelligence(data) {
-  const card = document.getElementById('intelligence-content');
-  if (!card) return;
-  if (!data) {
-    card.innerHTML = `<div class="intelligence-item">Loading...</div>`;
-    return;
-  }
-  card.innerHTML = `
-    <div class="intelligence-item">Momentum: ${esc(data.momentum ?? '')}</div>
-    <div class="intelligence-item">Confidence: ${esc(data.confidence ?? '')}</div>
-    <div class="intelligence-item">Turning Point: ${esc(data.turningPoint ?? '')}</div>
-    <div class="intelligence-item">Largest Odds Movement: ${esc(data.largestOddsMovement ?? '')}</div>
-    <div class="intelligence-item">Market Volatility: ${esc(data.marketVolatility ?? '')}</div>
-  `;
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
 }
 
 async function getTicket(){
-  const r = await fetch('/__ticket', {method:'POST'});
-  if (!r.ok) throw new Error(`ticket failed: ${r.status}`);
+  const r = await fetch("/__ticket",{method:"POST"});
+  if(!r.ok) throw new Error(`ticket failed: ${r.status}`);
   const j = await r.json();
   return j.k;
 }
-async function emit(type, d){
+
+async function emit(type,data={}){
   const k = await getTicket();
-  const r = await fetch('/__emit', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({k, d:{type, ...d}})
+
+  const r = await fetch("/__emit",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      k,
+      d:{
+        type,
+        ...data
+      }
+    })
   });
-  if (!r.ok) throw new Error(`emit failed: ${r.status}`);
+
+  if(!r.ok){
+    throw new Error(`emit failed: ${r.status}`);
+  }
+
   return await r.json();
 }
 
-async function loadMatchHistory(matchId){
-  const res = await emit('txline_fixture_history', {
-    serviceLevelId: 12,
-    fixtureId: matchId
-  });
-  renderTimeline(res.timeline || []);
-  renderHistory(res.snapshots || []);
-  renderAnalysis(res.analysis || {});
-  renderOddsHistory(res.oddsHistory || []);
-  renderAISummary(res.aiSummary || '');
-  renderMatchIntelligence(res.intelligence || {});
-}
+function getFilteredMatches(){
 
-async function closeDetails(){
-  $('detailOverlay').classList.remove('active');
-  $('detailOverlay').setAttribute('aria-hidden','true');
-}
-async function openDetails(fixtureId) {
-  fixtureId = String(fixtureId ?? "").trim();
-  if (!fixtureId) return;
-  state.currentFixtureId = fixtureId;
-  $('detailOverlay').classList.add('active');
-  $('detailOverlay').setAttribute('aria-hidden','false');
-  $('detailModal').innerHTML = `
-    <div class="loader-centered">
-      <div>
-        <div class="spinner"></div>
-        <div>Loading details…</div>
-      </div>
-    </div>
-  `;
-  try {
-    const res = await emit('txline_fixture_details', {
-      serviceLevelId: 12,
-      fixtureId,
-      oddsLimit: 999,
-      eventLimit: 999
-    });
-    renderDetails(res);
-  } catch (e) {
-    $('detailModal').innerHTML = `
-      <div class="empty-box">
-        Details failed: ${esc(e?.message || String(e))}
-      </div>
-    `;
+  let arr = [...state.matches];
+
+  if(state.group !== "all"){
+    if(state.group === "favorites"){
+      arr = arr.filter(x =>
+        state.favorites.has(String(x.fixtureId))
+      );
+    }else{
+      arr = arr.filter(x =>
+        x.phase === state.group
+      );
+    }
   }
+
+  const q = state.query.trim().toLowerCase();
+
+  if(q){
+    arr = arr.filter(m =>
+      String(m.home || "").toLowerCase().includes(q) ||
+      String(m.away || "").toLowerCase().includes(q) ||
+      String(m.competition || "").toLowerCase().includes(q) ||
+      String(m.fixtureId || "").includes(q)
+    );
+  }
+
+  return arr;
 }
-function compactEventRow(it) {
-  return `
-    <div class="tl-item">
-      <div class="a">${esc(it.period || it.clock || it.timestamp || it.type || 'Event')}</div>
-      <div class="b">${esc(it.detail || it.description || it.text || it.name || it.title || 'Match event')}</div>
-    </div>
-  `;
+
+function renderGroupButtons(){
+
+  const counts = {
+    all: state.matches.length,
+    live: state.matches.filter(x=>x.phase==="live").length,
+    upcoming: state.matches.filter(x=>x.phase==="upcoming").length,
+    finished: state.matches.filter(x=>x.phase==="finished").length,
+    stopped: state.matches.filter(x=>x.phase==="stopped").length,
+    favorites: state.favorites.size
+  };
+
+  document
+    .querySelectorAll("#groupButtons button")
+    .forEach(btn=>{
+
+      const g = btn.dataset.group;
+
+      btn.textContent =
+        `${g[0].toUpperCase()}${g.slice(1)} (${counts[g] || 0})`;
+
+      btn.classList.toggle(
+        "active",
+        state.group === g
+      );
+    });
 }
-function renderDetails(d) {
-  const current = d?.current || {};
-  const compact = d?.currentCompact || {};
-  const fixtureId = String(d?.fixtureId ?? compact?.fixtureId ?? current?.fixtureId ?? state.currentFixtureId ?? "");
-  const home = txScalar(compact.home ?? current.home ?? "");
-  const away = txScalar(compact.away ?? current.away ?? "");
-  const phase = txScalar(d?.phase ?? compact?.phase ?? current?.phase) || derivePhase(current);
-  const homeScore = txNum(compact.homeScore ?? current.homeScore);
-  const awayScore = txNum(compact.awayScore ?? current.awayScore);
-  let score = txScalar(compact.score ?? current.score ?? d.score);
-  if ((!score || score === "—") && homeScore != null && awayScore != null) score = `${homeScore}-${awayScore}`;
-  if (!score) score = "—";
-  const status = txScalar(d?.status ?? compact?.status ?? current?.status ?? txPhaseLabel(phase));
-  const competition = txScalar(current.competition ?? compact.competition ?? d.competition ?? "");
-  const events = [].concat(d.events || []);
-  const snapshot = [].concat(d.snapshot || []);
-  const historical = [].concat(d.historical || []);
-  const oddsTop = [].concat(d.oddsTop || d.oddsPreview || d.odds || []);
-  const counts = d.counts || {};
-  const avail = d.availability || {};
-  const source = [].concat(d.source || []);
-  const teamTitle = `${esc(home || "—")} vs ${esc(away || "—")}`;
-  const oddsHtml = oddsTop.length
-    ? oddsTop.map(o => `
-      <div class="odd">
-        <div class="m">${esc(o.bookmaker || o.market || "Market")}</div>
-        <div class="p" style="line-height:1.6;font-size:15px;word-break:break-word;">
-          ${esc(prettyOddsText(o.pricesText || o.price || o.selection || JSON.stringify(o)))}
-        </div>
-      </div>
-    `).join("")
-    : '<div class="empty-box">No odds data.</div>';
-  const eventHtml = [...historical, ...snapshot, ...events].map(it => compactEventRow(it)).join("") || '<div class="empty-box">No events.</div>';
-  const sourceHtml = source.length
-    ? source.map(s => `
-      <div class="source-item">
+
+function renderFeatured(){
+
+  const box = $("featuredWrap");
+
+  if(!state.featured){
+    box.innerHTML =
+      `<div class="empty">No featured match</div>`;
+    return;
+  }
+
+  const m = state.featured;
+
+  box.innerHTML = `
+    <div class="match"
+      onclick="openDetails('${esc(m.fixtureId)}')">
+
+      <div class="match-top">
+
         <div>
-          <strong>${esc(s.rawType || s.url || "source")}</strong>
-          <div><small>${esc(s.url || "")}</small></div>
-        </div>
-        <span class="nowrap">
-          ${s.ok === true ? "OK" : s.ok === false ? "ERR" : esc(s.status || "—")}
-        </span>
-      </div>
-    `).join("")
-    : '<div class="empty-box">No source diagnostics.</div>';
+          <div class="match-teams">
+            ${esc(m.home)}
+            vs
+            ${esc(m.away)}
+          </div>
 
-  $('detailModal').innerHTML = `
-    <div id="match-intelligence-card">
-      <h3>MATCH INTELLIGENCE</h3>
-      <div id="intelligence-content">Loading...</div>
-    </div>
+          <div class="match-meta">
+            <span class="pill">
+              ${esc(m.phase)}
+            </span>
 
-    <div class="detail-tab-row">
-      <button class="detail-tab-btn active" data-tab="overview" onclick="setTabActive('overview')">Overview</button>
-      <button class="detail-tab-btn" data-tab="stats" onclick="setTabActive('stats')">Stats</button>
-      <button class="detail-tab-btn" data-tab="events" onclick="setTabActive('events')">Events</button>
-      <button class="detail-tab-btn" data-tab="odds" onclick="setTabActive('odds')">Odds</button>
-      <button class="detail-tab-btn" data-tab="timeline" onclick="setTabActive('timeline')">Timeline</button>
-      <button class="detail-tab-btn" data-tab="history" onclick="setTabActive('history')">History</button>
-      <button class="detail-tab-btn" data-tab="analysis" onclick="setTabActive('analysis')">Analysis</button>
-      <button class="detail-tab-btn" data-tab="odds-history" onclick="setTabActive('odds-history')">Odds History</button>
-      <button class="detail-tab-btn" data-tab="ai-summary" onclick="setTabActive('ai-summary')">AI Summary</button>
-    </div>
-
-    <div id="overview-panel" class="detail-panel">
-      <div class="detail-grid">
-        <div class="detail-block">
-          <div class="muted">Score</div>
-          <div class="bigscore">${esc(score)}</div>
-          <div class="muted" style="margin-top:10px">${esc(status)}</div>
-        </div>
-        <div class="detail-block">
-          <div class="muted">Teams</div>
-          <div style="font-weight:900;font-size:20px;margin-top:4px">${teamTitle}</div>
-          <div class="kv" style="margin-top:12px">
-            <div><b>Home</b>${esc(homeScore ?? '—')}</div>
-            <div><b>Away</b>${esc(awayScore ?? '—')}</div>
+            <span class="pill">
+              ${esc(m.competition)}
+            </span>
           </div>
         </div>
-      </div>
 
-      <div class="detail-block" style="margin-top:12px">
-        <h3>AVAILABLE DATA</h3>
-        ${availabilityHtml(avail)}
-      </div>
-
-      <div class="detail-block" style="margin-top:12px">
-        <h3>ODDS</h3>
-        <div class="odds-grid">${oddsHtml}</div>
-      </div>
-
-      <div class="detail-block" style="margin-top:12px">
-        <h3>EVENTS</h3>
-        <div class="timeline">${eventHtml}</div>
-      </div>
-
-      <div class="detail-block" style="margin-top:12px">
-        <h3>SOURCE DIAGNOSTICS</h3>
-        <div class="source-list">${sourceHtml}</div>
-      </div>
-    </div>
-
-    <div id="stats-panel" class="detail-panel hidden">
-      <div class="detail-block">
-        <h3>STATS</h3>
-        <div class="mini-grid">
-          <div class="mini-item"><strong>Snapshot count</strong><span>${esc(counts.snapshot ?? 0)}</span></div>
-          <div class="mini-item"><strong>Events count</strong><span>${esc(counts.events ?? 0)}</span></div>
-          <div class="mini-item"><strong>Historical count</strong><span>${esc(counts.historical ?? 0)}</span></div>
-          <div class="mini-item"><strong>Odds count</strong><span>${esc(counts.odds ?? 0)}</span></div>
+        <div class="match-score">
+          ${esc(m.score || "—")}
         </div>
-      </div>
-    </div>
 
-    <div id="events-panel" class="detail-panel hidden">
-      <div class="detail-block">
-        <h3>EVENTS</h3>
-        <div class="timeline">${eventHtml}</div>
       </div>
-    </div>
-
-    <div id="odds-panel" class="detail-panel hidden">
-      <div class="detail-block">
-        <h3>ODDS</h3>
-        <div class="odds-grid">${oddsHtml}</div>
-      </div>
-    </div>
-
-    <div id="timeline-panel" class="detail-panel hidden"></div>
-    <div id="history-panel" class="detail-panel hidden"></div>
-    <div id="analysis-panel" class="detail-panel hidden"></div>
-    <div id="odds-history-panel" class="detail-panel hidden"></div>
-    <div id="ai-summary-panel" class="detail-panel hidden"></div>
-
-    <div class="modal-head" style="margin-top:8px">
-      <div>
-        <div class="modal-title">${teamTitle}</div>
-        <div class="muted">${esc(fixtureId)} • ${esc(txPhaseLabel(phase))} • ${esc(status)}</div>
-      </div>
-      <button class="close-btn" onclick="closeDetails()">×</button>
     </div>
   `;
-
-  setTabActive('overview');
-  if (fixtureId) loadMatchHistory(fixtureId).catch(() => {});
 }
 
-async function updateGroupButtons(){
-  const counts = {
-    all: (state.matches || []).length,
-    live: (state.grouped.live || []).length,
-    upcoming: (state.grouped.upcoming || []).length,
-    finished: (state.grouped.finished || []).length,
-    stopped: (state.grouped.stopped || []).length,
-    favorites: favoriteCount()
-  };
-  document.querySelectorAll('#groupButtons button').forEach(btn => {
-    const g = btn.dataset.group;
-    btn.textContent = `${g[0].toUpperCase()}${g.slice(1)} (${counts[g] ?? 0})`;
-    btn.classList.toggle('active', state.group === g);
-  });
+function renderMatches(){
+
+  const list = $("matchesList");
+
+  const matches = getFilteredMatches();
+
+  if(!matches.length){
+    list.innerHTML =
+      `<div class="empty">No matches</div>`;
+    return;
+  }
+
+  list.innerHTML = matches.map(m => `
+
+    <div class="match"
+      onclick="openDetails('${esc(m.fixtureId)}')">
+
+      <div class="match-top">
+
+        <div>
+
+          <div class="match-teams">
+            ${esc(m.home)}
+            vs
+            ${esc(m.away)}
+          </div>
+
+          <div class="match-meta">
+
+            <span class="pill">
+              ${esc(m.phase)}
+            </span>
+
+            <span class="pill">
+              ${esc(m.competition)}
+            </span>
+
+            <span class="pill">
+              #${esc(m.fixtureId)}
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="match-score">
+          ${esc(m.score || "—")}
+        </div>
+
+      </div>
+
+    </div>
+
+  `).join("");
 }
 
-async function loadData() {
-  state.loading = true;
-  $('dashboardHint').textContent = 'Loading oracle data…';
-  $('feedStatus').textContent = 'Loading oracle feed…';
-  try {
-    const res = await emit('txline_probe_feed', {
-      serviceLevelId: 12
-    });
-    state.feed = res;
-    state.grouped = res.grouped || {};
-    state.featured = normalizeMatch(res.featured || null);
-    state.workerFeatured = normalizeMatch(res.workerFeatured || null);
-    state.enrichment = res.enrichment || null;
-    const matches = [
-      ...(res.matches || []),
-      ...(res.grouped?.live || []),
-      ...(res.grouped?.upcoming || []),
-      ...(res.grouped?.finished || []),
-      ...(res.grouped?.stopped || []),
-      ...(res.grouped?.unknown || [])
-    ];
-    state.matches = byFixtureId(matches);
-    await updateGroupButtons();
+function renderApp(){
+  renderGroupButtons();
+  renderFeatured();
+  renderMatches();
+}
+
+async function loadData(){
+
+  $("dashboardHint").textContent =
+    "Loading oracle data...";
+
+  try{
+
+    const res = await emit(
+      "txline_probe_feed",
+      {
+        serviceLevelId:12
+      }
+    );
+
+    state.matches =
+      Array.isArray(res.matches)
+      ? res.matches
+      : [];
+
+    state.featured =
+      res.featured || null;
+
     renderApp();
-    $('dashboardHint').textContent = 'Oracle feed ready';
-    $('feedStatus').textContent = `Loaded ${state.matches.length} matches`;
-  } catch (e) {
-    $('dashboardHint').textContent = 'Load failed';
-    $('feedStatus').textContent = `Load failed: ${e?.message || e}`;
-    $('featuredWrap').innerHTML = `<div class="empty">Load failed: ${esc(e?.message || String(e))}</div>`;
-  } finally {
-    state.loading = false;
-    renderApp();
+
+    $("dashboardHint").textContent =
+      "Oracle feed ready";
+
+    $("feedStatus").textContent =
+      `Loaded ${state.matches.length} matches`;
+
+  }catch(e){
+
+    $("dashboardHint").textContent =
+      "Load failed";
+
+    $("feedStatus").textContent =
+      e.message;
+
+    console.error(e);
   }
 }
 
-async function checkToken() {
-  try {
-    const res = await emit("txline_check_token", {
-      serviceLevelId: 12
-    });
+async function openDetails(fixtureId){
 
-    if (!res?.ok) {
-      alert(
-        `TxLINE token check failed.\n\n${
-          res?.error || "Unknown error."
-        }`
-      );
-      return;
-    }
+  try{
 
-    const lines = ["Status: OK"];
+    const d = await emit(
+      "txline_fixture_details",
+      {
+        serviceLevelId:12,
+        fixtureId,
+        eventLimit:999,
+        oddsLimit:999
+      }
+    );
 
-    if (res.serviceLevelId != null) {
-      lines.push(`Service Level: ${res.serviceLevelId}`);
-    }
+    console.log(
+      "fixture_details",
+      d
+    );
 
-    if (res.tokenLooksPresent != null) {
-      lines.push(
-        `API Token: ${res.tokenLooksPresent ? "present" : "missing"}`
-      );
-    }
-
-    if (res.jwtLooksPresent != null) {
-      lines.push(
-        `JWT: ${res.jwtLooksPresent ? "present" : "missing"}`
-      );
-    }
-
-    if (res.auth?.exp != null) {
-      lines.push(
-        `Expires: ${new Date(res.auth.exp).toLocaleString()}`
-      );
-    }
-
-    if (Array.isArray(res.results)) {
-      const okCount = res.results.filter(r => r?.ok).length;
-      lines.push(`Checks: ${okCount}/${res.results.length}`);
-    }
-
-    alert(lines.join("\n"));
-  } catch (e) {
     alert(
-      `Token check failed.\n\n${
-        e?.message || String(e)
-      }`
+      `${d.current?.home || ""} vs ${d.current?.away || ""}\n\n` +
+      `Score: ${d.current?.score || "—"}\n` +
+      `Status: ${d.current?.status || ""}`
+    );
+
+  }catch(e){
+
+    alert(
+      `Details failed\n\n${e.message}`
     );
   }
 }
 
+async function checkToken(){
 
-$('refreshBtn').addEventListener('click', loadData);
-$('checkTokenBtn').addEventListener('click', checkToken);
-$('searchInput').addEventListener('input', e => {
-  state.query = e.target.value || '';
-  renderMatches();
-});
+  try{
 
-document.querySelectorAll('#groupButtons button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    state.group = btn.dataset.group;
-    updateGroupButtons();
-    renderMatches();
+    const res = await emit(
+      "txline_check_token",
+      {
+        serviceLevelId:12
+      }
+    );
+
+    alert(
+      JSON.stringify(
+        res,
+        null,
+        2
+      )
+    );
+
+  }catch(e){
+
+    alert(
+      `Token failed\n\n${e.message}`
+    );
+  }
+}
+
+$("refreshBtn")
+  .addEventListener(
+    "click",
+    loadData
+  );
+
+$("checkTokenBtn")
+  .addEventListener(
+    "click",
+    checkToken
+  );
+
+$("searchInput")
+  .addEventListener(
+    "input",
+    e=>{
+      state.query = e.target.value;
+      renderMatches();
+    }
+  );
+
+document
+.querySelectorAll("#groupButtons button")
+.forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    state.group =
+      btn.dataset.group;
+
+    renderApp();
   });
 });
 
-window.closeDetails = closeDetails;
-window.openDetails = openDetails;
-window.setTabActive = setTabActive;
-window.loadMatchHistory = loadMatchHistory;
-window.emit = emit;
-window.getTicket = getTicket;
-window.loadData = loadData;
+window.openDetails =
+  openDetails;
 
 loadData();
 </script>
