@@ -1,0 +1,480 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+/>
+
+<title>FIFA 2026 Insider – Hackathon Rules</title>
+
+<!--
+© 2026 ZALAZER
+
+FIFA 2026 Insider
+TxODDS World Cup Hackathon submission.
+
+Unauthorized reproduction or modification is prohibited.
+-->
+
+<meta name="generator" content="ZALAZER rules engine v1">
+
+<style>
+
+/* ==== GLOBAL ==== */
+
+html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    background:#0b0b0b;
+    color:#eaeaea;
+    font-family:Arial,sans-serif;
+    line-height:1.6;
+    overflow-y:auto;
+    touch-action:manipulation;
+}
+
+/* ==== TOUCH SHIELD ==== */
+
+#touchShield{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    background:transparent;
+    z-index:0;
+    touch-action:none;
+}
+
+/* ==== CONTENT ==== */
+
+#content{
+    position:relative;
+    z-index:1;
+    padding:10px 20px 40px 20px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+h2{
+    margin-top:40px;
+    border-bottom:1px solid #333;
+    padding-bottom:6px;
+    color:#ffd36a;
+}
+
+h3{
+    margin-top:24px;
+    color:#9fd6ff;
+}
+
+p{
+    margin:10px 0;
+}
+
+ul{
+    margin:10px 0 20px 20px;
+}
+
+li{
+    margin-bottom:8px;
+}
+
+.note{
+    background:#151515;
+    border-left:4px solid #ffd36a;
+    padding:12px;
+    margin:20px 0;
+}
+
+.rules-footer-sep{
+    margin-top:50px;
+    border:0;
+    border-top:1px solid #333;
+}
+
+.rules-footer{
+    margin-top:20px;
+    text-align:center;
+    font-size:12px;
+    opacity:0.7;
+}
+
+.rules-copyright{
+    line-height:1.5;
+    margin-bottom:16px;
+}
+
+.rules-contact-btn{
+    background:#151515;
+    color:#ffd36a;
+    border:1px solid #333;
+    padding:8px 18px;
+    cursor:pointer;
+    font-size:12px;
+    border-radius:4px;
+    transition:all .2s ease;
+}
+
+.rules-contact-btn:hover{
+    background:#1e1e1e;
+    border-color:#ffd36a;
+}
+
+.rules-note{
+    margin-top:10px;
+    font-size:11px;
+    opacity:0.5;
+}
+
+.game-title{
+    text-align:center;
+    margin-bottom:30px;
+    line-height:1.3;
+}
+
+.game-subtitle{
+    display:block;
+    font-size:.65em;
+    font-weight:normal;
+    opacity:.7;
+    margin-top:6px;
+}
+
+.doc-signature{
+    display:none;
+    opacity:.15;
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="touchShield"></canvas>
+
+<div id="content">
+
+<div class="doc-signature">
+© 2026 ZALAZER · FIFA 2026 Insider · Hackathon Rules
+</div>
+
+<h1 class="game-title">
+⚽ FIFA 2026 Insider<br>
+<span class="game-subtitle">
+TxODDS World Cup Hackathon Submission
+</span>
+</h1>
+
+
+
+<!-- ENGLISH -->
+
+<h2>🇬🇧 English</h2>
+
+<h3>About the Project</h3>
+
+<p>
+FIFA 2026 Insider is a Telegram WebApp built for the TxODDS Consumer and Fan Experiences hackathon track.
+The project transforms live FIFA World Cup data into an interactive football experience for fans.
+</p>
+
+
+<h3>Project Goal</h3>
+
+<p>
+The goal of the application is to make World Cup data more accessible, engaging and enjoyable by combining real-time information, football statistics and AI-powered insights inside Telegram.
+</p>
+
+
+<h3>Features</h3>
+
+<ul>
+<li>Live FIFA World Cup match data.</li>
+<li>Fixtures and schedules.</li>
+<li>Match events and statistics.</li>
+<li>AI football insights.</li>
+<li>Telegram WebApp integration.</li>
+<li>Mobile-first user experience.</li>
+<li>Fast and lightweight interface.</li>
+</ul>
+
+
+<div class="note">
+This project was created specifically for the TxODDS World Cup Hackathon.
+</div>
+
+
+<h3>Hackathon Information</h3>
+
+<ul>
+<li>Total prize pool: 16,000 USDT.</li>
+<li>1st place: 10,000 USDT.</li>
+<li>2nd place: 4,000 USDT.</li>
+<li>3rd place: 2,000 USDT.</li>
+<li>Supported categories: Frontend, Backend, Blockchain, Mobile and Design.</li>
+</ul>
+
+
+
+<!-- UKRAINIAN -->
+
+<h2>🇺🇦 Українською</h2>
+
+<h3>Про проєкт</h3>
+
+<p>
+FIFA 2026 Insider — це Telegram WebApp, створений для участі в хакатоні TxODDS Consumer and Fan Experiences.
+Проєкт перетворює дані Чемпіонату світу FIFA 2026 у сучасний та зручний сервіс для футбольних уболівальників.
+</p>
+
+
+<h3>Мета проєкту</h3>
+
+<p>
+Мета застосунку — зробити футбольні дані більш доступними та цікавими, поєднавши статистику матчів, інформацію в реальному часі та AI-аналітику в одному інтерфейсі Telegram.
+</p>
+
+
+<h3>Можливості</h3>
+
+<ul>
+<li>Дані матчів FIFA World Cup у реальному часі.</li>
+<li>Розклад та майбутні матчі.</li>
+<li>Події та статистика матчів.</li>
+<li>AI-аналітика футбольних подій.</li>
+<li>Інтеграція з Telegram WebApp.</li>
+<li>Оптимізація для мобільних пристроїв.</li>
+<li>Швидкий та легкий інтерфейс.</li>
+</ul>
+
+
+<div class="note">
+Проєкт створено спеціально для World Cup Hackathon від TxODDS.
+</div>
+
+
+<h3>Інформація про хакатон</h3>
+
+<ul>
+<li>Загальний призовий фонд: 16 000 USDT.</li>
+<li>1 місце: 10 000 USDT.</li>
+<li>2 місце: 4 000 USDT.</li>
+<li>3 місце: 2 000 USDT.</li>
+<li>Категорії: Frontend, Backend, Blockchain, Mobile та Design.</li>
+</ul>
+
+
+
+<!-- RUSSIAN -->
+
+<h2>🇷🇺 По-русски</h2>
+
+<h3>О проекте</h3>
+
+<p>
+FIFA 2026 Insider — это Telegram WebApp, созданный специально для хакатона TxODDS Consumer and Fan Experiences.
+Приложение предоставляет футбольным болельщикам информацию о матчах Чемпионата мира FIFA 2026 в удобном формате.
+</p>
+
+
+<h3>Цель проекта</h3>
+
+<p>
+Создать современный сервис для футбольных фанатов, объединяющий статистику матчей, данные в реальном времени и AI-анализ футбольных событий.
+</p>
+
+
+<h3>Возможности</h3>
+
+<ul>
+<li>Данные матчей в режиме реального времени.</li>
+<li>Расписание и календарь игр.</li>
+<li>Статистика и игровые события.</li>
+<li>AI-анализ футбольных данных.</li>
+<li>Интеграция с Telegram WebApp.</li>
+<li>Полная мобильная поддержка.</li>
+<li>Быстрый и удобный интерфейс.</li>
+</ul>
+
+
+<div class="note">
+Проект создан специально для участия в World Cup Hackathon от TxODDS.
+</div>
+
+
+<h3>Информация о хакатоне</h3>
+
+<ul>
+<li>Общий призовой фонд: 16 000 USDT.</li>
+<li>1 место: 10 000 USDT.</li>
+<li>2 место: 4 000 USDT.</li>
+<li>3 место: 2 000 USDT.</li>
+<li>Категории: Frontend, Backend, Blockchain, Mobile и Design.</li>
+</ul>
+
+
+
+<hr class="rules-footer-sep">
+
+
+<div class="rules-footer">
+
+<div class="rules-copyright">
+
+© 2026 <strong>ZALAZER</strong><br>
+FIFA 2026 Insider is a World Cup Hackathon submission.<br>
+All rights reserved.
+
+</div>
+
+
+<button class="rules-contact-btn" onclick="sendFeedback()">
+Contact / Feedback
+</button>
+
+
+<div class="rules-note">
+Feedback can include text and screenshots. No reply guaranteed.
+</div>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+['gesturestart','gesturechange','gestureend'].forEach(evt=>{
+    document.addEventListener(evt,e=>e.preventDefault(),{
+        passive:false
+    });
+});
+
+
+const shield=document.getElementById('touchShield');
+
+['touchstart','touchmove','touchend'].forEach(evt=>{
+    shield.addEventListener(evt,e=>{
+        if(e.touches && e.touches.length>1){
+            e.preventDefault();
+        }
+    },{
+        passive:false
+    });
+});
+
+</script>
+
+
+
+<script>
+
+const __docSignature = {
+
+    product:"FIFA 2026 Insider",
+    type:"rules",
+    revision:"1.0",
+    year:2026
+
+};
+
+
+const tg = window.Telegram?.WebApp;
+
+
+async function sendFeedback(){
+
+    if(!tg){
+        alert("Feedback works only inside Telegram WebApp");
+        return;
+    }
+
+    const feedbackText = prompt(
+        "Please enter your feedback or suggestions:"
+    );
+
+    if(!feedbackText) return;
+
+
+    const fileInput=document.createElement("input");
+    fileInput.type="file";
+    fileInput.accept="image/*";
+
+
+    fileInput.onchange = async ()=>{
+
+        let fileData = null;
+
+        if(fileInput.files.length>0){
+            fileData = await fileToBase64(
+                fileInput.files[0]
+            );
+        }
+
+
+        const payload = {
+
+            type:"feedback",
+            game:"FIFA 2026 Insider",
+            page:"rules",
+            text:feedbackText,
+            screenshot:fileData,
+            platform:tg.platform,
+            lang:tg.initDataUnsafe?.user?.language_code,
+            user:tg.initDataUnsafe?.user?.id,
+            ts:Date.now()
+
+        };
+
+
+        tg.sendData(
+            JSON.stringify(payload)
+        );
+
+        alert(
+            "Thank you! Your feedback has been sent."
+        );
+
+    };
+
+
+    fileInput.click();
+
+}
+
+
+function fileToBase64(file){
+
+    return new Promise((resolve,reject)=>{
+
+        const reader = new FileReader();
+
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = reject;
+
+        reader.readAsDataURL(file);
+
+    });
+
+}
+
+
+if(tg){
+    console.log("Telegram WebApp available.");
+}
+else{
+    console.log("Telegram WebApp unavailable.");
+}
+
+</script>
+
+</body>
+</html>
