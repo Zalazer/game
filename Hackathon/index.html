@@ -902,32 +902,35 @@ async function checkToken() {
 
     if (!res?.ok) {
       alert(
-        `TxLINE token check failed.
-
-${
+        `TxLINE token check failed.\n\n${
           res?.error || "Unknown error."
         }`
       );
       return;
     }
 
-    const lines = [];
-    lines.push("Status: OK");
+    const lines = ["Status: OK"];
 
     if (res.serviceLevelId != null) {
       lines.push(`Service Level: ${res.serviceLevelId}`);
     }
 
     if (res.tokenLooksPresent != null) {
-      lines.push(`API Token: ${res.tokenLooksPresent ? "present" : "missing"}`);
+      lines.push(
+        `API Token: ${res.tokenLooksPresent ? "present" : "missing"}`
+      );
     }
 
     if (res.jwtLooksPresent != null) {
-      lines.push(`JWT: ${res.jwtLooksPresent ? "present" : "missing"}`);
+      lines.push(
+        `JWT: ${res.jwtLooksPresent ? "present" : "missing"}`
+      );
     }
 
     if (res.auth?.exp != null) {
-      lines.push(`Expires: ${new Date(res.auth.exp).toLocaleString()}`);
+      lines.push(
+        `Expires: ${new Date(res.auth.exp).toLocaleString()}`
+      );
     }
 
     if (Array.isArray(res.results)) {
@@ -935,19 +938,15 @@ ${
       lines.push(`Checks: ${okCount}/${res.results.length}`);
     }
 
-    alert(lines.join("
-"));
+    alert(lines.join("\n"));
   } catch (e) {
     alert(
-      `Token check failed.
-
-${
+      `Token check failed.\n\n${
         e?.message || String(e)
       }`
     );
   }
 }
-
 
 
 $('refreshBtn').addEventListener('click', loadData);
