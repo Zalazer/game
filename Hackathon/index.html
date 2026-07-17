@@ -1,4 +1,4 @@
-﻿<!doctype html>
+﻿ <!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
@@ -23,8 +23,7 @@
     }
     *{box-sizing:border-box}
     html,body{
-      margin:0;padding:0;
-      background:
+      margin:0;padding:0;background:
         radial-gradient(1200px 700px at 20% 0%, rgba(121,168,255,.15), transparent 55%),
         radial-gradient(900px 600px at 90% 10%, rgba(103,240,200,.12), transparent 50%),
         linear-gradient(180deg, var(--bg), #050911 100%);
@@ -35,8 +34,7 @@
     button,input{font:inherit}
     .wrap{max-width:1400px;margin:0 auto;padding:18px}
     .hero{
-      padding:16px 16px 14px;
-      margin-bottom:16px;
+      padding:16px 16px 14px;margin-bottom:16px;
       background:linear-gradient(180deg, rgba(16,26,51,.9), rgba(14,23,48,.88));
       border:1px solid var(--line);
       border-radius:24px;
@@ -71,11 +69,7 @@
       background:rgba(255,255,255,.03);color:var(--text);cursor:pointer
     }
     .seg button.active,.btn.primary{background:linear-gradient(180deg, rgba(121,168,255,.24), rgba(121,168,255,.12));border-color:rgba(121,168,255,.35)}
-    .grid{
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap:16px;
-    }
+    .grid{display:grid;grid-template-columns: 1.1fr .9fr;gap:16px;}
     @media (max-width: 1100px){.grid{grid-template-columns:1fr}}
     .card{
       background:linear-gradient(180deg, rgba(16,26,51,.9), rgba(14,23,48,.88));
@@ -265,12 +259,7 @@
           <h1 class="hero-title">FIFA 2026 Live</h1>
           <div class="hero-sub">All matches • Live • Upcoming • Favorites</div>
         </div>
-        <div class="hero-stats">
-          <div class="stat"><div class="k">Matches</div><div class="v" id="statMatches">0</div></div>
-          <div class="stat"><div class="k">Live</div><div class="v" id="statLive">0</div></div>
-          <div class="stat"><div class="k">Finished</div><div class="v" id="statFinished">0</div></div>
-          <div class="stat"><div class="k">Favorites</div><div class="v" id="statFavs">0</div></div>
-        </div>
+        
       </div>
       <div class="controls">
         <div class="search">
@@ -373,134 +362,30 @@ function txStatusClass(p){
   if (p === 'upcoming') return 'upcoming';
   return '';
 }
-
 function derivePhase(m) {
-  if (!m || typeof m !== 'object') {
-    return 'unknown';
-  }
-
+  if (!m || typeof m !== 'object') return 'unknown';
   const phase = txScalar(m.phase ?? m.currentPhase);
-
-  if (
-    phase === 'live' ||
-    phase === 'upcoming' ||
-    phase === 'finished' ||
-    phase === 'stopped'
-  ) {
-    return phase;
-  }
-
-  const status = String(
-    m.status ??
-    m.gameState ??
-    m.rawStatus ??
-    ''
-  ).trim().toUpperCase();
-
-  const statusId = txNum(
-    m.statusId ??
-    m.gameState ??
-    m.rawStatus
-  );
-
-  if (
-    ['F', 'FINAL', 'FINISHED', 'FULL TIME', 'FULL-TIME'].includes(status) ||
-    [5, 10, 13, 100].includes(statusId)
-  ) {
-    return 'finished';
-  }
-
-  if (
-    ['H1', 'HT', 'H2', 'ET1', 'ET2', 'PE', 'WET', 'WPE'].includes(status) ||
-    [2, 3, 4, 6, 7, 8, 9, 11, 12].includes(statusId)
-  ) {
-    return 'live';
-  }
-
-  if (
-    ['I', 'A', 'C', 'P', 'TXCC', 'TXCS'].includes(status) ||
-    [14, 15, 16, 17, 18, 19].includes(statusId)
-  ) {
-    return 'stopped';
-  }
-
-  if (
-    ['NS', 'UPCOMING', 'NOT STARTED', 'SCHEDULED'].includes(status) ||
-    [1].includes(statusId)
-  ) {
-    return 'upcoming';
-  }
-
-  if (m.homeScore != null || m.awayScore != null) return 'finished';
+  if (phase === 'live' || phase === 'upcoming' || phase === 'finished' || phase === 'stopped') return phase;
+  const status = String(m.status ?? m.gameState ?? m.rawStatus ?? '').trim().toUpperCase();
+  const statusId = txNum(m.statusId ?? m.gameState ?? m.rawStatus);
+  if (['F','FINAL','FINISHED','FULL TIME','FULL-TIME'].includes(status) || [5,10,13,100].includes(statusId)) return 'finished';
+  if (['H1','HT','H2','ET1','ET2','PE','WET','WPE'].includes(status) || [2,3,4,6,7,8,9,11,12].includes(statusId)) return 'live';
+  if (['I','A','C','P','TXCC','TXCS'].includes(status) || [14,15,16,17,18,19].includes(statusId)) return 'stopped';
+  if (['NS','UPCOMING','NOT STARTED','SCHEDULED'].includes(status) || [1].includes(statusId)) return 'upcoming';
+  if (m.homeScore != null || m.awayScore != null) return 'unknown';
   return 'unknown';
 }
-
 function normalizeMatch(x) {
   if (!x || typeof x !== 'object') return {};
-
   const current = x.currentCompact ?? x.current ?? {};
-
-  const fixtureId = String(
-    x.fixtureId ??
-    x.FixtureId ??
-    x.id ??
-    current.fixtureId ??
-    ''
-  );
-
-  const home = txScalar(
-    x.home ??
-    x.homeTeam ??
-    x.participant1 ??
-    x.Participant1 ??
-    current.home ??
-    current.homeTeam
-  );
-
-  const away = txScalar(
-    x.away ??
-    x.awayTeam ??
-    x.participant2 ??
-    x.Participant2 ??
-    current.away ??
-    current.awayTeam
-  );
-
-  const competition = txScalar(
-    x.competition ??
-    x.Competition ??
-    current.competition
-  );
-
-  const kickoff =
-    x.kickoff ??
-    x.startTime ??
-    x.StartTime ??
-    current.kickoff ??
-    current.startTime ??
-    null;
-
-  const homeScore = txNum(
-    x.homeScore ??
-    current.homeScore
-  );
-
-  const awayScore = txNum(
-    x.awayScore ??
-    current.awayScore
-  );
-
-  const score =
-    txScalar(
-      x.score ??
-      current.score
-    ) ||
-    (
-      homeScore != null && awayScore != null
-        ? `${homeScore}-${awayScore}`
-        : ''
-    );
-
+  const fixtureId = String(x.fixtureId ?? x.FixtureId ?? x.id ?? current.fixtureId ?? '');
+  const home = txScalar(x.home ?? x.homeTeam ?? x.participant1 ?? x.Participant1 ?? current.home ?? current.homeTeam);
+  const away = txScalar(x.away ?? x.awayTeam ?? x.participant2 ?? x.Participant2 ?? current.away ?? current.awayTeam);
+  const competition = txScalar(x.competition ?? x.Competition ?? current.competition);
+  const kickoff = x.kickoff ?? x.startTime ?? x.StartTime ?? current.kickoff ?? current.startTime ?? null;
+  const homeScore = txNum(x.homeScore ?? current.homeScore);
+  const awayScore = txNum(x.awayScore ?? current.awayScore);
+  const score = txScalar(x.score ?? current.score) || (homeScore != null && awayScore != null ? `${homeScore}-${awayScore}` : '');
   const phase = txScalar(x.phase ?? current.phase) || derivePhase({
     status: x.status ?? current.status,
     gameState: x.gameState ?? current.gameState,
@@ -509,22 +394,8 @@ function normalizeMatch(x) {
     homeScore,
     awayScore
   });
-
-  return {
-    ...x,
-    fixtureId,
-    home,
-    away,
-    competition,
-    kickoff,
-    homeScore,
-    awayScore,
-    score: score || '—',
-    phase,
-    currentCompact: current
-  };
+  return { ...x, fixtureId, home, away, competition, kickoff, homeScore, awayScore, score: score || '—', phase, currentCompact: current };
 }
-
 function byFixtureId(arr){
   const seen = new Set();
   return (arr || []).map(normalizeMatch).filter(m => {
@@ -534,7 +405,6 @@ function byFixtureId(arr){
     return true;
   });
 }
-
 function setTabActive(tab) {
   document.querySelectorAll('.detail-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -545,7 +415,6 @@ function setTabActive(tab) {
   const target = document.getElementById(`${tab}-panel`);
   if (target) target.classList.remove('hidden');
 }
-
 function prettyOddsText(text) {
   if (!text) return '';
   return String(text)
@@ -556,23 +425,16 @@ function prettyOddsText(text) {
     .replaceAll('under:', 'Under: ')
     .replaceAll('|', ' • ');
 }
-
 function saveFavorites(){
   localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
 }
-
 function favoriteCount(){
   return state.favorites.size;
 }
-
 function filteredMatches(){
   let arr = [...(state.matches || [])];
-  if (state.group !== 'all') {
-    arr = arr.filter(m => (m.phase || derivePhase(m)) === state.group);
-  }
-  if (state.group === 'favorites') {
-    arr = arr.filter(m => state.favorites.has(String(m.fixtureId)));
-  }
+  if (state.group !== 'all') arr = arr.filter(m => (m.phase || derivePhase(m)) === state.group);
+  if (state.group === 'favorites') arr = arr.filter(m => state.favorites.has(String(m.fixtureId)));
   const q = state.query.trim().toLowerCase();
   if (q) {
     arr = arr.filter(m => (
@@ -584,7 +446,6 @@ function filteredMatches(){
   }
   return arr;
 }
-
 function renderStats(){
   const g = state.grouped || {};
   const allCount = (state.matches || []).length;
@@ -592,7 +453,6 @@ function renderStats(){
   $('statLive').textContent = String((g.live || []).length);
   $('statFinished').textContent = String((g.finished || []).length);
   $('statFavs').textContent = String(favoriteCount());
-
   const buttons = [...document.querySelectorAll('#groupButtons button')];
   const counts = {
     all: allCount,
@@ -608,18 +468,19 @@ function renderStats(){
     btn.classList.toggle('active', state.group === k);
   });
 }
-
 function renderFeatured(){
   const featured = state.workerFeatured || state.featured || null;
   const el = $('featuredWrap');
   $('featuredState').textContent = featured ? txPhaseLabel(featured.phase || derivePhase(featured)) : '—';
-
   if (!featured) {
     el.innerHTML = `<div class="empty">No featured match.</div>`;
     return;
   }
-
   const phase = featured.phase || derivePhase(featured);
+  if (!featured.fixtureId) {
+    el.innerHTML = `<div class="empty">Featured match has no fixture ID.</div>`;
+    return;
+  }
   el.innerHTML = `
     <div class="match" onclick="openDetails('${esc(featured.fixtureId)}')">
       <div class="match-top">
@@ -641,7 +502,6 @@ function renderFeatured(){
     </div>
   `;
 }
-
 function renderMatches(){
   const list = $('matchesList');
   const arr = filteredMatches();
@@ -669,13 +529,11 @@ function renderMatches(){
     `;
   }).join('');
 }
-
 function renderApp(){
   renderStats();
   renderFeatured();
   renderMatches();
 }
-
 function availabilityHtml(avail) {
   return `
     <div class="kv">
@@ -686,7 +544,6 @@ function availabilityHtml(avail) {
     </div>
   `;
 }
-
 function renderTimeline(items) {
   const panel = document.getElementById('timeline-panel');
   if (!panel) return;
@@ -702,7 +559,6 @@ function renderTimeline(items) {
     </div>
   `).join('');
 }
-
 function renderHistory(items) {
   const panel = document.getElementById('history-panel');
   if (!panel) return;
@@ -718,7 +574,6 @@ function renderHistory(items) {
     </div>
   `).join('');
 }
-
 function renderAnalysis(data) {
   const panel = document.getElementById('analysis-panel');
   if (!panel) return;
@@ -735,7 +590,6 @@ function renderAnalysis(data) {
     </div>
   `;
 }
-
 function renderOddsHistory(items) {
   const panel = document.getElementById('odds-history-panel');
   if (!panel) return;
@@ -752,7 +606,6 @@ function renderOddsHistory(items) {
     </div>
   `).join('');
 }
-
 function renderAISummary(text) {
   const panel = document.getElementById('ai-summary-panel');
   if (!panel) return;
@@ -762,7 +615,6 @@ function renderAISummary(text) {
     </div>
   `;
 }
-
 function renderMatchIntelligence(data) {
   const card = document.getElementById('intelligence-content');
   if (!card) return;
@@ -778,9 +630,10 @@ function renderMatchIntelligence(data) {
     <div class="intelligence-item">Market Volatility: ${esc(data.marketVolatility ?? '')}</div>
   `;
 }
-
 async function loadMatchHistory(matchId){
-  const response = await fetch(`${WORKER_BASE}/match/${matchId}/history`);
+  const base = WORKER_BASE || location.origin;
+  const response = await fetch(`${base}/match/${matchId}/history`);
+  if (!response.ok) throw new Error(`History request failed: ${response.status}`);
   const data = await response.json();
   renderTimeline(data.timeline || []);
   renderHistory(data.snapshots || []);
@@ -789,19 +642,16 @@ async function loadMatchHistory(matchId){
   renderAISummary(data.aiSummary || '');
   renderMatchIntelligence(data.intelligence || {});
 }
-
 async function closeDetails(){
   $('detailOverlay').classList.remove('active');
   $('detailOverlay').setAttribute('aria-hidden','true');
 }
-
 async function openDetails(fixtureId) {
   fixtureId = String(fixtureId ?? "").trim();
   if (!fixtureId) return;
-
   state.currentFixtureId = fixtureId;
   $('detailOverlay').classList.add('active');
-  $('detailOverlay').setAttribute('aria-hidden', 'false');
+  $('detailOverlay').setAttribute('aria-hidden','false');
   $('detailModal').innerHTML = `
     <div class="loader-centered">
       <div>
@@ -810,7 +660,6 @@ async function openDetails(fixtureId) {
       </div>
     </div>
   `;
-
   try {
     const res = await emit('txline_fixture_details', {
       serviceLevelId: 12,
@@ -827,7 +676,6 @@ async function openDetails(fixtureId) {
     `;
   }
 }
-
 function compactEventRow(it) {
   return `
     <div class="tl-item">
@@ -836,48 +684,20 @@ function compactEventRow(it) {
     </div>
   `;
 }
-
 function renderDetails(d) {
   const current = d?.current || {};
   const compact = d?.currentCompact || {};
-
-  const fixtureId = String(
-    d?.fixtureId ??
-    compact?.fixtureId ??
-    current?.fixtureId ??
-    state.currentFixtureId ??
-    ""
-  );
-
+  const fixtureId = String(d?.fixtureId ?? compact?.fixtureId ?? current?.fixtureId ?? state.currentFixtureId ?? "");
   const home = txScalar(compact.home ?? current.home ?? "");
   const away = txScalar(compact.away ?? current.away ?? "");
-
-  const phase =
-    txScalar(d?.phase ?? compact?.phase ?? current?.phase) || derivePhase(current);
-
+  const phase = txScalar(d?.phase ?? compact?.phase ?? current?.phase) || derivePhase(current);
   const homeScore = txNum(compact.homeScore ?? current.homeScore);
   const awayScore = txNum(compact.awayScore ?? current.awayScore);
-
   let score = txScalar(compact.score ?? current.score ?? d.score);
-  if ((!score || score === "—") && homeScore != null && awayScore != null) {
-    score = `${homeScore}-${awayScore}`;
-  }
+  if ((!score || score === "—") && homeScore != null && awayScore != null) score = `${homeScore}-${awayScore}`;
   if (!score) score = "—";
-
-  const status = txScalar(
-    d?.status ??
-    compact?.status ??
-    current?.status ??
-    txPhaseLabel(phase)
-  );
-
-  const competition = txScalar(
-    current.competition ??
-    compact.competition ??
-    d.competition ??
-    ""
-  );
-
+  const status = txScalar(d?.status ?? compact?.status ?? current?.status ?? txPhaseLabel(phase));
+  const competition = txScalar(current.competition ?? compact.competition ?? d.competition ?? "");
   const events = [].concat(d.events || []);
   const snapshot = [].concat(d.snapshot || []);
   const historical = [].concat(d.historical || []);
@@ -885,7 +705,6 @@ function renderDetails(d) {
   const counts = d.counts || {};
   const avail = d.availability || {};
   const source = [].concat(d.source || []);
-
   const teamTitle = `${esc(home || "—")} vs ${esc(away || "—")}`;
   const oddsHtml = oddsTop.length
     ? oddsTop.map(o => `
@@ -897,11 +716,7 @@ function renderDetails(d) {
       </div>
     `).join("")
     : '<div class="empty-box">No odds data.</div>';
-
-  const eventHtml = [...historical, ...snapshot, ...events]
-    .map(it => compactEventRow(it))
-    .join("") || '<div class="empty-box">No events.</div>';
-
+  const eventHtml = [...historical, ...snapshot, ...events].map(it => compactEventRow(it)).join("") || '<div class="empty-box">No events.</div>';
   const sourceHtml = source.length
     ? source.map(s => `
       <div class="source-item">
@@ -915,17 +730,13 @@ function renderDetails(d) {
       </div>
     `).join("")
     : '<div class="empty-box">No source diagnostics.</div>';
-
   const matchClock = txScalar(compact.clock ?? current.clock);
-
   const summaryHtml = `
     <div class="detail-block">
       <div style="font-size:26px;font-weight:900;margin-bottom:8px;">MATCH SUMMARY</div>
       <div style="font-size:22px;font-weight:800;">${teamTitle}</div>
       <div class="muted" style="margin-top:8px">${esc(txPhaseLabel(phase))}</div>
-      <div style="font-size:48px;font-weight:900;margin-top:18px;margin-bottom:12px;">
-        ${esc(score)}
-      </div>
+      <div style="font-size:48px;font-weight:900;margin-top:18px;margin-bottom:12px;">${esc(score)}</div>
       ${competition ? `<div class="muted">Competition: ${esc(competition)}</div>` : ""}
       ${fixtureId ? `<div class="muted">Fixture ID: ${esc(fixtureId)}</div>` : ""}
       ${current.startTime || compact.startTime ? `<div class="muted">Kick-off: ${esc(current.startTime ?? compact.startTime)}</div>` : ""}
@@ -936,14 +747,12 @@ function renderDetails(d) {
       ${availabilityHtml(avail)}
     </div>
   `;
-
   const intelligenceHtml = `
     <div id="match-intelligence-card">
       <h3>MATCH INTELLIGENCE</h3>
       <div id="intelligence-content">Loading...</div>
     </div>
   `;
-
   const tabsHtml = `
     <div class="detail-tab-row">
       <button class="detail-tab-btn active" data-tab="overview" onclick="setTabActive('overview')">Overview</button>
@@ -957,7 +766,6 @@ function renderDetails(d) {
       <button class="detail-tab-btn" data-tab="ai-summary" onclick="setTabActive('ai-summary')">AI Summary</button>
     </div>
   `;
-
   const panelsHtml = `
     <div id="overview-panel" class="detail-panel">
       <div class="detail-grid">
@@ -998,7 +806,15 @@ function renderDetails(d) {
     </div>
 
     <div id="stats-panel" class="detail-panel hidden">
-      <div class="empty-box">Stats view can stay as current summary data or be extended later.</div>
+      <div class="detail-block">
+        <h3>STATS</h3>
+        <div class="mini-grid">
+          <div class="mini-item"><strong>Snapshot count</strong><span>${esc(counts.snapshot ?? 0)}</span></div>
+          <div class="mini-item"><strong>Events count</strong><span>${esc(counts.events ?? 0)}</span></div>
+          <div class="mini-item"><strong>Historical count</strong><span>${esc(counts.historical ?? 0)}</span></div>
+          <div class="mini-item"><strong>Odds count</strong><span>${esc(counts.odds ?? 0)}</span></div>
+        </div>
+      </div>
     </div>
 
     <div id="events-panel" class="detail-panel hidden">
@@ -1036,12 +852,8 @@ function renderDetails(d) {
   `;
 
   setTabActive('overview');
-
-  if (fixtureId) {
-    loadMatchHistory(fixtureId).catch(() => {});
-  }
+  if (fixtureId) loadMatchHistory(fixtureId).catch(() => {});
 }
-
 async function emit(type, d){
   const k = Math.random().toString(36).slice(2);
   const body = { k, d: { ...d, type } };
@@ -1050,9 +862,9 @@ async function emit(type, d){
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(body)
   });
+  if (!res.ok) throw new Error(`emit failed: ${res.status}`);
   return await res.json();
 }
-
 function updateGroupButtons(){
   const counts = {
     all: (state.matches || []).length,
@@ -1068,21 +880,19 @@ function updateGroupButtons(){
     btn.classList.toggle('active', state.group === g);
   });
 }
-
 async function loadData() {
   state.loading = true;
   $('dashboardHint').textContent = 'Loading oracle data…';
   $('feedStatus').textContent = 'Loading oracle feed…';
   try {
     const res = await fetch('/api/feed');
+    if (!res.ok) throw new Error(`feed failed: ${res.status}`);
     const data = await res.json();
-
     state.feed = data;
     state.grouped = data.grouped || {};
     state.featured = normalizeMatch(data.featured || null);
     state.workerFeatured = normalizeMatch(data.workerFeatured || null);
     state.enrichment = data.enrichment || null;
-
     const matches = [
       ...(data.matches || []),
       ...(data.grouped?.live || []),
@@ -1091,11 +901,9 @@ async function loadData() {
       ...(data.grouped?.stopped || []),
       ...(data.grouped?.unknown || [])
     ];
-
     state.matches = byFixtureId(matches);
     updateGroupButtons();
     renderApp();
-
     $('dashboardHint').textContent = 'Oracle feed ready';
     $('feedStatus').textContent = `Loaded ${state.matches.length} matches`;
   } catch (e) {
@@ -1107,24 +915,20 @@ async function loadData() {
     renderApp();
   }
 }
-
 async function checkToken(){
   try{
-    const res = await fetch('/txline_check_token', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({d:{serviceLevelId:12}})});
-    const data = await res.json();
-    alert(JSON.stringify(data, null, 2));
+    const res = await emit('txline_check_token', { serviceLevelId: 12 });
+    alert(JSON.stringify(res, null, 2));
   }catch(e){
     alert('Token check failed: ' + (e?.message || e));
   }
 }
-
 $('refreshBtn').addEventListener('click', loadData);
 $('checkTokenBtn').addEventListener('click', checkToken);
 $('searchInput').addEventListener('input', e => {
   state.query = e.target.value || '';
   renderMatches();
 });
-
 document.querySelectorAll('#groupButtons button').forEach(btn => {
   btn.addEventListener('click', () => {
     state.group = btn.dataset.group;
@@ -1132,12 +936,12 @@ document.querySelectorAll('#groupButtons button').forEach(btn => {
     renderMatches();
   });
 });
-
 window.closeDetails = closeDetails;
 window.openDetails = openDetails;
 window.setTabActive = setTabActive;
 window.loadMatchHistory = loadMatchHistory;
-
+window.emit = emit;
+window.loadData = loadData;
 loadData();
 </script>
 </body>
