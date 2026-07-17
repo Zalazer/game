@@ -22,88 +22,26 @@
       --radius:20px;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:
-      radial-gradient(1200px 700px at 20% 0%, rgba(121,168,255,.15), transparent 55%),
-      radial-gradient(900px 600px at 90% 10%, rgba(103,240,200,.12), transparent 50%),
-      linear-gradient(180deg, var(--bg), #050911 100%);
-      color:var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      min-height:100%;
+    html,body{
+      margin:0;padding:0;
+      background:
+        radial-gradient(1200px 700px at 20% 0%, rgba(121,168,255,.15), transparent 55%),
+        radial-gradient(900px 600px at 90% 10%, rgba(103,240,200,.12), transparent 50%),
+        linear-gradient(180deg, var(--bg), #050911 100%);
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     }
-    body{min-height:100vh}
-    a{color:inherit;text-decoration:none}
-    button,input,select{font:inherit}
-
-   .app{
-    max-width:1180px;
-    margin:0 auto;
-    padding:0 14px 40px;
-}
-
-    .topbar{
-      position:sticky;top:0;z-index:20;
-      backdrop-filter: blur(16px);
-      background: linear-gradient(180deg, rgba(7,16,29,.92), rgba(7,16,29,.72));
-      border-bottom:1px solid var(--line);
-      margin:0 -14px 18px;
-      padding:14px 14px 12px;
-    }
-    .topbar-inner{max-width:1180px;margin:0 auto;display:flex;gap:12px;align-items:center;justify-content:space-between}
-    .brand{display:flex;align-items:center;gap:12px;min-width:0}
-    .logo{
-      width:44px;height:44px;border-radius:14px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: var(--shadow);
-      display:grid;place-items:center;
-      color:#04101f;font-weight:900;
-    }
-    .brand-text{min-width:0}
-    .brand-title{font-size:18px;font-weight:800;line-height:1.1}
-    .brand-sub{font-size:12px;color:var(--muted);margin-top:3px}
-
-.actions{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-}
-
-
-.pill,
-.btn,
-.chip{
-    padding:6px 10px;
-    font-size:13px;
-    min-height:34px;
-    border-radius:999px;
-    border:1px solid var(--line);
-    background:rgba(16,26,51,.72);
-    color:var(--text);
-    display:inline-flex;
-    align-items:center;
-    gap:5px;
-    box-shadow:none;
-}
-
-    .btn{cursor:pointer}
-    .btn:hover,.pill:hover,.chip:hover{border-color:rgba(121,168,255,.35)}
-    .btn-primary{
-      background:linear-gradient(135deg, rgba(121,168,255,.95), rgba(103,240,200,.85));
-      color:#08111e;border:none;font-weight:800;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 340px;
-      gap:16px;
-    }
-    @media (max-width: 980px){.grid{grid-template-columns:1fr}.sidebar{order:2}}
-    .hero,.panel,.card,.match-card,.section,.modal-content{
-      background: linear-gradient(180deg, rgba(16,26,51,.92), rgba(12,20,38,.95));
+    a{color:inherit}
+    button,input{font:inherit}
+    .wrap{max-width:1400px;margin:0 auto;padding:18px}
+    .hero{
+      padding:16px 16px 14px;
+      margin-bottom:16px;
+      background:linear-gradient(180deg, rgba(16,26,51,.9), rgba(14,23,48,.88));
       border:1px solid var(--line);
-      border-radius:var(--radius);
+      border-radius:24px;
       box-shadow:var(--shadow);
     }
-    .hero{padding:16px 16px 14px;margin-bottom:16px}
     .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
     .hero-title{font-size:26px;font-weight:900;margin:0}
     .hero-sub{color:var(--muted);margin-top:6px;line-height:1.45}
@@ -128,88 +66,87 @@
     }
     .search input::placeholder{color:#7687b7}
     .seg{display:flex;gap:8px;flex-wrap:wrap}
-    .seg .chip.active{background:rgba(121,168,255,.18);border-color:rgba(121,168,255,.38)}
-    .content{min-width:0}
-    .sidebar{display:flex;flex-direction:column;gap:16px}
-    .panel{padding:14px}
-    .panel h3,.section h3{margin:0 0 12px;font-size:15px}
-    .featured{
-      display:grid;grid-template-columns:1.2fr .8fr;gap:12px;align-items:stretch
+    .seg button,.btn{
+      padding:10px 14px;border-radius:14px;border:1px solid var(--line);
+      background:rgba(255,255,255,.03);color:var(--text);cursor:pointer
     }
-    @media (max-width: 720px){.featured{grid-template-columns:1fr}}
-    .featured-main{
-      padding:16px;border-radius:18px;background:linear-gradient(135deg, rgba(121,168,255,.13), rgba(103,240,200,.10));
-      border:1px solid rgba(255,255,255,.08)
+    .seg button.active,.btn.primary{background:linear-gradient(180deg, rgba(121,168,255,.24), rgba(121,168,255,.12));border-color:rgba(121,168,255,.35)}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:16px;
     }
-    .featured-meta{color:var(--muted);font-size:12px}
-    .featured-score{font-size:34px;font-weight:900;margin:6px 0}
-    .featured-teams{font-size:18px;font-weight:800}
-    .featured-right{display:flex;flex-direction:column;gap:10px}
-    .match-list{display:flex;flex-direction:column;gap:10px}
-    .match-card{
-      padding:14px;display:grid;gap:10px;
-      grid-template-columns: 1fr auto;
-      align-items:center;
-      cursor:pointer;
-    }
-    .match-card:hover{border-color:rgba(121,168,255,.26);transform:translateY(-1px)}
-    .teams{font-size:17px;font-weight:800;line-height:1.15}
-    .subline{font-size:12px;color:var(--muted);margin-top:4px}
-    .score-badge{
-      min-width:84px;text-align:center;
-      padding:10px 12px;border-radius:16px;
-      background:rgba(255,255,255,.04);
+    @media (max-width: 1100px){.grid{grid-template-columns:1fr}}
+    .card{
+      background:linear-gradient(180deg, rgba(16,26,51,.9), rgba(14,23,48,.88));
       border:1px solid var(--line);
-      font-size:20px;font-weight:900
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
-    .score-badge.small{font-size:14px;min-width:68px}
-    .status{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-    .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
-    .dot.live{background:var(--danger)}
-    .dot.finished{background:var(--accent2)}
-    .dot.upcoming{background:var(--warn)}
-    .section{padding:14px;margin-top:16px}
-    .section-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .matches-group{margin-top:14px}
-    .group-title{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;color:var(--muted);font-size:13px}
-    .empty{
-      padding:18px;border-radius:18px;border:1px dashed rgba(255,255,255,.12);
-      color:var(--muted);text-align:center;background:rgba(255,255,255,.02)
+    .card-head{
+      display:flex;justify-content:space-between;align-items:center;gap:12px;
+      padding:16px 16px 12px;border-bottom:1px solid var(--line)
     }
-    .loader{
-      display:grid;place-items:center;min-height:220px;color:var(--muted)
+    .card-title{font-weight:900;font-size:18px}
+    .card-body{padding:16px}
+    .matches{display:grid;grid-template-columns:1fr;gap:12px}
+    .match{
+      padding:14px 14px 12px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.03);
+      cursor:pointer;
+      transition:.15s transform,.15s border-color,.15s background;
     }
-    .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:var(--accent);animation:spin 1s linear infinite;margin-bottom:10px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .sidebar-box{
-      padding:14px
+    .match:hover{transform:translateY(-1px);border-color:rgba(121,168,255,.35);background:rgba(121,168,255,.05)}
+    .match-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .match-teams{font-weight:800;font-size:15px;line-height:1.3}
+    .match-score{font-size:22px;font-weight:900}
+    .match-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:12px}
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
     }
-    .mini-list{display:flex;flex-direction:column;gap:10px}
+    .pill.live{border-color:rgba(103,240,200,.45);color:#9bffe9}
+    .pill.finished{border-color:rgba(255,255,255,.14);color:#dfe7ff}
+    .pill.upcoming{border-color:rgba(121,168,255,.35);color:#bcd3ff}
+    .pill.stopped{border-color:rgba(255,107,130,.45);color:#ffc1cb}
+    .empty,.loader-centered{
+      min-height:180px;display:flex;align-items:center;justify-content:center;
+      color:var(--muted);text-align:center
+    }
+    .mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    @media (max-width: 780px){.mini-grid{grid-template-columns:repeat(2,1fr)}}
     .mini-item{
-      display:flex;justify-content:space-between;gap:10px;align-items:center;
-      padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.03)
+      padding:12px;border-radius:14px;border:1px solid var(--line);
+      background:rgba(255,255,255,.03)
     }
-    .mini-item strong{font-size:13px}
-    .mini-item span{color:var(--muted);font-size:12px}
-    .favorite{cursor:pointer}
-    .favorite.on{color:#ffd36b}
+    .mini-item strong{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+    .footer{
+      margin-top:18px;color:var(--muted);font-size:12px;text-align:center;opacity:.9
+    }
+
     .overlay{
-      position:fixed;inset:0;z-index:50;
-      background:rgba(4,8,16,.74);
-      backdrop-filter:blur(8px);
-      display:none;align-items:center;justify-content:center;
-      padding:16px;
+      position:fixed;inset:0;background:rgba(2,5,12,.76);
+      backdrop-filter:blur(10px);
+      display:none;align-items:flex-start;justify-content:center;
+      padding:18px;z-index:9999;overflow:auto;
     }
     .overlay.active{display:flex}
     .modal-content{
-      width:min(980px, 100%);
-      max-height:92vh;
-      overflow:auto;
-      padding:14px;
+      width:min(1200px, 100%);
+      margin:24px 0;
+      background:linear-gradient(180deg, rgba(16,26,51,.98), rgba(14,23,48,.96));
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
     .modal-head{
-      display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px
+      display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+      padding:16px 16px 14px;border-bottom:1px solid var(--line)
     }
     .modal-title{font-size:20px;font-weight:900}
     .close-btn{
@@ -246,114 +183,153 @@
       padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line)
     }
     .source-item small{color:var(--muted)}
-    .footer{
-      margin-top:18px;color:var(--muted);font-size:12px;text-align:center;opacity:.9
-    }
-    .loader-centered{min-height:220px;display:grid;place-items:center;color:var(--muted)}
     .nowrap{white-space:nowrap}
+
+    .detail-tab-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin:14px 0 10px;
+      padding:0 16px;
+    }
+    .detail-tab-btn{
+      padding:10px 14px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+    }
+    .detail-tab-btn.active{
+      background:#00C896;
+      color:#08130f;
+      border-color:#00C896;
+    }
+    .detail-panel.hidden{display:none}
+    .detail-panel{
+      padding:0 16px 16px;
+      margin-top:0;
+    }
+    #match-intelligence-card{
+      margin:16px 16px 0;
+      padding:15px;
+      border-radius:12px;
+      background:#161616;
+      border:1px solid #333;
+    }
+    .intelligence-item{
+      padding:8px 0;
+      border-bottom:1px solid #333;
+    }
+    .timeline-event{
+      padding:12px;
+      margin-bottom:10px;
+      border-left:4px solid #00C896;
+      background:#1B1B1B;
+      border-radius:10px;
+    }
+    .snapshot-item{
+      padding:12px;
+      margin-bottom:10px;
+      background:#1B1B1B;
+      border-radius:10px;
+    }
+    .analysis-item{
+      padding:12px;
+      margin-bottom:10px;
+      background:#1B1B1B;
+      border-radius:10px;
+    }
+    .spinner{
+      width:28px;height:28px;border:3px solid rgba(255,255,255,.15);
+      border-top-color:var(--accent2);border-radius:50%;
+      animation:spin 1s linear infinite;margin:0 auto 8px
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .empty-box{
+      padding:16px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.02);
+      color:var(--muted);
+    }
   </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <div class="logo">☆</div>
-      <div class="brand-text">
-        <div class="brand-title" id="appTitle">FIFA 2026 Live</div>
-        <div class="brand-sub" id="appSub">All matches • Live • Upcoming • Favorites</div>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="pill btn" id="btnRefresh">Refresh</button>
-      <button class="pill btn" id="btnCheckToken">Check token</button>
-    </div>
-  </div>
-</div>
-
-<div class="app">
-  <div class="hero">
-    <div class="hero-top">
-      <div>
-        <h1 class="hero-title">Match Dashboard</h1>
-        <div class="hero-sub" id="heroDesc">Loading oracle data…</div>
-      </div>
-    </div>
-
-    <div class="controls">
-      <div class="seg" id="groupTabs">
-        <button class="chip active" data-group="all">All (0)</button>
-        <button class="chip" data-group="live">Live (0)</button>
-        <button class="chip" data-group="upcoming">Upcoming (0)</button>
-        <button class="chip" data-group="finished">Finished (0)</button>
-        <button class="chip" data-group="stopped">Stopped (0)</button>
-        <button class="chip" data-group="favorites">Favorites (0)</button>
-      </div>
-
-      <div class="search">
-        <span>⌕</span>
-        <input id="searchInput" placeholder="Search teams, competition, fixture ID">
-      </div>
-    </div>
-  </div>
-
-
-  <div class="grid">
-    <main class="content">
-      <div class="section">
-        <div class="section-header">
-          <h3>Featured match</h3>
-          <div class="status"><span class="dot" id="featuredDot"></span><span id="featuredStatus">Loading…</span></div>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1 class="hero-title">FIFA 2026 Live</h1>
+          <div class="hero-sub">All matches • Live • Upcoming • Favorites</div>
         </div>
-        <div id="featuredWrap" class="loader">
-          <div>
-            <div class="spinner"></div>
-            <div>Loading oracle feed…</div>
+        <div class="hero-stats">
+          <div class="stat"><div class="k">Matches</div><div class="v" id="statMatches">0</div></div>
+          <div class="stat"><div class="k">Live</div><div class="v" id="statLive">0</div></div>
+          <div class="stat"><div class="k">Finished</div><div class="v" id="statFinished">0</div></div>
+          <div class="stat"><div class="k">Favorites</div><div class="v" id="statFavs">0</div></div>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="search">
+          <span>🔎</span>
+          <input id="searchInput" placeholder="Search teams, competition, fixture id..." />
+        </div>
+        <div class="seg">
+          <button class="btn primary" id="refreshBtn">Refresh</button>
+          <button class="btn" id="checkTokenBtn">Check token</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-head">
+          <div class="card-title">Match Dashboard</div>
+          <div class="muted" id="dashboardHint">Loading oracle data…</div>
+        </div>
+        <div class="card-body">
+          <div class="seg" id="groupButtons">
+            <button class="active" data-group="all">All (0)</button>
+            <button data-group="live">Live (0)</button>
+            <button data-group="upcoming">Upcoming (0)</button>
+            <button data-group="finished">Finished (0)</button>
+            <button data-group="stopped">Stopped (0)</button>
+            <button data-group="favorites">Favorites (0)</button>
+          </div>
+          <div style="margin-top:14px" id="featuredBox">
+            <div class="empty">Loading…</div>
+          </div>
+          <div style="margin-top:14px" class="muted" id="feedStatus">Loading oracle feed…</div>
+          <div style="margin-top:14px" class="matches" id="matchesList">
+            <div class="empty">Loading matches…</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="section">
-        <div class="section-header">
-          <h3>Matches</h3>
-          <div class="tabs" id="secondaryTabs"></div>
+      <aside class="card">
+        <div class="card-head">
+          <div class="card-title">Featured match</div>
+          <div class="muted" id="featuredState">—</div>
         </div>
-        <div id="listWrap" class="loader">
-          <div>
-            <div class="spinner"></div>
-            <div>Loading matches…</div>
-          </div>
+        <div class="card-body" id="featuredWrap">
+          <div class="empty">Loading…</div>
         </div>
-      </div>
-    </main>
+      </aside>
+    </div>
 
-    <aside class="sidebar">
-      <div class="panel sidebar-box">
-        <h3>Favorites</h3>
-        <div class="mini-list" id="favoritesList">
-          <div class="empty">No favorites yet.</div>
-        </div>
-      </div>
-
-      <div class="panel sidebar-box">
-        <h3>Oracle info</h3>
-        <div class="mini-list" id="oracleInfo">
-          <div class="mini-item"><strong>Feed</strong><span>—</span></div>
-          <div class="mini-item"><strong>Update</strong><span>—</span></div>
-          <div class="mini-item"><strong>Source</strong><span>—</span></div>
-        </div>
-      </div>
-    </aside>
+    <div class="footer">TxLINE frontend rebuilt from worker contract</div>
   </div>
 
-  <div class="footer">TxLINE frontend rebuilt from worker contract</div>
-</div>
-
-<div class="overlay" id="detailOverlay" aria-hidden="true">
-  <div class="modal-content" id="detailModal"></div>
-</div>
+  <div class="overlay" id="detailOverlay" aria-hidden="true">
+    <div class="modal-content" id="detailModal"></div>
+  </div>
 
 <script>
 const API_BASE = '';
+const WORKER_BASE = '';
 const state = {
   feed: null,
   matches: [],
@@ -398,19 +374,18 @@ function txStatusClass(p){
   return '';
 }
 
-
 function derivePhase(m) {
-  if (!m || typeof m !== "object") {
-    return "unknown";
+  if (!m || typeof m !== 'object') {
+    return 'unknown';
   }
 
   const phase = txScalar(m.phase ?? m.currentPhase);
 
   if (
-    phase === "live" ||
-    phase === "upcoming" ||
-    phase === "finished" ||
-    phase === "stopped"
+    phase === 'live' ||
+    phase === 'upcoming' ||
+    phase === 'finished' ||
+    phase === 'stopped'
   ) {
     return phase;
   }
@@ -419,7 +394,7 @@ function derivePhase(m) {
     m.status ??
     m.gameState ??
     m.rawStatus ??
-    ""
+    ''
   ).trim().toUpperCase();
 
   const statusId = txNum(
@@ -429,37 +404,39 @@ function derivePhase(m) {
   );
 
   if (
-    ["F", "FINAL", "FINISHED", "FULL TIME", "FULL-TIME"].includes(status) ||
+    ['F', 'FINAL', 'FINISHED', 'FULL TIME', 'FULL-TIME'].includes(status) ||
     [5, 10, 13, 100].includes(statusId)
   ) {
-    return "finished";
+    return 'finished';
   }
 
   if (
-    ["H1", "HT", "H2", "ET1", "ET2", "PE", "WET", "WPE"].includes(status) ||
+    ['H1', 'HT', 'H2', 'ET1', 'ET2', 'PE', 'WET', 'WPE'].includes(status) ||
     [2, 3, 4, 6, 7, 8, 9, 11, 12].includes(statusId)
   ) {
-    return "live";
+    return 'live';
   }
 
   if (
-    ["NS", "NOT STARTED", "SCHEDULED", "UPCOMING"].includes(status) ||
-    statusId === 1
+    ['I', 'A', 'C', 'P', 'TXCC', 'TXCS'].includes(status) ||
+    [14, 15, 16, 17, 18, 19].includes(statusId)
   ) {
-    return "upcoming";
+    return 'stopped';
   }
 
-  if ([14, 15, 16, 17, 18, 19].includes(statusId)) {
-    return "stopped";
+  if (
+    ['NS', 'UPCOMING', 'NOT STARTED', 'SCHEDULED'].includes(status) ||
+    [1].includes(statusId)
+  ) {
+    return 'upcoming';
   }
 
-  return "unknown";
+  if (m.homeScore != null || m.awayScore != null) return 'finished';
+  return 'unknown';
 }
 
-
-
 function normalizeMatch(x) {
-  if (!x || typeof x !== "object") return {};
+  if (!x || typeof x !== 'object') return {};
 
   const current = x.currentCompact ?? x.current ?? {};
 
@@ -468,7 +445,7 @@ function normalizeMatch(x) {
     x.FixtureId ??
     x.id ??
     current.fixtureId ??
-    ""
+    ''
   );
 
   const home = txScalar(
@@ -513,39 +490,25 @@ function normalizeMatch(x) {
     current.awayScore
   );
 
-  const score = txScalar(
-    x.score ??
-    current.score ??
+  const score =
+    txScalar(
+      x.score ??
+      current.score
+    ) ||
     (
-      homeScore != null &&
-      awayScore != null
+      homeScore != null && awayScore != null
         ? `${homeScore}-${awayScore}`
-        : null
-    )
-  ) || "—";
+        : ''
+    );
 
-  const status = txScalar(
-    x.status ??
-    x.gameState ??
-    current.status ??
-    current.gameState
-  );
-
-  const phase =
-    txScalar(x.phase ?? current.phase) ||
-    derivePhase({
-      ...x,
-      status,
-      hasHistorical:
-        x.hasHistorical ??
-        current.hasHistorical,
-      hasEvents:
-        x.hasEvents ??
-        current.hasEvents,
-      hasSnapshot:
-        x.hasSnapshot ??
-        current.hasSnapshot
-    });
+  const phase = txScalar(x.phase ?? current.phase) || derivePhase({
+    status: x.status ?? current.status,
+    gameState: x.gameState ?? current.gameState,
+    rawStatus: x.rawStatus ?? current.rawStatus,
+    statusId: x.statusId ?? current.statusId,
+    homeScore,
+    awayScore
+  });
 
   return {
     ...x,
@@ -556,999 +519,290 @@ function normalizeMatch(x) {
     kickoff,
     homeScore,
     awayScore,
-    score,
-    status,
-    phase
+    score: score || '—',
+    phase,
+    currentCompact: current
   };
 }
 
-
-
-function sortMatches(arr) {
-
-  const phaseOrder = {
-    live: 0,
-    upcoming: 1,
-    finished: 2,
-    stopped: 3,
-    unknown: 4
-  };
-
-  const getTime = m => {
-    const t = Number(
-      m?.kickoffMs ??
-      new Date(m?.kickoff).getTime()
-    );
-
-    return Number.isFinite(t)
-      ? t
-      : 0;
-  };
-
-  return [...arr].sort((a, b) => {
-
-    const pa = String(
-      a?.phase || "unknown"
-    );
-
-    const pb = String(
-      b?.phase || "unknown"
-    );
-
-    const phaseDiff =
-      (phaseOrder[pa] ?? 99) -
-      (phaseOrder[pb] ?? 99);
-
-    if (phaseDiff !== 0) {
-      return phaseDiff;
-    }
-
-    const ta = getTime(a);
-    const tb = getTime(b);
-
-    switch (pa) {
-
-      case "upcoming":
-        return ta - tb;
-
-      case "finished":
-        return tb - ta;
-
-      default:
-        return ta - tb;
-    }
-
+function byFixtureId(arr){
+  const seen = new Set();
+  return (arr || []).map(normalizeMatch).filter(m => {
+    if (!m.fixtureId) return false;
+    if (seen.has(m.fixtureId)) return false;
+    seen.add(m.fixtureId);
+    return true;
   });
-
 }
 
-
-
-function groupMatches(matches) {
-
-  const grouped = {
-    live: [],
-    upcoming: [],
-    finished: [],
-    stopped: [],
-    unknown: []
-  };
-
-  for (const match of matches) {
-
-    const phase = String(
-      match?.phase || "unknown"
-    );
-
-    if (grouped[phase]) {
-      grouped[phase].push(match);
-    } else {
-      grouped.unknown.push(match);
-    }
-
-  }
-
-  return grouped;
-
+function setTabActive(tab) {
+  document.querySelectorAll('.detail-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('.detail-panel').forEach(panel => {
+    panel.classList.add('hidden');
+  });
+  const target = document.getElementById(`${tab}-panel`);
+  if (target) target.classList.remove('hidden');
 }
 
-
-
-
-function getFeaturedMatch() {
-
-  switch (state.group) {
-
-    case "live":
-      return state.grouped.live?.[0] || null;
-
-    case "upcoming":
-      return state.grouped.upcoming?.[0] || null;
-
-    case "finished":
-      return state.grouped.finished?.[0] || null;
-
-    case "stopped":
-      return state.grouped.stopped?.[0] || null;
-
-case "favorites":
-    return filterMatches()[0] || null;
-
-    case "all":
-    default:
-      return state.workerFeatured || state.matches[0] || null;
-  }
-
+function prettyOddsText(text) {
+  if (!text) return '';
+  return String(text)
+    .replaceAll('part1:', 'Home: ')
+    .replaceAll('part2:', 'Away: ')
+    .replaceAll('draw:', 'Draw: ')
+    .replaceAll('over:', 'Over: ')
+    .replaceAll('under:', 'Under: ')
+    .replaceAll('|', ' • ');
 }
-
-
-
-function renderStats() {
-
-  const total =
-    state.matches.length;
-
-  const live =
-    state.grouped.live?.length || 0;
-
-  const upcoming =
-    state.grouped.upcoming?.length || 0;
-
-  const finished =
-    state.grouped.finished?.length || 0;
-
-  const stopped =
-    state.grouped.stopped?.length || 0;
-
-  const favorites =
-    state.matches.filter(
-      m => state.favorites.has(
-        String(m.fixtureId)
-      )
-    ).length;
-
-  document
-    .querySelector('.chip[data-group="all"]')
-    .textContent = `All (${total})`;
-
-  document
-    .querySelector('.chip[data-group="live"]')
-    .textContent = `Live (${live})`;
-
-  document
-    .querySelector('.chip[data-group="upcoming"]')
-    .textContent = `Upcoming (${upcoming})`;
-
-  document
-    .querySelector('.chip[data-group="finished"]')
-    .textContent = `Finished (${finished})`;
-
-  document
-    .querySelector('.chip[data-group="stopped"]')
-    .textContent = `Stopped (${stopped})`;
-
-  document
-    .querySelector('.chip[data-group="favorites"]')
-    .textContent = `Favorites (${favorites})`;
-
-}
-
-
-
 
 function saveFavorites(){
   localStorage.setItem('favorites', JSON.stringify([...state.favorites]));
-  renderFavorites();
-  renderStats();
 }
 
+function favoriteCount(){
+  return state.favorites.size;
+}
 
-function toggleFav(id) {
+function filteredMatches(){
+  let arr = [...(state.matches || [])];
+  if (state.group !== 'all') {
+    arr = arr.filter(m => (m.phase || derivePhase(m)) === state.group);
+  }
+  if (state.group === 'favorites') {
+    arr = arr.filter(m => state.favorites.has(String(m.fixtureId)));
+  }
+  const q = state.query.trim().toLowerCase();
+  if (q) {
+    arr = arr.filter(m => (
+      String(m.fixtureId || '').toLowerCase().includes(q) ||
+      String(m.home || '').toLowerCase().includes(q) ||
+      String(m.away || '').toLowerCase().includes(q) ||
+      String(m.competition || '').toLowerCase().includes(q)
+    ));
+  }
+  return arr;
+}
 
-  id = String(id ?? "").trim();
+function renderStats(){
+  const g = state.grouped || {};
+  const allCount = (state.matches || []).length;
+  $('statMatches').textContent = String(allCount);
+  $('statLive').textContent = String((g.live || []).length);
+  $('statFinished').textContent = String((g.finished || []).length);
+  $('statFavs').textContent = String(favoriteCount());
 
-  if (!id) {
+  const buttons = [...document.querySelectorAll('#groupButtons button')];
+  const counts = {
+    all: allCount,
+    live: (g.live || []).length,
+    upcoming: (g.upcoming || []).length,
+    finished: (g.finished || []).length,
+    stopped: (g.stopped || []).length,
+    favorites: favoriteCount()
+  };
+  buttons.forEach(btn => {
+    const k = btn.dataset.group;
+    btn.textContent = `${k[0].toUpperCase()}${k.slice(1)} (${counts[k] ?? 0})`;
+    btn.classList.toggle('active', state.group === k);
+  });
+}
+
+function renderFeatured(){
+  const featured = state.workerFeatured || state.featured || null;
+  const el = $('featuredWrap');
+  $('featuredState').textContent = featured ? txPhaseLabel(featured.phase || derivePhase(featured)) : '—';
+
+  if (!featured) {
+    el.innerHTML = `<div class="empty">No featured match.</div>`;
     return;
   }
 
-  if (state.favorites.has(id)) {
-    state.favorites.delete(id);
-  } else {
-    state.favorites.add(id);
-  }
-
-  saveFavorites();
-
-}
-
-
-
-function matchTitle(m) {
-
-  const home = txScalar(
-    m?.home ??
-    m?.homeTeam ??
-    m?.participant1
-  ) || "—";
-
-  const away = txScalar(
-    m?.away ??
-    m?.awayTeam ??
-    m?.participant2
-  ) || "—";
-
-  return `${esc(home)} vs ${esc(away)}`;
-
-}
-
-
-function renderFeatured() {
-  const m = state.featured || state.matches[0];
-
-  if (!m) {
-    $("featuredWrap").innerHTML =
-      '<div class="empty">No featured match.</div>';
-
-    $("featuredStatus").textContent = "No data";
-    $("featuredDot").className = "dot";
-    return;
-  }
-
-  const phase = String(m.phase || "unknown");
-  const status = txScalar(
-    m.status || txPhaseLabel(phase)
-  );
-
-  $("featuredStatus").textContent =
-    txPhaseLabel(phase);
-
-  $("featuredDot").className =
-    `dot ${txStatusClass(phase)}`;
-
-  $("featuredWrap").innerHTML = `
-    <div class="featured">
-
-      <div class="featured-main">
-
-        <div class="featured-meta">
-          ${esc(m.competition || "Competition")}
-          • ${esc(status)}
-          ${m.fixtureId ? " • " + esc(m.fixtureId) : ""}
+  const phase = featured.phase || derivePhase(featured);
+  el.innerHTML = `
+    <div class="match" onclick="openDetails('${esc(featured.fixtureId)}')">
+      <div class="match-top">
+        <div>
+          <div class="match-teams">${esc(featured.home || '—')} vs ${esc(featured.away || '—')}</div>
+          <div class="match-meta">
+            <span class="pill ${txStatusClass(phase)}">${esc(txPhaseLabel(phase))}</span>
+            <span class="pill">${esc(featured.competition || 'World Cup')}</span>
+            <span class="pill">#${esc(featured.fixtureId || '')}</span>
+          </div>
         </div>
-
-        <div class="featured-teams">
-          ${matchTitle(m)}
-        </div>
-
-        <div class="featured-score">
-          ${esc(m.score || "—")}
-        </div>
-
-        <div class="muted">
-          ${m.kickoff
-            ? esc(formatTime(m.kickoff))
-            : ""}
-        </div>
-
+        <div class="match-score">${esc(featured.score || '—')}</div>
       </div>
-
-      <div class="featured-right">
-
-        <div class="detail-block">
-          <div class="muted">
-            Quick actions
-          </div>
-
-          <div
-            style="
-              display:flex;
-              gap:8px;
-              flex-wrap:wrap;
-              margin-top:10px;
-            "
-          >
-
-            <button
-              class="btn btn-primary"
-              onclick="openDetails('${esc(m.fixtureId)}')"
-            >
-              Open details
-            </button>
-
-            <button
-              class="btn"
-              onclick="toggleFav('${esc(m.fixtureId)}')"
-            >
-              ${
-                state.favorites.has(
-                  String(m.fixtureId)
-                )
-                  ? "Remove favorite"
-                  : "Add favorite"
-              }
-            </button>
-
-          </div>
-        </div>
-
-        <div class="detail-block">
-
-          <div class="muted">
-            Score
-          </div>
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              align-items:end;
-              margin-top:8px;
-            "
-          >
-
-            <div>
-
-              <div class="bigscore">
-                ${esc(m.score || "—")}
-              </div>
-
-              <div class="muted">
-                ${esc(txPhaseLabel(phase))}
-              </div>
-
-            </div>
-
-            <div class="score-badge">
-              ${
-                state.favorites.has(
-                  String(m.fixtureId)
-                )
-                  ? "★"
-                  : "☆"
-              }
-            </div>
-
-          </div>
-
-        </div>
-
+      <div class="match-meta">
+        <span class="pill">Kickoff: ${esc(featured.kickoff || '—')}</span>
+        <span class="pill">Home ${esc(featured.homeScore ?? '—')}</span>
+        <span class="pill">Away ${esc(featured.awayScore ?? '—')}</span>
       </div>
-
     </div>
   `;
 }
 
-
-
-function renderFavorites(){
-  const list = [...state.favorites]
-    .map(id => state.matches.find(m => String(m.fixtureId) === String(id)))
-    .filter(Boolean);
-  if (!list.length){
-    $('favoritesList').innerHTML = '<div class="empty">No favorites yet.</div>';
+function renderMatches(){
+  const list = $('matchesList');
+  const arr = filteredMatches();
+  if (!arr.length) {
+    list.innerHTML = `<div class="empty">No matches.</div>`;
     return;
   }
-  $('favoritesList').innerHTML = list.map(m => `
-    <div class="mini-item favorite ${state.favorites.has(String(m.fixtureId)) ? 'on' : ''}" onclick="openDetails('${esc(m.fixtureId)}')">
-      <div>
-        <strong>${esc(m.home || '—')} vs ${esc(m.away || '—')}</strong>
-        <div><span>${esc(m.competition || '')}</span></div>
+  list.innerHTML = arr.map(m => {
+    const phase = m.phase || derivePhase(m);
+    const fav = state.favorites.has(String(m.fixtureId));
+    return `
+      <div class="match" onclick="openDetails('${esc(m.fixtureId)}')">
+        <div class="match-top">
+          <div>
+            <div class="match-teams">${fav ? '★ ' : ''}${esc(m.home || '—')} vs ${esc(m.away || '—')}</div>
+            <div class="match-meta">
+              <span class="pill ${txStatusClass(phase)}">${esc(txPhaseLabel(phase))}</span>
+              <span class="pill">${esc(m.competition || '—')}</span>
+              <span class="pill">#${esc(m.fixtureId || '')}</span>
+            </div>
+          </div>
+          <div class="match-score">${esc(m.score || '—')}</div>
+        </div>
       </div>
-      <span>
-${esc(
-  m.score ||
-  (
-    m.homeScore != null &&
-    m.awayScore != null
-      ? `${m.homeScore}-${m.awayScore}`
-      : "—"
-  )
-)}
-</span>
+    `;
+  }).join('');
+}
+
+function renderApp(){
+  renderStats();
+  renderFeatured();
+  renderMatches();
+}
+
+function availabilityHtml(avail) {
+  return `
+    <div class="kv">
+      <div><b>Live statistics</b>${avail.hasSnapshot ? ' ✓ Available' : ' ✗ Missing'}</div>
+      <div><b>Match events</b>${avail.hasLiveEvents ? ' ✓ Available' : ' ✗ Missing'}</div>
+      <div><b>Historical data</b>${avail.hasHistorical ? ' ✓ Available' : ' ✗ Missing'}</div>
+      <div><b>Betting odds</b>${avail.hasOdds ? ' ✓ Available' : ' ✗ Missing'}</div>
+    </div>
+  `;
+}
+
+function renderTimeline(items) {
+  const panel = document.getElementById('timeline-panel');
+  if (!panel) return;
+  if (!items?.length) {
+    panel.innerHTML = `<div class="empty-box">No timeline.</div>`;
+    return;
+  }
+  panel.innerHTML = items.map(item => `
+    <div class="timeline-event">
+      <h4 style="margin:0 0 6px 0">${esc(item.time ?? '')}</h4>
+      <p style="margin:0 0 4px 0">${esc(item.event ?? '')}</p>
+      <p style="margin:0;color:var(--muted)">${esc(item.score ?? '')}</p>
     </div>
   `).join('');
 }
 
-
-
-function renderOracleInfo(feed){
-  const info = [
-    ['Feed', feed?.type || 'txline_probe_feed'],
-    ['Update', new Date().toLocaleString()],
-    ['Source', feed?.source?.url || 'worker']
-  ];
-  $('oracleInfo').innerHTML = info.map(([k,v]) => `<div class="mini-item"><strong>${esc(k)}</strong><span>${esc(v)}</span></div>`).join('');
-}
-
-
-function formatTime(value) {
-
-  if (value == null) {
-    return "";
-  }
-
-  let time = value;
-
-  if (typeof time === "string") {
-
-    const numeric = Number(time);
-
-    if (Number.isFinite(numeric)) {
-      time = numeric;
-    }
-
-  }
-
-  if (typeof time === "number") {
-
-    if (time < 1000000000000) {
-      time *= 1000;
-    }
-
-  }
-
-  const date = new Date(time);
-
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return date.toLocaleString([], {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-
-}
-
-
-function formatMatchClock(value) {
-
-  if (!value) {
-    return "";
-  }
-
-  if (
-    typeof value === "object" &&
-    value.Seconds != null
-  ) {
-
-    const seconds =
-      Number(value.Seconds) || 0;
-
-    const mm =
-      String(
-        Math.floor(seconds / 60)
-      ).padStart(2, "0");
-
-    const ss =
-      String(
-        seconds % 60
-      ).padStart(2, "0");
-
-    return `${mm}:${ss}`;
-  }
-
-  return txScalar(value);
-}
-
-
-
-function niceScore(
-  score,
-  homeScore,
-  awayScore
-) {
-
-  if (
-    homeScore != null &&
-    awayScore != null
-  ) {
-    return `${homeScore} - ${awayScore}`;
-  }
-
-  if (
-    score &&
-    score !== "—" &&
-    score !== "null-null"
-  ) {
-    return score;
-  }
-
-  return "Score unavailable";
-}
-
-
-
-function availabilityHtml(avail) {
-
-  return `
-
-    <div class="kv">
-
-      <div>
-        <b>Live statistics</b>
-        ${avail.hasSnapshot ? "✓ Available" : "✗ Missing"}
-      </div>
-
-      <div>
-        <b>Match events</b>
-        ${avail.hasLiveEvents ? "✓ Available" : "✗ Missing"}
-      </div>
-
-      <div>
-        <b>Historical data</b>
-        ${avail.hasHistorical ? "✓ Available" : "✗ Missing"}
-      </div>
-
-      <div>
-        <b>Betting odds</b>
-        ${avail.hasOdds ? "✓ Available" : "✗ Missing"}
-      </div>
-
-    </div>
-
-  `;
-}
-
-
-
-function prettyOddsText(text) {
-
-  if (!text) {
-    return "";
-  }
-
-  return String(text)
-
-    .replaceAll(
-      "part1:",
-      "Home: "
-    )
-
-    .replaceAll(
-      "part2:",
-      "Away: "
-    )
-
-    .replaceAll(
-      "draw:",
-      "Draw: "
-    )
-
-    .replaceAll(
-      "over:",
-      "Over: "
-    )
-
-    .replaceAll(
-      "under:",
-      "Under: "
-    )
-
-    .replaceAll(
-      "|",
-      " • "
-    );
-
-}
-
-
-function filterMatches() {
-
-  const query =
-    state.query.trim().toLowerCase();
-
-  let matches = state.matches;
-
-  if (state.group === "favorites") {
-
-    matches = matches.filter(
-        m => state.favorites.has(
-            String(m.fixtureId)
-        )
-    );
-
-} else if (state.group !== "all") {
-
-    matches = matches.filter(
-        m => m.phase === state.group
-    );
-
-}
-
-  if (!query) {
-    return matches;
-  }
-
-  return matches.filter(m => {
-
-    const searchable = [
-
-      m.home,
-      m.away,
-
-      m.competition,
-
-      m.fixtureId,
-
-      m.score,
-
-      m.status,
-
-      m.phase,
-
-      m.period,
-
-      m.clock,
-
-      m.gameState,
-
-      txPhaseLabel(m.phase)
-
-    ];
-
-    return searchable.some(value =>
-      txScalar(value)
-        .toLowerCase()
-        .includes(query)
-    );
-
-  });
-
-}
-
-
-
-
-function renderList() {
-
-  const matches = filterMatches();
-
-  if (!matches.length) {
-
-    $("listWrap").innerHTML =
-      '<div class="empty">Nothing matches your filters.</div>';
-
+function renderHistory(items) {
+  const panel = document.getElementById('history-panel');
+  if (!panel) return;
+  if (!items?.length) {
+    panel.innerHTML = `<div class="empty-box">No history.</div>`;
     return;
   }
-
-  const grouped =
-    groupMatches(matches);
-
-  const order = [
-    "live",
-    "upcoming",
-    "finished",
-    "stopped",
-    "unknown"
-  ].filter(
-    phase => grouped[phase]?.length
-  );
-
-  $("listWrap").innerHTML =
-    order.map(phase => `
-
-      <div class="matches-group">
-
-        <div class="group-title">
-
-          <span>
-            ${esc(txPhaseLabel(phase))}
-          </span>
-
-          <span>
-            ${grouped[phase].length}
-          </span>
-
-        </div>
-
-        <div class="match-list">
-
-          ${grouped[phase]
-            .map(renderCard)
-            .join("")}
-
-        </div>
-
-      </div>
-
-    `).join("");
-
+  panel.innerHTML = items.map(item => `
+    <div class="snapshot-item">
+      <p>Timestamp: ${esc(item.timestamp ?? '')}</p>
+      <p>Status: ${esc(item.status ?? '')}</p>
+      <p>Score: ${esc(item?.score?.home ?? '')}-${esc(item?.score?.away ?? '')}</p>
+    </div>
+  `).join('');
 }
 
-
-
-function renderCard(m) {
-
-  const fav =
-    state.favorites.has(
-      String(m.fixtureId)
-    );
-
-  const phase =
-    String(
-      m.phase || "unknown"
-    );
-
-  const status =
-    txScalar(
-      m.status ||
-      txPhaseLabel(phase)
-    );
-
-  const clock =
-    txScalar(
-      m.clock || ""
-    );
-
-  const period =
-    txScalar(
-      m.period || ""
-    );
-
-  let score =
-    txScalar(
-      m.score || ""
-    );
-
-  if (
-    (!score || score === "—") &&
-    m.homeScore != null &&
-    m.awayScore != null
-  ) {
-    score =
-      `${m.homeScore}-${m.awayScore}`;
+function renderAnalysis(data) {
+  const panel = document.getElementById('analysis-panel');
+  if (!panel) return;
+  if (!data) {
+    panel.innerHTML = `<div class="empty-box">No analysis.</div>`;
+    return;
   }
-
-  if (!score) {
-    score = "—";
-  }
-
-  const timeInfo =
-    clock ||
-    (m.kickoff
-      ? formatTime(m.kickoff)
-      : "");
-
-  return `
-
-    <div
-      class="match-card"
-      onclick="openDetails('${esc(m.fixtureId)}')"
-    >
-
-      <div>
-
-        <div class="status">
-
-          <span
-            class="dot ${txStatusClass(phase)}"
-          ></span>
-
-          ${esc(status)}
-
-          ${
-            timeInfo
-              ? " • " + esc(timeInfo)
-              : ""
-          }
-
-        </div>
-
-        <div class="teams">
-
-          ${matchTitle(m)}
-
-        </div>
-
-        <div class="subline">
-
-          ${
-            period
-              ? esc(period) + " • "
-              : ""
-          }
-
-          ${esc(
-            m.competition || ""
-          )}
-
-          ${
-            m.fixtureId
-              ? " • #" +
-                esc(m.fixtureId)
-              : ""
-          }
-
-        </div>
-
-      </div>
-
-
-      <div
-        style="
-          display:flex;
-          flex-direction:column;
-          align-items:end;
-          gap:8px;
-        "
-      >
-
-        <div
-          class="score-badge small"
-        >
-          ${esc(score)}
-        </div>
-
-        <div
-          class="favorite ${
-            fav ? "on" : ""
-          }"
-          title="Favorite"
-          onclick="
-            event.stopPropagation();
-            toggleFav('${esc(m.fixtureId)}')
-          "
-        >
-          ${fav ? "★" : "☆"}
-        </div>
-
-      </div>
-
+  panel.innerHTML = `
+    <div class="analysis-item">
+      <p>Most influential event: ${esc(data.mostInfluentialEvent ?? '')}</p>
+      <p>Largest odds movement: ${esc(data.largestOddsMovement ?? '')}</p>
+      <p>Turning point: ${esc(data.turningPoint ?? '')}</p>
+      <p>Market volatility: ${esc(data.marketVolatility ?? '')}</p>
     </div>
-
   `;
 }
 
-
-
-
-function renderApp(){
-
-  state.featured = getFeaturedMatch();
-
-  renderStats();
-  renderFeatured();
-  renderFavorites();
-  renderList();
-  renderOracleInfo(state.feed);
-
-  $('heroDesc').textContent =
-    state.loading
-      ? 'Loading oracle data…'
-      : `Loaded ${state.matches.length} matches from worker contract.`;
-}
-
-
-
-async function getTicket(){
-  const r = await fetch('/__ticket', {method:'POST'});
-  const j = await r.json();
-  return j.k;
-}
-async function emit(type, d){
-  const k = await getTicket();
-  const r = await fetch('/__emit', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({k, d:{type, ...d}})
-  });
-  return await r.json();
-}
-
-
-async function loadFeed() {
-
-  state.loading = true;
-  renderApp();
-
-  try {
-
-    const res = await emit('txline_probe_feed', {
-  serviceLevelId: 12,
-  scope: 'worldcup',
-  competitionId: null,
-  enrichLimit: 999,
-  includePast: true,
-  pastDays: 30
-});
-
-    if (!res?.ok) {
-      throw new Error(
-        res?.error ||
-        "Worker returned an error."
-      );
-    }
-
-    state.feed = res;
-
-state.workerFeatured = res.featured
-  ? normalizeMatch(res.featured)
-  : null;
-
-    const rawMatches =
-      Array.isArray(res.matches)
-        ? res.matches
-        : Array.isArray(res.data?.matches)
-        ? res.data.matches
-        : [];
-
-    state.matches = sortMatches(
-      rawMatches.map(normalizeMatch)
-    );
-
-    state.grouped =
-      groupMatches(state.matches);
-
-    state.featured = getFeaturedMatch();
-
-    state.enrichment =
-      res.enrichment || null;
-
-  } catch (e) {
-
-    state.feed = null;
-    state.matches = [];
-    state.grouped = {
-      live: [],
-      upcoming: [],
-      finished: [],
-      stopped: [],
-      unknown: []
-    };
-    state.featured = null;
-    state.enrichment = null;
-
-    const message =
-      esc(
-        e?.message ||
-        String(e)
-      );
-
-    $("listWrap").innerHTML =
-      `<div class="empty">
-        Load failed: ${message}
-      </div>`;
-
-    $("featuredWrap").innerHTML =
-      `<div class="empty">
-        Load failed: ${message}
-      </div>`;
-
-  } finally {
-
-    state.loading = false;
-    renderApp();
-
+function renderOddsHistory(items) {
+  const panel = document.getElementById('odds-history-panel');
+  if (!panel) return;
+  if (!items?.length) {
+    panel.innerHTML = `<div class="empty-box">No odds history.</div>`;
+    return;
   }
-
+  panel.innerHTML = items.map(item => `
+    <div class="analysis-item">
+      <p>${esc(item.time ?? '')}</p>
+      <p>Home: ${esc(item.home ?? '')}</p>
+      <p>Draw: ${esc(item.draw ?? '')}</p>
+      <p>Away: ${esc(item.away ?? '')}</p>
+    </div>
+  `).join('');
 }
 
+function renderAISummary(text) {
+  const panel = document.getElementById('ai-summary-panel');
+  if (!panel) return;
+  panel.innerHTML = `
+    <div class="analysis-item">
+      ${esc(text ?? '')}
+    </div>
+  `;
+}
 
-function closeDetails(){
+function renderMatchIntelligence(data) {
+  const card = document.getElementById('intelligence-content');
+  if (!card) return;
+  if (!data) {
+    card.innerHTML = `<div class="intelligence-item">Loading...</div>`;
+    return;
+  }
+  card.innerHTML = `
+    <div class="intelligence-item">Momentum: ${esc(data.momentum ?? '')}</div>
+    <div class="intelligence-item">Confidence: ${esc(data.confidence ?? '')}</div>
+    <div class="intelligence-item">Turning Point: ${esc(data.turningPoint ?? '')}</div>
+    <div class="intelligence-item">Largest Odds Movement: ${esc(data.largestOddsMovement ?? '')}</div>
+    <div class="intelligence-item">Market Volatility: ${esc(data.marketVolatility ?? '')}</div>
+  `;
+}
+
+async function loadMatchHistory(matchId){
+  const response = await fetch(`${WORKER_BASE}/match/${matchId}/history`);
+  const data = await response.json();
+  renderTimeline(data.timeline || []);
+  renderHistory(data.snapshots || []);
+  renderAnalysis(data.analysis || {});
+  renderOddsHistory(data.oddsHistory || []);
+  renderAISummary(data.aiSummary || '');
+  renderMatchIntelligence(data.intelligence || {});
+}
+
+async function closeDetails(){
   $('detailOverlay').classList.remove('active');
   $('detailOverlay').setAttribute('aria-hidden','true');
 }
 
-
 async function openDetails(fixtureId) {
   fixtureId = String(fixtureId ?? "").trim();
-
-  if (!fixtureId) {
-    return;
-  }
+  if (!fixtureId) return;
 
   state.currentFixtureId = fixtureId;
-
-  $("detailOverlay").classList.add("active");
-  $("detailOverlay").setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  $("detailModal").innerHTML = `
+  $('detailOverlay').classList.add('active');
+  $('detailOverlay').setAttribute('aria-hidden', 'false');
+  $('detailModal').innerHTML = `
     <div class="loader-centered">
       <div>
         <div class="spinner"></div>
@@ -1559,88 +813,56 @@ async function openDetails(fixtureId) {
 
   try {
     const res = await emit('txline_fixture_details', {
-  serviceLevelId: 12,
-  fixtureId,
-  oddsLimit: 999,
-  eventLimit: 999
-});
-
+      serviceLevelId: 12,
+      fixtureId,
+      oddsLimit: 999,
+      eventLimit: 999
+    });
     renderDetails(res);
-
   } catch (e) {
-
-    $("detailModal").innerHTML = `
-      <div class="empty">
-        Details failed:
-        ${esc(e?.message || String(e))}
+    $('detailModal').innerHTML = `
+      <div class="empty-box">
+        Details failed: ${esc(e?.message || String(e))}
       </div>
     `;
-
   }
 }
 
-
+function compactEventRow(it) {
+  return `
+    <div class="tl-item">
+      <div class="a">${esc(it.period || it.clock || it.timestamp || it.type || 'Event')}</div>
+      <div class="b">${esc(it.detail || it.description || it.text || it.name || it.title || 'Match event')}</div>
+    </div>
+  `;
+}
 
 function renderDetails(d) {
-
   const current = d?.current || {};
   const compact = d?.currentCompact || {};
 
-  const fixtureId =
-    String(
-      d?.fixtureId ??
-      compact?.fixtureId ??
-      current?.fixtureId ??
-      state.currentFixtureId ??
-      ""
-    );
-
-  const home = txScalar(
-    compact.home ??
-    current.home ??
+  const fixtureId = String(
+    d?.fixtureId ??
+    compact?.fixtureId ??
+    current?.fixtureId ??
+    state.currentFixtureId ??
     ""
   );
 
-  const away = txScalar(
-    compact.away ??
-    current.away ??
-    ""
-  );
+  const home = txScalar(compact.home ?? current.home ?? "");
+  const away = txScalar(compact.away ?? current.away ?? "");
 
   const phase =
-    txScalar(
-      d?.phase ??
-      compact?.phase ??
-      current?.phase
-    ) || derivePhase(current);
+    txScalar(d?.phase ?? compact?.phase ?? current?.phase) || derivePhase(current);
 
-  const homeScore = txNum(
-    compact.homeScore ??
-    current.homeScore
-  );
+  const homeScore = txNum(compact.homeScore ?? current.homeScore);
+  const awayScore = txNum(compact.awayScore ?? current.awayScore);
 
-  const awayScore = txNum(
-    compact.awayScore ??
-    current.awayScore
-  );
-
-  let score = txScalar(
-    compact.score ??
-    current.score ??
-    d.score
-  );
-
-  if (
-    (!score || score === "—") &&
-    homeScore != null &&
-    awayScore != null
-  ) {
+  let score = txScalar(compact.score ?? current.score ?? d.score);
+  if ((!score || score === "—") && homeScore != null && awayScore != null) {
     score = `${homeScore}-${awayScore}`;
   }
-
-  if (!score) {
-    score = "—";
-  }
+  if (!score) score = "—";
 
   const status = txScalar(
     d?.status ??
@@ -1656,598 +878,267 @@ function renderDetails(d) {
     ""
   );
 
-  const events =
-  [].concat(d.events || []);
-
-const snapshot =
-  [].concat(d.snapshot || []);
-
-const historical =
-  [].concat(d.historical || []);
-
-const oddsTop =
-  [].concat(
-    d.oddsTop ||
-    d.oddsPreview ||
-    d.odds ||
-    []
-  );
-
+  const events = [].concat(d.events || []);
+  const snapshot = [].concat(d.snapshot || []);
+  const historical = [].concat(d.historical || []);
+  const oddsTop = [].concat(d.oddsTop || d.oddsPreview || d.odds || []);
   const counts = d.counts || {};
   const avail = d.availability || {};
   const source = [].concat(d.source || []);
 
-  const teamTitle =
-    `${esc(home || "—")} vs ${esc(away || "—")}`;
-
-
+  const teamTitle = `${esc(home || "—")} vs ${esc(away || "—")}`;
   const oddsHtml = oddsTop.length
-
-  ? oddsTop.map(o => `
-
+    ? oddsTop.map(o => `
       <div class="odd">
-
-        <div class="m">
-
-          ${esc(
-            o.bookmaker ||
-            o.market ||
-            "Market"
-          )}
-
+        <div class="m">${esc(o.bookmaker || o.market || "Market")}</div>
+        <div class="p" style="line-height:1.6;font-size:15px;word-break:break-word;">
+          ${esc(prettyOddsText(o.pricesText || o.price || o.selection || JSON.stringify(o)))}
         </div>
-
-        <div
-          class="p"
-          style="
-            line-height:1.6;
-            font-size:15px;
-            word-break:break-word;
-          "
-        >
-
-          ${esc(
-            prettyOddsText(
-
-              o.pricesText ||
-
-              o.price ||
-
-              o.selection ||
-
-              JSON.stringify(o)
-
-            )
-          )}
-
-        </div>
-
       </div>
-
     `).join("")
+    : '<div class="empty-box">No odds data.</div>';
 
-  : '<div class="empty">No odds data.</div>';
+  const eventHtml = [...historical, ...snapshot, ...events]
+    .map(it => compactEventRow(it))
+    .join("") || '<div class="empty-box">No events.</div>';
 
-
-
-
-  const eventHtml =
-  [...historical, ...snapshot, ...events]
-      .map(it => `
-        <div class="tl-item">
-
-          <div class="a">
-            ${esc(
-              it.period ||
-              it.clock ||
-              it.timestamp ||
-              it.type ||
-              "Event"
-            )}
-          </div>
-
-          <div class="b">
-            ${esc(
-              it.detail ||
-              it.description ||
-              it.text ||
-              it.name ||
-              it.title ||
-              "Match event"
-            )}
-          </div>
-
+  const sourceHtml = source.length
+    ? source.map(s => `
+      <div class="source-item">
+        <div>
+          <strong>${esc(s.rawType || s.url || "source")}</strong>
+          <div><small>${esc(s.url || "")}</small></div>
         </div>
-      `).join("")
-      || '<div class="empty">No events.</div>';
-
-
-  const sourceHtml =
-    source.length
-      ? source.map(s => `
-        <div class="source-item">
-
-          <div>
-            <strong>
-              ${esc(
-                s.rawType ||
-                s.url ||
-                "source"
-              )}
-            </strong>
-
-            <div>
-              <small>
-                ${esc(s.url || "")}
-              </small>
-            </div>
-          </div>
-
-          <span class="nowrap">
-            ${
-              s.ok === true
-                ? "OK"
-                : s.ok === false
-                ? "ERR"
-                : esc(s.status || "—")
-            }
-          </span>
-
-        </div>
-      `).join("")
-      : '<div class="empty">No source diagnostics.</div>';
-
-
-const matchClock =
-  formatMatchClock(
-    compact.clock ??
-    current.clock
-  );
-
-
-const summaryHtml = `
-
-<div class="detail-block">
-
-  <div
-    style="
-      font-size:26px;
-      font-weight:900;
-      margin-bottom:8px;
-    "
-  >
-    MATCH SUMMARY
-  </div>
-
-  <div
-    style="
-      font-size:22px;
-      font-weight:800;
-    "
-  >
-    ${teamTitle}
-  </div>
-
-  <div
-    class="muted"
-    style="margin-top:8px"
-  >
-    ${esc(
-      txPhaseLabel(phase)
-    )}
-  </div>
-
-  <div
-    style="
-      font-size:48px;
-      font-weight:900;
-      margin-top:18px;
-      margin-bottom:12px;
-    "
-  >
-    ${esc(
-      niceScore(
-        score,
-        homeScore,
-        awayScore
-      )
-    )}
-  </div>
-
-  ${
-    competition
-      ? `
-      <div class="muted">
-        Competition:
-        ${esc(competition)}
+        <span class="nowrap">
+          ${s.ok === true ? "OK" : s.ok === false ? "ERR" : esc(s.status || "—")}
+        </span>
       </div>
-      `
-      : ""
-  }
+    `).join("")
+    : '<div class="empty-box">No source diagnostics.</div>';
 
-  ${
-    fixtureId
-      ? `
-      <div class="muted">
-        Fixture ID:
-        ${esc(fixtureId)}
+  const matchClock = txScalar(compact.clock ?? current.clock);
+
+  const summaryHtml = `
+    <div class="detail-block">
+      <div style="font-size:26px;font-weight:900;margin-bottom:8px;">MATCH SUMMARY</div>
+      <div style="font-size:22px;font-weight:800;">${teamTitle}</div>
+      <div class="muted" style="margin-top:8px">${esc(txPhaseLabel(phase))}</div>
+      <div style="font-size:48px;font-weight:900;margin-top:18px;margin-bottom:12px;">
+        ${esc(score)}
       </div>
-      `
-      : ""
-  }
-
-  ${
-    current.startTime ||
-    compact.startTime
-      ? `
-      <div class="muted">
-        Kick-off:
-        ${esc(
-          formatTime(
-            current.startTime ??
-            compact.startTime
-          )
-        )}
-      </div>
-      `
-      : ""
-  }
-
-  ${
-    matchClock
-      ? `
-      <div class="muted">
-        Match clock:
-        ${esc(matchClock)}
-      </div>
-      `
-      : ""
-  }
-
-</div>
-
-
-
-<div
-  class="detail-block"
-  style="margin-top:12px"
->
-
-  <h3>
-    AVAILABLE DATA
-  </h3>
-
-  ${availabilityHtml(
-    avail
-  )}
-
-</div>
-
-`;
-
-
-  $("detailModal").innerHTML = `
-
-${summaryHtml}
-
-    <div class="modal-head">
-
-      <div>
-
-        <div class="modal-title">
-          ${teamTitle}
-        </div>
-
-        <div class="muted">
-          ${esc(fixtureId)}
-          • ${esc(txPhaseLabel(phase))}
-          • ${esc(status)}
-        </div>
-
-      </div>
-
-      <button
-        class="close-btn"
-        onclick="closeDetails()"
-      >
-        ×
-      </button>
-
+      ${competition ? `<div class="muted">Competition: ${esc(competition)}</div>` : ""}
+      ${fixtureId ? `<div class="muted">Fixture ID: ${esc(fixtureId)}</div>` : ""}
+      ${current.startTime || compact.startTime ? `<div class="muted">Kick-off: ${esc(current.startTime ?? compact.startTime)}</div>` : ""}
+      ${matchClock ? `<div class="muted">Match clock: ${esc(matchClock)}</div>` : ""}
     </div>
-
-
-<div
-  style="
-    margin-top:12px;
-    margin-bottom:12px;
-    padding:14px;
-    border-radius:18px;
-    border:1px solid var(--line);
-    background:rgba(255,255,255,.03);
-    font-size:20px;
-    font-weight:900;
-  "
->
-  DEBUG INFORMATION
-</div>
-
-    <div class="detail-grid">
-
-      <div class="detail-block">
-
-        <div class="muted">
-          Score
-        </div>
-
-        <div class="bigscore">
-          ${esc(score)}
-        </div>
-
-        <div
-          style="margin-top:8px"
-          class="muted"
-        >
-          ${esc(
-            compact.clock ||
-            current.clock ||
-            ""
-          )}
-        </div>
-
-        <div class="kv">
-
-          <div>
-            <b>Phase</b>
-            ${esc(phase)}
-          </div>
-
-          <div>
-            <b>Status</b>
-            ${esc(status)}
-          </div>
-
-          <div>
-            <b>Fixture</b>
-            ${esc(fixtureId || "—")}
-          </div>
-
-          <div>
-            <b>Competition</b>
-            ${esc(competition || "—")}
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="detail-block">
-
-        <div class="muted">
-          Availability
-        </div>
-
-        <div class="kv">
-
-          <div>
-            <b>Snapshot</b>
-            ${avail.hasSnapshot ? "Yes" : "No"}
-          </div>
-
-          <div>
-            <b>Events</b>
-            ${avail.hasLiveEvents ? "Yes" : "No"}
-          </div>
-
-          <div>
-            <b>Historical</b>
-            ${avail.hasHistorical ? "Yes" : "No"}
-          </div>
-
-          <div>
-            <b>Odds</b>
-            ${avail.hasOdds ? "Yes" : "No"}
-          </div>
-
-        </div>
-
-      </div>
-
+    <div class="detail-block" style="margin-top:12px">
+      <h3>AVAILABLE DATA</h3>
+      ${availabilityHtml(avail)}
     </div>
-
-
-    <div
-      class="detail-grid"
-      style="margin-top:12px"
-    >
-
-      <div class="detail-block">
-        <h3>Timeline</h3>
-        <div class="timeline">
-          ${eventHtml}
-        </div>
-      </div>
-
-      <div class="detail-block">
-        <h3>Odds</h3>
-        <div class="odds-grid">
-          ${oddsHtml}
-        </div>
-      </div>
-
-    </div>
-
-
-    <div
-      class="detail-grid"
-      style="margin-top:12px"
-    >
-
-      <div class="detail-block">
-
-        <h3>Counts</h3>
-
-        <div class="kv">
-
-          <div>
-            <b>Snapshot</b>
-            ${esc(
-              counts.snapshot ??
-              snapshot.length
-            )}
-          </div>
-
-          <div>
-            <b>Events</b>
-            ${esc(
-              counts.events ??
-              events.length
-            )}
-          </div>
-
-          <div>
-            <b>Historical</b>
-            ${esc(
-              counts.historical ??
-              historical.length
-            )}
-          </div>
-
-          <div>
-            <b>Odds</b>
-            ${esc(
-              counts.odds ??
-              oddsTop.length
-            )}
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="detail-block">
-
-        <h3>Source</h3>
-
-        <div class="source-list">
-          ${sourceHtml}
-        </div>
-
-      </div>
-
-    </div>
-
   `;
-}
 
+  const intelligenceHtml = `
+    <div id="match-intelligence-card">
+      <h3>MATCH INTELLIGENCE</h3>
+      <div id="intelligence-content">Loading...</div>
+    </div>
+  `;
 
+  const tabsHtml = `
+    <div class="detail-tab-row">
+      <button class="detail-tab-btn active" data-tab="overview" onclick="setTabActive('overview')">Overview</button>
+      <button class="detail-tab-btn" data-tab="stats" onclick="setTabActive('stats')">Stats</button>
+      <button class="detail-tab-btn" data-tab="events" onclick="setTabActive('events')">Events</button>
+      <button class="detail-tab-btn" data-tab="odds" onclick="setTabActive('odds')">Odds</button>
+      <button class="detail-tab-btn" data-tab="timeline" onclick="setTabActive('timeline')">Timeline</button>
+      <button class="detail-tab-btn" data-tab="history" onclick="setTabActive('history')">History</button>
+      <button class="detail-tab-btn" data-tab="analysis" onclick="setTabActive('analysis')">Analysis</button>
+      <button class="detail-tab-btn" data-tab="odds-history" onclick="setTabActive('odds-history')">Odds History</button>
+      <button class="detail-tab-btn" data-tab="ai-summary" onclick="setTabActive('ai-summary')">AI Summary</button>
+    </div>
+  `;
 
+  const panelsHtml = `
+    <div id="overview-panel" class="detail-panel">
+      <div class="detail-grid">
+        <div class="detail-block">
+          <div class="muted">Score</div>
+          <div class="bigscore">${esc(score)}</div>
+          <div class="muted" style="margin-top:10px">${esc(status)}</div>
+        </div>
+        <div class="detail-block">
+          <div class="muted">Teams</div>
+          <div style="font-weight:900;font-size:20px;margin-top:4px">${teamTitle}</div>
+          <div class="kv" style="margin-top:12px">
+            <div><b>Home</b>${esc(homeScore ?? '—')}</div>
+            <div><b>Away</b>${esc(awayScore ?? '—')}</div>
+          </div>
+        </div>
+      </div>
 
-async function checkToken() {
+      <div class="detail-block" style="margin-top:12px">
+        <h3>AVAILABLE DATA</h3>
+        ${availabilityHtml(avail)}
+      </div>
 
-  try {
+      <div class="detail-block" style="margin-top:12px">
+        <h3>ODDS</h3>
+        <div class="odds-grid">${oddsHtml}</div>
+      </div>
 
-    const res = await emit(
-      "txline_check_token",
-      {
-        serviceLevelId: 12
-      }
-    );
+      <div class="detail-block" style="margin-top:12px">
+        <h3>EVENTS</h3>
+        <div class="timeline">${eventHtml}</div>
+      </div>
 
-    if (!res?.ok) {
-      alert(
-        `TxLINE token check failed.\n\n${
-          res?.error || "Unknown error."
-        }`
-      );
-      return;
-    }
+      <div class="detail-block" style="margin-top:12px">
+        <h3>SOURCE DIAGNOSTICS</h3>
+        <div class="source-list">${sourceHtml}</div>
+      </div>
+    </div>
 
-    const lines = [];
+    <div id="stats-panel" class="detail-panel hidden">
+      <div class="empty-box">Stats view can stay as current summary data or be extended later.</div>
+    </div>
 
-    lines.push(
-      `Status: OK`
-    );
+    <div id="events-panel" class="detail-panel hidden">
+      <div class="detail-block">
+        <h3>EVENTS</h3>
+        <div class="timeline">${eventHtml}</div>
+      </div>
+    </div>
 
-    if (res.serviceLevelId != null) {
-      lines.push(
-        `Service Level: ${res.serviceLevelId}`
-      );
-    }
+    <div id="odds-panel" class="detail-panel hidden">
+      <div class="detail-block">
+        <h3>ODDS</h3>
+        <div class="odds-grid">${oddsHtml}</div>
+      </div>
+    </div>
 
-    if (res.subscription) {
-      lines.push(
-        `Subscription: ${res.subscription}`
-      );
-    }
+    <div id="timeline-panel" class="detail-panel hidden"></div>
+    <div id="history-panel" class="detail-panel hidden"></div>
+    <div id="analysis-panel" class="detail-panel hidden"></div>
+    <div id="odds-history-panel" class="detail-panel hidden"></div>
+    <div id="ai-summary-panel" class="detail-panel hidden"></div>
+  `;
 
-    if (res.expiresAt) {
-      lines.push(
-        `Expires: ${res.expiresAt}`
-      );
-    }
+  $('detailModal').innerHTML = `
+    ${intelligenceHtml}
+    ${tabsHtml}
+    ${panelsHtml}
+    <div class="modal-head" style="margin-top:8px">
+      <div>
+        <div class="modal-title">${teamTitle}</div>
+        <div class="muted">${esc(fixtureId)} • ${esc(txPhaseLabel(phase))} • ${esc(status)}</div>
+      </div>
+      <button class="close-btn" onclick="closeDetails()">×</button>
+    </div>
+  `;
 
-    if (Array.isArray(res.permissions)) {
-      lines.push(
-        `Permissions: ${res.permissions.join(", ")}`
-      );
-    }
+  setTabActive('overview');
 
-    alert(
-      lines.join("\n")
-    );
-
-  } catch (e) {
-
-    alert(
-      `Token check failed.\n\n${
-        e?.message || String(e)
-      }`
-    );
-
+  if (fixtureId) {
+    loadMatchHistory(fixtureId).catch(() => {});
   }
-
 }
 
+async function emit(type, d){
+  const k = Math.random().toString(36).slice(2);
+  const body = { k, d: { ...d, type } };
+  const res = await fetch('/emit', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  return await res.json();
+}
 
-function applyTabs(){
-  document.querySelectorAll('#groupTabs .chip').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.group === state.group);
+function updateGroupButtons(){
+  const counts = {
+    all: (state.matches || []).length,
+    live: (state.grouped.live || []).length,
+    upcoming: (state.grouped.upcoming || []).length,
+    finished: (state.grouped.finished || []).length,
+    stopped: (state.grouped.stopped || []).length,
+    favorites: favoriteCount()
+  };
+  document.querySelectorAll('#groupButtons button').forEach(btn => {
+    const g = btn.dataset.group;
+    btn.textContent = `${g[0].toUpperCase()}${g.slice(1)} (${counts[g] ?? 0})`;
+    btn.classList.toggle('active', state.group === g);
   });
 }
 
-function wire(){
-  $('btnRefresh').onclick = loadFeed;
+async function loadData() {
+  state.loading = true;
+  $('dashboardHint').textContent = 'Loading oracle data…';
+  $('feedStatus').textContent = 'Loading oracle feed…';
+  try {
+    const res = await fetch('/api/feed');
+    const data = await res.json();
 
+    state.feed = data;
+    state.grouped = data.grouped || {};
+    state.featured = normalizeMatch(data.featured || null);
+    state.workerFeatured = normalizeMatch(data.workerFeatured || null);
+    state.enrichment = data.enrichment || null;
 
-  $('btnCheckToken').onclick = checkToken;
-  $('searchInput').addEventListener('input', e => { state.query = e.target.value; renderList(); });
-  $('groupTabs').addEventListener('click', e => {
+    const matches = [
+      ...(data.matches || []),
+      ...(data.grouped?.live || []),
+      ...(data.grouped?.upcoming || []),
+      ...(data.grouped?.finished || []),
+      ...(data.grouped?.stopped || []),
+      ...(data.grouped?.unknown || [])
+    ];
 
-  const btn = e.target.closest('[data-group]');
-  if (!btn) return;
+    state.matches = byFixtureId(matches);
+    updateGroupButtons();
+    renderApp();
 
-  state.group = btn.dataset.group;
+    $('dashboardHint').textContent = 'Oracle feed ready';
+    $('feedStatus').textContent = `Loaded ${state.matches.length} matches`;
+  } catch (e) {
+    $('dashboardHint').textContent = 'Load failed';
+    $('feedStatus').textContent = `Load failed: ${e?.message || e}`;
+    $('featuredWrap').innerHTML = `<div class="empty">Load failed: ${esc(e?.message || String(e))}</div>`;
+  } finally {
+    state.loading = false;
+    renderApp();
+  }
+}
 
-  applyTabs();
+async function checkToken(){
+  try{
+    const res = await fetch('/txline_check_token', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({d:{serviceLevelId:12}})});
+    const data = await res.json();
+    alert(JSON.stringify(data, null, 2));
+  }catch(e){
+    alert('Token check failed: ' + (e?.message || e));
+  }
+}
 
-  renderList();
-
-  state.featured = getFeaturedMatch();
-
-  renderFeatured();
-
+$('refreshBtn').addEventListener('click', loadData);
+$('checkTokenBtn').addEventListener('click', checkToken);
+$('searchInput').addEventListener('input', e => {
+  state.query = e.target.value || '';
+  renderMatches();
 });
 
-  $('detailOverlay').addEventListener('click', e => {
-    if (e.target === $('detailOverlay')) closeDetails();
+document.querySelectorAll('#groupButtons button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.group = btn.dataset.group;
+    updateGroupButtons();
+    renderMatches();
   });
-  window.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetails(); });
-}
+});
 
-wire();
-loadFeed();
+window.closeDetails = closeDetails;
+window.openDetails = openDetails;
+window.setTabActive = setTabActive;
+window.loadMatchHistory = loadMatchHistory;
+
+loadData();
 </script>
 </body>
 </html>
