@@ -899,14 +899,61 @@ async function loadData() {
   }
 }
 
-async function checkToken(){
-  try{
-    const res = await emit('txline_check_token', { serviceLevelId: 12 });
-    alert(JSON.stringify(res, null, 2));
-  }catch(e){
-    alert('Token check failed: ' + (e?.message || e));
+async function checkToken() {
+  try {
+    const res = await emit("txline_check_token", {
+      serviceLevelId: 12
+    });
+
+    if (!res?.ok) {
+      alert(
+        `TxLINE token check failed.
+
+${
+          res?.error || "Unknown error."
+        }`
+      );
+      return;
+    }
+
+    const lines = [];
+    lines.push("Status: OK");
+
+    if (res.serviceLevelId != null) {
+      lines.push(`Service Level: ${res.serviceLevelId}`);
+    }
+
+    if (res.tokenLooksPresent != null) {
+      lines.push(`API Token: ${res.tokenLooksPresent ? "present" : "missing"}`);
+    }
+
+    if (res.jwtLooksPresent != null) {
+      lines.push(`JWT: ${res.jwtLooksPresent ? "present" : "missing"}`);
+    }
+
+    if (res.auth?.exp != null) {
+      lines.push(`Expires: ${new Date(res.auth.exp).toLocaleString()}`);
+    }
+
+    if (Array.isArray(res.results)) {
+      const okCount = res.results.filter(r => r?.ok).length;
+      lines.push(`Checks: ${okCount}/${res.results.length}`);
+    }
+
+    alert(lines.join("
+"));
+  } catch (e) {
+    alert(
+      `Token check failed.
+
+${
+        e?.message || String(e)
+      }`
+    );
   }
 }
+
+
 
 $('refreshBtn').addEventListener('click', loadData);
 $('checkTokenBtn').addEventListener('click', checkToken);
