@@ -261,6 +261,17 @@
       grid-template-columns:1fr 1fr;
       gap:14px;
     }
+
+       .btn-ai {
+            background: linear-gradient(135deg, #2481cc, #673ab7);
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
     .box{
       border:1px solid var(--line);
       border-radius:16px;
@@ -1022,20 +1033,48 @@ ${m.kickoffMs || m.kickoff ? `
 
           </div>
 
-    <div style="margin-top:10px">
 
-      <button
-        class="btn"
-        onclick="event.stopPropagation();toggleFavorite('${id}')"
-      >
-        ${
-          fav
-            ? "★ Remove Favorite"
-            : "☆ Add Favorite"
-        }
-      </button>
 
-    </div>
+
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+
+  <button
+    class="btn"
+    onclick="event.stopPropagation();toggleFavorite('${id}')"
+  >
+    ${
+      fav
+        ? "★ Remove Favorite"
+        : "☆ Add Favorite"
+    }
+  </button>
+
+  <button
+    class="btn"
+    onclick="event.stopPropagation();getAIPrediction('${id}')"
+  >
+    AI Analysis
+  </button>
+
+</div>
+
+<div
+  id="ai-box-${id}"
+  style="
+    margin-top:10px;
+    display:none;
+    padding:10px;
+    border-radius:8px;
+    background:#1e1e1e;
+    font-size:13px;
+    line-height:1.5;
+    white-space:pre-wrap;
+  "
+>
+Loading AI analysis...
+</div>
+
+
 
   </div>
 `;
@@ -1538,6 +1577,126 @@ ${!timeline.length &&
     `);
   }
 }
+
+
+async function getAIPrediction(fixtureId) {
+    const safeFixtureId = normalizeId(fixtureId);
+
+    const aiBox = document.getElementById(
+        `ai-box-${safeFixtureId}`
+    );
+
+    if (!aiBox || !safeFixtureId) return;
+
+    aiBox.style.display = "block";
+    aiBox.innerText = text.loadingAi;
+
+    const controller = createAbortController("aiController");
+
+    try {
+        const base = getWorkerBase();
+        if (!base) throw new Error("Worker URL is empty");
+
+        const ticketRes = await fetch(
+            `${base}/__ticket`,
+            {
+                method: "POST",
+                signal: controller.signal
+            }
+        );
+
+        if (!ticketRes.ok) {
+            throw new Error(
+                `__ticket failed: ${ticketRes.status}`
+            );
+        }
+
+        const ticket = await ticketRes.json();
+
+        const aiRes = await fetch(
+            `${base}/__ai`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    k: ticket.k,
+                    messages: [
+                        {
+                            role: "user",
+                            content: text.aiPrompt(
+                                safeFixtureId
+                            )
+                        }
+                    ]
+                })
+            }
+        );
+
+        const raw = await aiRes.text();
+
+        let body = null;
+
+        try {
+            body = JSON.parse(raw);
+        } catch {
+            body = { raw };
+        }
+
+        if (
+            state.requests.aiController === controller
+        ) {
+            state.requests.aiController = null;
+        }
+
+        if (!aiRes.ok || !body?.ok) {
+            console.error(
+                "AI response error:",
+                body
+            );
+
+            aiBox.innerText =
+                text.aiUnavailable;
+
+            return;
+        }
+
+        const content =
+            body?.content ||
+            body?.raw?.choices?.[0]?.message?.content ||
+            "";
+
+        aiBox.innerText =
+            typeof content === "string" &&
+            content.trim()
+                ? content.trim()
+                : text.aiUnavailable;
+
+    } catch (error) {
+
+        if (error.name === "AbortError") {
+            return;
+        }
+
+        console.error(
+            "AI module request failed:",
+            error
+        );
+
+        if (
+            state.requests.aiController === controller
+        ) {
+            state.requests.aiController = null;
+        }
+
+        aiBox.innerText = text.aiError;
+    }
+}
+
+
+
 
 
 async function checkToken() {
