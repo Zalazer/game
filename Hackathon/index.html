@@ -982,10 +982,6 @@ function renderMatches(){
               ${esc(m.away || "Unknown")}
             </div>
 
-<pre style="font-size:10px">
-${esc(JSON.stringify(m, null, 2))}
-</pre>
-
 
             <div class="match-meta">
 
@@ -1180,9 +1176,11 @@ function toggleFavorite(fixtureId){
 
 }
 
+
+
 async function openDetails(fixtureId){
 
-  fixtureId = String(fixtureId).trim();
+  fixtureId = String(fixtureId ?? "").trim();
 
   if(!fixtureId){
     return;
@@ -1190,393 +1188,405 @@ async function openDetails(fixtureId){
 
   state.currentFixtureId = fixtureId;
 
+  const match =
+    state.matches?.find(
+      x => String(getMatchId(x)) === fixtureId
+    ) || {};
+
   openOverlay(`
     <div class="modal-head">
       <div>
         <div class="card-title">Fixture details</div>
-        <div class="muted tiny">Loading ${esc(fixtureId)}…</div>
+        <div class="muted tiny">
+          Loading ${esc(fixtureId)}…
+        </div>
       </div>
-      <button class="btn" onclick="closeOverlay()">Close</button>
+
+      <button class="btn" onclick="closeOverlay()">
+        Close
+      </button>
     </div>
+
     <div class="modal-body">
-      <div class="empty">Loading…</div>
+      <div class="empty">
+        Loading…
+      </div>
     </div>
   `);
 
-  try{
-    const d = await emit("txline_fixture_details", {
-  serviceLevelId: 12,
-  fixtureId,
-  eventLimit: 999,
-  oddsLimit: 999,
-  timelineLimit: 999,
-  historicalLimit: 999
-});
 
-if(!d?.ok){
-  throw new Error(
-    d?.error ||
-    "Worker returned an invalid response."
-  );
-}
+  try{
+
+    const d = await emit(
+      "txline_fixture_details",
+      {
+        serviceLevelId:12,
+        fixtureId,
+
+        eventLimit:100,
+        oddsLimit:50,
+        timelineLimit:100,
+        historicalLimit:100
+      }
+    );
+
+
+    if(!d?.ok){
+      throw new Error(
+        d?.error ||
+        "Worker returned invalid response"
+      );
+    }
+
 
     const current =
-  d.current ||
-  d.currentCompact ||
-  {};
-
-const snapshot =
-  Array.isArray(d.snapshot)
-    ? d.snapshot
-    : [];
-
-const historical =
-  Array.isArray(d.historical)
-    ? sortByTimestamp(d.historical)
-    : [];
-
-const events =
-  Array.isArray(d.events)
-    ? sortByTimestamp(d.events)
-    : [];
-
-const odds =
-  Array.isArray(d.odds)
-    ? d.odds
-    : [];
-
-const timeline =
-  Array.isArray(d.timeline)
-    ? sortByTimestamp(d.timeline)
-    : [];
-
-const analysis =
-  d.analysis || {};
-
-const phase =
-  d.phase ||
-  current.phase ||
-  "";
+      d.current ||
+      d.currentCompact ||
+      {};
 
 
-    const currentScore =
-  d.score ||
-  current.score ||
-  formatScore(
-    current.homeScore,
-    current.awayScore
-  );
+    const phase =
+      d.phase ||
+      current.phase ||
+      match.phase ||
+      "";
 
-const stats =
-  current.raw?.Stats ||
-  current.currentRaw?.Stats ||
-  {};
 
-const homeCorners =
-  stats["1"] ?? "—";
+    const timeline =
+      Array.isArray(d.timeline)
+        ? sortByTimestamp(d.timeline)
+        : [];
 
-const awayCorners =
-  stats["2"] ?? "—";
 
-const homeYellow =
-  stats["1001"] ?? "—";
+    const events =
+      Array.isArray(d.events)
+        ? sortByTimestamp(d.events)
+        : [];
 
-const awayYellow =
-  stats["1002"] ?? "—";
 
-const homeRed =
-  stats["2001"] ?? "—";
+    const historical =
+      Array.isArray(d.historical)
+        ? sortByTimestamp(d.historical)
+        : [];
 
-const awayRed =
-  stats["2002"] ?? "—";
+
+    const odds =
+      Array.isArray(d.odds)
+        ? d.odds
+        : [];
+
+
+    const score =
+      d.score ||
+      current.score ||
+      formatScore(
+        current.homeScore ??
+        match.homeScore,
+
+        current.awayScore ??
+        match.awayScore
+      );
+
+
+    const stats =
+      current.raw?.Stats ||
+      current.currentRaw?.Stats ||
+      {};
+
+
+    const home =
+      current.home ||
+      current.homeTeam ||
+      match.home ||
+      "Unknown";
+
+
+    const away =
+      current.away ||
+      current.awayTeam ||
+      match.away ||
+      "Unknown";
+
+
+    const competition =
+      current.competition ||
+      match.competition ||
+      "Unknown competition";
+
+
+    const homeCorners =
+      stats["1"] ?? "—";
+
+    const awayCorners =
+      stats["2"] ?? "—";
+
+
+    const homeYellow =
+      stats["1001"] ?? "—";
+
+    const awayYellow =
+      stats["1002"] ?? "—";
+
+
+    const homeRed =
+      stats["2001"] ?? "—";
+
+    const awayRed =
+      stats["2002"] ?? "—";
+
 
 
     openOverlay(`
-      <div class="modal-head">
-        <div>
-          <div class="card-title">
-  ${esc(
-    current.home ||
-    current.homeTeam ||
-    state.matches.find(
-      x => String(getMatchId(x)) === fixtureId
-    )?.home ||
-    "Unknown"
-  )}
 
-  vs
+<div class="modal-head">
 
-  ${esc(
-    current.away ||
-    current.awayTeam ||
-    state.matches.find(
-      x => String(getMatchId(x)) === fixtureId
-    )?.away ||
-    "Unknown"
-  )}
+<div>
+
+<div class="card-title">
+${esc(home)}
+vs
+${esc(away)}
 </div>
-
 
 
 <div class="muted tiny">
-  Fixture #${esc(fixtureId)}
+${esc(competition)}
+•
+${esc(formatPhase(phase))}
+</div>
 
-  •
+</div>
 
-  ${esc(
-    current.competition ||
-    state.matches.find(
-      x => String(getMatchId(x)) === fixtureId
-    )?.competition ||
-    "Unknown competition"
-  )}
 
-  •
+<button class="btn" onclick="closeOverlay()">
+Close
+</button>
 
-  ${esc(
-    formatPhase(phase)
-  )}
 </div>
 
 
 
-        </div>
-        <button class="btn" onclick="closeOverlay()">Close</button>
-      </div>
+<div class="modal-body">
 
-      <div class="modal-body">
-        <div class="modal-grid">
-          <div class="box">
-  <div class="k">Current</div>
-
-  <div class="row">
-    <span class="value">
-      ${esc(
-        formatScore(
-          current.homeScore,
-          current.awayScore
-        )
-      )}
-    </span>
-
-    <span class="pill">
-      ${esc(
-        formatPhase(
-          current.status ||
-          d.status ||
-          phase
-        )
-      )}
-    </span>
-  </div>
+<div class="modal-grid">
 
 
-  <div style="margin-top:10px" class="tiny muted">
-    Kickoff:
-    ${esc(
-      formatKickoff(
-        current.kickoff ||
-        current.kickoffMs ||
-        current.timestamp ||
-        current.time
-      )
-    )}
-    <br>
-
-    Raw status:
-    ${esc(
-      current.rawStatus ||
-      current.gameState ||
-      d.rawStatus ||
-      "—"
-    )}
-  </div>
-</div>
-
-
-
-          <div class="box">
-  <div class="k">Available Data</div>
-  <div class="tiny muted">
-    Snapshots: ${esc(current.snapshotCount ?? d.snapshotCount ?? 0)}<br>
-    Events: ${esc(current.eventsCount ?? d.eventsCount ?? 0)}<br>
-    Historical: ${esc(current.historicalCount ?? d.historicalCount ?? 0)}<br>
-    Odds: ${esc(current.oddsCount ?? d.oddsCount ?? 0)}<br>
-    Live Events: ${esc(current.hasLiveEvents ? "Yes" : "No")}<br>
-    Historical Data: ${esc(current.hasHistorical ? "Yes" : "No")}<br>
-    Verifiable: ${esc(current.isVerifiable ? "Yes" : "No")}
-  </div>
-</div>
-
-
-
-          ${timeline.length ? `
 <div class="box">
 
-  <div class="k">
-    Match Timeline (${timeline.length})
-  </div>
+<div class="k">
+Current Score
+</div>
 
-  <div class="tiny">
 
-    ${timeline.map(item => `
+<div class="row">
 
-      <div style="
-        padding:8px 0;
-        border-bottom:1px solid rgba(255,255,255,.08);
-      ">
-        ${esc(
-          formatTimelineEntry(item)
-        ) || "Timeline event"}
-      </div>
+<span class="value">
+${esc(score)}
+</span>
 
-    `).join("")}
 
-  </div>
+<span class="pill">
+${esc(
+formatPhase(
+current.status ||
+d.status ||
+phase
+)
+)}
+</span>
 
 </div>
-` : ``}
+
+
+<div class="tiny muted" style="margin-top:10px">
+
+Kickoff:
+${esc(
+formatKickoff(
+current.kickoff ||
+current.kickoffMs ||
+current.timestamp ||
+current.time
+)
+)}
+
+<br><br>
+
+
+Corners:
+${esc(homeCorners)}
+-
+${esc(awayCorners)}
+
+<br>
+
+
+Yellow Cards:
+${esc(homeYellow)}
+-
+${esc(awayYellow)}
+
+<br>
+
+
+Red Cards:
+${esc(homeRed)}
+-
+${esc(awayRed)}
+
+</div>
+
+</div>
 
 
 
-${events.length ? `
 <div class="box">
 
-  <div class="k">
-    Match Events (${events.length})
-  </div>
+<div class="k">
+AI Match Analysis
+</div>
 
-  <div class="tiny">
 
-    ${events.map(item => `
+<button
+class="btn"
+onclick="getAIPrediction('${fixtureId}')">
 
-      <div style="
-        padding:8px 0;
-        border-bottom:1px solid rgba(255,255,255,.08);
-      ">
-        ${esc(
-          formatEventEntry(item)
-        ) || "Event"}
-      </div>
+Generate AI Prediction
 
-    `).join("")}
+</button>
 
-  </div>
+
+<div
+id="ai-text"
+class="tiny muted"
+style="margin-top:10px">
+
+Press the button to receive AI analysis.
 
 </div>
-` : ``}
 
-
-
-${odds.length ? `
-<div class="box">
-
-  <div class="k">
-    Betting Markets (${odds.length})
-  </div>
-
-  <div class="tiny">
-
-    ${odds.map(item => `
-
-      <div style="
-        padding:8px 0;
-        border-bottom:1px solid rgba(255,255,255,.08);
-      ">
-        ${esc(
-          formatOddsEntry(item)
-        ) || "Odds market"}
-      </div>
-
-    `).join("")}
-
-  </div>
 
 </div>
-` : ``}
 
 
 
-${Object.keys(analysis).length ? `
-<div class="box">
-  <div class="k">Analysis</div>
-  <pre>${esc(JSON.stringify(analysis, null, 2))}</pre>
-</div>
-` : ``}
+${renderDetailBlock(
+"Match Timeline",
+timeline,
+formatTimelineEntry
+)}
 
 
-        </div>
+${renderDetailBlock(
+"Match Events",
+events,
+formatEventEntry
+)}
 
-        ${snapshot.length ? `
-<div style="margin-top:14px" class="box">
-  <div class="k">Snapshot History (${snapshot.length})</div>
-  <pre>${esc(JSON.stringify(snapshot, null, 2))}</pre>
-</div>
-` : ``}
 
-${historical.length ? `
-<div style="margin-top:14px" class="box">
+${renderDetailBlock(
+"Betting Markets",
+odds,
+formatOddsEntry
+)}
 
-  <div class="k">
-    Historical Match Events (${historical.length})
-  </div>
-
-  <div class="tiny">
-
-    ${historical.map(item => `
-
-      <div style="
-        padding:8px 0;
-        border-bottom:1px solid rgba(255,255,255,.08);
-      ">
-        ${esc(
-          formatHistoricalEntry(item)
-        ) || "Historical event"}
-      </div>
-
-    `).join("")}
-
-  </div>
 
 </div>
-` : ``}
 
 
 
-${!timeline.length &&
-   !events.length &&
-   !odds.length &&
-   !Object.keys(analysis).length &&
-   !snapshot.length &&
-   !historical.length
-? `
-<div style="margin-top:14px" class="box">
-  <div class="k">Additional Information</div>
-  <div class="tiny muted">
-    No timeline, odds or historical data is currently available for this fixture.
-  </div>
+${renderDetailBlock(
+"Historical Match Events",
+historical,
+formatHistoricalEntry
+)}
+
+
+${
+!timeline.length &&
+!events.length &&
+!odds.length &&
+!historical.length
+
+?
+
+`
+<div class="box" style="margin-top:14px">
+
+<div class="k">
+Additional Information
+</div>
+
+<div class="tiny muted">
+No additional match data available.
+</div>
+
 </div>
 `
-: ``}
 
+:
+""
 
-      </div>
-    `);
-  }catch(e){
-    openOverlay(`
-      <div class="modal-head">
-        <div>
-          <div class="card-title">Fixture details</div>
-          <div class="muted tiny">Error</div>
-        </div>
-        <button class="btn" onclick="closeOverlay()">Close</button>
-      </div>
-      <div class="modal-body">
-        <div class="empty">Details failed<br><br>${esc(e.message)}</div>
-      </div>
-    `);
-  }
 }
+
+
+</div>
+
+`);
+
+  }
+
+
+  catch(e){
+
+    openOverlay(`
+
+<div class="modal-head">
+
+<div>
+
+<div class="card-title">
+Fixture details
+</div>
+
+<div class="muted tiny">
+Error
+</div>
+
+</div>
+
+
+<button class="btn" onclick="closeOverlay()">
+Close
+</button>
+
+
+</div>
+
+
+<div class="modal-body">
+
+<div class="empty">
+
+Details failed
+
+<br><br>
+
+${esc(e.message)}
+
+</div>
+
+</div>
+
+`);
+
+  }
+
+}
+
+
+
+
 
 
 async function getAIPrediction(fixtureId) {
