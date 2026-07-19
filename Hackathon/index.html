@@ -945,11 +945,13 @@ function renderMatches(){
       state.favorites.has(getMatchId(m));
 
     const score =
-      m.score ||
-      formatScore(
-        m.homeScore,
-        m.awayScore
-      );
+    m.score ||
+    (
+      m.homeScore != null ||
+      m.awayScore != null
+        ? formatScore(m.homeScore, m.awayScore)
+        : "—"
+    );
 
     return `
       <div class="match">
@@ -968,6 +970,11 @@ function renderMatches(){
               vs
               ${esc(m.away || "Unknown")}
             </div>
+
+<pre style="font-size:10px">
+${esc(JSON.stringify(m, null, 2))}
+</pre>
+
 
             <div class="match-meta">
 
