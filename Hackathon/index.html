@@ -892,18 +892,6 @@ function renderFeatured(){
 
           <div class="match-meta">
 
-
-${m.kickoffMs || m.kickoff ? `
-<span class="pill">
-  ${esc(
-    formatKickoff(
-      m.kickoffMs ||
-      m.kickoff
-    )
-  )}
-</span>
-` : ``}
-
             <span class="pill">
               ${esc(formatPhase(m.phase))}
             </span>
@@ -945,13 +933,11 @@ function renderMatches(){
       state.favorites.has(getMatchId(m));
 
     const score =
-    m.score ||
-    (
-      m.homeScore != null ||
-      m.awayScore != null
-        ? formatScore(m.homeScore, m.awayScore)
-        : "—"
-    );
+      m.score ||
+      formatScore(
+        m.homeScore,
+        m.awayScore
+      );
 
     return `
       <div class="match">
@@ -971,11 +957,6 @@ function renderMatches(){
               ${esc(m.away || "Unknown")}
             </div>
 
-<pre style="font-size:10px">
-${esc(JSON.stringify(m, null, 2))}
-</pre>
-
-
             <div class="match-meta">
 
               <span class="pill">
@@ -987,18 +968,6 @@ ${esc(JSON.stringify(m, null, 2))}
                 ${esc(m.competition)}
               </span>
               ` : ``}
-
-
-${m.kickoffMs || m.kickoff ? `
-<span class="pill">
-  ${esc(
-    formatKickoff(
-      m.kickoffMs ||
-      m.kickoff
-    )
-  )}
-</span>
-` : ``}
 
               <span class="pill">
                 #${esc(m.fixtureId || m.matchId || m.id || "")}
