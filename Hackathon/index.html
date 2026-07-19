@@ -707,6 +707,42 @@ function sortByTimestamp(arr){
 }
 
 
+
+function renderDetailBlock(title, items, formatter){
+
+  if(!Array.isArray(items) || !items.length){
+    return "";
+  }
+
+  return `
+<div class="box">
+
+<div class="k">
+${esc(title)} (${items.length})
+</div>
+
+<div class="tiny">
+
+${items.map(item => `
+<div style="
+padding:8px 0;
+border-bottom:1px solid rgba(255,255,255,.08);
+">
+${esc(
+formatter(item) || "Data"
+)}
+</div>
+`).join("")}
+
+</div>
+
+</div>
+`;
+
+}
+
+
+
 function normalizeTimelineSeconds(value){
   const n = Number(value);
   if (!Number.isFinite(n) || n < 0) return null;
