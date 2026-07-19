@@ -1115,6 +1115,8 @@ Loading AI analysis...
 
 }
 
+
+
 function renderApp(){
   renderGroupButtons();
   renderFeatured();
@@ -1626,119 +1628,101 @@ ${esc(e.message)}
 
 
 async function getAIPrediction(fixtureId) {
-    const safeFixtureId = normalizeId(fixtureId);
+  const safeFixtureId = normalizeId(fixtureId);
 
-    const aiBox = document.getElementById(
-        `ai-box-${safeFixtureId}`
-    );
+  if (!safeFixtureId) return;
 
-    if (!aiBox || !safeFixtureId) return;
+  let aiBox = document.getElementById(`ai-box-${safeFixtureId}`);
 
-    aiBox.style.display = "block";
-    aiBox.innerText = text.loadingAi;
+  if (!aiBox) {
+    aiBox = document.getElementById("ai-text");
+  }
 
-    const controller = createAbortController("aiController");
+  if (!aiBox) return;
+
+  aiBox.style.display = "block";
+  aiBox.innerText = text.loadingAi;
+
+  const controller = createAbortController("aiController");
+
+  try {
+    const base = getWorkerBase();
+
+    if (!base) {
+      throw new Error("Worker URL is empty");
+    }
+
+    const ticketRes = await fetch(`${base}/__ticket`, {
+      method: "POST",
+      signal: controller.signal
+    });
+
+    if (!ticketRes.ok) {
+      throw new Error(`__ticket failed: ${ticketRes.status}`);
+    }
+
+    const ticket = await ticketRes.json();
+
+    const aiRes = await fetch(`${base}/__ai`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        k: ticket.k,
+        messages: [
+          {
+            role: "user",
+            content: text.aiPrompt(safeFixtureId)
+          }
+        ]
+      })
+    });
+
+    const raw = await aiRes.text();
+
+    let body = null;
 
     try {
-        const base = getWorkerBase();
-        if (!base) throw new Error("Worker URL is empty");
-
-        const ticketRes = await fetch(
-            `${base}/__ticket`,
-            {
-                method: "POST",
-                signal: controller.signal
-            }
-        );
-
-        if (!ticketRes.ok) {
-            throw new Error(
-                `__ticket failed: ${ticketRes.status}`
-            );
-        }
-
-        const ticket = await ticketRes.json();
-
-        const aiRes = await fetch(
-            `${base}/__ai`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                signal: controller.signal,
-                body: JSON.stringify({
-                    k: ticket.k,
-                    messages: [
-                        {
-                            role: "user",
-                            content: text.aiPrompt(
-                                safeFixtureId
-                            )
-                        }
-                    ]
-                })
-            }
-        );
-
-        const raw = await aiRes.text();
-
-        let body = null;
-
-        try {
-            body = JSON.parse(raw);
-        } catch {
-            body = { raw };
-        }
-
-        if (
-            state.requests.aiController === controller
-        ) {
-            state.requests.aiController = null;
-        }
-
-        if (!aiRes.ok || !body?.ok) {
-            console.error(
-                "AI response error:",
-                body
-            );
-
-            aiBox.innerText =
-                text.aiUnavailable;
-
-            return;
-        }
-
-        const content =
-            body?.content ||
-            body?.raw?.choices?.[0]?.message?.content ||
-            "";
-
-        aiBox.innerText =
-            typeof content === "string" &&
-            content.trim()
-                ? content.trim()
-                : text.aiUnavailable;
-
-    } catch (error) {
-
-        if (error.name === "AbortError") {
-            return;
-        }
-
-        console.error(
-            "AI module request failed:",
-            error
-        );
-
-        if (
-            state.requests.aiController === controller
-        ) {
-            state.requests.aiController = null;
-        }
-
-        aiBox.innerText = text.aiError;
+      body = JSON.parse(raw);
+    } catch {
+      body = { raw };
     }
+
+    if (state.requests.aiController === controller) {
+      state.requests.aiController = null;
+    }
+
+    if (!aiRes.ok || !body?.ok) {
+      console.error("AI response error:", body);
+      aiBox.innerText = text.aiUnavailable;
+      return;
+    }
+
+    const content =
+      body?.content ||
+      body?.raw?.choices?.[0]?.message?.content ||
+      "";
+
+    aiBox.innerText =
+      typeof content === "string" && content.trim()
+        ? content.trim()
+        : text.aiUnavailable;
+
+  } catch (error) {
+    if (error.name === "AbortError") {
+      return;
+    }
+
+    console.error("AI module request failed:", error);
+
+    if (state.requests.aiController === controller) {
+      state.requests.aiController = null;
+    }
+
+    aiBox.innerText = text.aiError;
+  }
 }
 
 
