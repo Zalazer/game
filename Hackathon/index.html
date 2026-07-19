@@ -1478,30 +1478,38 @@ ${esc(awayRed)}
 
 
 
+
+
 <div class="box">
 
 <div class="k">
 AI Match Analysis
 </div>
 
-
 <button
 class="btn"
 onclick="getAIPrediction('${fixtureId}')">
-
 Generate AI Prediction
-
 </button>
 
-
 <div
-id="ai-text"
-class="tiny muted"
-style="margin-top:10px">
-
-Press the button to receive AI analysis.
+id="ai-box-${fixtureId}"
+style="
+margin-top:10px;
+display:none;
+padding:10px;
+border-radius:8px;
+background:#1e1e1e;
+font-size:13px;
+line-height:1.5;
+white-space:pre-wrap;
+">
+Loading AI analysis...
+</div>
 
 </div>
+
+
 
 
 </div>
