@@ -1083,7 +1083,7 @@ ${m.kickoffMs || m.kickoff ? `
 
   <button
     class="btn"
-    onclick="event.stopPropagation();getAIPrediction('${id}')"
+    onclick="event.stopPropagation();getAIPrediction('${id}','ai-box-${id}')"
   >
     AI Analysis
   </button>
@@ -1488,12 +1488,14 @@ AI Match Analysis
 
 <button
 class="btn"
-onclick="getAIPrediction('${fixtureId}')">
+onclick="getAIPrediction('${fixtureId}','ai-details-${fixtureId}')">
+
 Generate AI Prediction
+
 </button>
 
 <div
-id="ai-box-${fixtureId}"
+id="ai-details-${fixtureId}"
 style="
 margin-top:10px;
 display:none;
@@ -1508,7 +1510,6 @@ Loading AI analysis...
 </div>
 
 </div>
-
 
 
 
@@ -1635,16 +1636,12 @@ ${esc(e.message)}
 
 
 
-async function getAIPrediction(fixtureId) {
-  const safeFixtureId = normalizeId(fixtureId);
+async function getAIPrediction(fixtureId, targetId) {
+  const safeFixtureId = String(fixtureId ?? "").trim();
 
   if (!safeFixtureId) return;
 
-  let aiBox = document.getElementById(`ai-box-${safeFixtureId}`);
-
-  if (!aiBox) {
-    aiBox = document.getElementById("ai-text");
-  }
+  const aiBox = document.getElementById(targetId);
 
   if (!aiBox) return;
 
