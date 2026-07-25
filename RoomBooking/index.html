@@ -1,1 +1,568 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meeting Rooms</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--card:#1b1f2b;--card2:#252b3c;--txt:#fff;--green:#37d76d;--red:#ff5757;--orange:#ffb347;--blue:#52a5ff;--purple:#b184ff}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);padding-bottom:110px}
+.container{max-width:900px;margin:auto;padding:20px}
+.card,.room-card,.modal-content{background:var(--card);border-radius:22px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.card,.room-card{margin-bottom:20px}
+h1{font-size:32px;margin-bottom:8px}
+h2{margin-bottom:15px}
+.subtitle{opacity:.75;margin-bottom:18px}
+.info{display:flex;justify-content:space-between;margin-bottom:10px}
+.room-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.room-name{font-size:24px;font-weight:700}
+.status{padding:7px 13px;border-radius:20px;font-size:13px;font-weight:700}
+.available{background:#173a23;color:#97ffbd}
+.reserved{background:#582121;color:#ffc0c0}
+.meeting{background:#5b4217;color:#ffd994}
+.mine{background:#15375d;color:#9bc8ff}
+.mymeeting{background:#372059;color:#dbc5ff}
+.timeline{display:flex;gap:1px;overflow:hidden;border-radius:10px;margin-bottom:12px}
+.t{height:14px;flex:1}
+.tf{background:var(--green)}
+.tr{background:var(--red)}
+.tm{background:var(--orange)}
+.ty{background:var(--blue)}
+.tym{background:var(--purple)}
+.desc{line-height:1.6;margin-bottom:12px;opacity:.9}
+.details{display:none;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;margin-top:12px}
+.row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
+.sa{color:var(--green)}.sr{color:var(--red)}.sm{color:var(--orange)}.sy{color:var(--blue)}.sym{color:var(--purple)}
+.reservation{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.reservation:last-child{border-bottom:none}
+.title{font-weight:700;margin-bottom:4px}
+.small{opacity:.8;font-size:14px;margin-bottom:8px}
+button{border:none;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer}
+.primary{background:var(--green);color:#000}
+.secondary{background:var(--card2);color:#fff}
+.cancel{background:var(--blue);color:#fff}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.float{position:fixed;right:25px;bottom:25px;width:66px;height:66px;border-radius:50%;font-size:34px;background:var(--green);color:#000;box-shadow:0 0 25px rgba(55,215,109,.35)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;justify-content:center;align-items:center;padding:20px;z-index:99}
+.modal-content{width:100%;max-width:420px}
+label{display:block;margin:12px 0 6px}
+select,input{width:100%;padding:13px;border:none;border-radius:12px;background:var(--card2);color:#fff}
+.box{margin-top:15px;padding:14px;border-radius:12px;background:var(--card2);line-height:1.6}
+.modal-buttons{display:flex;gap:10px;margin-top:18px}
+.modal-buttons button{flex:1}
+.footer{text-align:center;opacity:.5;margin-top:25px}
+@media(max-width:650px){.room-head{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="card">
+<h1 id="greeting"></h1>
+<div class="subtitle">24/7 Global Meeting Room Reservation System</div>
+<div class="info"><span>Current time</span><span id="clock"></span></div>
+<div class="info"><span>Available now</span><span id="availableRooms"></span></div>
+<div class="info"><span>Nearest available room</span><span id="nearestRoom"></span></div>
+</div>
+
+<div class="card">
+<h2>Today's Reservations</h2>
+<div id="myReservations"></div>
+</div>
+
+<div id="rooms"></div>
+
+<div class="footer">
+Demo Version • Local Mode • 15 Minute Intervals
+</div>
+
+</div>
+
+<button class="float" onclick="openModal()">+</button>
+
+<div class="modal" id="modal">
+<div class="modal-content">
+
+<h2>Reserve Meeting Room</h2>
+
+<label>Meeting title</label>
+<input id="titleInput" maxlength="50" placeholder="Team meeting">
+
+<label>Room</label>
+<select id="roomSelect"></select>
+
+<label>Start time</label>
+<select id="startSelect"></select>
+
+<label>End time</label>
+<select id="endSelect" disabled></select>
+
+<div class="box" id="durationBox">
+Select a room and start time.
+</div>
+
+<div class="modal-buttons">
+<button
+id="saveBtn"
+class="primary"
+onclick="reserveRoom()">
+Reserve
+</button>
+
+<button class="secondary" onclick="closeModal()">Cancel</button>
+</div>
+
+</div>
+</div>
+
+<script>
+
+const API="https://meeting.shooleeyack.workers.dev";
+
+const USER_NAME=localStorage.USER_NAME||prompt("Your name")||"Guest";
+localStorage.USER_NAME=USER_NAME;
+
+const USER_ID=localStorage.USER_ID||crypto.randomUUID();
+localStorage.USER_ID=USER_ID;
+
+let editing=null;
+let rooms=[];
+
+const TIMES=[];
+for(let h=0;h<24;h++)for(let m=0;m<60;m+=15)TIMES.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+
+const tm=t=>t==="24:00"?1440:(()=>{let[a,b]=t.split(":").map(Number);return a*60+b})();
+const now=()=>`${String(new Date().getHours()).padStart(2,"0")}:${String(new Date().getMinutes()).padStart(2,"0")}`;
+
+async function loadRooms(){
+const d=await fetch(`${API}/rooms`).then(r=>r.json());
+rooms=d.map(r=>({id:r.id,name:r.name,bookings:[]}));
+}
+
+async function loadReservations(){
+const d=await fetch(`${API}/reservations`).then(r=>r.json());
+
+rooms.forEach(r=>r.bookings=[]);
+
+d.forEach(b=>{
+const room=rooms.find(r=>r.id==b.room_id);
+if(!room)return;
+room.bookings.push({
+id:b.id,
+start:b.start_at.slice(11,16),
+end:b.end_at.slice(11,16),
+title:b.title,
+owner:b.user_name
+});
+});
+}
+
+function greeting(){
+const h=new Date().getHours();
+if(h<12)return`Good morning, ${USER_NAME}`;
+if(h<18)return`Good afternoon, ${USER_NAME}`;
+return`Good evening, ${USER_NAME}`;
+}
+
+function duration(s,e){
+const d=tm(e)-tm(s),h=Math.floor(d/60),m=d%60;
+if(!h)return`${m} minutes`;
+if(!m)return h===1?"1 hour":`${h} hours`;
+return`${h===1?"1 hour":h+" hours"} ${m} minutes`;
+}
+
+const overlap=(s1,e1,s2,e2)=>tm(s1)<tm(e2)&&tm(e1)>tm(s2);
+
+function busy(room,time){
+return room.bookings.some(b=>tm(time)>=tm(b.start)&&tm(time)<tm(b.end));
+}
+
+function currentBooking(room){
+const n=tm(now());
+return room.bookings.find(b=>n>=tm(b.start)&&n<tm(b.end))||null;
+}
+
+function nextBooking(room){
+const n=tm(now());
+return room.bookings.filter(b=>tm(b.start)>=n).sort((a,b)=>tm(a.start)-tm(b.start))[0]||null;
+}
+
+function availableAt(room){
+for(const t of TIMES){
+if(tm(t)<tm(now()))continue;
+if(!busy(room,t))return t;
+}
+return null;
+}
+
+function freeRestOfDay(room){
+const n=tm(now());
+return !room.bookings.some(b=>tm(b.end)>n);
+}
+
+function myBookings(){
+const list=[];
+rooms.forEach(room=>{
+room.bookings.forEach(b=>{
+if(b.owner===USER_NAME)list.push({...b,room:room.name});
+});
+});
+return list.sort((a,b)=>tm(a.start)-tm(b.start));
+}
+
+function renderMyReservations(){
+const el=myReservations;
+const list=myBookings();
+
+if(!list.length){
+el.innerHTML='<div class="small">No reservations today.</div>';
+return;
+}
+
+let html="";
+
+list.forEach(b=>{
+html+=`
+<div class="reservation">
+<div class="title">${b.title}</div>
+<div class="small">${b.room} • ${b.start} - ${b.end}</div>
+<button class="secondary" onclick="editReservation(${b.id})">Edit</button>
+<button class="cancel" onclick="cancelReservation(${b.id})">Cancel</button>
+</div>`;
+});
+
+el.innerHTML=html;
+}
+
+function roomStatus(room){
+const cb=currentBooking(room);
+if(cb){
+if(cb.owner===USER_NAME)return{text:"Your meeting",cls:"mymeeting"};
+return{text:"In meeting now",cls:"meeting"};
+}
+const nb=nextBooking(room);
+if(nb&&nb.owner===USER_NAME)return{text:"Your reservation",cls:"mine"};
+return{text:"Available now",cls:"available"};
+}
+
+function timelineClass(room,time){
+const n=tm(now());
+for(const b of room.bookings){
+const inside=tm(time)>=tm(b.start)&&tm(time)<tm(b.end);
+if(!inside)continue;
+const active=n>=tm(b.start)&&n<tm(b.end);
+if(b.owner===USER_NAME)return active?"tym":"ty";
+return active?"tm":"tr";
+}
+return"tf";
+}
+
+function roomDescription(room,status){
+const cb=currentBooking(room);
+
+if(cb){
+if(cb.owner===USER_NAME)return`${cb.title}<br>${cb.start} - ${cb.end}`;
+return`Ends at: ${cb.end}`;
+}
+
+const nb=nextBooking(room);
+
+if(status.cls==="available"){
+if(!nb)return freeRestOfDay(room)
+?"Free for the rest of the day."
+:`Available at: ${availableAt(room)}`;
+return`Next reservation:<br>${nb.start} - ${nb.end}`;
+}
+
+if(status.cls==="mine"&&nb){
+return`${nb.title}<br>${nb.start} - ${nb.end}`;
+}
+
+const at=availableAt(room);
+return at?`Available at: ${at}`:"No free slots today.";
+}
+
+function slotState(room,time){
+const n=tm(now());
+
+for(const b of room.bookings){
+
+const inside=tm(time)>=tm(b.start)&&tm(time)<tm(b.end);
+if(!inside)continue;
+
+const active=n>=tm(b.start)&&n<tm(b.end);
+
+if(b.owner===USER_NAME)return active?["Your meeting","sym"]:["Your reservation","sy"];
+return active?["In meeting","sm"]:["Reserved","sr"];
+}
+
+return["Available","sa"];
+}
+
+function detailsHTML(room){
+let html="";
+for(const t of TIMES){
+const s=slotState(room,t);
+html+=`<div class="row"><span>${t}</span><span class="${s[1]}">${s[0]}</span></div>`;
+}
+return html;
+}
+
+function toggleDetails(id){
+const el=document.getElementById(id);
+el.style.display=el.style.display==="block"?"none":"block";
+}
+
+function renderRooms(){
+
+rooms.sort((a,b)=>a.name.localeCompare(b.name));
+
+let available=0;
+let nearest="None";
+
+roomsWrap="";
+
+for(const room of rooms){
+
+const status=roomStatus(room);
+
+if(status.cls==="available"){
+available++;
+if(nearest==="None")nearest=room.name;
+}
+
+let timeline="";
+for(const t of TIMES)timeline+=`<div class="t ${timelineClass(room,t)}"></div>`;
+
+const id=`details-${room.name}`;
+
+roomsWrap+=`
+<div class="room-card">
+<div class="room-head">
+<div class="room-name">${room.name}</div>
+<div class="status ${status.cls}">${status.text}</div>
+</div>
+<div class="timeline">${timeline}</div>
+<div class="desc">${roomDescription(room,status)}</div>
+<div class="actions">
+<button class="secondary" onclick="toggleDetails('${id}')">Show / Hide details</button>
+</div>
+<div class="details" id="${id}">
+${detailsHTML(room)}
+</div>
+</div>`;
+}
+
+document.getElementById("rooms").innerHTML=roomsWrap;
+availableRooms.textContent=available;
+nearestRoom.textContent=nearest;
+}
+
+function populateRooms(){
+roomSelect.innerHTML="";
+rooms.forEach(r=>roomSelect.innerHTML+=`<option value="${r.name}">${r.name}</option>`);
+populateStarts();
+}
+
+function populateStarts(){
+
+const room=rooms.find(r=>r.name===roomSelect.value);
+
+startSelect.innerHTML="";
+
+TIMES.forEach(t=>{
+
+if(!busy(room,t)||(editing&&room.name===editing.name&&t===editing.start)){
+startSelect.innerHTML+=`<option value="${t}">${t}</option>`;
+}
+
+});
+
+endSelect.innerHTML="";
+endSelect.disabled=true;
+durationBox.textContent="Select an end time.";
+}
+
+function populateEnds(){
+
+const room=rooms.find(r=>r.name===roomSelect.value);
+const start=startSelect.value;
+
+endSelect.innerHTML="";
+
+for(const t of [...TIMES,"24:00"]){
+
+if(tm(t)<=tm(start))continue;
+
+let free=true;
+
+for(const b of room.bookings){
+
+if(editing&&room.name===editing.name&&b.id===editing.id)continue;
+
+if(overlap(start,t,b.start,b.end)){
+free=false;
+break;
+}
+}
+
+if(free)endSelect.innerHTML+=`<option value="${t}">${t}</option>`;
+}
+
+endSelect.disabled=!endSelect.options.length;
+updateDuration();
+}
+
+function updateDuration(){
+if(endSelect.disabled){
+durationBox.textContent="No available end times.";
+return;
+}
+durationBox.innerHTML=`Duration: <b>${duration(startSelect.value,endSelect.value)}</b><br>Status: <b>Available</b>`;
+}
+
+function openModal(){
+modal.style.display="flex";
+if(!editing){
+saveBtn.textContent="Reserve";
+titleInput.value="";
+}
+populateRooms();
+}
+
+function closeModal(){
+modal.style.display="none";
+editing=null;
+}
+
+roomSelect.onchange=populateStarts;
+startSelect.onchange=populateEnds;
+endSelect.onchange=updateDuration;
+
+function editReservation(id){
+
+for(const room of rooms){
+
+const b=room.bookings.find(x=>x.id===id);
+
+if(b&&b.owner===USER_NAME){
+
+editing={id,name:room.name,start:b.start,end:b.end};
+
+openModal();
+
+saveBtn.textContent="Save";
+titleInput.value=b.title;
+roomSelect.value=room.name;
+
+populateStarts();
+startSelect.value=b.start;
+populateEnds();
+endSelect.value=b.end;
+updateDuration();
+
+return;
+}
+}
+}
+
+async function reserveRoom(){
+
+const title=titleInput.value.trim().slice(0,50);
+
+if(!title){
+alert("Please enter meeting title.");
+return;
+}
+
+const room=rooms.find(r=>r.name===roomSelect.value);
+
+const today=new Date().toISOString().slice(0,10);
+
+const body={
+room_id:room.id,
+user_id:USER_ID,
+user_name:USER_NAME,
+title,
+description:"",
+start_at:`${today}T${startSelect.value}:00`,
+end_at:`${today}T${endSelect.value}:00`
+};
+
+let res;
+
+if(editing){
+
+res=await fetch(`${API}/reservations/${editing.id}`,{
+method:"PUT",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(body)
+});
+
+}else{
+
+res=await fetch(`${API}/reservations`,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(body)
+});
+
+}
+
+const j=await res.json();
+
+if(!j.ok){
+alert(j.error);
+return;
+}
+
+closeModal();
+await loadReservations();
+render();
+}
+
+async function cancelReservation(id){
+
+const res=await fetch(
+`${API}/reservations/${id}?userId=${USER_ID}`,
+{method:"DELETE"}
+);
+
+const j=await res.json();
+
+if(!j.ok){
+alert(j.error);
+return;
+}
+
+await loadReservations();
+render();
+}
+
+function render(){
+document.getElementById("greeting").textContent=greeting();
+clock.textContent=now();
+renderMyReservations();
+renderRooms();
+}
+
+(async()=>{
+
+await loadRooms();
+await loadReservations();
+
+render();
+
+setInterval(async()=>{
+clock.textContent=now();
+await loadReservations();
+renderRooms();
+},60000);
+
+})();
+
+</script>
+</body>
+</html>
