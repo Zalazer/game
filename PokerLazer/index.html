@@ -290,24 +290,27 @@ line-height: 66px;
 </head>
 <body>
 
-  <h1 style="margin-top:0">
-<select id="godPlace">
-<option>1</option><option>2</option><option>3</option>
-<option>4</option><option>5</option><option>6</option>
-<option>7</option><option>8</option><option>9</option>
-</select>
-<button onclick="
-godMode=!godMode;
-this.textContent='GodMode '+(godMode?'ON':'OFF');
-">GodMode OFF</button>
-</h1>
-
 <div id="controls">
-    <button onclick="laserDealSequence()">🚀 LAZER DEAL</button>
-    <button onclick="revealFlop()">🂡 FLOP</button>
-    <button onclick="revealTurn()">🔄 TURN</button>
-    <button onclick="revealRiver()">🌊 RIVER</button>
+    <button onclick="laserDealSequence()">DEAL</button>
+    <button onclick="revealFlop()">FLOP</button>
+    <button onclick="revealTurn()">TURN</button>
+    <button onclick="revealRiver()">RIVER</button>
+
+    <select id="godPlace">
+        <option>1</option><option>2</option><option>3</option>
+        <option>4</option><option>5</option><option>6</option>
+        <option>7</option><option>8</option><option>9</option>
+    </select>
+
+    <button onclick="
+        godMode=!godMode;
+        this.textContent='GM '+(godMode?'ON':'OFF');
+    ">
+        GM OFF
+    </button>
 </div>
+
+
 <div id="table">
     <canvas id="pokerCanvas"></canvas>
     <div id="dealer"></div>
