@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -290,7 +290,17 @@ line-height: 66px;
 </head>
 <body>
 
-  <h1 style="margin-top: 0px;">Holdem 9 max</h1>
+  <h1 style="margin-top:0">
+<select id="godPlace">
+<option>1</option><option>2</option><option>3</option>
+<option>4</option><option>5</option><option>6</option>
+<option>7</option><option>8</option><option>9</option>
+</select>
+<button onclick="
+godMode=!godMode;
+this.textContent='GodMode '+(godMode?'ON':'OFF');
+">GodMode OFF</button>
+</h1>
 
 <div id="controls">
     <button onclick="laserDealSequence()">🚀 LAZER DEAL</button>
@@ -336,6 +346,9 @@ const handRanks = {
  'Royal Flush': 9
 };
 let deck=[], players=[], communityCards=[], stage=0, logCounter=0;
+
+let godMode=false, godPlace=1;
+
 function createDeck(){
  deck=[];
  for(let s of suits){
@@ -473,263 +486,311 @@ window.addEventListener('resize', resizeCanvasToTable);
 
 
 
+function getPlayer1Place(){
+    const ranked=players.map((p,i)=>({
+        i,
+        h:getBestHand(p.hand,communityCards)
+    })).sort((a,b)=>
+        b.h.rank-a.h.rank||
+        compareKickers(b.h.kickers,a.h.kickers)
+    );
+
+    return ranked.findIndex(x=>x.i===0)+1;
+}
 
 
 
 
-function laserDealSequence() {
-    const table = document.getElementById('table');
-    table.classList.remove('gold-frame');
-    table.style.background = '';
+function laserDealSequence(){
 
-    table.querySelectorAll('.card, .player-wrapper').forEach(el => el.remove());
+const table=document.getElementById('table');
+table.classList.remove('gold-frame');
+table.style.background='';
+table.querySelectorAll('.card,.player-wrapper').forEach(e=>e.remove());
 
-    const communityDiv = document.getElementById('community-cards');
-    communityDiv.innerHTML = '';
+const communityDiv=document.getElementById('community-cards');
+communityDiv.innerHTML='';
 
-    players = [];
-    communityCards = [];
-    stage = 0;
+players=[];
+communityCards=[];
+stage=0;
+
+const numPlayers=9;
+
+// ---------- GOD MODE ----------
+if(godMode){
+
+    const target=+document.getElementById('godPlace').value;
+    let found=false;
+
+    for(let tries=0;tries<5000;tries++){
+
+        createDeck();
+        shuffleDeck();
+
+        let testPlayers=[...Array(numPlayers)].map(()=>[]);
+        let testCommunity=[];
+
+        for(let r=0;r<2;r++){
+            for(let i=0;i<numPlayers;i++){
+                testPlayers[i].push(deck.pop());
+            }
+        }
+
+        for(let i=0;i<5;i++){
+            testCommunity.push(deck.pop());
+        }
+
+        const ranked=testPlayers
+            .map((h,i)=>({
+                i,
+                h:getBestHand(h,testCommunity)
+            }))
+            .sort((a,b)=>
+                b.h.rank-a.h.rank ||
+                compareKickers(b.h.kickers,a.h.kickers)
+            );
+
+        const place=ranked.findIndex(x=>x.i===0)+1;
+
+        if(place===target){
+
+            players=testPlayers.map(h=>({
+                hand:h,
+                cards:[],
+                pos:null,
+                strengthEl:null,
+                strength:'Waiting...'
+            }));
+
+            communityCards=testCommunity;
+            found=true;
+            addLog(`🎯 GodMode: Player 1 finishes #${target}`);
+            break;
+        }
+    }
+
+    if(!found){
+        addLog('⚠️ GodMode failed after 5000 tries');
+        createDeck();
+        shuffleDeck();
+    }
+
+}else{
 
     createDeck();
     shuffleDeck();
-    addLog('🃏 Shuffling deck — Lazer Deal');
 
-    const tableRect = table.getBoundingClientRect();
-    const dealerEl = document.getElementById('dealer');
-    const dealerRect = dealerEl.getBoundingClientRect();
-    const dealerX = dealerRect.left + dealerRect.width / 2;
-    const dealerY = dealerRect.top + dealerRect.height / 2;
-
-    const centerX = tableRect.width / 2;
-    const centerY = tableRect.height / 2;
-
-    const horRadius = tableRect.width * 0.28;
-    const verRadius = tableRect.height * 0.36;
-    const numPlayers = 9;
-    const verticalShift = tableRect.height * 0.12;
-
-    const playerPositions = [];
-
-    for (let i = 0; i < numPlayers; i++) {
-        const angle = Math.PI * 1.5 + (i / numPlayers) * Math.PI * 2;
-        let x, y;
-
-        if (i === 0)
-            x = centerX + Math.cos(angle) * horRadius,
-            y = centerY + Math.sin(angle) * verRadius * 1.2 + verticalShift;
-        else if (i === 1 || i === 8)
-            x = centerX + Math.cos(angle) * horRadius * 1.1,
-            y = centerY + Math.sin(angle) * verRadius * 0.95 + verticalShift;
-        else if (i === 2 || i === 7)
-            x = centerX + Math.cos(angle) * horRadius,
-            y = centerY + Math.sin(angle) * verRadius * 0.9 + verticalShift;
-        else if (i === 3 || i === 6)
-            x = centerX + Math.cos(angle) * horRadius * 0.95,
-            y = centerY + Math.sin(angle) * verRadius * 0.95 + verticalShift;
-        else
-            x = centerX + Math.cos(angle) * horRadius * 0.9,
-            y = centerY + Math.sin(angle) * verRadius * 0.85 + verticalShift;
-
-        playerPositions.push({ x, y });
-    }
-
-    for (let i = 0; i < numPlayers; i++) {
-        let pos = playerPositions[i];
-
-        let yOffset = 0;
-        if (i === 1 || i === 8) yOffset -= 40;
-        if (i === 2 || i === 7) yOffset += 10;
-        if (i === 3 || i === 6) yOffset -= 25;
-        if (i === 4 || i === 5) yOffset += 5;
-
-        let xPos = pos.x;
-        if (i === 4) xPos = playerPositions[1].x - 20;
-        if (i === 5) xPos = playerPositions[8].x + 20;
-
-        pos = { x: xPos, y: pos.y };
-
+    for(let i=0;i<numPlayers;i++){
         players.push({
-            hand: [],
-            cards: [],
-            pos,
-            strengthEl: null,
-            strength: 'Waiting...'
+            hand:[],
+            cards:[],
+            pos:null,
+            strengthEl:null,
+            strength:'Waiting...'
         });
-
-        const cardsBaseY = ((i === 0) ? pos.y - 140 : pos.y - 110) + yOffset;
-        const labelsTop = cardsBaseY + 78 + 6 - 10;
-
-        const cardWidth = 70;
-        const spacing = 55;
-        const card1Left = pos.x - 35;
-        const centerBetweenCards = card1Left + (cardWidth + spacing) / 2;
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'player-wrapper';
-        wrapper.style.width = '200px';
-        wrapper.style.left = (centerBetweenCards - 100 - 10) + 'px';
-        wrapper.style.top = labelsTop + 'px';
-
-        // 🔧 Сдвиг влево подписей для игроков 6,7,8,9,1
-        if ([0,5,6,7,8].includes(i)) {
-            wrapper.style.left = (parseFloat(wrapper.style.left) - 40) + 'px';
-        }
-
-        // 🔧 Сдвиг влево подписей для игрока 1
-        if ([0].includes(i)) {
-            wrapper.style.left = (parseFloat(wrapper.style.left) + 20) + 'px';
-        }
-
-
-        // 🔧 Сдвиг влево подписей для игрока 2
-        if ([1].includes(i)) {
-            wrapper.style.left = (parseFloat(wrapper.style.left) + 20) + 'px';
-        }
-
-
-        // 🔧 Сдвиг влево подписей для игрока 9
-        if ([8].includes(i)) {
-            wrapper.style.left = (parseFloat(wrapper.style.left) - 20) + 'px';
-        }
-
-
-
-        // 🔧 Поднимаем подписи всех игроков
-        wrapper.style.top = (parseFloat(wrapper.style.top) + 5) + 'px';
-
-        // 🔧 Игрок 1 дополнительно поднимаем подпись
-        if (i === 0) {
-            wrapper.style.top = (parseFloat(wrapper.style.top) + 15) + 'px';
-        }
-
-        const name = document.createElement('div');
-        name.className = 'player-name';
-        name.textContent = 'Player ' + (i + 1);
-
-        const strength = document.createElement('div');
-        strength.className = 'hand-strength';
-        strength.textContent = 'Waiting...';
-        strength.style.marginTop = '-10px';
-
-        players[i].strengthEl = strength;
-
-        wrapper.appendChild(name);
-        wrapper.appendChild(strength);
-        table.appendChild(wrapper);
     }
 
-    for (let round = 0; round < 2; round++) {
-        for (let i = 0; i < numPlayers; i++) {
+    for(let r=0;r<2;r++){
+        for(let i=0;i<numPlayers;i++){
             players[i].hand.push(deck.pop());
         }
     }
 
-    for (let i = 0; i < 5; i++) {
-        let c = deck.pop();
-        c.revealed = false;
-        communityCards.push(c);
+    for(let i=0;i<5;i++){
+        communityCards.push(deck.pop());
     }
-
-    for (let i = 0; i < 5; i++) {
-        const card = document.createElement('div');
-        card.className = 'card back';
-        card.style.position = 'relative';
-        card.style.top = '-60px';
-        communityDiv.appendChild(card);
-    }
-
-    const dealQueue = [];
-
-    for (let round = 0; round < 2; round++) {
-        for (let i = 0; i < numPlayers; i++) {
-            dealQueue.push({ type: 'player', playerIndex: i, cardIndex: round });
-        }
-    }
-
-    for (let i = 0; i < 5; i++) {
-        dealQueue.push({ type: 'community', index: i });
-    }
-
-    let index = 0;
-
-    function nextDeal() {
-        if (index >= dealQueue.length) {
-            addLog('✅ Hole cards dealt');
-            updateHandStrengths();
-            return;
-        }
-
-        const item = dealQueue[index++];
-        if (item.type === 'player') {
-            const player = players[item.playerIndex];
-            const c = player.hand[item.cardIndex];
-
-            const card = document.createElement('div');
-            card.className = 'card ' + c.suit;
-            card.innerHTML = c.value + suitSymbols[c.suit];
-
-            const pos = player.pos;
-            let x = pos.x - 35 + item.cardIndex * 55;
-            let y = pos.y - tableRect.height * 0.12;
-
-            if (item.playerIndex === 1 || item.playerIndex === 8) y -= 40;
-            if (item.playerIndex === 2 || item.playerIndex === 7) y += 10;
-            if (item.playerIndex === 3 || item.playerIndex === 6) y -= 25;
-            if (item.playerIndex === 4 || item.playerIndex === 5) y += 5;
-
-
-            // 🔧 Поднимаем карты всех игроков
-            y -= 25;
-
-            // 🔧 Игрок 1 дополнительно поднимаем карты
-            if (item.playerIndex === 0) y -= 15;
-
-            // 🔧 Сдвиг карт влево только для игроков 6,7,8,9,1
-            if ([0,5,6,7,8].includes(item.playerIndex)) {
-                x -= 40;
-            }
-
-
-
-            // 🔧 Сдвиг карт влево только для игрока 1
-            if ([0].includes(item.playerIndex)) {
-                x += 20;
-            }
-
-            // 🔧 Сдвиг карт влево только для игрока 2
-            if ([1].includes(item.playerIndex)) {
-                x += 20;
-            }
-
-
-            // 🔧 Сдвиг карт влево только для игрока 9
-            if ([8].includes(item.playerIndex)) {
-                x -= 20;
-            }
-
-
-
-
-            card.style.left = x + 'px';
-            card.style.top = y + 'px';
-
-            table.appendChild(card);
-            player.cards[item.cardIndex] = card;
-
-            createLaserBeam(dealerX, dealerY, x + tableRect.left, y + tableRect.top);
-            setTimeout(nextDeal, 80);
-
-        } else {
-            const target = communityDiv.children[item.index].getBoundingClientRect();
-            createLaserBeam(dealerX, dealerY, target.left + 45, target.top + 27);
-            setTimeout(nextDeal, 80);
-        }
-    }
-
-    nextDeal();
 }
 
+communityCards.forEach(c=>c.revealed=false);
+
+addLog('🃏 Shuffling deck — Lazer Deal');
+
+// ---------- TABLE ----------
+const tr=table.getBoundingClientRect(),
+dr=document.getElementById('dealer').getBoundingClientRect(),
+dealerX=dr.left+dr.width/2,
+dealerY=dr.top+dr.height/2,
+cx=tr.width/2,
+cy=tr.height/2,
+hr=tr.width*.28,
+vr=tr.height*.36,
+vs=tr.height*.03;
+
+const playerPositions=[];
+
+for(let i=0;i<numPlayers;i++){
+
+    const a=Math.PI*.5+i/numPlayers*Math.PI*2;
+
+    let x,y;
+
+    if(i===0){
+        x=cx+Math.cos(a)*hr;
+        y=cy+Math.sin(a)*vr*1.2+vs;
+    }
+    else if(i===1||i===8){
+        x=cx+Math.cos(a)*hr*1.9;
+        y=cy+Math.sin(a)*vr*.95+vs-tr.height*.02;
+    }
+    else if(i===2||i===7){
+        x=cx+Math.cos(a)*hr*1.3;
+        y=cy+Math.sin(a)*vr*.9+vs+tr.height*.02;
+    }
+    else if(i===3||i===6){
+        x=cx+Math.cos(a)*hr*1.3;
+        y=cy+Math.sin(a)*vr*.95+vs-tr.height*.03;
+    }
+    else{
+        x=cx+Math.cos(a)*hr*.9;
+        y=cy+Math.sin(a)*vr*.85+vs-tr.height*.08;
+    }
+
+    playerPositions.push({x,y});
+}
+
+for(let i=0;i<numPlayers;i++){
+
+    let pos=playerPositions[i];
+
+    if(i===4) pos.x=playerPositions[1].x+60;
+    if(i===5) pos.x=playerPositions[8].x-40;
+
+    players[i].pos=pos;
+
+    const cardsBaseY=(i===0?pos.y-140:pos.y-110),
+          labelsTop=cardsBaseY+74,
+          center=pos.x+27.5;
+
+    const wrapper=document.createElement('div');
+
+    wrapper.className='player-wrapper';
+    wrapper.style.width='200px';
+
+    wrapper.style.left=
+        (
+            center-110+
+            ([0,5,6,7,8].includes(i)?-40:0)+
+            (i===0||i===1?20:0)+
+            (i===8?-20:0)
+        )+'px';
+
+    wrapper.style.top=
+        (labelsTop+5+(i===0?15:0))+'px';
+
+    const name=document.createElement('div');
+    name.className='player-name';
+    name.textContent='Player '+(i+1);
+
+    const strength=document.createElement('div');
+    strength.className='hand-strength';
+    strength.textContent='Waiting...';
+    strength.style.marginTop='-10px';
+
+    players[i].strengthEl=strength;
+
+    wrapper.append(name,strength);
+    table.appendChild(wrapper);
+}
+
+// ---------- COMMUNITY BACKS ----------
+for(let i=0;i<5;i++){
+
+    const card=document.createElement('div');
+
+    card.className='card back';
+    card.style.position='relative';
+    card.style.top='-40px';
+
+    communityDiv.appendChild(card);
+}
+
+// ---------- DEAL QUEUE ----------
+const dealQueue=[];
+
+for(let r=0;r<2;r++){
+    for(let i=0;i<numPlayers;i++){
+        dealQueue.push({
+            type:'player',
+            playerIndex:i,
+            cardIndex:r
+        });
+    }
+}
+
+for(let i=0;i<5;i++){
+    dealQueue.push({
+        type:'community',
+        index:i
+    });
+}
+
+let idx=0;
+
+(function nextDeal(){
+
+    if(idx>=dealQueue.length){
+        addLog('✅ Hole cards dealt');
+        updateHandStrengths();
+        return;
+    }
+
+    const item=dealQueue[idx++];
+
+    if(item.type==='player'){
+
+        const p=players[item.playerIndex];
+        const c=p.hand[item.cardIndex];
+
+        const card=document.createElement('div');
+
+        card.className='card '+c.suit;
+        card.innerHTML=c.value+suitSymbols[c.suit];
+
+        let x=p.pos.x-35+item.cardIndex*55;
+        let y=p.pos.y-tr.height*.12-25;
+
+        if(item.playerIndex===0) y-=15;
+
+        if([0,5,6,7,8].includes(item.playerIndex)) x-=40;
+        if(item.playerIndex===0||item.playerIndex===1) x+=20;
+        if(item.playerIndex===8) x-=20;
+
+        card.style.left=x+'px';
+        card.style.top=y+'px';
+
+        table.appendChild(card);
+
+        p.cards[item.cardIndex]=card;
+
+        createLaserBeam(
+            dealerX,
+            dealerY,
+            x+tr.left,
+            y+tr.top
+        );
+
+        setTimeout(nextDeal,80);
+
+    }else{
+
+        const t=
+            communityDiv.children[item.index]
+            .getBoundingClientRect();
+
+        createLaserBeam(
+            dealerX,
+            dealerY,
+            t.left+45,
+            t.top+27
+        );
+
+        setTimeout(nextDeal,80);
+    }
+
+})();
+
+}
 
 
 
