@@ -987,13 +987,14 @@ function evaluateHand(cards) {
         };
     }
 
-    // ===== HIGH CARD =====
-    const high = Math.max(...ranks);
-    return {
-        rank: 0,
-        description: `High Card: ${rankToName(high)}`,
-        kickers: [high]
-    };
+// ===== HIGH CARD =====
+const kickers = [...ranks].sort((a, b) => b - a);
+
+return {
+    rank: 0,
+    description: `High Card: ${rankToName(kickers[0])}`,
+    kickers
+};
 }
 
 
